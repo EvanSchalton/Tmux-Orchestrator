@@ -111,7 +111,7 @@ cat > .vscode/tasks.json << EOF
     {
       "label": "🚀 Deploy Team",
       "type": "shell", 
-      "command": "\${workspaceFolder}/scripts/deploy-$PROJECT_NAME-team.sh",
+      "command": "\${workspaceFolder}/scripts/deploy.sh",
       "args": ["\${input:taskFile}"],
       "group": {
         "kind": "build",
@@ -130,7 +130,7 @@ cat > .vscode/tasks.json << EOF
     {
       "label": "🔄 Restart Team",
       "type": "shell",
-      "command": "\${workspaceFolder}/scripts/restart-$PROJECT_NAME.sh",
+      "command": "\${workspaceFolder}/scripts/restart.sh",
       "args": ["\${input:taskFile}"],
       "group": "build",
       "presentation": {

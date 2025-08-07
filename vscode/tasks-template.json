@@ -4,7 +4,7 @@
     {
       "label": "🚀 Deploy Team",
       "type": "shell", 
-      "command": "${workspaceFolder}/scripts/deploy-${workspaceFolderBasename}-team.sh",
+      "command": "${workspaceFolder}/scripts/deploy.sh",
       "args": ["${input:taskFile}"],
       "group": {
         "kind": "build",
@@ -23,7 +23,7 @@
     {
       "label": "🔄 Restart Team",
       "type": "shell",
-      "command": "${workspaceFolder}/scripts/restart-${workspaceFolderBasename}.sh",
+      "command": "${workspaceFolder}/scripts/restart.sh",
       "args": ["${input:taskFile}"],
       "group": "build",
       "presentation": {

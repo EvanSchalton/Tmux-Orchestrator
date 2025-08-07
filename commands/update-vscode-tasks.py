@@ -54,7 +54,7 @@ def create_base_tasks(project_name):
         {
             'label': '🚀 Deploy Team',
             'type': 'shell',
-            'command': f'${{workspaceFolder}}/scripts/deploy-{project_name}-team.sh',
+            'command': '${workspaceFolder}/scripts/deploy.sh',
             'args': ['${input:taskFile}'],
             'group': {'kind': 'build', 'isDefault': True},
             'presentation': {
@@ -70,7 +70,7 @@ def create_base_tasks(project_name):
         {
             'label': '🔄 Restart Team',
             'type': 'shell',
-            'command': f'${{workspaceFolder}}/scripts/restart-{project_name}.sh',
+            'command': '${workspaceFolder}/scripts/restart.sh',
             'args': ['${input:taskFile}'],
             'group': 'build',
             'presentation': {'reveal': 'always', 'panel': 'shared'},
