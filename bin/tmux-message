@@ -13,17 +13,34 @@ WINDOW="$1"
 shift  # Remove first argument, rest is the message
 MESSAGE="$*"
 
-# Clear any existing input first
+# Clear any existing input first and ensure clean state
 tmux send-keys -t "$WINDOW" C-c
-sleep 0.2
+sleep 0.5
+
+# Clear the input line completely
+tmux send-keys -t "$WINDOW" C-u
+sleep 0.5
 
 # Send the message
 tmux send-keys -t "$WINDOW" "$MESSAGE"
 
-# Wait longer for Claude to register the input
-sleep 1.5
+# Wait for Claude to fully render the message
+sleep 3.0
 
-# Send Enter to submit
+# Move cursor to end of line (in case it's not there)
+tmux send-keys -t "$WINDOW" End
+sleep 0.2
+
+# Send Enter to submit - multiple times with delays
+tmux send-keys -t "$WINDOW" Enter
+sleep 1.0
+tmux send-keys -t "$WINDOW" Enter
+sleep 0.5
+tmux send-keys -t "$WINDOW" Enter
+sleep 0.5
+
+# One more Enter after a pause, just to be sure
+sleep 1.0
 tmux send-keys -t "$WINDOW" Enter
 
 echo "Message sent to $WINDOW: $MESSAGE"
