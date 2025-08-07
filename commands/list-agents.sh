@@ -37,7 +37,7 @@ get_session_status() {
 # Function to get last message/activity
 get_last_activity() {
     local session=$1
-    local window=${2:-0}
+    local window=${2:-1}
     
     # Try to capture last few lines and find the most recent Claude output
     local recent_output
@@ -66,7 +66,7 @@ orchestrator_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | gr
 if [ -n "$orchestrator_sessions" ]; then
     for session in $orchestrator_sessions; do
         status=$(get_session_status "$session")
-        activity=$(get_last_activity "$session" "0")
+        activity=$(get_last_activity "$session" "1")
         windows=$(tmux list-windows -t "$session" -F "#{window_index}:#{window_name}" 2>/dev/null | wc -l)
         
         echo "  📡 $session"
