@@ -117,6 +117,32 @@ def create_base_tasks(project_name):
             'problemMatcher': []
         },
         {
+            'label': '🚀 Start Orchestrator',
+            'type': 'shell',
+            'command': '${workspaceFolder}/.tmux-orchestrator/commands/start-orchestrator.sh',
+            'group': 'build',
+            'presentation': {'reveal': 'always', 'panel': 'shared', 'focus': True},
+            'problemMatcher': []
+        },
+        {
+            'label': '🤖 Deploy Individual Agent',
+            'type': 'shell',
+            'command': '${workspaceFolder}/.tmux-orchestrator/commands/deploy-agent.sh',
+            'args': ['${input:agentComponent}', '${input:agentRole}'],
+            'group': 'build',
+            'presentation': {'reveal': 'always', 'panel': 'shared', 'focus': True},
+            'problemMatcher': []
+        },
+        {
+            'label': '⏰ Schedule PM Check-in',
+            'type': 'shell',
+            'command': '${workspaceFolder}/.tmux-orchestrator/commands/schedule-checkin.sh',
+            'args': ['${input:checkInMinutes}', '${input:checkInTarget}', '${input:checkInNote}'],
+            'group': 'build',
+            'presentation': {'reveal': 'always', 'panel': 'shared'},
+            'problemMatcher': []
+        },
+        {
             'label': '💬 Send Message to Agent',
             'type': 'shell',
             'command': 'tmux-message',
@@ -201,6 +227,37 @@ def create_inputs():
         {
             'id': 'message',
             'description': 'Message to send to agent',
+            'type': 'promptString'
+        },
+        {
+            'id': 'agentComponent',
+            'description': 'Agent component (frontend, backend, testing, etc.)',
+            'type': 'pickString',
+            'options': ['frontend', 'backend', 'testing', 'database', 'docs', 'devops']
+        },
+        {
+            'id': 'agentRole',
+            'description': 'Agent role',
+            'type': 'pickString',
+            'options': ['developer', 'pm', 'qa', 'reviewer'],
+            'default': 'developer'
+        },
+        {
+            'id': 'checkInMinutes',
+            'description': 'Minutes until check-in',
+            'type': 'pickString',
+            'options': ['15', '30', '60', '120'],
+            'default': '30'
+        },
+        {
+            'id': 'checkInTarget',
+            'description': 'Check-in target (session:window)',
+            'default': 'orchestrator:0',
+            'type': 'promptString'
+        },
+        {
+            'id': 'checkInNote',
+            'description': 'Check-in note/reminder',
             'type': 'promptString'
         }
     ]

@@ -127,51 +127,78 @@ fi
 # Step 4: Create project-specific deployment script
 echo -e "\n${GREEN}4. Creating project-specific scripts...${NC}"
 
-# Create custom deployment script
-cat > "scripts/deploy-$PROJECT_NAME-team.sh" << EOF
+# Create generic deployment script
+cat > "scripts/deploy.sh" << EOF
 #!/bin/bash
-# $PROJECT_NAME Team Deployment Script
-# Usage: ./deploy-$PROJECT_NAME-team.sh [task-file]
+# Generic team deployment script
+# Usage: ./deploy.sh <task-file>
 
-TASK_FILE="\${1:-tasks.md}"
+TASK_FILE="\$1"
+PROJECT_NAME=\$(basename "\$(pwd)")
 
-if [ ! -f "\$TASK_FILE" ]; then
-    echo "❌ Task file not found: \$TASK_FILE"
-    echo "Usage: \$0 [task-file]"
+if [ -z "\$TASK_FILE" ]; then
+    echo "Usage: \$0 <task-file>"
+    echo "Example: \$0 planning/tasks.md"
     exit 1
 fi
 
-# Use the generic deployment script
-bash references/Tmux-Orchestrator/bin/generic-team-deploy.sh "\$TASK_FILE" "$PROJECT_NAME" "$BASE_PATH"
+# Use the existing tmux-deploy-team.sh script
+exec ./scripts/tmux-deploy-team.sh "\$TASK_FILE" "\$PROJECT_NAME"
 EOF
 
-chmod +x "scripts/deploy-$PROJECT_NAME-team.sh"
-echo "   ✓ Deployment script created: scripts/deploy-$PROJECT_NAME-team.sh"
+chmod +x "scripts/deploy.sh"
+echo "   ✓ Generic deployment script created: scripts/deploy.sh"
 
-# Create restart script
-cat > "scripts/restart-$PROJECT_NAME.sh" << EOF
+# Create generic restart script
+cat > "scripts/restart.sh" << EOF
 #!/bin/bash
-# Quick restart script for $PROJECT_NAME
-cd "$PROJECT_PATH"
+# Generic team restart script
+# Usage: ./restart.sh <task-file>
 
-# Kill existing sessions
-for session in \$(tmux list-sessions -F "#{session_name}" 2>/dev/null | grep "$PROJECT_NAME" || true); do
-    tmux kill-session -t "\$session" 2>/dev/null || true
+set -e
+
+TASK_FILE="\$1"
+PROJECT_NAME=\$(basename "\$(pwd)")
+
+if [ -z "\$TASK_FILE" ]; then
+    echo "Usage: \$0 <task-file>"
+    echo "Example: \$0 planning/tasks.md"
+    exit 1
+fi
+
+echo "🔄 Restarting \$PROJECT_NAME Team..."
+echo "=================================="
+echo "Task File: \$TASK_FILE"
+echo ""
+
+# Kill all existing sessions for this project and orchestrator
+echo "🛑 Killing existing sessions..."
+for session in \$(tmux ls -F "#{session_name}" 2>/dev/null | grep -E "(\$PROJECT_NAME|orchestrator)" || true); do
+    if [ -n "\$session" ]; then
+        echo "  Killing \$session"
+        tmux kill-session -t "\$session" 2>/dev/null || true
+    fi
 done
 
-# Restart with default task file
-TASK_FILE="\${1:-tasks.md}"
-if [ -f "\$TASK_FILE" ]; then
-    bash "scripts/deploy-$PROJECT_NAME-team.sh" "\$TASK_FILE"
-else
-    echo "❌ Task file not found: \$TASK_FILE"
-    echo "Create a task file or specify a different one:"
-    echo "Usage: \$0 [task-file]"
-fi
+# Wait a moment for cleanup
+echo "⏱️  Waiting for cleanup..."
+sleep 3
+
+# Deploy fresh team with the task file
+echo "🚀 Deploying fresh team..."
+./scripts/deploy.sh "\$TASK_FILE"
+
+echo ""
+echo "✅ \$PROJECT_NAME team restarted successfully!"
+echo ""
+echo "💡 Next Steps:"
+echo "  Monitor: ./scripts/monitor-\$PROJECT_NAME-team.sh"
+echo "  Status:  ./.tmux-orchestrator/commands/agent-status.sh"
+echo "  VS Code: Ctrl+Shift+P → Tasks: Run Task → Open All Agents"
 EOF
 
-chmod +x "scripts/restart-$PROJECT_NAME.sh"
-echo "   ✓ Restart script created: scripts/restart-$PROJECT_NAME.sh"
+chmod +x "scripts/restart.sh"
+echo "   ✓ Generic restart script created: scripts/restart.sh"
 
 # Step 5: Configure VS Code integration
 echo -e "\n${GREEN}5. Configuring VS Code integration...${NC}"
@@ -273,19 +300,19 @@ This project is integrated with the TMUX Orchestrator for autonomous development
 ### Deploy Development Team
 \`\`\`bash
 # Deploy team based on tasks.md
-./scripts/deploy-$PROJECT_NAME-team.sh
+./scripts/deploy.sh tasks.md
 
 # Or with custom task file
-./scripts/deploy-$PROJECT_NAME-team.sh path/to/tasks.md
+./scripts/deploy.sh path/to/tasks.md
 \`\`\`
 
 ### Restart Team
 \`\`\`bash
 # Quick restart
-./scripts/restart-$PROJECT_NAME.sh
+./scripts/restart.sh tasks.md
 
 # Restart with different task file
-./scripts/restart-$PROJECT_NAME.sh new-tasks.md
+./scripts/restart.sh new-tasks.md
 \`\`\`
 
 ### Monitor Team
@@ -311,8 +338,8 @@ tmux-message $PROJECT_NAME-backend:0 "Run tests and report results"
 ## Files Created
 
 - \`scripts/install-tmux-orchestrator.sh\` - Installation script
-- \`scripts/deploy-$PROJECT_NAME-team.sh\` - Team deployment
-- \`scripts/restart-$PROJECT_NAME.sh\` - Quick restart
+- \`scripts/deploy.sh\` - Generic team deployment
+- \`scripts/restart.sh\` - Generic team restart
 - \`references/Tmux-Orchestrator/\` - Full documentation
 - \`tasks.md\` - Sample task file
 
@@ -340,8 +367,8 @@ echo -e "${GREEN}===========================================${NC}"
 echo ""
 echo -e "${GREEN}Files Created:${NC}"
 echo -e "  📋 scripts/install-tmux-orchestrator.sh"
-echo -e "  🚀 scripts/deploy-$PROJECT_NAME-team.sh"
-echo -e "  🔄 scripts/restart-$PROJECT_NAME.sh"
+echo -e "  🚀 scripts/deploy.sh"
+echo -e "  🔄 scripts/restart.sh"
 echo -e "  📚 references/Tmux-Orchestrator/ (full documentation)"
 echo -e "  📝 tasks.md (sample task file)"
 echo -e "  📖 TMUX_ORCHESTRATOR_README.md"
@@ -354,12 +381,12 @@ echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
 echo -e "  1. ${YELLOW}Review and customize tasks.md${NC} for your project"
 echo -e "  2. ${YELLOW}Rebuild your devcontainer${NC} to install TMUX Orchestrator"
-echo -e "  3. ${YELLOW}Deploy your team${NC}: ./scripts/deploy-$PROJECT_NAME-team.sh"
+echo -e "  3. ${YELLOW}Deploy your team${NC}: ./scripts/deploy.sh tasks.md"
 echo -e "  4. ${YELLOW}Read the documentation${NC}: references/Tmux-Orchestrator/SETUP.md"
 echo ""
 echo -e "${GREEN}Quick Commands:${NC}"
-echo -e "  Deploy: ${YELLOW}./scripts/deploy-$PROJECT_NAME-team.sh${NC}"
-echo -e "  Restart: ${YELLOW}./scripts/restart-$PROJECT_NAME.sh${NC}"
+echo -e "  Deploy: ${YELLOW}./scripts/deploy.sh tasks.md${NC}"
+echo -e "  Restart: ${YELLOW}./scripts/restart.sh tasks.md${NC}"
 echo -e "  Monitor: ${YELLOW}.tmux-orchestrator/commands/agent-status.sh${NC}"
 echo -e "  List agents: ${YELLOW}.tmux-orchestrator/commands/list-agents.sh${NC}"
 echo -e "  Force PM check-in: ${YELLOW}.tmux-orchestrator/commands/force-pm-checkin.sh${NC}"

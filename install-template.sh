@@ -223,6 +223,109 @@ touch "$ORCH_DIR/registry/notes/.gitkeep"
 mkdir -p "$PROJECT_PATH/.pm-schedule"
 mkdir -p "$PROJECT_PATH/.orchestrator-notes"
 
+# Copy additional command scripts from references
+if [ -f "$REFS_DIR/commands/list-agents.sh" ]; then
+    cp "$REFS_DIR/commands/list-agents.sh" "$ORCH_DIR/commands/"
+fi
+
+if [ -f "$REFS_DIR/commands/open-all-agents.sh" ]; then
+    cp "$REFS_DIR/commands/open-all-agents.sh" "$ORCH_DIR/commands/"
+fi
+
+if [ -f "$REFS_DIR/commands/force-pm-checkin.sh" ]; then
+    cp "$REFS_DIR/commands/force-pm-checkin.sh" "$ORCH_DIR/commands/"
+fi
+
+# Create schedule-checkin command
+cat > "$ORCH_DIR/commands/schedule-checkin.sh" << 'EOF'
+#!/bin/bash
+MINUTES=$1
+TARGET=$2
+NOTE=$3
+
+if [ -z "$MINUTES" ] || [ -z "$TARGET" ] || [ -z "$NOTE" ]; then
+  echo "Usage: $0 <minutes> <target> <note>"
+  echo "Example: $0 30 orchestrator:0 'Review agent progress'"
+  exit 1
+fi
+
+# Use the tmux-schedule command
+/usr/local/bin/tmux-schedule "$MINUTES" "$NOTE" "$TARGET"
+EOF
+
+# Create generic deployment and restart scripts
+echo "🚀 Creating generic deployment and restart scripts..."
+
+# Create generic deploy script that works for any project
+cat > "$PROJECT_PATH/scripts/deploy.sh" << EOF
+#!/bin/bash
+# Generic team deployment script
+# Usage: ./deploy.sh <task-file>
+
+TASK_FILE="\$1"
+PROJECT_NAME=\$(basename "\$(pwd)")
+
+if [ -z "\$TASK_FILE" ]; then
+    echo "Usage: \$0 <task-file>"
+    echo "Example: \$0 planning/tasks.md"
+    exit 1
+fi
+
+# Use the existing tmux-deploy-team.sh script
+exec ./scripts/tmux-deploy-team.sh "\$TASK_FILE" "\$PROJECT_NAME"
+EOF
+
+# Create generic restart script that works for any project
+cat > "$PROJECT_PATH/scripts/restart.sh" << EOF
+#!/bin/bash
+# Generic team restart script
+# Usage: ./restart.sh <task-file>
+
+set -e
+
+TASK_FILE="\$1"
+PROJECT_NAME=\$(basename "\$(pwd)")
+
+if [ -z "\$TASK_FILE" ]; then
+    echo "Usage: \$0 <task-file>"
+    echo "Example: \$0 planning/tasks.md"
+    exit 1
+fi
+
+echo "🔄 Restarting \$PROJECT_NAME Team..."
+echo "=================================="
+echo "Task File: \$TASK_FILE"
+echo ""
+
+# Kill all existing sessions for this project and orchestrator
+echo "🛑 Killing existing sessions..."
+for session in \$(tmux ls -F "#{session_name}" 2>/dev/null | grep -E "(\$PROJECT_NAME|orchestrator)" || true); do
+    if [ -n "\$session" ]; then
+        echo "  Killing \$session"
+        tmux kill-session -t "\$session" 2>/dev/null || true
+    fi
+done
+
+# Wait a moment for cleanup
+echo "⏱️  Waiting for cleanup..."
+sleep 3
+
+# Deploy fresh team with the task file
+echo "🚀 Deploying fresh team..."
+./scripts/deploy.sh "\$TASK_FILE"
+
+echo ""
+echo "✅ \$PROJECT_NAME team restarted successfully!"
+echo ""
+echo "💡 Next Steps:"
+echo "  Monitor: ./scripts/monitor-\$PROJECT_NAME-team.sh"
+echo "  Status:  ./.tmux-orchestrator/commands/agent-status.sh"
+echo "  VS Code: Ctrl+Shift+P → Tasks: Run Task → Open All Agents"
+EOF
+
+chmod +x "$PROJECT_PATH/scripts/deploy.sh"
+chmod +x "$PROJECT_PATH/scripts/restart.sh"
+
 # Create restart script
 cat > "$ORCH_DIR/restart.sh" << EOF
 #!/bin/bash
