@@ -1,0 +1,244 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 Deploy Team",
+      "type": "shell", 
+      "command": "${workspaceFolder}/scripts/deploy-${workspaceFolderBasename}-team.sh",
+      "args": ["${input:taskFile}"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🔄 Restart Team",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/restart-${workspaceFolderBasename}.sh",
+      "args": ["${input:taskFile}"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "📊 List All Agents",
+      "type": "shell",
+      "command": "${workspaceFolder}/.tmux-orchestrator/commands/list-agents.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🎯 Agent Status Dashboard",
+      "type": "shell",
+      "command": "${workspaceFolder}/.tmux-orchestrator/commands/agent-status.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "📋 PM Check-in (Forced)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.tmux-orchestrator/commands/force-pm-checkin.sh",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "📈 PM Dashboard",
+      "type": "shell",
+      "command": "${workspaceFolder}/references/Tmux-Orchestrator/pm-schedule-tracker.sh",
+      "args": ["dashboard"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🔍 Monitor Team",
+      "type": "shell",
+      "command": "${workspaceFolder}/.tmux-orchestrator/monitor-${workspaceFolderBasename}-team.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "💬 Send Message to Agent",
+      "type": "shell",
+      "command": "tmux-message",
+      "args": ["${input:agentTarget}", "${input:message}"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🎭 Open All Active Agents (Dynamic)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.tmux-orchestrator/commands/open-all-agents.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🔄 Update VS Code Tasks",
+      "type": "shell",
+      "command": "${workspaceFolder}/.tmux-orchestrator/commands/update-vscode-tasks.sh",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Open Orchestrator",
+      "type": "shell",
+      "command": "tmux attach -t orchestrator:0",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "management"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Open PM Agent",
+      "type": "shell", 
+      "command": "tmux attach -t '${workspaceFolderBasename}-${workspaceFolderBasename}:Claude-pm'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "management"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Open Frontend Agent",
+      "type": "shell",
+      "command": "tmux attach -t '${workspaceFolderBasename}-frontend:Claude-developer'",
+      "presentation": {
+        "reveal": "always", 
+        "panel": "new",
+        "group": "workers"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Open Backend Agent", 
+      "type": "shell",
+      "command": "tmux attach -t '${workspaceFolderBasename}-backend:Claude-developer'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new", 
+        "group": "workers"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Open QA Agent",
+      "type": "shell",
+      "command": "tmux attach -t '${workspaceFolderBasename}-testing:Claude-qa'", 
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "workers"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🛑 Kill All Sessions",
+      "type": "shell",
+      "command": "tmux list-sessions | grep '${workspaceFolderBasename}\\|orchestrator' | cut -d: -f1 | xargs -I {} tmux kill-session -t {}",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "shell": {
+          "executable": "/bin/bash"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🔧 Emergency Reset",
+      "type": "shell",
+      "command": "tmux kill-server && pkill -f claude",
+      "group": "build", 
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "shell": {
+          "executable": "/bin/bash"
+        }
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "taskFile",
+      "description": "Path to task file",
+      "default": "tasks.md",
+      "type": "promptString"
+    },
+    {
+      "id": "agentTarget", 
+      "description": "Agent target (session:window)",
+      "type": "pickString",
+      "options": [
+        "orchestrator:0",
+        "${workspaceFolderBasename}-${workspaceFolderBasename}:Claude-pm",
+        "${workspaceFolderBasename}-frontend:Claude-developer", 
+        "${workspaceFolderBasename}-backend:Claude-developer",
+        "${workspaceFolderBasename}-testing:Claude-qa"
+      ]
+    },
+    {
+      "id": "message",
+      "description": "Message to send to agent",
+      "type": "promptString"
+    }
+  ]
+}

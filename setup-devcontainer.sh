@@ -173,8 +173,58 @@ EOF
 chmod +x "scripts/restart-$PROJECT_NAME.sh"
 echo "   ✓ Restart script created: scripts/restart-$PROJECT_NAME.sh"
 
-# Step 5: Create sample task file
-echo -e "\n${GREEN}5. Creating sample files...${NC}"
+# Step 5: Configure VS Code integration
+echo -e "\n${GREEN}5. Configuring VS Code integration...${NC}"
+
+# Create .vscode directory if it doesn't exist
+mkdir -p .vscode/
+
+# Check if tasks.json already exists
+if [ -f ".vscode/tasks.json" ]; then
+    echo "   ⚠️ Existing .vscode/tasks.json found"
+    cp ".vscode/tasks.json" ".vscode/tasks.json.backup"
+    echo "   ✓ Backup created: .vscode/tasks.json.backup"
+fi
+
+# Copy and customize the tasks template
+if [ -f "references/Tmux-Orchestrator/vscode/tasks-template.json" ]; then
+    # Use sed to replace placeholder variables with actual project name
+    sed "s/\\\${workspaceFolderBasename}/$PROJECT_NAME/g" \
+        references/Tmux-Orchestrator/vscode/tasks-template.json > .vscode/tasks.json
+    echo "   ✓ VS Code tasks configured for $PROJECT_NAME"
+    echo "     - Deploy/restart team commands"
+    echo "     - Agent listing and status"
+    echo "     - PM check-in and monitoring" 
+    echo "     - Quick agent access"
+    echo "     - Emergency controls"
+else
+    echo "   ⚠️ VS Code tasks template not found, skipping"
+fi
+
+# Create VS Code settings for tmux integration
+cat > .vscode/settings.json.tmux << EOF
+{
+  "terminal.integrated.defaultProfile.linux": "tmux",
+  "terminal.integrated.profiles.linux": {
+    "tmux": {
+      "path": "/usr/bin/tmux",
+      "args": ["new-session", "-s", "vscode-$PROJECT_NAME"]
+    }
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#1e3a8a",
+    "activityBar.foreground": "#ffffff",
+    "statusBar.background": "#1e40af",
+    "statusBar.foreground": "#ffffff"
+  }
+}
+EOF
+
+echo "   ✓ VS Code tmux settings created (optional): .vscode/settings.json.tmux"
+echo "     Merge with existing settings.json if desired"
+
+# Step 6: Create sample task file
+echo -e "\n${GREEN}6. Creating sample task file...${NC}"
 
 if [ ! -f "tasks.md" ]; then
     cat > "tasks.md" << EOF
@@ -284,7 +334,7 @@ EOF
 
 echo "   ✓ Documentation created: TMUX_ORCHESTRATOR_README.md"
 
-# Step 6: Summary and next steps
+# Step 7: Summary and next steps
 echo -e "\n${BLUE}✅ TMUX Orchestrator Integration Complete!${NC}"
 echo -e "${GREEN}===========================================${NC}"
 echo ""
@@ -295,6 +345,8 @@ echo -e "  🔄 scripts/restart-$PROJECT_NAME.sh"
 echo -e "  📚 references/Tmux-Orchestrator/ (full documentation)"
 echo -e "  📝 tasks.md (sample task file)"
 echo -e "  📖 TMUX_ORCHESTRATOR_README.md"
+echo -e "  🎮 .vscode/tasks.json (VS Code integration)"
+echo -e "  ⚙️ .vscode/settings.json.tmux (optional tmux settings)"
 echo ""
 echo -e "${GREEN}Configuration Updated:${NC}"
 echo -e "  🐳 .devcontainer/devcontainer.json (backup at .devcontainer/devcontainer.json.backup)"
@@ -309,5 +361,13 @@ echo -e "${GREEN}Quick Commands:${NC}"
 echo -e "  Deploy: ${YELLOW}./scripts/deploy-$PROJECT_NAME-team.sh${NC}"
 echo -e "  Restart: ${YELLOW}./scripts/restart-$PROJECT_NAME.sh${NC}"
 echo -e "  Monitor: ${YELLOW}.tmux-orchestrator/commands/agent-status.sh${NC}"
+echo -e "  List agents: ${YELLOW}.tmux-orchestrator/commands/list-agents.sh${NC}"
+echo -e "  Force PM check-in: ${YELLOW}.tmux-orchestrator/commands/force-pm-checkin.sh${NC}"
+echo ""
+echo -e "${GREEN}VS Code Integration:${NC}"
+echo -e "  Use Ctrl+Shift+P → 'Tasks: Run Task' to access orchestrator commands"
+echo -e "  Quick deploy: ${YELLOW}🚀 Deploy Team${NC}"
+echo -e "  Agent status: ${YELLOW}📊 List All Agents${NC}"
+echo -e "  PM check-in: ${YELLOW}📋 PM Check-in (Forced)${NC}"
 echo ""
 echo -e "${BLUE}🎉 Ready for autonomous development!${NC}"
