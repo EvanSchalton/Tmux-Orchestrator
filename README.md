@@ -2,6 +2,13 @@
 
 **Run AI agents 24/7 while you sleep** - The Tmux Orchestrator enables Claude agents to work autonomously, schedule their own check-ins, and coordinate across multiple projects without human intervention.
 
+## 🚀 NEW: Enhanced for Maximum Reusability
+
+✅ **Devcontainer Integration** - One-click setup for any project  
+✅ **Advanced PM Suite** - Smart scheduling and team coordination  
+✅ **Generic Team Deployment** - Auto-detects project requirements  
+✅ **Comprehensive Documentation** - Setup, running, and troubleshooting guides  
+
 ## 🤖 Key Capabilities & Autonomous Features
 
 - **Self-trigger** - Agents schedule their own check-ins and continue work autonomously
@@ -36,6 +43,43 @@ The Tmux Orchestrator uses a three-tier hierarchy to overcome context window lim
 - **Parallel work** - Multiple engineers can work simultaneously
 - **Better memory** - Smaller contexts mean better recall
 
+## 🐳 Quick Setup for Devcontainer Projects
+
+### One-Command Integration
+```bash
+# Download and run the setup script
+curl -O https://raw.githubusercontent.com/your-repo/tmux-orchestrator/main/setup-devcontainer.sh
+chmod +x setup-devcontainer.sh
+./setup-devcontainer.sh my-project-name
+```
+
+This automatically:
+- Copies all orchestrator files
+- Updates `devcontainer.json` 
+- Creates project-specific scripts
+- Sets up environment variables
+
+### Manual Integration
+```bash
+# 1. Copy orchestrator to your project
+cp -r Tmux-Orchestrator references/
+
+# 2. Create installation script  
+cp references/Tmux-Orchestrator/install-template.sh scripts/install-tmux-orchestrator.sh
+
+# 3. Update devcontainer.json
+{
+  "postCreateCommand": "bash scripts/install-tmux-orchestrator.sh",
+  "remoteEnv": {
+    "TMUX_ORCHESTRATOR_HOME": "/workspaces/my-project/.tmux-orchestrator",
+    "TMUX_ORCHESTRATOR_REGISTRY": "/workspaces/my-project/.tmux-orchestrator/registry"
+  }
+}
+
+# 4. Rebuild devcontainer and deploy team
+./scripts/deploy-my-project-team.sh tasks.md
+```
+
 ## 📸 Examples in Action
 
 ### Project Manager Coordination
@@ -54,15 +98,21 @@ The Tmux Orchestrator uses a three-tier hierarchy to overcome context window lim
 ![Project Completed](Examples/Project%20Completed.png)
 *Successful project completion with all tasks verified and committed*
 
-## 🎯 Quick Start
+## 🎯 Quick Start (Any Project Type)
 
-### Option 1: Basic Setup (Single Project)
+### Option 1: Generic Team Deployment
+```bash
+# Auto-detects needed roles from task content
+./bin/generic-team-deploy.sh tasks.md my-project /workspaces
+```
 
+### Option 2: Traditional Setup
 ```bash
 # 1. Create a project spec
 cat > project_spec.md << 'EOF'
 PROJECT: My Web App
 GOAL: Add user authentication system
+
 CONSTRAINTS:
 - Use existing database schema
 - Follow current code patterns  
@@ -75,61 +125,79 @@ DELIVERABLES:
 3. Protected route middleware
 EOF
 
-# 2. Start tmux session
-tmux new-session -s my-project
-
-# 3. Start project manager in window 0
-claude
-
-# 4. Give PM the spec and let it create an engineer
-"You are a Project Manager. Read project_spec.md and create an engineer 
-in window 1 to implement it. Schedule check-ins every 30 minutes."
-
-# 5. Schedule orchestrator check-in
-./schedule_with_note.sh 30 "Check PM progress on auth system"
-```
-
-### Option 2: Full Orchestrator Setup
-
-```bash
-# Start the orchestrator
+# 2. Start orchestrator
 tmux new-session -s orchestrator
 claude
 
-# Give it your projects
-"You are the Orchestrator. Set up project managers for:
-1. Frontend (React app) - Add dashboard charts
-2. Backend (FastAPI) - Optimize database queries
-Schedule yourself to check in every hour."
+# 3. Deploy team
+"You are the Orchestrator. Deploy a team for the authentication project using project_spec.md"
 ```
 
-## ✨ Key Features
+## ✨ Enhanced Features
 
-### 🔄 Self-Scheduling Agents
-Agents can schedule their own check-ins using:
+### 🔄 Advanced PM Suite
+- **Smart Scheduling** - PM agents schedule their own follow-ups
+- **Idle Detection** - Automatically detects stuck agents
+- **Team Coordination** - Cross-team communication patterns
+- **Quality Gates** - Automated quality checks
+
 ```bash
-./schedule_with_note.sh 30 "Continue dashboard implementation"
+# PM management commands
+./pm-schedule-tracker.sh dashboard
+./pm-auto-monitor.sh 
+./pm-coordination-tools.sh
 ```
 
-### 👥 Multi-Agent Coordination
-- Project managers communicate with engineers
-- Orchestrator monitors all project managers
-- Cross-project knowledge sharing
+### 👥 Auto-Detecting Team Deployment
+The orchestrator analyzes your task file and automatically deploys appropriate agents:
 
-### 💾 Automatic Git Backups
-- Commits every 30 minutes of work
-- Tags stable versions
-- Creates feature branches for experiments
+- **Frontend indicators**: react, vue, ui, component, html, css, javascript
+- **Backend indicators**: api, service, endpoint, python, node, fastapi  
+- **Database indicators**: database, sql, postgres, migration, schema
+- **Always includes**: Orchestrator, PM, QA
+
+### 💾 Enhanced Git Integration
+- **Smart commits** every 30 minutes with meaningful messages
+- **Feature branch** workflows
+- **Quality gates** before merging
+- **Automated tagging** of stable versions
 
 ### 📊 Real-Time Monitoring
-- See what every agent is doing
-- Intervene when needed
-- Review progress across all projects
+```bash
+# Multiple monitoring options
+.tmux-orchestrator/commands/agent-status.sh
+./monitor-project-team.sh  
+./pm-schedule-tracker.sh dashboard
+```
+
+## 📚 Comprehensive Documentation
+
+- **[SETUP.md](SETUP.md)** - Complete setup guide for any project
+- **[RUNNING.md](RUNNING.md)** - Day-to-day operations and troubleshooting  
+- **[CLAUDE.md](CLAUDE.md)** - Agent behavior instructions and best practices
+- **[devcontainer-integration.md](devcontainer-integration.md)** - DevContainer integration guide
+- **[INTEGRATION-COMPLETE.md](INTEGRATION-COMPLETE.md)** - Summary of all enhancements
+
+## 🛠️ Project Templates
+
+### Web Application Stack
+- Orchestrator + PM + Frontend + Backend + QA
+- Auto-detects React, Vue, Angular frontends
+- Supports Node.js, Python, Java backends
+
+### API-Only Project  
+- Orchestrator + PM + Backend + Database + QA
+- Focus on API development and testing
+- Database migration support
+
+### Data Pipeline
+- Orchestrator + PM + Data Engineer + Backend + QA  
+- ETL/ELT workflow support
+- Data validation and quality checks
 
 ## 📋 Best Practices
 
-### Writing Effective Specifications
-
+### Writing Effective Task Files
 ```markdown
 PROJECT: E-commerce Checkout
 GOAL: Implement multi-step checkout process
@@ -154,123 +222,70 @@ SUCCESS CRITERIA:
 ```
 
 ### Git Safety Rules
-
-1. **Before Starting Any Task**
-   ```bash
-   git checkout -b feature/[task-name]
-   git status  # Ensure clean state
-   ```
-
-2. **Every 30 Minutes**
-   ```bash
-   git add -A
-   git commit -m "Progress: [what was accomplished]"
-   ```
-
-3. **When Task Completes**
-   ```bash
-   git tag stable-[feature]-[date]
-   git checkout main
-   git merge feature/[task-name]
-   ```
+1. **Feature branches** for all work
+2. **Commits every 30 minutes** with descriptive messages  
+3. **Quality gates** before merging
+4. **Stable tags** for working versions
 
 ## 🚨 Common Pitfalls & Solutions
 
 | Pitfall | Consequence | Solution |
 |---------|-------------|----------|
-| Vague instructions | Agent drift, wasted compute | Write clear, specific specs |
+| Vague task descriptions | Agent drift, wasted compute | Write clear, specific task files |
 | No git commits | Lost work, frustrated devs | Enforce 30-minute commit rule |
-| Too many tasks | Context overload, confusion | One task per agent at a time |
-| No specifications | Unpredictable results | Always start with written spec |
-| Missing checkpoints | Agents stop working | Schedule regular check-ins |
+| Too many agents | Context overload, confusion | Use auto-detection or templates |
+| Missing specifications | Unpredictable results | Always start with written specs |
+| No monitoring | Agents stop working | Use provided monitoring tools |
 
-## 🛠️ How It Works
-
-### The Magic of Tmux
-Tmux (terminal multiplexer) is the key enabler because:
-- It persists terminal sessions even when disconnected
-- Allows multiple windows/panes in one session
-- Claude runs in the terminal, so it can control other Claude instances
-- Commands can be sent programmatically to any window
-
-### 💬 Simplified Agent Communication
-
-We now use the `send-claude-message.sh` script for all agent communication:
-
-```bash
-# Send message to any Claude agent
-./send-claude-message.sh session:window "Your message here"
-
-# Examples:
-./send-claude-message.sh frontend:0 "What's your progress on the login form?"
-./send-claude-message.sh backend:1 "The API endpoint /api/users is returning 404"
-./send-claude-message.sh project-manager:0 "Please coordinate with the QA team"
-```
-
-The script handles all timing complexities automatically, making agent communication reliable and consistent.
-
-### Scheduling Check-ins
-```bash
-# Schedule with specific, actionable notes
-./schedule_with_note.sh 30 "Review auth implementation, assign next task"
-./schedule_with_note.sh 60 "Check test coverage, merge if passing"
-./schedule_with_note.sh 120 "Full system check, rotate tasks if needed"
-```
-
-**Important**: The orchestrator needs to know which tmux window it's running in to schedule its own check-ins correctly. If scheduling isn't working, verify the orchestrator knows its current window with:
-```bash
-echo "Current window: $(tmux display-message -p "#{session_name}:#{window_index}")"
-```
-
-## 🎓 Advanced Usage
+## 🔧 Advanced Usage
 
 ### Multi-Project Orchestration
 ```bash
-# Start orchestrator
-tmux new-session -s orchestrator
-
-# Create project managers for each project
-tmux new-window -n frontend-pm
-tmux new-window -n backend-pm  
-tmux new-window -n mobile-pm
-
-# Each PM manages their own engineers
-# Orchestrator coordinates between PMs
+# Deploy multiple project teams
+./bin/generic-team-deploy.sh frontend-tasks.md frontend-app
+./bin/generic-team-deploy.sh backend-tasks.md api-service  
+./bin/generic-team-deploy.sh data-tasks.md analytics-pipeline
 ```
 
-### Cross-Project Intelligence
-The orchestrator can share insights between projects:
-- "Frontend is using /api/v2/users, update backend accordingly"
-- "Authentication is working in Project A, use same pattern in Project B"
-- "Performance issue found in shared library, fix across all projects"
+### Custom Agent Briefings
+```bash
+# Customize the deployment script briefings
+# Edit bin/generic-team-deploy.sh to add project-specific instructions
+```
 
-## 📚 Core Files
+### Integration Hooks
+```bash
+# Add custom quality gates
+echo "npm run lint && npm run test" > .tmux-orchestrator/qa/quality-gates.sh
 
-- `send-claude-message.sh` - Simplified agent communication script
-- `schedule_with_note.sh` - Self-scheduling functionality
-- `tmux_utils.py` - Tmux interaction utilities
-- `CLAUDE.md` - Agent behavior instructions
-- `LEARNINGS.md` - Accumulated knowledge base
+# Add Slack notifications
+echo "curl -X POST $SLACK_WEBHOOK ..." > .tmux-orchestrator/integrations/slack.sh
+```
 
-## 🤝 Contributing & Optimization
+## 📄 Core Files
 
-The orchestrator evolves through community discoveries and optimizations. When contributing:
+- **`setup-devcontainer.sh`** - One-click devcontainer integration
+- **`bin/generic-team-deploy.sh`** - Universal team deployment
+- **`install-template.sh`** - Customizable installation template
+- **`send-claude-message.sh`** - Simplified agent communication
+- **`schedule_with_note.sh`** - Self-scheduling functionality
+- **PM Suite** - Advanced project management tools
+- **Monitoring Tools** - Real-time team monitoring
 
-1. Document new tmux commands and patterns in CLAUDE.md
-2. Share novel use cases and agent coordination strategies
-3. Submit optimizations for claudes synchronization
-4. Keep command reference up-to-date with latest findings
-5. Test improvements across multiple sessions and scenarios
+## 🤝 Contributing & Evolution
 
-Key areas for enhancement:
-- Agent communication patterns
-- Cross-project coordination
-- Novel automation workflows
+The orchestrator evolves through community use and feedback:
+
+1. **Test in your projects** and report what works
+2. **Submit improvements** for team deployment patterns  
+3. **Share novel use cases** and coordination strategies
+4. **Contribute project templates** for common stacks
+5. **Enhance monitoring** and quality gate systems
 
 ## 📄 License
 
-MIT License - Use freely but wisely. Remember: with great automation comes great responsibility.
+MIT License - Use freely across all your projects.
 
 ---
 
-*"The tools we build today will program themselves tomorrow"* - Alan Kay, 1971
+*"The future of development is autonomous teams working while you sleep"*

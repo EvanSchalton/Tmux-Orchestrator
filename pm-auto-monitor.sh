@@ -1,0 +1,1 @@
+../../scripts/pm-auto-monitor.sh

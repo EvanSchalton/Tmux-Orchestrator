@@ -1,0 +1,1 @@
+../../scripts/pm-monitor-status.sh
