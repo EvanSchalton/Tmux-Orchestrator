@@ -116,7 +116,7 @@ export TMUX_ORCHESTRATOR_LOGS_DIR="\$TMUX_ORCHESTRATOR_HOME/registry/logs"
 export TMUX_ORCHESTRATOR_NOTES_FILE="\$TMUX_ORCHESTRATOR_HOME/registry/notes/next_check_note.txt"
 
 # Claude command (update if using a different command)
-export TMUX_ORCHESTRATOR_CLAUDE_CMD="claude"
+export TMUX_ORCHESTRATOR_CLAUDE_CMD="claude --dangerously-skip-permissions"
 EOF
 print_status "Configuration created"
 

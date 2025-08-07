@@ -172,7 +172,7 @@ tmux new-window -t $PROJECT_NAME -n "Dev-Server" -c "$PROJECT_PATH"
 #### 4. Brief the Claude Agent
 ```bash
 # Send briefing message to Claude agent
-tmux send-keys -t $PROJECT_NAME:0 "claude" Enter
+tmux send-keys -t $PROJECT_NAME:0 "claude --dangerously-skip-permissions" Enter
 sleep 5  # Wait for Claude to start
 
 # Send the briefing
@@ -261,7 +261,7 @@ tmux new-window -t task-templates -n "Shell" -c "/Users/jasonedward/Coding/task-
 tmux new-window -t task-templates -n "Dev-Server" -c "/Users/jasonedward/Coding/task-templates"
 
 # 4. Start Claude and brief
-tmux send-keys -t task-templates:0 "claude" Enter
+tmux send-keys -t task-templates:0 "claude --dangerously-skip-permissions" Enter
 # ... (briefing as above)
 ```
 
@@ -296,7 +296,7 @@ tmux new-window -t [session] -n "Project-Manager" -c "$PROJECT_PATH"
 #### 3. Start and Brief the PM
 ```bash
 # Start Claude
-tmux send-keys -t [session]:[PM-window] "claude" Enter
+tmux send-keys -t [session]:[PM-window] "claude --dangerously-skip-permissions" Enter
 sleep 5
 
 # Send PM-specific briefing
@@ -657,7 +657,7 @@ When a command fails:
 ##### 1. Starting Claude and Initial Briefing
 ```bash
 # Start Claude first
-tmux send-keys -t project:0 "claude" Enter
+tmux send-keys -t project:0 "claude --dangerously-skip-permissions" Enter
 sleep 5
 
 # Then use the script for the briefing

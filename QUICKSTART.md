@@ -78,7 +78,7 @@ The bootstrap script automatically creates slash commands for Claude:
 ### Environment Variables
 - `TMUX_ORCHESTRATOR_HOME` - Installation directory
 - `TMUX_ORCHESTRATOR_PROJECTS_DIR` - Default projects directory
-- `TMUX_ORCHESTRATOR_CLAUDE_CMD` - Claude command (default: "claude")
+- `TMUX_ORCHESTRATOR_CLAUDE_CMD` - Claude command (default: "claude --dangerously-skip-permissions")
 
 ## 📚 Examples
 
