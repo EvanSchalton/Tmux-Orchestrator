@@ -33,15 +33,15 @@ ORCHESTRATOR_SESSIONS=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | gr
 # Find project agent sessions  
 AGENT_SESSIONS=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | grep -E "$PROJECT_NAME" | grep -v orchestrator || true)
 
-# Build agent task list
-AGENT_TASKS=""
-AGENT_OPEN_LIST=""
+# Collect agent task data
+AGENT_TASK_DATA=""
 
-# Add orchestrator sessions
+# Process orchestrator sessions
 if [ -n "$ORCHESTRATOR_SESSIONS" ]; then
     while IFS= read -r session; do
         if [ -n "$session" ]; then
-            AGENT_TASKS="$AGENT_TASKS    {
+            AGENT_TASK_DATA="$AGENT_TASK_DATA
+    {
       \"label\": \"Open Orchestrator ($session)\",
       \"type\": \"shell\",
       \"command\": \"tmux attach -t '$session:0'\",
@@ -52,12 +52,11 @@ if [ -n "$ORCHESTRATOR_SESSIONS" ]; then
       },
       \"problemMatcher\": []
     },"
-            AGENT_OPEN_LIST="$AGENT_OPEN_LIST        \"Open Orchestrator ($session)\","
         fi
     done <<< "$ORCHESTRATOR_SESSIONS"
 fi
 
-# Add agent sessions with dynamic window detection
+# Process agent sessions with dynamic window detection
 if [ -n "$AGENT_SESSIONS" ]; then
     while IFS= read -r session; do
         if [ -n "$session" ]; then
@@ -86,7 +85,8 @@ if [ -n "$AGENT_SESSIONS" ]; then
                     
                     TASK_LABEL="Open $AGENT_TYPE Agent ($session)"
                     
-                    AGENT_TASKS="$AGENT_TASKS    {
+                    AGENT_TASK_DATA="$AGENT_TASK_DATA
+    {
       \"label\": \"$TASK_LABEL\",
       \"type\": \"shell\",
       \"command\": \"tmux attach -t '$session:$WINDOW_INDEX'\",
@@ -97,18 +97,13 @@ if [ -n "$AGENT_SESSIONS" ]; then
       },
       \"problemMatcher\": []
     },"
-                    AGENT_OPEN_LIST="$AGENT_OPEN_LIST        \"$TASK_LABEL\","
                 fi
             done <<< "$WINDOWS"
         fi
     done <<< "$AGENT_SESSIONS"
 fi
 
-# Remove trailing comma from lists
-AGENT_TASKS=$(echo "$AGENT_TASKS" | sed 's/,$//')
-AGENT_OPEN_LIST=$(echo "$AGENT_OPEN_LIST" | sed 's/,$//')
-
-# Generate new tasks.json with dynamic agents
+# Generate properly formatted JSON
 cat > .vscode/tasks.json << EOF
 {
   "version": "2.0.0",
@@ -214,21 +209,22 @@ cat > .vscode/tasks.json << EOF
         "panel": "shared"
       },
       "problemMatcher": []
-    },
-EOF
+    }EOF
 
 # Add dynamic agent tasks if any were found
-if [ -n "$AGENT_TASKS" ]; then
-    echo "$AGENT_TASKS" >> .vscode/tasks.json
+if [ -n "$AGENT_TASK_DATA" ]; then
     echo "," >> .vscode/tasks.json
+    # Remove the trailing comma from agent task data and add it
+    echo "$AGENT_TASK_DATA" | sed 's/,$//' >> .vscode/tasks.json
 fi
 
 # Add utility tasks
-cat >> .vscode/tasks.json << EOF
+cat >> .vscode/tasks.json << 'EOF'
+,
     {
       "label": "🛑 Kill All Sessions",
       "type": "shell",
-      "command": "tmux list-sessions | grep '$PROJECT_NAME\\\\|orchestrator' | cut -d: -f1 | xargs -I {} tmux kill-session -t {}",
+      "command": "tmux list-sessions | grep 'PROJECT_NAME_PLACEHOLDER\\|orchestrator' | cut -d: -f1 | xargs -I {} tmux kill-session -t {}",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -279,13 +275,19 @@ cat >> .vscode/tasks.json << EOF
 }
 EOF
 
+# Replace placeholder with actual project name
+sed -i "s/PROJECT_NAME_PLACEHOLDER/$PROJECT_NAME/g" .vscode/tasks.json
+
 echo ""
 echo "✅ VS Code tasks.json updated successfully!"
 echo ""
 
-# Count tasks
+# Count tasks  
 TASK_COUNT=$(grep -c '"label":' .vscode/tasks.json || echo "0")
-AGENT_TASK_COUNT=$(echo "$AGENT_TASKS" | grep -c '"label":' || echo "0")
+AGENT_TASK_COUNT=0
+if [ -n "$AGENT_TASK_DATA" ]; then
+    AGENT_TASK_COUNT=$(echo "$AGENT_TASK_DATA" | grep -c '"label":' || echo "0")
+fi
 
 echo "📊 Task Summary:"
 echo "   Total tasks: $TASK_COUNT"
@@ -294,7 +296,7 @@ echo ""
 
 if [ $AGENT_TASK_COUNT -gt 0 ]; then
     echo "🎭 Dynamic agent tasks created:"
-    echo "$AGENT_TASKS" | grep '"label":' | sed 's/.*"label": *"\([^"]*\)".*/   - \1/'
+    echo "$AGENT_TASK_DATA" | grep '"label":' | sed 's/.*"label": *"\([^"]*\)".*/   - \1/'
 else
     echo "⚠️ No running agents detected"
     echo "   Deploy a team first, then run this script again"
@@ -305,3 +307,12 @@ echo "💡 Next steps:"
 echo "   1. Reload VS Code window to see updated tasks"
 echo "   2. Use Ctrl+Shift+P → 'Tasks: Run Task' to access updated commands"
 echo "   3. Re-run this script when agents change to update tasks"
+
+# Validate JSON syntax
+if command -v python3 >/dev/null 2>&1; then
+    if python3 -c "import json; json.load(open('.vscode/tasks.json'))" 2>/dev/null; then
+        echo "   ✓ JSON syntax validated successfully"
+    else
+        echo "   ⚠️ JSON syntax validation failed - please check the file"
+    fi
+fi
