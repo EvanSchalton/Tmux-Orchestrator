@@ -14,26 +14,16 @@ if [ "$PROJECT_NAME" = "." ] || [ -z "$PROJECT_NAME" ]; then
     exit 1
 fi
 
-# Function to open agent in VS Code terminal
-open_agent_terminal() {
+# Function to provide connection info for agents
+show_agent_connection() {
     local session=$1
     local window=${2:-0}
     local agent_name=$3
     
-    echo "🔗 Opening $agent_name: $session:$window"
-    
-    # Use VS Code's terminal API if available, otherwise fall back to tmux
-    if command -v code >/dev/null 2>&1; then
-        # Create new terminal in VS Code and attach to tmux session
-        code --command "workbench.action.terminal.new" \
-             --command "workbench.action.terminal.sendSequence" \
-             --args "tmux attach -t '$session:$window'"
-    else
-        # Fall back to direct tmux attach (will open in current terminal)
-        tmux attach -t "$session:$window" &
-    fi
-    
-    sleep 1  # Prevent overwhelming the system
+    echo "  📋 $agent_name"
+    echo "     Command: tmux attach -t '$session:$window'"
+    echo "     VS Code: Create new terminal and run the above command"
+    echo ""
 }
 
 # Find and categorize active sessions
@@ -69,23 +59,26 @@ if [ $TOTAL_COUNT -eq 0 ]; then
     echo "❌ No active agent sessions found!"
     echo ""
     echo "💡 Try deploying a team first:"
-    echo "   ./scripts/deploy-$PROJECT_NAME-team.sh tasks.md"
+    echo "   ./scripts/deploy.sh tasks.md"
     exit 1
 fi
 
-echo "🚀 Opening sessions..."
+echo "🚀 Available Agent Sessions:"
+echo ""
 
-# Open orchestrator sessions
+# Show orchestrator sessions
 if [ -n "$ORCHESTRATOR_SESSIONS" ]; then
+    echo "🎯 ORCHESTRATOR SESSIONS:"
     while IFS= read -r session; do
         if [ -n "$session" ]; then
-            open_agent_terminal "$session" "0" "Orchestrator"
+            show_agent_connection "$session" "0" "Orchestrator ($session)"
         fi
     done <<< "$ORCHESTRATOR_SESSIONS"
 fi
 
-# Open agent sessions with intelligent window detection
+# Show agent sessions with intelligent window detection
 if [ -n "$AGENT_SESSIONS" ]; then
+    echo "🤖 PROJECT AGENT SESSIONS:"
     while IFS= read -r session; do
         if [ -n "$session" ]; then
             # Get all windows for this session and find Claude agents
@@ -110,23 +103,29 @@ if [ -n "$AGENT_SESSIONS" ]; then
                         AGENT_TYPE="QA"
                     fi
                     
-                    open_agent_terminal "$session" "$WINDOW_INDEX" "$AGENT_TYPE ($session)"
+                    show_agent_connection "$session" "$WINDOW_INDEX" "$AGENT_TYPE ($session)"
                 fi
             done <<< "$WINDOWS"
         fi
     done <<< "$AGENT_SESSIONS"
 fi
 
+echo "💡 HOW TO CONNECT IN VS CODE:"
+echo "   1. Open a new terminal in VS Code (Terminal → New Terminal)"  
+echo "   2. Copy and paste one of the tmux attach commands above"
+echo "   3. Press Enter to connect to that agent"
 echo ""
-echo "✅ All active agents opened!"
+echo "📊 VS CODE TASKS:"
+echo "   - Use individual 'Open [Agent Type] Agent' tasks from Command Palette"
+echo "   - Access via: Ctrl+Shift+P → Tasks: Run Task → Open [Agent]"
 echo ""
-echo "💡 Useful commands after opening agents:"
+echo "🔧 OTHER USEFUL COMMANDS:"
 echo "   - List all agents: .tmux-orchestrator/commands/list-agents.sh"
-echo "   - Agent status: .tmux-orchestrator/commands/agent-status.sh"
+echo "   - Agent status: .tmux-orchestrator/commands/agent-status.sh"  
 echo "   - Force PM check-in: .tmux-orchestrator/commands/force-pm-checkin.sh"
 echo "   - Send message: tmux-message <session:window> 'message'"
 
-# Optional: Show agent status after opening
+# Optional: Show agent status after showing connections
 echo ""
 read -p "📊 Show agent status dashboard? (y/n): " -n 1 -r
 echo
