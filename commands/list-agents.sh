@@ -50,6 +50,16 @@ get_last_activity() {
     fi
 }
 
+# Check if tmux server is running first
+if ! tmux list-sessions >/dev/null 2>&1; then
+    echo "❌ No tmux server running"
+    echo ""
+    echo "💡 Try deploying a team first:"
+    echo "   ./scripts/deploy.sh tasks.md"
+    echo ""
+    exit 0
+fi
+
 # Find and list orchestrator sessions
 echo "🎯 ORCHESTRATOR SESSIONS:"
 orchestrator_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | grep -E "orchestrator" || true)
