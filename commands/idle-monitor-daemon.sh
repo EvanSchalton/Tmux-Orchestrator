@@ -12,34 +12,34 @@ log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
 }
 
-# Function to check if an agent is idle by detecting no terminal changes
+# Function to check if an agent is idle by monitoring last line changes
 is_agent_idle() {
     local session=$1
     local window=$2
     local agent_name=$3
     
-    # Take 3 snapshots over 300ms to detect activity
-    local snapshot1=$(tmux capture-pane -t "$session:$window" -p -S -10 2>/dev/null | tail -5 || echo "")
-    sleep 0.1
-    local snapshot2=$(tmux capture-pane -t "$session:$window" -p -S -10 2>/dev/null | tail -5 || echo "")
-    sleep 0.1
-    local snapshot3=$(tmux capture-pane -t "$session:$window" -p -S -10 2>/dev/null | tail -5 || echo "")
-    sleep 0.1
-    local snapshot4=$(tmux capture-pane -t "$session:$window" -p -S -10 2>/dev/null | tail -5 || echo "")
+    # Take 4 snapshots of the last line at 300ms intervals
+    local last_line1=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
+    sleep 0.3
+    local last_line2=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
+    sleep 0.3
+    local last_line3=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
+    sleep 0.3
+    local last_line4=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
     
-    # If all snapshots are identical, agent is idle
-    if [ "$snapshot1" = "$snapshot2" ] && [ "$snapshot2" = "$snapshot3" ] && [ "$snapshot3" = "$snapshot4" ]; then
-        # No change in 300ms = idle
+    # Debug logging
+    log_message "DEBUG $agent_name: line1='$last_line1' line2='$last_line2' line3='$last_line3' line4='$last_line4'"
+    
+    # If all last lines are identical, no new output = idle
+    if [ "$last_line1" = "$last_line2" ] && [ "$last_line2" = "$last_line3" ] && [ "$last_line3" = "$last_line4" ]; then
+        # No new output in 900ms = idle
+        log_message "DEBUG $agent_name: DETECTED AS IDLE"
         return 0
     fi
     
-    # Also check if at Claude prompt (any snapshot)
-    if echo "$snapshot4" | grep -q "│ >"; then
-        # At prompt, likely idle
-        return 0
-    fi
+    log_message "DEBUG $agent_name: DETECTED AS ACTIVE"
     
-    return 1  # Not idle (terminal changed)
+    return 1  # New output detected, agent is active
 }
 
 # Function to check for unsubmitted message
@@ -47,32 +47,45 @@ has_unsubmitted_message() {
     local session="$1"
     local window="$2"
     
-    # Capture the last 30 lines from the agent's terminal
-    local terminal_content=$(tmux capture-pane -t "$session:$window" -p -S -30 2>/dev/null || echo "")
+    # Capture the last 20 lines from the agent's terminal
+    local terminal_content=$(tmux capture-pane -t "$session:$window" -p -S -20 2>/dev/null || echo "")
     
-    # Look for tmux-message command that hasn't been submitted
-    # Common patterns:
-    # 1. tmux-message command without subsequent "Message sent" confirmation
-    # 2. Command typed but cursor still on same line
-    # 3. Line starts with tmux-message but no Enter was pressed
+    # Check if there's text typed in Claude prompt that hasn't been submitted
+    # Look for the Claude prompt box with content inside
+    local prompt_line=$(echo "$terminal_content" | grep "│ >")
     
-    # Check if last non-empty line contains tmux-message
-    local last_line=$(echo "$terminal_content" | grep -v "^$" | tail -1)
-    
-    if echo "$last_line" | grep -q "tmux-message"; then
-        # Check if there's a "Message sent to" confirmation after it
-        local after_command=$(echo "$terminal_content" | grep -A5 "tmux-message" | tail -5)
-        if ! echo "$after_command" | grep -q "Message sent to"; then
-            # Found unsubmitted tmux-message command
-            return 0
-        fi
+    # Check if there's text inside the prompt box (not just the empty prompt "│ >")
+    if echo "$prompt_line" | grep -q "│ > .*[A-Za-z0-9]"; then
+        # There's text in the prompt that should be submitted
+        return 0
     fi
     
-    # Also check for other common unsubmitted patterns
-    # Sometimes the message is typed but Enter wasn't pressed
-    if echo "$last_line" | grep -qE "(STATUS UPDATE:|Please report|What's your|Could you|Please provide|Hello|Hi there|I need|Can you)"; then
-        # This looks like a message that should have been sent
-        return 0
+    # Also check for multiline messages in the prompt box
+    # Look for lines that contain text after the prompt box started
+    local in_prompt=false
+    while IFS= read -r line; do
+        if echo "$line" | grep -q "│ >"; then
+            in_prompt=true
+            # Check if there's content on the same line as the prompt
+            if echo "$line" | grep "│ >.*[A-Za-z0-9]" > /dev/null; then
+                return 0
+            fi
+        elif [ "$in_prompt" = true ] && echo "$line" | grep -q "│.*[A-Za-z0-9]"; then
+            # Found content in the prompt box
+            return 0
+        elif echo "$line" | grep -q "╰─"; then
+            # End of prompt box
+            in_prompt=false
+        fi
+    done <<< "$terminal_content"
+    
+    # Legacy: Check for tmux-message commands
+    local last_line=$(echo "$terminal_content" | grep -v "^$" | tail -1)
+    if echo "$last_line" | grep -q "tmux-message"; then
+        local after_command=$(echo "$terminal_content" | grep -A5 "tmux-message" | tail -5)
+        if ! echo "$after_command" | grep -q "Message sent to"; then
+            return 0
+        fi
     fi
     
     return 1  # No unsubmitted message
@@ -86,13 +99,15 @@ auto_submit_message() {
     
     log_message "Auto-submitting unsubmitted message for $agent_type ($session:$window)"
     
-    # Send Enter key multiple times with delays to ensure submission
-    tmux send-keys -t "$session:$window" End
+    # For Claude prompts, focus on the text area and submit
+    tmux send-keys -t "$session:$window" C-a  # Go to beginning of line
+    sleep 0.2
+    tmux send-keys -t "$session:$window" C-e  # Go to end of line
+    sleep 0.3
+    tmux send-keys -t "$session:$window" Enter # Submit the message
     sleep 0.5
-    tmux send-keys -t "$session:$window" Enter
-    sleep 1
-    tmux send-keys -t "$session:$window" Enter
-    sleep 0.5
+    tmux send-keys -t "$session:$window" Enter # Extra enter to ensure submission
+    sleep 0.3
     
     return 0
 }
