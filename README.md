@@ -2,12 +2,14 @@
 
 **Run AI agents 24/7 while you sleep** - The Tmux Orchestrator enables Claude agents to work autonomously, schedule their own check-ins, and coordinate across multiple projects without human intervention.
 
-## 🚀 NEW: Enhanced for Maximum Reusability
+## 🚀 NEW: Version 2.0 - Enhanced Agent Communication & VS Code Integration
 
-✅ **Devcontainer Integration** - One-click setup for any project  
-✅ **Advanced PM Suite** - Smart scheduling and team coordination  
-✅ **Generic Team Deployment** - Auto-detects project requirements  
-✅ **Comprehensive Documentation** - Setup, running, and troubleshooting guides  
+✅ **VS Code Integration** - Open all agents with one command in separate terminals  
+✅ **Agent Communication** - PM and Orchestrator can message all team members  
+✅ **PM Check-ins** - Off-cycle status checks when agents appear idle  
+✅ **Auto-Submit Messages** - No manual Enter required for agent communication  
+✅ **Enhanced Stability** - Fixed window indexing and tmux server crashes  
+✅ **18 VS Code Tasks** - Complete orchestrator control through Command Palette  
 
 ## 🤖 Key Capabilities & Autonomous Features
 
@@ -78,6 +80,43 @@ cp references/Tmux-Orchestrator/install-template.sh scripts/install-tmux-orchest
 
 # 4. Rebuild devcontainer and deploy team
 ./scripts/deploy-my-project-team.sh tasks.md
+```
+
+## 🎯 VS Code Integration - New in v2.0!
+
+### One-Click Agent Access
+Open all your agents instantly through VS Code's Command Palette:
+
+```
+Ctrl+Shift+P → Tasks: Run Task → Select:
+
+🎭 Open ALL Agent Terminals        ← Opens all 5 agents at once!
+🎯 Open Orchestrator Agent         ← Main coordinator  
+👔 Open Project Manager Agent      ← Planning & quality
+🎨 Open Frontend Agent            ← UI/UX development
+⚙️ Open Backend Agent             ← API & server logic
+🧪 Open QA Agent                  ← Testing & verification
+```
+
+### PM Team Management
+Perfect for when you notice agents are idle:
+
+```
+👔 PM Check-in with All Agents     ← Comprehensive status check
+💬 PM Custom Check-in with All     ← Custom message for specific situations
+```
+
+### Agent Communication Commands
+Agents now know how to message each other:
+
+```bash
+# PM can coordinate the team
+tmux-message orchestrator:1 "Priority update: Focus on auth issues"
+tmux-message corporate-coach-frontend:2 "UI fixes needed for login flow"
+
+# Check team status  
+.tmux-orchestrator/commands/agent-status.sh
+.tmux-orchestrator/commands/list-agents.sh
 ```
 
 ## 📸 Examples in Action

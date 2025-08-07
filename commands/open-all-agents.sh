@@ -1,6 +1,6 @@
 #!/bin/bash
-# Dynamic script to open all running agents in separate terminals
-# This replaces hardcoded dependsOn with dynamic agent detection
+# Dynamic script to open all running agents in separate VS Code terminals
+# Automatically creates new terminals and attaches to each agent session
 
 echo "🎭 OPENING ALL ACTIVE AGENTS"
 echo "==========================="
@@ -14,15 +14,15 @@ if [ "$PROJECT_NAME" = "." ] || [ -z "$PROJECT_NAME" ]; then
     exit 1
 fi
 
-# Function to provide connection info for agents
+# Function to create VS Code terminal connection info
 show_agent_connection() {
     local session=$1
-    local window=${2:-0}
+    local window=${2:-1}
     local agent_name=$3
     
     echo "  📋 $agent_name"
-    echo "     Command: tmux attach -t '$session:$window'"
-    echo "     VS Code: Create new terminal and run the above command"
+    echo "     VS Code Task: 'Open $agent_name Agent'"  
+    echo "     Manual Command: tmux attach -t '$session:$window'"
     echo ""
 }
 
@@ -110,14 +110,22 @@ if [ -n "$AGENT_SESSIONS" ]; then
     done <<< "$AGENT_SESSIONS"
 fi
 
-echo "💡 HOW TO CONNECT IN VS CODE:"
-echo "   1. Open a new terminal in VS Code (Terminal → New Terminal)"  
-echo "   2. Copy and paste one of the tmux attach commands above"
-echo "   3. Press Enter to connect to that agent"
+echo "🚀 INSTANT VS CODE ACCESS - OPEN ALL AGENTS AT ONCE:"
+echo "   📋 Command Palette (Ctrl+Shift+P) → 'Tasks: Run Task' → Select:"
 echo ""
-echo "📊 VS CODE TASKS:"
-echo "   - Use individual 'Open [Agent Type] Agent' tasks from Command Palette"
-echo "   - Access via: Ctrl+Shift+P → Tasks: Run Task → Open [Agent]"
+echo "   ✨ 🎭 Open ALL Agent Terminals  ← OPENS ALL 5 AGENTS SIMULTANEOUSLY!"
+echo ""
+echo "   Or open individual agents:"
+echo "   🎯 Open Orchestrator Agent    - Main coordinator"
+echo "   👔 Open Project Manager Agent - Planning & quality control"  
+echo "   🎨 Open Frontend Agent        - UI/UX development"
+echo "   ⚙️ Open Backend Agent         - API & server logic"
+echo "   🧪 Open QA Agent             - Testing & verification"
+echo ""
+echo "   💡 Each opens a NEW terminal panel and connects automatically!"
+echo ""
+echo "📋 MANUAL CONNECTION:"
+echo "   Alternative: Open terminal manually and run commands above"
 echo ""
 echo "🔧 OTHER USEFUL COMMANDS:"
 echo "   - List all agents: .tmux-orchestrator/commands/list-agents.sh"
@@ -125,10 +133,8 @@ echo "   - Agent status: .tmux-orchestrator/commands/agent-status.sh"
 echo "   - Force PM check-in: .tmux-orchestrator/commands/force-pm-checkin.sh"
 echo "   - Send message: tmux-message <session:window> 'message'"
 
-# Optional: Show agent status after showing connections
+# Show agent status automatically for VS Code tasks
 echo ""
-read -p "📊 Show agent status dashboard? (y/n): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    .tmux-orchestrator/commands/agent-status.sh
-fi
+echo "📊 AGENT STATUS:"
+echo "=================="
+.tmux-orchestrator/commands/agent-status.sh 2>/dev/null || echo "   Status check temporarily unavailable"

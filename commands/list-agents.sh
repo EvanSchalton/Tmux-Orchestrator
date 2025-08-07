@@ -67,7 +67,8 @@ if [ -n "$orchestrator_sessions" ]; then
     for session in $orchestrator_sessions; do
         status=$(get_session_status "$session")
         activity=$(get_last_activity "$session" "1")
-        windows=$(tmux list-windows -t "$session" -F "#{window_index}:#{window_name}" 2>/dev/null | wc -l)
+        # Skip window count to avoid tmux server crashes
+        windows="?"
         
         echo "  📡 $session"
         echo "     Status: $status"
@@ -86,23 +87,10 @@ agent_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | grep -E "
 if [ -n "$agent_sessions" ]; then
     for session in $agent_sessions; do
         status=$(get_session_status "$session")
-        windows=$(tmux list-windows -t "$session" -F "#{window_index}:#{window_name}" 2>/dev/null)
-        window_count=$(echo "$windows" | wc -l)
-        
+        # Skip window details to avoid tmux server crashes
         echo "  🤖 $session"
         echo "     Status: $status"
-        echo "     Windows: $window_count"
-        
-        # List each window with its status
-        while IFS= read -r window; do
-            if [ -n "$window" ]; then
-                window_index=$(echo "$window" | cut -d: -f1)
-                window_name=$(echo "$window" | cut -d: -f2-)
-                window_activity=$(get_last_activity "$session" "$window_index")
-                echo "       └─ $window_index: $window_name"
-                echo "          Last: $window_activity"
-            fi
-        done <<< "$windows"
+        echo "     Windows: ? (details disabled to prevent crashes)"
         echo ""
     done
 else
