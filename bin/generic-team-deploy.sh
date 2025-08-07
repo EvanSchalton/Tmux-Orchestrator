@@ -351,6 +351,33 @@ bash "$TMUX_ORCHESTRATOR_PATH/../references/Tmux-Orchestrator/bin/generic-team-d
 EOF
 chmod +x "$RESTART_SCRIPT"
 
+# Step 8: Start idle monitor if not running
+echo -e "\n${GREEN}8. Checking Idle Agent Monitor${NC}"
+PID_FILE="/tmp/tmux-orchestrator-idle-monitor.pid"
+IDLE_MONITOR_SCRIPT="$TMUX_ORCHESTRATOR_PATH/commands/start-idle-monitor.sh"
+
+if [ -f "$IDLE_MONITOR_SCRIPT" ]; then
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE" 2>/dev/null || echo "")
+        if [ -n "$PID" ] && ps -p "$PID" > /dev/null 2>&1; then
+            echo "   ✅ Idle monitor already running (PID: $PID)"
+        else
+            echo "   ⚠️ Stale PID file found, starting fresh monitor..."
+            rm -f "$PID_FILE"
+            "$IDLE_MONITOR_SCRIPT" 10 > /dev/null 2>&1
+            sleep 2
+            echo "   ✅ Idle monitor started (10 second interval)"
+        fi
+    else
+        echo "   🚀 Starting idle monitor..."
+        "$IDLE_MONITOR_SCRIPT" 10 > /dev/null 2>&1
+        sleep 2
+        echo "   ✅ Idle monitor started (10 second interval)"
+    fi
+else
+    echo "   ⚠️ Idle monitor script not found, skipping..."
+fi
+
 # Summary
 echo -e "\n${BLUE}✅ Team Deployment Complete!${NC}"
 echo -e "${GREEN}============================${NC}"
@@ -362,4 +389,6 @@ echo -e "  Monitor: ${YELLOW}$MONITOR_SCRIPT${NC}"
 echo -e "  Restart: ${YELLOW}$RESTART_SCRIPT${NC}"
 echo -e "  Attach: ${YELLOW}tmux attach -t <session-name>${NC}"
 echo -e "  Status: ${YELLOW}$TMUX_ORCHESTRATOR_PATH/commands/agent-status.sh${NC}"
+echo -e "  Idle Log: ${YELLOW}tail -f /tmp/tmux-orchestrator-idle-monitor.log${NC}"
 echo -e "\n${YELLOW}⚡ Your autonomous $PROJECT_NAME team is now working!${NC}"
+echo -e "${BLUE}🤖 Idle agents will be automatically reported to PM!${NC}"
