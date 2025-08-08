@@ -18,11 +18,67 @@ from tmux_orchestrator.server.routes import (
 
 app = FastAPI(
     title="TMUX Orchestrator MCP Server",
-    description="Model Context Protocol server for AI agent coordination and orchestration",
+    description="""Enterprise-grade Model Context Protocol server for AI agent coordination and orchestration.
+    
+    ## Overview
+    The TMUX Orchestrator provides comprehensive multi-agent management capabilities through
+    a RESTful API that implements the Model Context Protocol (MCP). This server enables
+    sophisticated AI agent coordination, team deployment, real-time communication, and
+    advanced monitoring across tmux sessions.
+    
+    ## Key Features
+    - **Agent Lifecycle Management**: Spawn, restart, monitor, and terminate Claude agents
+    - **Team Coordination**: Deploy specialized agent teams with role-based configurations
+    - **Real-time Communication**: Broadcast messages and coordinate agent interactions
+    - **Advanced Monitoring**: Health checks, performance metrics, and system status
+    - **Task Management**: Comprehensive task assignment and tracking system
+    
+    ## API Categories
+    - **Agent Management** (`/agents/*`): Core agent lifecycle operations
+    - **Communication** (`/messages/*`): Inter-agent messaging and coordination
+    - **Monitoring** (`/monitor/*`): System health and performance tracking
+    - **Coordination** (`/coordination/*`): Team deployment and management
+    - **Task Management** (`/tasks/*`): Task assignment and progress tracking
+    
+    ## Authentication
+    Currently operates in development mode without authentication.
+    Production deployments should implement proper authentication and authorization.
+    """,
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
+    contact={
+        "name": "TMUX Orchestrator Support",
+        "url": "https://github.com/tmux-orchestrator/tmux-orchestrator",
+        "email": "support@tmux-orchestrator.dev"
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT"
+    },
+    openapi_tags=[
+        {
+            "name": "Agent Management",
+            "description": "Core agent lifecycle operations including spawn, restart, kill, and status monitoring"
+        },
+        {
+            "name": "Communication", 
+            "description": "Inter-agent messaging, broadcasting, and conversation history management"
+        },
+        {
+            "name": "Monitoring",
+            "description": "System health checks, performance metrics, and status reporting"
+        },
+        {
+            "name": "Coordination",
+            "description": "Team deployment, standup coordination, and multi-agent management"
+        },
+        {
+            "name": "Task Management",
+            "description": "Task creation, assignment, tracking, and queue management"
+        }
+    ]
 )
 
 # Configure CORS for MCP protocol compatibility

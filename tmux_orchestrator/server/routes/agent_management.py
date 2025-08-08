@@ -6,6 +6,19 @@ from typing import Dict, List, Optional, Union
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
+# Import comprehensive Pydantic models
+from tmux_orchestrator.server.models.agent_models import (
+    AgentSpawnRequest,
+    AgentSpawnResponse,
+    AgentStatusRequest,
+    AgentStatusResponse,
+    AgentRestartRequest,
+    AgentRestartResponse,
+    AgentKillRequest,
+    AgentKillResponse,
+    AgentListResponse
+)
+
 from tmux_orchestrator.server.tools.get_session_status import (
     AgentStatusRequest as ToolAgentStatusRequest,
 )

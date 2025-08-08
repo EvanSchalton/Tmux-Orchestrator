@@ -332,6 +332,13 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # setup.py module will be created in Task 2.5
 
+        # Add recovery commands
+        try:
+            from tmux_orchestrator.cli import recovery
+            cli.add_command(recovery.recovery)
+        except ImportError:
+            pass  # recovery.py module for automatic agent recovery
+
     except ImportError as e:
         # Handle missing modules gracefully during development
         console.print(f"[yellow]Warning: Some CLI modules not available: {e}[/yellow]")
