@@ -7,53 +7,104 @@ from fastapi.middleware.cors import CORSMiddleware
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.server.middleware import TimingMiddleware
 from tmux_orchestrator.server.routes import (
-    agents,
+    agent_management,
+    communication,
+    monitoring,
     coordination,
-    messages,
-    monitor,
     tasks,
 )
 
 app = FastAPI(
     title="TMUX Orchestrator MCP Server",
-    description="Model Context Protocol server for AI agent coordination",
-    version="2.0.0"
+    description="Model Context Protocol server for AI agent coordination and orchestration",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
-# Configure CORS
+# Configure CORS for MCP protocol compatibility
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allow all origins for MCP tools
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Add custom middleware
+# Add custom timing middleware
 app.add_middleware(TimingMiddleware)
 
-# Include routers
-app.include_router(agents.router, prefix="/agents", tags=["agents"])
-app.include_router(messages.router, prefix="/messages", tags=["messages"])
-app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
-app.include_router(monitor.router, prefix="/monitor", tags=["monitor"])
-app.include_router(coordination.router, prefix="/coordination", tags=["coordination"])
+# Include MCP tool routers with proper prefixes and tags
+app.include_router(
+    agent_management.router, 
+    prefix="/agents", 
+    tags=["Agent Management"],
+    responses={
+        404: {"description": "Agent or session not found"},
+        500: {"description": "Internal server error"}
+    }
+)
+app.include_router(
+    communication.router, 
+    prefix="/messages", 
+    tags=["Communication"],
+    responses={
+        404: {"description": "Target not found"},
+        500: {"description": "Message delivery failed"}
+    }
+)
+app.include_router(
+    monitoring.router, 
+    prefix="/monitor", 
+    tags=["Monitoring"],
+    responses={
+        500: {"description": "Monitoring system error"}
+    }
+)
+app.include_router(
+    coordination.router, 
+    prefix="/coordination", 
+    tags=["Coordination"],
+    responses={
+        500: {"description": "Team coordination error"}
+    }
+)
+app.include_router(
+    tasks.router, 
+    prefix="/tasks", 
+    tags=["Task Management"],
+    responses={
+        404: {"description": "Task not found"},
+        500: {"description": "Task management error"}
+    }
+)
 
 
 @app.get("/")
-async def root():
-    """Root endpoint."""
+async def root() -> dict[str, str | list[str]]:
+    """Root endpoint with MCP server information."""
     return {
         "name": "TMUX Orchestrator MCP Server",
         "version": "2.0.0",
-        "status": "running"
+        "description": "Model Context Protocol server for AI agent coordination",
+        "status": "running",
+        "protocol": "MCP",
+        "available_tools": [
+            "spawn_agent", "restart_agent", "kill_agent", "get_agent_status", "list_agents",
+            "send_message", "broadcast_message", "interrupt_agent", "get_conversation_history",
+            "get_system_status", "get_session_detail", "health_check", "get_idle_agents",
+            "deploy_team", "coordinate_standup", "create_task", "get_task_status"
+        ],
+        "documentation": "/docs",
+        "openapi_spec": "/openapi.json"
     }
 
 
 @app.get("/health")
-async def health():
-    """Health check endpoint."""
-    return {"status": "healthy"}
+async def health() -> dict[str, str]:
+    """Basic health check endpoint."""
+    return {"status": "healthy", "service": "tmux-orchestrator-mcp"}
 
 
 def main():

@@ -1,0 +1,125 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 Start Project",
+      "type": "shell",
+      "command": "tmux-orc start ${input:projectName}",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "📦 Deploy Team",
+      "type": "shell",
+      "command": "tmux-orc team deploy ${input:taskFile}",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "📊 Team Status",
+      "type": "shell",
+      "command": "tmux-orc team status ${input:sessionName}",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "🤖 Deploy Agent",
+      "type": "shell",
+      "command": "tmux-orc agent deploy ${input:component} ${input:role}",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "📨 Send Message to Agent",
+      "type": "shell",
+      "command": "tmux-orc agent send ${input:target} \"${input:message}\"",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "🔄 Restart Agent",
+      "type": "shell",
+      "command": "tmux-orc agent restart ${input:target}",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "📺 Dashboard",
+      "type": "shell",
+      "command": "tmux-orc dashboard --refresh 5",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "🏥 Start Recovery Monitor",
+      "type": "shell",
+      "command": "tmux-orc monitor recovery-start",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "📋 List All Sessions",
+      "type": "shell",
+      "command": "tmux-orc list",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "🛠️ Setup VS Code Integration",
+      "type": "shell",
+      "command": "tmux-orc setup-vscode",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "projectName",
+      "description": "Project name",
+      "default": "my-project",
+      "type": "promptString"
+    },
+    {
+      "id": "taskFile",
+      "description": "Task file path",
+      "default": "./task.md",
+      "type": "promptString"
+    },
+    {
+      "id": "sessionName",
+      "description": "Session name",
+      "default": "tmux-orc-dev",
+      "type": "promptString"
+    },
+    {
+      "id": "component",
+      "description": "Component (frontend/backend/database)",
+      "default": "frontend",
+      "type": "pickString",
+      "options": ["frontend", "backend", "database", "testing", "docs", "devops"]
+    },
+    {
+      "id": "role",
+      "description": "Role (developer/pm/qa/reviewer)",
+      "default": "developer",
+      "type": "pickString",
+      "options": ["developer", "pm", "qa", "reviewer"]
+    },
+    {
+      "id": "target",
+      "description": "Target (session:window)",
+      "default": "session:1",
+      "type": "promptString"
+    },
+    {
+      "id": "message",
+      "description": "Message to send",
+      "default": "Status update please",
+      "type": "promptString"
+    }
+  ]
+}

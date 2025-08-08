@@ -1,7 +1,7 @@
 """Agent management commands."""
 
-from typing import Any, Dict
 import subprocess
+from typing import Any, Dict
 
 import click
 from rich.console import Console
@@ -19,17 +19,22 @@ def agent() -> None:
 
 
 @agent.command()
-@click.argument('agent_type', type=click.Choice(['frontend', 'backend', 'testing', 'database', 'docs', 'devops']))
+@click.argument(
+    'agent_type',
+    type=click.Choice(['frontend', 'backend', 'testing', 'database', 'docs', 'devops'])
+)
 @click.argument('role', type=click.Choice(['developer', 'pm', 'qa', 'reviewer']))
 @click.pass_context
 def deploy(ctx: click.Context, agent_type: str, role: str) -> None:
     """Deploy an individual agent."""
     from tmux_orchestrator.core.agent_manager import AgentManager
-    
+
     manager: AgentManager = AgentManager(ctx.obj['tmux'])
     session: str = manager.deploy_agent(agent_type, role)
-    
-    console.print(f"[green]✓ Deployed {agent_type} {role} in session: {session}[/green]")
+
+    console.print(
+        f"[green]✓ Deployed {agent_type} {role} in session: {session}[/green]"
+    )
 
 
 @agent.command()
@@ -38,12 +43,12 @@ def deploy(ctx: click.Context, agent_type: str, role: str) -> None:
 @click.pass_context
 def message(ctx: click.Context, target: str, message: str) -> None:
     """Send a message to an agent.
-    
+
     TARGET: Target in format session:window
     MESSAGE: The message to send
     """
     tmux: TMUXManager = ctx.obj['tmux']
-    
+
     if tmux.send_message(target, message):
         console.print(f"[green]✓ Message sent to {target}[/green]")
     else:
@@ -55,7 +60,7 @@ def message(ctx: click.Context, target: str, message: str) -> None:
 @click.pass_context
 def attach(ctx: click.Context, target: str) -> None:
     """Attach to an agent's terminal.
-    
+
     TARGET: Target in format session:window
     """
     try:
@@ -69,16 +74,16 @@ def attach(ctx: click.Context, target: str) -> None:
 @click.pass_context
 def restart(ctx: click.Context, target: str) -> None:
     """Restart a specific agent.
-    
+
     TARGET: Target agent in format session:window
     """
     tmux: TMUXManager = ctx.obj['tmux']
-    
+
     console.print(f"[yellow]Restarting agent at {target}...[/yellow]")
-    
+
     # Delegate to business logic
     success, result_message = restart_agent(tmux, target)
-    
+
     if success:
         console.print(f"[green]✓ {result_message}[/green]")
     else:
@@ -90,10 +95,10 @@ def restart(ctx: click.Context, target: str) -> None:
 def status(ctx: click.Context) -> None:
     """Show status of all agents."""
     from tmux_orchestrator.core.agent_manager import AgentManager
-    
+
     manager: AgentManager = AgentManager(ctx.obj['tmux'])
     statuses: Dict[str, Any] = manager.get_all_status()
-    
+
     for agent_id, status in statuses.items():
         console.print(f"\n[bold cyan]{agent_id}[/bold cyan]")
         console.print(f"  Status: {status['state']}")

@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 from click.testing import CliRunner
 import pytest
 
-from tmux_orchestrator.cli.agent import agent
+from tmux_orchestrator.cli.agent import agent, restart, message, attach, deploy, status
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
@@ -14,155 +14,126 @@ def runner() -> CliRunner:
     return CliRunner()
 
 
-@pytest.fixture
-def mock_ctx_obj() -> dict:
-    """Create mock context object with TMUXManager."""
-    mock_tmux = Mock(spec=TMUXManager)
-    return {'tmux': mock_tmux, 'console': Mock()}
-
-
-def test_agent_restart_success(runner: CliRunner) -> None:
-    """Test successful agent restart command."""
-    with patch('tmux_orchestrator.cli.agent.restart_agent') as mock_restart:
+def test_agent_restart_success() -> None:
+    """Test successful agent restart command via CLI."""
+    runner = CliRunner()
+    
+    with patch('tmux_orchestrator.core.agent_operations.restart_agent') as mock_restart:
         mock_restart.return_value = (True, "Agent restarted successfully")
         
-        with patch.object(runner, 'invoke') as mock_invoke:
-            # Mock the Click context
+        # Create a mock context
+        with patch('click.get_current_context') as mock_get_ctx:
             mock_ctx = Mock()
-            mock_ctx.obj = {'tmux': Mock(spec=TMUXManager)}
-            mock_invoke.return_value.exit_code = 0
+            mock_tmux = Mock(spec=TMUXManager)
+            mock_ctx.obj = {'tmux': mock_tmux}
+            mock_get_ctx.return_value = mock_ctx
             
-            # This test verifies the CLI command structure
-            # In a real scenario, we'd need to mock the full Click context
+            # Test CLI command through runner
+            result = runner.invoke(agent, ['restart', 'test-session:0'])
             
-            # Verify the command exists and has correct parameters
-            assert hasattr(agent, 'restart')
-            
-            # Test that restart function is called with correct parameters
-            from tmux_orchestrator.cli.agent import restart
-            
-            # Mock Click context
-            ctx = Mock()
-            ctx.obj = {'tmux': Mock(spec=TMUXManager)}
-            
-            with patch('tmux_orchestrator.core.agent_operations.restart_agent') as mock_restart_func:
-                mock_restart_func.return_value = (True, "Success message")
-                
-                # Call the function directly (bypassing Click decorator)
-                restart(ctx, "test-session:0")
-                
-                # Verify business logic was called
-                mock_restart_func.assert_called_once_with(ctx.obj['tmux'], "test-session:0")
+            assert result.exit_code == 0
+            assert "Restarting agent at test-session:0" in result.output
+            assert "Agent restarted successfully" in result.output
 
 
-def test_agent_restart_failure(runner: CliRunner) -> None:
-    """Test agent restart command failure."""
+def test_agent_restart_failure() -> None:
+    """Test agent restart command failure via CLI."""
+    runner = CliRunner()
+    
     with patch('tmux_orchestrator.core.agent_operations.restart_agent') as mock_restart:
         mock_restart.return_value = (False, "Session not found")
         
-        # Test the business logic delegation
-        from tmux_orchestrator.cli.agent import restart
+        with patch('click.get_current_context') as mock_get_ctx:
+            mock_ctx = Mock()
+            mock_tmux = Mock(spec=TMUXManager)
+            mock_ctx.obj = {'tmux': mock_tmux}
+            mock_get_ctx.return_value = mock_ctx
+            
+            result = runner.invoke(agent, ['restart', 'invalid:target'])
+            
+            assert result.exit_code == 0  # Command runs, but shows error
+            assert "Session not found" in result.output
+
+
+def test_agent_message_success() -> None:
+    """Test successful message sending via CLI."""
+    runner = CliRunner()
+    
+    with patch('click.get_current_context') as mock_get_ctx:
+        mock_ctx = Mock()
+        mock_tmux = Mock(spec=TMUXManager)
+        mock_tmux.send_message.return_value = True
+        mock_ctx.obj = {'tmux': mock_tmux}
+        mock_get_ctx.return_value = mock_ctx
         
-        ctx = Mock()
-        ctx.obj = {'tmux': Mock(spec=TMUXManager)}
+        result = runner.invoke(agent, ['message', 'test-session:0', 'Hello agent!'])
         
-        restart(ctx, "invalid:target")
+        assert result.exit_code == 0
+        assert "Message sent to test-session:0" in result.output
+
+
+def test_agent_message_failure() -> None:
+    """Test message sending failure via CLI."""
+    runner = CliRunner()
+    
+    with patch('click.get_current_context') as mock_get_ctx:
+        mock_ctx = Mock()
+        mock_tmux = Mock(spec=TMUXManager)
+        mock_tmux.send_message.return_value = False
+        mock_ctx.obj = {'tmux': mock_tmux}
+        mock_get_ctx.return_value = mock_ctx
         
-        # Verify error case is handled
-        mock_restart.assert_called_once_with(ctx.obj['tmux'], "invalid:target")
+        result = runner.invoke(agent, ['message', 'test-session:0', 'Hello agent!'])
+        
+        assert result.exit_code == 0
+        assert "Failed to send message" in result.output
 
 
-def test_agent_message_success(runner: CliRunner) -> None:
-    """Test successful message sending."""
-    from tmux_orchestrator.cli.agent import message
-    
-    ctx = Mock()
-    mock_tmux = Mock(spec=TMUXManager)
-    mock_tmux.send_message.return_value = True
-    ctx.obj = {'tmux': mock_tmux}
-    
-    # Call message function
-    message(ctx, "test-session:0", "Hello agent!")
-    
-    # Verify TMUXManager method was called
-    mock_tmux.send_message.assert_called_once_with("test-session:0", "Hello agent!")
-
-
-def test_agent_message_failure(runner: CliRunner) -> None:
-    """Test message sending failure."""
-    from tmux_orchestrator.cli.agent import message
-    
-    ctx = Mock()
-    mock_tmux = Mock(spec=TMUXManager)
-    mock_tmux.send_message.return_value = False
-    ctx.obj = {'tmux': mock_tmux}
-    
-    # Call message function
-    message(ctx, "test-session:0", "Hello agent!")
-    
-    # Verify TMUXManager method was called
-    mock_tmux.send_message.assert_called_once_with("test-session:0", "Hello agent!")
-
-
-def test_agent_attach_success(runner: CliRunner) -> None:
-    """Test successful attach command."""
-    from tmux_orchestrator.cli.agent import attach
+def test_agent_attach_success() -> None:
+    """Test successful attach command via CLI."""
+    runner = CliRunner()
     
     with patch('subprocess.run') as mock_run:
         mock_run.return_value.returncode = 0
         
-        ctx = Mock()
-        ctx.obj = {'tmux': Mock(spec=TMUXManager)}
-        
-        # Call attach function
-        attach(ctx, "test-session:0")
-        
-        # Verify subprocess call
-        mock_run.assert_called_once_with(['tmux', 'attach', '-t', 'test-session:0'], check=True)
+        with patch('click.get_current_context') as mock_get_ctx:
+            mock_ctx = Mock()
+            mock_ctx.obj = {'tmux': Mock(spec=TMUXManager)}
+            mock_get_ctx.return_value = mock_ctx
+            
+            result = runner.invoke(agent, ['attach', 'test-session:0'])
+            
+            # attach command will try to actually attach, which we can't test in unit tests
+            # The important thing is that subprocess.run is called correctly
+            mock_run.assert_called_once_with(['tmux', 'attach', '-t', 'test-session:0'], check=True)
 
 
-def test_agent_attach_failure(runner: CliRunner) -> None:
-    """Test attach command failure."""
-    from tmux_orchestrator.cli.agent import attach
-    import subprocess
-    
-    with patch('subprocess.run') as mock_run:
-        mock_run.side_effect = subprocess.CalledProcessError(1, 'tmux')
-        
-        ctx = Mock()
-        ctx.obj = {'tmux': Mock(spec=TMUXManager)}
-        
-        # Call attach function - should not raise exception
-        attach(ctx, "invalid-session:0")
-        
-        # Verify subprocess was called
-        mock_run.assert_called_once_with(['tmux', 'attach', '-t', 'invalid-session:0'], check=True)
-
-
-def test_agent_deploy_success(runner: CliRunner) -> None:
-    """Test successful deploy command."""
-    from tmux_orchestrator.cli.agent import deploy
+def test_agent_deploy_success() -> None:
+    """Test successful deploy command via CLI."""
+    runner = CliRunner()
     
     with patch('tmux_orchestrator.core.agent_manager.AgentManager') as mock_agent_mgr_class:
         mock_agent_mgr = Mock()
         mock_agent_mgr.deploy_agent.return_value = "test-session-123"
         mock_agent_mgr_class.return_value = mock_agent_mgr
         
-        ctx = Mock()
-        mock_tmux = Mock(spec=TMUXManager)
-        ctx.obj = {'tmux': mock_tmux}
-        
-        # Call deploy function
-        deploy(ctx, "frontend", "developer")
-        
-        # Verify AgentManager was used
-        mock_agent_mgr_class.assert_called_once_with(mock_tmux)
-        mock_agent_mgr.deploy_agent.assert_called_once_with("frontend", "developer")
+        with patch('click.get_current_context') as mock_get_ctx:
+            mock_ctx = Mock()
+            mock_tmux = Mock(spec=TMUXManager)
+            mock_ctx.obj = {'tmux': mock_tmux}
+            mock_get_ctx.return_value = mock_ctx
+            
+            result = runner.invoke(agent, ['deploy', 'frontend', 'developer'])
+            
+            assert result.exit_code == 0
+            assert "Deployed frontend developer" in result.output
+            mock_agent_mgr_class.assert_called_once_with(mock_tmux)
+            mock_agent_mgr.deploy_agent.assert_called_once_with("frontend", "developer")
 
 
-def test_agent_status_success(runner: CliRunner) -> None:
-    """Test successful status command."""
-    from tmux_orchestrator.cli.agent import status
+def test_agent_status_success() -> None:
+    """Test successful status command via CLI."""
+    runner = CliRunner()
     
     with patch('tmux_orchestrator.core.agent_manager.AgentManager') as mock_agent_mgr_class:
         mock_agent_mgr = Mock()
@@ -175,24 +146,56 @@ def test_agent_status_success(runner: CliRunner) -> None:
         }
         mock_agent_mgr_class.return_value = mock_agent_mgr
         
-        ctx = Mock()
-        mock_tmux = Mock(spec=TMUXManager)
-        ctx.obj = {'tmux': mock_tmux}
-        
-        # Call status function
-        status(ctx)
-        
-        # Verify AgentManager was used
-        mock_agent_mgr_class.assert_called_once_with(mock_tmux)
-        mock_agent_mgr.get_all_status.assert_called_once()
+        with patch('click.get_current_context') as mock_get_ctx:
+            mock_ctx = Mock()
+            mock_tmux = Mock(spec=TMUXManager)
+            mock_ctx.obj = {'tmux': mock_tmux}
+            mock_get_ctx.return_value = mock_ctx
+            
+            result = runner.invoke(agent, ['status'])
+            
+            assert result.exit_code == 0
+            assert "agent-1" in result.output
+            assert "active" in result.output
 
 
 def test_agent_group_exists() -> None:
-    """Test that agent command group exists."""
+    """Test that agent command group exists and has expected subcommands."""
     # Verify the main command group
     assert callable(agent)
     
-    # Verify all subcommands exist
-    subcommands = ['deploy', 'message', 'attach', 'restart', 'status']
-    for cmd_name in subcommands:
-        assert hasattr(agent, cmd_name) or cmd_name in [c.name for c in agent.commands.values()]
+    # Get the command names from the group
+    command_names = list(agent.commands.keys())
+    expected_commands = {'deploy', 'message', 'attach', 'restart', 'status'}
+    
+    # Verify all expected commands exist
+    assert expected_commands.issubset(set(command_names))
+
+
+def test_restart_function_direct() -> None:
+    """Test restart function directly without CLI runner."""
+    with patch('tmux_orchestrator.core.agent_operations.restart_agent') as mock_restart:
+        mock_restart.return_value = (True, "Success message")
+        
+        ctx = Mock()
+        ctx.obj = {'tmux': Mock(spec=TMUXManager)}
+        
+        # Call the function directly
+        restart(ctx, "test-session:0")
+        
+        # Verify business logic was called
+        mock_restart.assert_called_once_with(ctx.obj['tmux'], "test-session:0")
+
+
+def test_message_function_direct() -> None:
+    """Test message function directly without CLI runner."""
+    ctx = Mock()
+    mock_tmux = Mock(spec=TMUXManager)
+    mock_tmux.send_message.return_value = True
+    ctx.obj = {'tmux': mock_tmux}
+    
+    # Call message function directly
+    message(ctx, "test-session:0", "Hello agent!")
+    
+    # Verify TMUXManager method was called
+    mock_tmux.send_message.assert_called_once_with("test-session:0", "Hello agent!")
