@@ -14,6 +14,109 @@
 
 ---
 
+## 📦 Installation
+
+### Requirements
+- Python 3.11+
+- tmux 2.0+
+- Unix-like system (macOS, Linux, WSL)
+
+### Quick Install
+
+#### Option 1: Install with Poetry (Recommended)
+```bash
+# Clone the repository
+git clone https://github.com/[your-username]/Tmux-Orchestrator.git
+cd Tmux-Orchestrator
+
+# Install Poetry if you don't have it
+pip install poetry
+
+# Install dependencies and create environment
+poetry install
+
+# Activate the environment
+poetry shell
+
+# Run initial setup
+tmux-orc setup
+```
+
+#### Option 2: Install with pip (Development Mode)
+```bash
+# Clone the repository
+git clone https://github.com/[your-username]/Tmux-Orchestrator.git
+cd Tmux-Orchestrator
+
+# Install in development mode
+pip install -e .
+
+# Run initial setup
+tmux-orc setup
+```
+
+#### Option 3: Remote Bootstrap (For DevContainers)
+Add to your project's devcontainer or setup script:
+```bash
+# Download and run bootstrap script
+curl -sSL https://raw.githubusercontent.com/[your-username]/Tmux-Orchestrator/main/bootstrap.sh | bash
+```
+
+### Verify Installation
+```bash
+# Check CLI is available
+tmux-orc --version
+
+# Start the orchestrator
+tmux-orc orchestrator start
+```
+
+### 🔧 Integrating into Your Project
+
+For existing projects, add Tmux Orchestrator to your development environment:
+
+#### DevContainer Integration
+```json
+// .devcontainer/devcontainer.json
+{
+  "postCreateCommand": "curl -sSL https://raw.githubusercontent.com/[your-username]/Tmux-Orchestrator/main/bootstrap.sh | bash",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {}
+  }
+}
+```
+
+#### Poetry Project
+```bash
+# Add as dev dependency using Poetry command
+poetry add --group dev git+https://github.com/[your-username]/Tmux-Orchestrator.git
+
+# This will automatically update your pyproject.toml
+```
+
+#### Pip/Requirements Project
+```bash
+# For projects not using Poetry, add to requirements-dev.txt
+git+https://github.com/[your-username]/Tmux-Orchestrator.git
+
+# Then install
+pip install -r requirements-dev.txt
+```
+
+#### Quick Setup for Your Project
+```bash
+# After installation, set up VS Code integration
+tmux-orc setup-vscode .
+
+# Create a PRD for your project
+tmux-orc tasks create my-project
+
+# Execute with a custom team
+tmux-orc execute ./my-project-prd.md
+```
+
+---
+
 ## 🚀 NEW: Version 2.0 - AI-Powered Team Management
 
 ### 🌟 What's New in This Fork
