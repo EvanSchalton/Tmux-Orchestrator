@@ -26,13 +26,13 @@ tmux-orc setup
 # Optional: Setup VS Code integration
 if [ -d ".vscode" ] || [ "$1" == "--vscode" ]; then
     echo "🔧 Setting up VS Code integration..."
-    tmux-orc setup-vscode .
+    tmux-orc setup vscode .
 fi
 
 # Optional: Setup Claude Code integration
 if [ -d "$HOME/.continue" ] || [ "$1" == "--claude" ]; then
     echo "🔧 Setting up Claude Code integration..."
-    tmux-orc setup-claude-code
+    tmux-orc setup claude-code
 fi
 
 echo "✅ Tmux Orchestrator installation complete!"

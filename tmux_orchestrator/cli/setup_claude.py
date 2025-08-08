@@ -29,9 +29,9 @@ def setup(ctx: click.Context) -> None:
 
     Examples:
         tmux-orc setup                  # Check system requirements
-        tmux-orc setup-claude-code       # Setup Claude Code integration
-        tmux-orc setup-vscode ./project  # Configure VS Code
-        tmux-orc setup-all              # Run all setup commands
+        tmux-orc setup claude-code      # Setup Claude Code integration
+        tmux-orc setup vscode ./project # Configure VS Code
+        tmux-orc setup all              # Run all setup commands
     """
     if ctx.invoked_subcommand is None:
         # If no subcommand provided, run check-requirements
@@ -125,9 +125,9 @@ def check_requirements() -> None:
     console.print("\n[green]✓ All system requirements met![/green]")
     console.print("\nNext steps:")
     console.print(
-        "1. Set up Claude Code integration: [cyan]tmux-orc setup-claude-code[/cyan]")
-    console.print("2. Configure VS Code: [cyan]tmux-orc setup-vscode[/cyan]")
-    console.print("3. Or run all setups: [cyan]tmux-orc setup-all[/cyan]")
+        "1. Set up Claude Code integration: [cyan]tmux-orc setup claude-code[/cyan]")
+    console.print("2. Configure VS Code: [cyan]tmux-orc setup vscode[/cyan]")
+    console.print("3. Or run all setups: [cyan]tmux-orc setup all[/cyan]")
 
 
 @setup.command(name='claude-code')
@@ -143,9 +143,9 @@ def setup_claude_code(claude_dir: str, force: bool) -> None:
     - Auto-restart of Claude Code if needed
 
     Examples:
-        tmux-orc setup-claude-code
-        tmux-orc setup-claude-code --force
-        tmux-orc setup-claude-code --claude-dir /custom/path
+        tmux-orc setup claude-code
+        tmux-orc setup claude-code --force
+        tmux-orc setup claude-code --claude-dir /custom/path
     """
     claude_path = Path(claude_dir)
 
@@ -323,8 +323,8 @@ def setup_vscode(project_dir: str, force: bool) -> None:
     - Workspace settings
 
     Examples:
-        tmux-orc setup-vscode
-        tmux-orc setup-vscode ./my-project --force
+        tmux-orc setup vscode
+        tmux-orc setup vscode ./my-project --force
     """
     from tmux_orchestrator.cli.setup import setup_vscode_tasks
 
@@ -363,8 +363,8 @@ def setup_all(force: bool) -> None:
     - Shell completions
 
     Examples:
-        tmux-orc setup-all
-        tmux-orc setup-all --force
+        tmux-orc setup all
+        tmux-orc setup all --force
     """
     console.print(
         "[bold blue]Running complete environment setup...[/bold blue]\n")
@@ -396,7 +396,7 @@ def check_setup() -> None:
     - Slash command installation
 
     Examples:
-        tmux-orc setup-check
+        tmux-orc setup check
     """
     console.print("[bold]Checking Tmux Orchestrator Setup[/bold]\n")
 
@@ -484,10 +484,10 @@ def check_setup() -> None:
         if "Claude Code Directory" in missing:
             console.print("• Install Claude Code and run it once")
         if "Slash Commands" in missing or "MCP Configuration" in missing:
-            console.print("• Run: tmux-orc setup-claude-code")
+            console.print("• Run: tmux-orc setup claude-code")
         if "VS Code Tasks" in missing:
-            console.print("• Run: tmux-orc setup-vscode")
+            console.print("• Run: tmux-orc setup vscode")
         if "Workspace CLAUDE.md" in missing:
-            console.print("• Run: tmux-orc setup-claude-code --force")
+            console.print("• Run: tmux-orc setup claude-code --force")
     else:
         console.print("\n[green]✓ All components properly configured![/green]")

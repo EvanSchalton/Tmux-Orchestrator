@@ -10,7 +10,7 @@
     "postCreateCommand": [
       "apt-get update && apt-get install -y tmux",
       "pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
-      "tmux-orc setup-all",
+      "tmux-orc setup all",
       "tmux-orc orchestrator start"
     ],
     "remoteEnv": {
@@ -21,8 +21,8 @@
     "postCreateCommand": [
       "apt-get update && apt-get install -y tmux",
       "pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
-      "tmux-orc setup-vscode .",
-      "tmux-orc setup-claude-code"
+      "tmux-orc setup vscode .",
+      "tmux-orc setup claude-code"
     ],
     "customizations": {
       "vscode": {

@@ -62,7 +62,7 @@ For a complete devcontainer setup with Tmux Orchestrator:
   "postCreateCommand": [
     "apt-get update && apt-get install -y tmux",
     "pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
-    "tmux-orc setup-all",
+    "tmux-orc setup all",
     "tmux-orc orchestrator start"
   ],
   
@@ -93,7 +93,7 @@ pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 ### Setup Claude Code Integration
 After installation, set up slash commands and MCP server:
 ```bash
-tmux-orc setup-claude-code
+tmux-orc setup claude-code
 ```
 
 This creates:

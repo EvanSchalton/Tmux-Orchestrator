@@ -107,7 +107,7 @@ Update any references to use the new paths.
 - Use `tmux-orc tasks` commands
 
 ### Enhanced CLI
-- `tmux-orc setup-claude-code` - Install slash commands
+- `tmux-orc setup claude-code` - Install slash commands
 - `tmux-orc execute <prd>` - Execute PRD with custom team
 - `tmux-orc tasks` - Complete task management
 - `tmux-orc team compose` - Plan custom teams

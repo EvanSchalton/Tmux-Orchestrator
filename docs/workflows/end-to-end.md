@@ -13,13 +13,13 @@
    pip install -e .
    ```
 
-3. **User runs `tmux-orc setup-claude-code`**
+3. **User runs `tmux-orc setup claude-code`**
    - Installs slash commands to `~/.continue/commands/`
    - Configures MCP server in `~/.continue/config/mcp.json`
    - Creates `CLAUDE.md` in workspace with instructions
    - User must restart Claude Code to load slash commands
 
-3.b **User optionally runs `tmux-orc setup-vscode`**
+3.b **User optionally runs `tmux-orc setup vscode`**
    - Creates `.vscode/tasks.json` with orchestrator commands
    - Adds "Open All Agents" task
    - Adds "Show Daemon Logs" task

@@ -133,7 +133,7 @@ RUN pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 #### Quick Setup for Your Project
 ```bash
 # After installation, set up VS Code integration
-tmux-orc setup-vscode .
+tmux-orc setup vscode .
 
 # Create a PRD for your project
 tmux-orc tasks create my-project
@@ -295,7 +295,7 @@ For projects using Poetry:
   "postCreateCommand": [
     "apt-get update && apt-get install -y tmux",
     "pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
-    "tmux-orc setup-all",
+    "tmux-orc setup all",
     "tmux-orc orchestrator start"
   ],
   
