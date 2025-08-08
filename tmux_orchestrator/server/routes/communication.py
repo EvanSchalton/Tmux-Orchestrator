@@ -149,7 +149,8 @@ async def send_message_tool(request: MessageRequest) -> MessageResponse:
 
     if not result.success:
         # Determine appropriate HTTP status code
-        status_code = 404 if "not found" in result.error_message.lower() else 500
+        error_msg = result.error_message or "Unknown error"
+        status_code = 404 if "not found" in error_msg.lower() else 500
         raise HTTPException(status_code=status_code, detail=result.error_message)
 
     return MessageResponse(
@@ -167,8 +168,8 @@ async def broadcast_message_tool(request: BroadcastRequest) -> BroadcastResponse
     to multiple agents across different sessions simultaneously.
     """
     try:
-        results = []
-        errors = []
+        results: List[Dict[str, Union[str, bool]]] = []
+        errors: List[str] = []
 
         for session_name in request.sessions:
             if not tmux.has_session(session_name):
@@ -294,7 +295,7 @@ async def interrupt_agent_tool(request: InterruptRequest) -> Dict[str, Union[str
 
 
 @router.get("/agents/{session}")
-async def get_session_agents(session: str) -> Dict[str, Union[List[Dict[str, str]], int]]:
+async def get_session_agents(session: str) -> Dict[str, Union[str, List[Dict[str, str]], int]]:
     """MCP Tool: Get all agents in a specific session.
 
     This tool lists all Claude agents running within a specific tmux session

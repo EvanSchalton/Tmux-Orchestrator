@@ -264,26 +264,27 @@ async def health_check_tool() -> HealthCheckResponse:
         agents = tmux.list_agents()
 
         # Perform basic health checks
+        checks_passed: List[str] = []
         details = {
             "tmux_sessions": len(sessions),
             "total_agents": len(agents),
             "responsive_agents": len([a for a in agents if a['status'] == 'Active']),
-            "checks_passed": []
+            "checks_passed": checks_passed
         }
 
         # Check if tmux is responding
         if len(sessions) >= 0:  # Even 0 sessions means tmux is responsive
-            details["checks_passed"].append("tmux_connectivity")
+            checks_passed.append("tmux_connectivity")
 
         # Check if we have any agents
         if len(agents) > 0:
-            details["checks_passed"].append("agents_present")
+            checks_passed.append("agents_present")
 
         # Check if at least some agents are active (if any exist)
         if len(agents) == 0 or len([a for a in agents if a['status'] == 'Active']) > 0:
-            details["checks_passed"].append("agents_responsive")
+            checks_passed.append("agents_responsive")
 
-        status = "healthy" if len(details["checks_passed"]) >= 2 else "degraded"
+        status = "healthy" if len(checks_passed) >= 2 else "degraded"
 
         return HealthCheckResponse(
             status=status,
@@ -315,7 +316,7 @@ async def get_idle_agents_tool() -> dict[str, Any]:
         idle_agents = [agent for agent in agents if agent['status'] == 'Idle']
 
         # Group idle agents by type
-        by_type = {}
+        by_type: Dict[str, List[Dict[str, str]]] = {}
         for agent in idle_agents:
             agent_type = agent['type']
             if agent_type not in by_type:
@@ -358,9 +359,9 @@ async def get_active_agents_tool() -> dict[str, Any]:
                 })
 
         # Group active agents by session
-        by_session = {}
+        by_session: Dict[str, List[Dict[str, Any]]] = {}
         for agent in active_agents:
-            session = agent['session']
+            session: str = agent['session']
             if session not in by_session:
                 by_session[session] = []
             by_session[session].append(agent)

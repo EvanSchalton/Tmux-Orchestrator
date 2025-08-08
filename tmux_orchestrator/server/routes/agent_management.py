@@ -255,7 +255,7 @@ async def kill_agent_tool(session: str, window: str) -> Dict[str, Union[str, boo
 
 
 @router.get("/list")
-async def list_all_agents() -> dict[str, list[dict[str, str]]]:
+async def list_all_agents() -> Dict[str, Union[List[Dict[str, str]], int]]:
     """MCP Tool: List all active agents across all sessions.
 
     This tool provides a comprehensive view of all running agents

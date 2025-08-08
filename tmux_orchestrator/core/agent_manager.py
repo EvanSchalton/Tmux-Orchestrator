@@ -1,7 +1,7 @@
 """Agent management functionality."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -191,10 +191,10 @@ Read the task file and plan your testing strategy."""
         # Look for timestamp patterns
         import re
         timestamp_pattern = r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]'
-        matches = re.findall(timestamp_pattern, pane_content)
+        matches: List[str] = re.findall(timestamp_pattern, pane_content)
 
         if matches:
-            return matches[-1]
+            return str(matches[-1])
 
         # Look for relative timestamps
         relative_patterns = [

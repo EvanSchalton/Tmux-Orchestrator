@@ -16,7 +16,7 @@ class StatusDashboard:
         self.tmux = tmux_manager
         self.console = Console()
 
-    def display(self, session_filter: Optional[str] = None):
+    def display(self, session_filter: Optional[str] = None) -> None:
         """Display the status dashboard."""
         # Create main layout
         layout = Layout()

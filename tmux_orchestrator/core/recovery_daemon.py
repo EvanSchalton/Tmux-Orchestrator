@@ -30,7 +30,7 @@ class RecoveryDaemon:
 
     def __init__(self, config_file: Optional[str] = None) -> None:
         """Initialize recovery daemon with configuration."""
-        self.config: Config = Config(config_file)
+        self.config: Config = Config.load(Path(config_file)) if config_file else Config.load()
         self.tmux: TMUXManager = TMUXManager()
         self.logger: logging.Logger = self._setup_logging()
         self.running: bool = False

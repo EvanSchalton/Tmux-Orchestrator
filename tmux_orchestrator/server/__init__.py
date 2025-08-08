@@ -105,12 +105,12 @@ async def root() -> dict[str, Union[str, List[str]]]:
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
+async def health() -> Dict[str, str]:
     """Basic health check endpoint."""
     return {"status": "healthy", "service": "tmux-orchestrator-mcp"}
 
 
-def main():
+def main() -> None:
     """Run the MCP server."""
     config = Config.load()
     host = config.get('server.host', '127.0.0.1')

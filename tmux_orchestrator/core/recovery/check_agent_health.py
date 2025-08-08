@@ -55,9 +55,9 @@ def check_agent_health(
         # Detect failure using comprehensive analysis
         is_failed: bool
         failure_reason: str
-        is_idle: bool
+        status_details: Dict[str, Any]
 
-        is_failed, failure_reason, is_idle = detect_failure(
+        is_failed, failure_reason, status_details = detect_failure(
             tmux=tmux,
             target=target,
             last_response=last_response,
@@ -65,6 +65,8 @@ def check_agent_health(
             max_failures=max_failures,
             response_timeout=response_timeout
         )
+        
+        is_idle: bool = status_details.get('is_idle', False)
 
         # Determine health status
         is_healthy: bool = not is_failed

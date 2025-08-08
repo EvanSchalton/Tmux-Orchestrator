@@ -83,7 +83,7 @@ class IdleMonitor:
         except (OSError, ValueError, FileNotFoundError):
             return False
 
-    def status(self):
+    def status(self) -> None:
         """Display monitor status."""
         from rich.console import Console
         console = Console()

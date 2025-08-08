@@ -18,20 +18,20 @@ is_agent_idle() {
     local window=$2
     local agent_name=$3
     
-    # Take 4 snapshots of the last line at 300ms intervals
-    local last_line1=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
+    # Take 4 snapshots of the last 5 lines (excluding input box) at 300ms intervals
+    local content1=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | head -n -3 | tail -5 | tr '\n' ' ' || echo "")
     sleep 0.3
-    local last_line2=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
+    local content2=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | head -n -3 | tail -5 | tr '\n' ' ' || echo "")
     sleep 0.3
-    local last_line3=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
+    local content3=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | head -n -3 | tail -5 | tr '\n' ' ' || echo "")
     sleep 0.3
-    local last_line4=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
+    local content4=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | head -n -3 | tail -5 | tr '\n' ' ' || echo "")
     
-    # Debug logging
-    log_message "DEBUG $agent_name: line1='$last_line1' line2='$last_line2' line3='$last_line3' line4='$last_line4'"
+    # Debug logging (temporarily enabled)
+    log_message "DEBUG $agent_name: content1='$content1' content2='$content2' content3='$content3' content4='$content4'"
     
-    # If all last lines are identical, no new output = idle
-    if [ "$last_line1" = "$last_line2" ] && [ "$last_line2" = "$last_line3" ] && [ "$last_line3" = "$last_line4" ]; then
+    # If all content snapshots are identical, no new output = idle
+    if [ "$content1" = "$content2" ] && [ "$content2" = "$content3" ] && [ "$content3" = "$content4" ]; then
         # No new output in 900ms = idle
         log_message "DEBUG $agent_name: DETECTED AS IDLE"
         return 0
@@ -114,7 +114,16 @@ auto_submit_message() {
 
 # Function to find PM session dynamically
 find_pm_session() {
-    local pm_sessions=""
+    # First check tmux-orc-dev session for Project-Manager window
+    if tmux has-session -t "tmux-orc-dev" 2>/dev/null; then
+        local pm_window=$(tmux list-windows -t "tmux-orc-dev" -F "#{window_index}:#{window_name}" 2>/dev/null | grep -E "Project-Manager" | head -1 || true)
+        if [ -n "$pm_window" ]; then
+            echo "tmux-orc-dev:$(echo "$pm_window" | cut -d: -f1)"
+            return 0
+        fi
+    fi
+    
+    # Fallback to searching other sessions
     local all_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null)
     
     while IFS= read -r session; do
@@ -148,8 +157,8 @@ done)
 
 This is an automated notification from the idle monitor."
     
-    # Send notification to PM
-    tmux-message "$pm_target" "$message"
+    # Send notification to PM using the correct script
+    "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$pm_target" "$message"
     log_message "Notified PM about idle agents: $(echo "$idle_agents" | tr '\n' ', ')"
 }
 
@@ -220,21 +229,38 @@ main() {
         
         # Second pass: Check for idle agents
         IDLE_AGENTS=""
+        IDLE_AGENTS_FOR_NOTIFICATION=""
         CURRENT_TIME=$(date +%s)
         
-        # Check orchestrator
-        if tmux has-session -t "orchestrator" 2>/dev/null; then
-            if is_agent_idle "orchestrator" "1" "Orchestrator"; then
-                LAST_TIME=${last_notified["orchestrator"]:-0}
-                if [ $((CURRENT_TIME - LAST_TIME)) -gt $NOTIFICATION_COOLDOWN ]; then
-                    IDLE_AGENTS="${IDLE_AGENTS}orchestrator:1 (Orchestrator)\n"
-                    last_notified["orchestrator"]=$CURRENT_TIME
+        # Check tmux-orc-dev session agents
+        if tmux has-session -t "tmux-orc-dev" 2>/dev/null; then
+            # Map of windows to agent types in tmux-orc-dev
+            declare -A agent_windows=(
+                ["1"]="Orchestrator"
+                ["2"]="MCP-Developer" 
+                ["3"]="CLI-Developer"
+                ["4"]="Agent-Recovery-Dev"
+                ["5"]="Project-Manager"
+            )
+            
+            for window in "${!agent_windows[@]}"; do
+                agent_type="${agent_windows[$window]}"
+                if is_agent_idle "tmux-orc-dev" "$window" "$agent_type"; then
+                    # Add to idle agents list for logging
+                    IDLE_AGENTS="${IDLE_AGENTS}tmux-orc-dev:${window} (${agent_type})\n"
+                    
+                    # Check cooldown for notifications
+                    LAST_TIME=${last_notified["tmux-orc-dev:$window"]:-0}
+                    if [ $((CURRENT_TIME - LAST_TIME)) -gt $NOTIFICATION_COOLDOWN ]; then
+                        IDLE_AGENTS_FOR_NOTIFICATION="${IDLE_AGENTS_FOR_NOTIFICATION}tmux-orc-dev:${window} (${agent_type})\n"
+                        last_notified["tmux-orc-dev:$window"]=$CURRENT_TIME
+                    fi
                 fi
-            fi
+            done
         fi
         
-        # Check project agents
-        ALL_SESSIONS=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | grep -v orchestrator)
+        # Check other project sessions (legacy support)
+        ALL_SESSIONS=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | grep -v -E "orchestrator|tmux-orc-dev")
         while IFS= read -r session; do
             if [ -n "$session" ]; then
                 # Determine agent type and window
@@ -290,23 +316,31 @@ main() {
             fi
         done <<< "$ALL_SESSIONS"
         
-        # Notify PM if any agents are idle
+        # Report status based on actual idle detection
         if [ -n "$IDLE_AGENTS" ]; then
             # Remove trailing newline
             IDLE_AGENTS=$(echo -e "$IDLE_AGENTS" | sed '/^$/d')
             
-            # Check if PM is busy before notifying
-            PM_WINDOW=$(echo "$PM_TARGET" | cut -d: -f2)
-            PM_SESSION=$(echo "$PM_TARGET" | cut -d: -f1)
-            
-            # Debug log
+            # Log that agents are idle
             log_message "Found idle agents: $(echo "$IDLE_AGENTS" | tr '\n' ', ')"
             
-            if is_agent_idle "$PM_SESSION" "$PM_WINDOW" "PM"; then
-                log_message "PM is idle, sending notification"
-                notify_pm "$IDLE_AGENTS" "$PM_TARGET"
+            # Only notify PM if there are agents that haven't been notified recently
+            if [ -n "$IDLE_AGENTS_FOR_NOTIFICATION" ]; then
+                # Remove trailing newline
+                IDLE_AGENTS_FOR_NOTIFICATION=$(echo -e "$IDLE_AGENTS_FOR_NOTIFICATION" | sed '/^$/d')
+                
+                # Check if PM is busy before notifying
+                PM_WINDOW=$(echo "$PM_TARGET" | cut -d: -f2)
+                PM_SESSION=$(echo "$PM_TARGET" | cut -d: -f1)
+                
+                if is_agent_idle "$PM_SESSION" "$PM_WINDOW" "PM"; then
+                    log_message "PM is idle, sending notification"
+                    notify_pm "$IDLE_AGENTS_FOR_NOTIFICATION" "$PM_TARGET"
+                else
+                    log_message "PM is busy, skipping notification"
+                fi
             else
-                log_message "PM is busy, skipping notification"
+                log_message "Idle agents detected but in cooldown period"
             fi
         else
             # Log that no agents are idle

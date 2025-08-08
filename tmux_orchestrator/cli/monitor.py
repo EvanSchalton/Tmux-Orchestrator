@@ -106,7 +106,7 @@ def recovery_start(ctx: click.Context, config: Optional[str]) -> None:
 
     # Start daemon in background
     import threading
-    def run_daemon():
+    def run_daemon() -> None:
         daemon.start()
 
     daemon_thread = threading.Thread(target=run_daemon, daemon=True)
