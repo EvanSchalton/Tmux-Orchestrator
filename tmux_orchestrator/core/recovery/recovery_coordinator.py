@@ -6,6 +6,7 @@ the 60-second recovery requirement with comprehensive error handling.
 """
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Any, Optional
 
@@ -15,16 +16,22 @@ from tmux_orchestrator.core.recovery.check_agent_health import (
     AgentHealthStatus
 )
 from tmux_orchestrator.core.recovery.auto_restart import auto_restart_agent
+from tmux_orchestrator.core.recovery.recovery_logger import (
+    setup_recovery_logger,
+    log_recovery_event,
+    create_recovery_audit_log
+)
 
 
 def coordinate_agent_recovery(
     tmux: TMUXManager,
     target: str,
-    logger: logging.Logger,
+    logger: Optional[logging.Logger] = None,
     max_failures: int = 3,
     recovery_timeout: int = 60,
     enable_auto_restart: bool = True,
-    briefing_text: Optional[str] = None
+    briefing_text: Optional[str] = None,
+    use_structured_logging: bool = True
 ) -> Tuple[bool, str, Dict[str, Any]]:
     """
     Coordinate complete agent recovery workflow.
@@ -53,11 +60,21 @@ def coordinate_agent_recovery(
         RuntimeError: If critical recovery operations fail
     """
     recovery_start_time: datetime = datetime.now()
-    logger.info(f"Starting recovery coordination for agent: {target}")
+    recovery_session_id: str = str(uuid.uuid4())[:8]  # Short unique ID
+    
+    # Setup structured logging if requested
+    recovery_logger: logging.Logger
+    if use_structured_logging:
+        recovery_logger = setup_recovery_logger()
+    else:
+        recovery_logger = logger or logging.getLogger(__name__)
+    
+    recovery_logger.info(f"Starting recovery coordination for agent: {target} (session: {recovery_session_id})")
     
     # Initialize recovery data tracking
     recovery_data: Dict[str, Any] = {
         'target': target,
+        'recovery_session_id': recovery_session_id,
         'recovery_start': recovery_start_time.isoformat(),
         'recovery_timeout': recovery_timeout,
         'max_failures': max_failures,
@@ -65,12 +82,13 @@ def coordinate_agent_recovery(
         'recovery_attempted': False,
         'recovery_successful': False,
         'total_duration': 0,
-        'auto_restart_enabled': enable_auto_restart
+        'auto_restart_enabled': enable_auto_restart,
+        'logged_events': []
     }
     
     try:
         # Step 1: Perform initial health check
-        logger.info(f"Performing health check for {target}")
+        recovery_logger.info(f"Performing health check for {target}")
         
         # Estimate last response time (use current time minus timeout as baseline)
         estimated_last_response: datetime = recovery_start_time - timedelta(seconds=recovery_timeout)
@@ -94,18 +112,51 @@ def coordinate_agent_recovery(
         }
         recovery_data['health_checks'].append(health_data)
         
-        logger.info(f"Health check result for {target}: healthy={health_status.is_healthy}, idle={health_status.is_idle}")
+        # Log structured health check event
+        if use_structured_logging:
+            health_event = log_recovery_event(
+                recovery_logger, 'health_check', target, health_data
+            )
+            recovery_data['logged_events'].append(health_event)
+        
+        recovery_logger.info(f"Health check result for {target}: healthy={health_status.is_healthy}, idle={health_status.is_idle}")
         
         # Step 2: Determine recovery action needed
         needs_recovery: bool = not health_status.is_healthy
         
+        # Log failure detection if needed
+        if needs_recovery and use_structured_logging:
+            failure_event = log_recovery_event(
+                recovery_logger, 'failure_detected', target,
+                {
+                    'failure_reason': health_status.failure_reason,
+                    'is_idle': health_status.is_idle,
+                    'consecutive_failures': health_status.consecutive_failures
+                }
+            )
+            recovery_data['logged_events'].append(failure_event)
+        
         if not needs_recovery:
             # Agent is healthy, no recovery needed
             success_message: str = f"Agent {target} is healthy, no recovery needed"
-            logger.info(success_message)
+            recovery_logger.info(success_message)
             
             recovery_data['recovery_successful'] = True
             recovery_data['total_duration'] = (datetime.now() - recovery_start_time).total_seconds()
+            
+            # Log healthy agent event
+            if use_structured_logging:
+                healthy_event = log_recovery_event(
+                    recovery_logger, 'agent_verified', target, 
+                    {'verification_result': 'healthy', 'recovery_needed': False}
+                )
+                recovery_data['logged_events'].append(healthy_event)
+                
+                # Create audit log for session
+                create_recovery_audit_log(
+                    recovery_logger, recovery_session_id, recovery_data['logged_events'],
+                    'success', recovery_data['total_duration']
+                )
             
             return True, success_message, recovery_data
         
@@ -251,10 +302,17 @@ def coordinate_agent_recovery(
                     notification_type='recovery_success',
                     message=f"Agent {target} successfully recovered in {total_duration:.1f}s. Agent is now healthy and operational.",
                     cooldown_minutes=5,
-                    logger=logger
+                    logger=recovery_logger
                 )
             except Exception as e:
-                logger.warning(f"Failed to send recovery success notification: {str(e)}")
+                recovery_logger.warning(f"Failed to send recovery success notification: {str(e)}")
+            
+            # Create final audit log
+            if use_structured_logging:
+                create_recovery_audit_log(
+                    recovery_logger, recovery_session_id, recovery_data['logged_events'],
+                    'success', total_duration
+                )
             
             return True, final_message, recovery_data
         else:
@@ -272,10 +330,17 @@ def coordinate_agent_recovery(
                     notification_type='recovery_failed',
                     message=f"Recovery failed for {target} after {total_duration:.1f}s. Manual intervention may be required. Error: {restart_message}",
                     cooldown_minutes=5,
-                    logger=logger
+                    logger=recovery_logger
                 )
             except Exception as e:
-                logger.warning(f"Failed to send recovery failure notification: {str(e)}")
+                recovery_logger.warning(f"Failed to send recovery failure notification: {str(e)}")
+            
+            # Create final audit log
+            if use_structured_logging:
+                create_recovery_audit_log(
+                    recovery_logger, recovery_session_id, recovery_data['logged_events'],
+                    'failed', total_duration
+                )
             
             return False, final_error, recovery_data
     

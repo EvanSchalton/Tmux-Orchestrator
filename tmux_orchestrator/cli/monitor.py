@@ -181,8 +181,9 @@ def logs(follow: bool, lines: int) -> None:
 
 
 @monitor.command()
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def status(ctx: click.Context) -> None:
+def status(ctx: click.Context, json: bool) -> None:
     """Display comprehensive monitoring system status and health.
     
     Shows detailed information about the monitoring daemon, including
@@ -211,6 +212,19 @@ def status(ctx: click.Context) -> None:
     from tmux_orchestrator.core.monitor import IdleMonitor
 
     monitor = IdleMonitor(ctx.obj['tmux'])
+    
+    if json:
+        # Get monitor status data
+        import json as json_module
+        status_data = {
+            'running': monitor.is_running(),
+            'daemon_type': 'idle_monitor',
+            'log_file': LOG_FILE,
+            'pid_file': PID_FILE
+        }
+        console.print(json_module.dumps(status_data, indent=2))
+        return
+    
     monitor.status()
 
 

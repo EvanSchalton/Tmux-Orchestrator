@@ -39,8 +39,9 @@ def agent() -> None:
     type=click.Choice(['frontend', 'backend', 'testing', 'database', 'docs', 'devops'])
 )
 @click.argument('role', type=click.Choice(['developer', 'pm', 'qa', 'reviewer']))
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def deploy(ctx: click.Context, agent_type: str, role: str) -> None:
+def deploy(ctx: click.Context, agent_type: str, role: str, json: bool) -> None:
     """Deploy an individual specialized agent.
     
     Creates a new tmux session with a single Claude agent configured for
@@ -63,6 +64,18 @@ def deploy(ctx: click.Context, agent_type: str, role: str) -> None:
     manager: AgentManager = AgentManager(ctx.obj['tmux'])
     session: str = manager.deploy_agent(agent_type, role)
 
+    if json:
+        import json as json_module
+        result = {
+            'success': True,
+            'agent_type': agent_type,
+            'role': role,
+            'session': session,
+            'message': f'Deployed {agent_type} {role} in session: {session}'
+        }
+        console.print(json_module.dumps(result, indent=2))
+        return
+
     console.print(
         f"[green]✓ Deployed {agent_type} {role} in session: {session}[/green]"
     )
@@ -71,8 +84,9 @@ def deploy(ctx: click.Context, agent_type: str, role: str) -> None:
 @agent.command()
 @click.argument('target')
 @click.argument('message')
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def message(ctx: click.Context, target: str, message: str) -> None:
+def message(ctx: click.Context, target: str, message: str, json: bool) -> None:
     """Send a message directly to a specific agent.
     
     Delivers a message to the Claude agent running in the specified tmux window.
@@ -95,8 +109,20 @@ def message(ctx: click.Context, target: str, message: str) -> None:
         - Use 'tmux-orc agent attach TARGET' to see the response
     """
     tmux: TMUXManager = ctx.obj['tmux']
+    success = tmux.send_message(target, message)
 
-    if tmux.send_message(target, message):
+    if json:
+        import json as json_module
+        result = {
+            'success': success,
+            'target': target,
+            'message': message,
+            'status': 'sent' if success else 'failed'
+        }
+        console.print(json_module.dumps(result, indent=2))
+        return
+
+    if success:
         console.print(f"[green]✓ Message sent to {target}[/green]")
     else:
         console.print(f"[red]✗ Failed to send message to {target}[/red]")
@@ -135,8 +161,9 @@ def attach(ctx: click.Context, target: str) -> None:
 
 @agent.command()
 @click.argument('target')
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def restart(ctx: click.Context, target: str) -> None:
+def restart(ctx: click.Context, target: str, json: bool) -> None:
     """Restart a specific agent that has become unresponsive.
     
     Terminates the current Claude process in the specified window and starts
@@ -169,6 +196,17 @@ def restart(ctx: click.Context, target: str) -> None:
     # Delegate to business logic
     success, result_message = restart_agent(tmux, target)
 
+    if json:
+        import json as json_module
+        result = {
+            'success': success,
+            'target': target,
+            'message': result_message,
+            'action': 'restart'
+        }
+        console.print(json_module.dumps(result, indent=2))
+        return
+
     if success:
         console.print(f"[green]✓ {result_message}[/green]")
     else:
@@ -176,8 +214,9 @@ def restart(ctx: click.Context, target: str) -> None:
 
 
 @agent.command()
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def status(ctx: click.Context) -> None:
+def status(ctx: click.Context, json: bool) -> None:
     """Show comprehensive status of all active agents.
     
     Displays a summary of all Claude agents currently running across
@@ -208,6 +247,11 @@ def status(ctx: click.Context) -> None:
 
     manager: AgentManager = AgentManager(ctx.obj['tmux'])
     statuses: Dict[str, Any] = manager.get_all_status()
+
+    if json:
+        import json as json_module
+        console.print(json_module.dumps(statuses, indent=2))
+        return
 
     for agent_id, status in statuses.items():
         console.print(f"\n[bold cyan]{agent_id}[/bold cyan]")

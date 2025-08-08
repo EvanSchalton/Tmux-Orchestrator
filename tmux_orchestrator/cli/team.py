@@ -50,8 +50,9 @@ def team() -> None:
 
 @team.command()
 @click.argument('session')
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def status(ctx: click.Context, session: str) -> None:
+def status(ctx: click.Context, session: str, json: bool) -> None:
     """Show comprehensive team status and health metrics.
     
     Displays detailed information about all agents in a team session,
@@ -82,6 +83,12 @@ def status(ctx: click.Context, session: str) -> None:
 
     if not team_status:
         console.print(f"[red]✗ Session '{session}' not found[/red]")
+        return
+
+    # JSON output mode
+    if json:
+        import json as json_module
+        console.print(json_module.dumps(team_status, indent=2))
         return
 
     # Display session header
@@ -125,8 +132,9 @@ def status(ctx: click.Context, session: str) -> None:
 
 
 @team.command()
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def list(ctx: click.Context) -> None:
+def list(ctx: click.Context, json: bool) -> None:
     """List all active team sessions with summary information.
     
     Provides an overview of all team sessions currently running,
@@ -156,6 +164,11 @@ def list(ctx: click.Context) -> None:
     # Delegate to business logic
     teams: List[Dict[str, Any]] = list_all_teams(tmux)
 
+    if json:
+        import json as json_module
+        console.print(json_module.dumps(teams, indent=2))
+        return
+
     if not teams:
         console.print("[yellow]No active sessions found[/yellow]")
         return
@@ -182,8 +195,9 @@ def list(ctx: click.Context) -> None:
 @team.command()
 @click.argument('session')
 @click.argument('message')
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def broadcast(ctx: click.Context, session: str, message: str) -> None:
+def broadcast(ctx: click.Context, session: str, message: str, json: bool) -> None:
     """Broadcast a coordinated message to all agents in a team.
     
     Sends the same message simultaneously to all Claude agents in the
@@ -222,6 +236,18 @@ def broadcast(ctx: click.Context, session: str, message: str) -> None:
     # Delegate to business logic
     success, summary_message, results = broadcast_to_team(tmux, session, message)
 
+    if json:
+        import json as json_module
+        broadcast_result = {
+            'success': success,
+            'session': session,
+            'message': message,
+            'summary': summary_message,
+            'results': results
+        }
+        console.print(json_module.dumps(broadcast_result, indent=2))
+        return
+
     if not success:
         console.print(f"[red]✗ {summary_message}[/red]")
         return
@@ -246,8 +272,9 @@ def broadcast(ctx: click.Context, session: str, message: str) -> None:
 @click.argument('team_type', type=click.Choice(['frontend', 'backend', 'fullstack', 'testing']))
 @click.argument('size', type=int, default=3)
 @click.option('--project-name', help='Project name (defaults to current directory)')
+@click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
-def deploy(ctx: click.Context, team_type: str, size: int, project_name: Optional[str]) -> None:
+def deploy(ctx: click.Context, team_type: str, size: int, project_name: Optional[str], json: bool) -> None:
     """Deploy a complete multi-agent team with specialized roles.
     
     Creates a new tmux session with multiple coordinated Claude agents,
@@ -317,6 +344,18 @@ def deploy(ctx: click.Context, team_type: str, size: int, project_name: Optional
 
     # Delegate to business logic
     success, message = deploy_standard_team(tmux, team_type, size, project_name)
+
+    if json:
+        import json as json_module
+        deploy_result = {
+            'success': success,
+            'team_type': team_type,
+            'size': size,
+            'project_name': project_name,
+            'message': message
+        }
+        console.print(json_module.dumps(deploy_result, indent=2))
+        return
 
     if success:
         console.print(f"[green]✓ {message}[/green]")

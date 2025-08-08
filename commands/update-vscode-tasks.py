@@ -8,13 +8,14 @@ import os
 import subprocess
 import sys
 from datetime import datetime
+from typing import Any, Dict, List
 
 
-def get_project_name():
+def get_project_name() -> str:
     """Get project name from current directory."""
     return os.path.basename(os.getcwd())
 
-def get_running_sessions():
+def get_running_sessions() -> List[str]:
     """Get list of running tmux sessions."""
     try:
         result = subprocess.run(['tmux', 'list-sessions', '-F', '#{session_name}'],
