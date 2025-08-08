@@ -131,7 +131,6 @@ def test_restart_agent_colon_only_target() -> None:
     
     # Assert  
     assert success is False
-    # This will try to parse and result in empty session name
-    mock_tmux.has_session.assert_called_once_with("")
-    # Since empty session name will return False (doesn't exist)
-    assert "Session '' not found" == message
+    # Should not call has_session because format is invalid
+    mock_tmux.has_session.assert_not_called()
+    assert "Invalid target format ':'. Use session:window" == message

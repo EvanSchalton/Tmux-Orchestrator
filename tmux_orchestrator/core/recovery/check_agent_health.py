@@ -1,9 +1,10 @@
 """Check agent health status using enhanced monitoring."""
 
-from typing import NamedTuple
 from datetime import datetime
+from typing import NamedTuple
 
 from tmux_orchestrator.utils.tmux import TMUXManager
+
 from .detect_failure import detect_failure
 
 
@@ -11,7 +12,7 @@ class AgentHealthStatus(NamedTuple):
     """Agent health status data structure."""
     target: str
     is_healthy: bool
-    is_idle: bool  
+    is_idle: bool
     failure_reason: str
     last_check: datetime
     consecutive_failures: int
@@ -27,10 +28,10 @@ def check_agent_health(
 ) -> AgentHealthStatus:
     """
     Check the health status of a specific agent.
-    
+
     Performs comprehensive health checking using bulletproof idle detection
     and error pattern analysis to determine agent status.
-    
+
     Args:
         tmux: TMUXManager instance for tmux operations
         target: Target agent in format 'session:window'
@@ -38,10 +39,10 @@ def check_agent_health(
         consecutive_failures: Current consecutive failure count
         max_failures: Maximum failures before agent considered failed
         response_timeout: Timeout in seconds for response detection
-        
+
     Returns:
         AgentHealthStatus with comprehensive health information
-        
+
     Raises:
         ValueError: If target format is invalid
         RuntimeError: If health check operations fail
@@ -49,13 +50,13 @@ def check_agent_health(
     # Validate target format
     if ':' not in target:
         raise ValueError(f"Invalid target format: {target}. Expected 'session:window'")
-    
+
     try:
         # Detect failure using comprehensive analysis
         is_failed: bool
-        failure_reason: str  
+        failure_reason: str
         is_idle: bool
-        
+
         is_failed, failure_reason, is_idle = detect_failure(
             tmux=tmux,
             target=target,
@@ -64,16 +65,16 @@ def check_agent_health(
             max_failures=max_failures,
             response_timeout=response_timeout
         )
-        
+
         # Determine health status
         is_healthy: bool = not is_failed
-        
+
         # Update failure count
         new_failure_count: int = (
-            consecutive_failures + 1 if is_failed 
+            consecutive_failures + 1 if is_failed
             else 0
         )
-        
+
         return AgentHealthStatus(
             target=target,
             is_healthy=is_healthy,
@@ -82,7 +83,7 @@ def check_agent_health(
             last_check=datetime.now(),
             consecutive_failures=new_failure_count
         )
-        
+
     except Exception as e:
         # Return unhealthy status on check failure
         return AgentHealthStatus(

@@ -89,15 +89,15 @@ def _determine_window_type(window_name: str) -> str:
     """
     window_name_lower: str = window_name.lower()
     
-    if 'claude' in window_name_lower or 'pm' in window_name_lower:
+    if 'claude' in window_name_lower or 'pm' in window_name_lower or 'qa' in window_name_lower:
         if 'pm' in window_name_lower:
             return "Project Manager"
+        elif 'qa' in window_name_lower:
+            return "QA Engineer"
         elif 'frontend' in window_name_lower:
             return "Frontend Dev"
         elif 'backend' in window_name_lower:
             return "Backend Dev"
-        elif 'qa' in window_name_lower:
-            return "QA Engineer"
         else:
             return "Developer"
     elif 'dev' in window_name_lower or 'server' in window_name_lower:

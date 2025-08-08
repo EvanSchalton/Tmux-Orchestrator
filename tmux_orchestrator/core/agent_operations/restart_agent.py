@@ -18,6 +18,8 @@ def restart_agent(tmux: TMUXManager, target: str) -> Tuple[bool, str]:
     # Parse target
     try:
         session, window = target.split(':')
+        if not session or not window:
+            return False, f"Invalid target format '{target}'. Use session:window"
     except ValueError:
         return False, f"Invalid target format '{target}'. Use session:window"
     

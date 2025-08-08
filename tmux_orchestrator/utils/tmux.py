@@ -9,7 +9,7 @@ from pathlib import Path
 class TMUXManager:
     """Manages tmux sessions and windows."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.tmux_cmd = "tmux"
     
     def _run_tmux(self, args: List[str], check: bool = True) -> subprocess.CompletedProcess:
