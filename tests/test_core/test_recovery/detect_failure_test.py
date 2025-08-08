@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 
 from tmux_orchestrator.core.recovery.detect_failure import (
-    _check_idle_status,
+    _check_idle_status_v2,
     _has_critical_errors,
     _has_normal_claude_interface,
     detect_failure,
@@ -100,8 +100,8 @@ class TestDetectFailure:
             detect_failure(tmux_mock, target, last_response, 0)
 
 
-class TestCheckIdleStatus:
-    """Test suite for _check_idle_status function."""
+class TestCheckIdleStatusV2:
+    """Test suite for _check_idle_status_v2 function."""
 
     def test_check_idle_status_agent_is_idle(self) -> None:
         """Test idle detection when agent is idle."""
@@ -111,7 +111,8 @@ class TestCheckIdleStatus:
         target: str = "test-session:0"
 
         # Act
-        is_idle: bool = _check_idle_status(tmux_mock, target)
+        idle_details = _check_idle_status_v2(tmux_mock, target)
+        is_idle: bool = idle_details['is_idle']
 
         # Assert
         assert is_idle is True
@@ -128,7 +129,8 @@ class TestCheckIdleStatus:
         target: str = "test-session:0"
 
         # Act
-        is_idle: bool = _check_idle_status(tmux_mock, target)
+        idle_details = _check_idle_status_v2(tmux_mock, target)
+        is_idle: bool = idle_details['is_idle']
 
         # Assert
         assert is_idle is False

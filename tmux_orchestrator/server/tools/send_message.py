@@ -26,14 +26,14 @@ class SendMessageResult:
 def send_message(tmux: TMUXManager, request: SendMessageRequest) -> SendMessageResult:
     """
     Send a message to a Claude agent via tmux.
-    
+
     Args:
         tmux: TMUXManager instance for tmux operations
         request: SendMessageRequest with target and message
-        
+
     Returns:
         SendMessageResult indicating success/failure
-        
+
     Raises:
         ValueError: If target format is invalid or message is empty
     """

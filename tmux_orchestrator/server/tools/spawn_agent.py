@@ -28,14 +28,14 @@ class SpawnAgentResult:
 def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResult:
     """
     Spawn a new Claude agent in a tmux session.
-    
+
     Args:
         tmux: TMUXManager instance for tmux operations
         request: SpawnAgentRequest with agent configuration
-        
+
     Returns:
         SpawnAgentResult indicating success/failure and created target
-        
+
     Raises:
         ValueError: If session_name is empty or agent_type is invalid
         RuntimeError: If tmux operations fail

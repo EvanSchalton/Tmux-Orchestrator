@@ -48,7 +48,7 @@ async def create_task(
     dependencies: Optional[List[str]] = None
 ) -> Task:
     """Create a new task in the registry.
-    
+
     MCP tool for task creation.
     """
     try:
@@ -75,7 +75,7 @@ async def create_task(
 @router.get("/list", response_model=List[Task])
 async def list_all_tasks(status: Optional[str] = None) -> List[Task]:
     """List all tasks in the registry.
-    
+
     MCP tool for task overview.
     """
     try:
@@ -97,7 +97,7 @@ async def list_all_tasks(status: Optional[str] = None) -> List[Task]:
 @router.get("/status/{task_id}", response_model=Task)
 async def get_task_status(task_id: str) -> Task:
     """Get status of a specific task.
-    
+
     MCP tool for task tracking.
     """
     try:

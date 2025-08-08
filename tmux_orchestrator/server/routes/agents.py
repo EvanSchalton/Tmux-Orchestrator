@@ -51,7 +51,7 @@ class AgentStatusResponse(BaseModel):
 @router.post("/spawn", response_model=AgentSpawnResponse)
 async def tmux_spawn_agent(request: AgentSpawnRequest, background_tasks: BackgroundTasks) -> AgentSpawnResponse:
     """Spawn a new Claude agent in a tmux session.
-    
+
     This is the main MCP tool for creating new agents.
     """
     # Convert API request to business logic request
@@ -87,7 +87,7 @@ async def tmux_spawn_agent(request: AgentSpawnRequest, background_tasks: Backgro
 @router.post("/restart")
 async def tmux_restart_agent(session: str, window: str) -> dict[str, str | bool]:
     """Restart a failed or stuck agent.
-    
+
     MCP tool for agent recovery.
     """
     tool_request = ToolRestartRequest(
@@ -109,7 +109,7 @@ async def tmux_restart_agent(session: str, window: str) -> dict[str, str | bool]
 @router.get("/list", response_model=List[AgentStatusResponse])
 async def list_agents() -> List[AgentStatusResponse]:
     """List all active agents across sessions.
-    
+
     MCP tool for monitoring agent status.
     """
     try:
@@ -130,7 +130,7 @@ async def list_agents() -> List[AgentStatusResponse]:
 @router.get("/status/{session}/{window}")
 async def get_agent_status_route(session: str, window: str) -> dict[str, str | List[str] | int]:
     """Get detailed status of a specific agent.
-    
+
     MCP tool for individual agent monitoring.
     """
     tool_request = ToolAgentStatusRequest(

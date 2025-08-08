@@ -128,7 +128,7 @@ async def spawn_agent_tool(
     request: AgentSpawnRequest, background_tasks: BackgroundTasks
 ) -> AgentSpawnResponse:
     """MCP Tool: Spawn a new Claude agent in a tmux session.
-    
+
     This is the primary MCP tool for creating new AI agents in the orchestration system.
     Agents are spawned in dedicated tmux windows with proper initialization.
     """
@@ -139,13 +139,13 @@ async def spawn_agent_tool(
         project_path=request.project_path,
         briefing_message=request.briefing_message
     )
-    
+
     # Execute business logic
     result = spawn_agent(tmux, tool_request)
-    
+
     if not result.success:
         raise HTTPException(status_code=500, detail=result.error_message)
-    
+
     # Schedule briefing if provided
     if request.briefing_message:
         background_tasks.add_task(
@@ -153,7 +153,7 @@ async def spawn_agent_tool(
             result.target,
             request.briefing_message
         )
-    
+
     return AgentSpawnResponse(
         success=result.success,
         session=result.session,
@@ -166,7 +166,7 @@ async def spawn_agent_tool(
 @router.post("/restart")
 async def restart_agent_tool(request: AgentRestartRequest) -> dict[str, str | bool]:
     """MCP Tool: Restart a failed or stuck agent.
-    
+
     This tool handles agent recovery by safely restarting Claude processes
     while preserving the session context.
     """
@@ -176,12 +176,12 @@ async def restart_agent_tool(request: AgentRestartRequest) -> dict[str, str | bo
         clear_terminal=request.clear_terminal,
         restart_delay_seconds=request.restart_delay_seconds
     )
-    
+
     result = await restart_agent(tmux, tool_request)
-    
+
     if not result.success:
         raise HTTPException(status_code=500, detail=result.error_message)
-    
+
     return {
         "success": True,
         "target": result.target,
@@ -192,7 +192,7 @@ async def restart_agent_tool(request: AgentRestartRequest) -> dict[str, str | bo
 @router.get("/status", response_model=AgentStatusResponse)
 async def get_agent_status_tool(request: AgentStatusRequest) -> AgentStatusResponse:
     """MCP Tool: Get detailed status of a specific agent.
-    
+
     This tool provides comprehensive status information about an agent
     including activity state and recent output.
     """
@@ -201,15 +201,15 @@ async def get_agent_status_tool(request: AgentStatusRequest) -> AgentStatusRespo
         window=request.window,
         lines=request.lines
     )
-    
+
     result = get_agent_status(tmux, tool_request)
-    
+
     if result.error_message:
         raise HTTPException(
             status_code=404 if result.status == "not_found" else 500,
             detail=result.error_message
         )
-    
+
     return AgentStatusResponse(
         session=result.session,
         window=result.window,
@@ -223,31 +223,31 @@ async def get_agent_status_tool(request: AgentStatusRequest) -> AgentStatusRespo
 @router.delete("/kill/{session}/{window}")
 async def kill_agent_tool(session: str, window: str) -> dict[str, str | bool]:
     """MCP Tool: Kill a specific agent.
-    
+
     This tool forcefully terminates an agent by killing its tmux window.
     Use with caution as this will lose any unsaved context.
     """
     try:
         target = f"{session}:{window}"
-        
+
         if not tmux.has_session(session):
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         # Kill the specific window
         success = tmux._run_tmux(['kill-window', '-t', target], check=False)
-        
+
         if success.returncode != 0:
             raise HTTPException(
-                status_code=500, 
+                status_code=500,
                 detail=f"Failed to kill agent window: {success.stderr}"
             )
-        
+
         return {
             "success": True,
             "target": target,
             "message": f"Agent {target} killed successfully"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -257,20 +257,20 @@ async def kill_agent_tool(session: str, window: str) -> dict[str, str | bool]:
 @router.get("/list")
 async def list_all_agents() -> dict[str, list[dict[str, str]]]:
     """MCP Tool: List all active agents across all sessions.
-    
+
     This tool provides a comprehensive view of all running agents
     in the orchestration system.
     """
     try:
         agents = tmux.list_agents()
-        
+
         return {
             "agents": agents,
             "count": len(agents),
             "active": len([a for a in agents if a['status'] == 'Active']),
             "idle": len([a for a in agents if a['status'] == 'Idle'])
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

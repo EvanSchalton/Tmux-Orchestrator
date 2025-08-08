@@ -27,14 +27,14 @@ class RestartAgentResult:
 async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> RestartAgentResult:
     """
     Restart a failed or stuck Claude agent.
-    
+
     Args:
         tmux: TMUXManager instance for tmux operations
         request: RestartAgentRequest with session and window info
-        
+
     Returns:
         RestartAgentResult indicating success/failure
-        
+
     Raises:
         ValueError: If session or window names are empty
     """

@@ -1,8 +1,8 @@
 """Orchestrator specific commands."""
 
+
 import click
 from rich.console import Console
-from pathlib import Path
 
 console = Console()
 
@@ -18,13 +18,13 @@ def orchestrator():
 def start(ctx):
     """Start the orchestrator session."""
     from tmux_orchestrator.core.orchestrator_manager import OrchestratorManager
-    
+
     manager = OrchestratorManager(ctx.obj['tmux'])
-    
+
     if manager.is_running():
         console.print("[yellow]Orchestrator is already running[/yellow]")
         return
-    
+
     manager.start()
     console.print("[green]✓ Orchestrator started[/green]")
 
@@ -37,10 +37,10 @@ def start(ctx):
 def schedule(ctx, minutes, message, target):
     """Schedule a check-in message."""
     from tmux_orchestrator.core.scheduler import Scheduler
-    
+
     scheduler = Scheduler(ctx.obj['tmux'])
     scheduler.schedule_checkin(minutes, message, target)
-    
+
     console.print(f"[green]✓ Scheduled check-in in {minutes} minutes[/green]")
     console.print(f"  Target: {target}")
     console.print(f"  Message: {message}")
@@ -51,14 +51,14 @@ def schedule(ctx, minutes, message, target):
 def status(ctx):
     """Show orchestrator status."""
     from tmux_orchestrator.core.orchestrator_manager import OrchestratorManager
-    
+
     manager = OrchestratorManager(ctx.obj['tmux'])
     status = manager.get_status()
-    
+
     if not status['running']:
         console.print("[yellow]Orchestrator is not running[/yellow]")
         return
-    
+
     console.print("[bold]Orchestrator Status[/bold]")
     console.print(f"  Session: {status['session']}")
     console.print(f"  Running: {status['running']}")

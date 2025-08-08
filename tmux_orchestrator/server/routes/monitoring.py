@@ -131,13 +131,13 @@ async def get_system_status_tool(
     request: SystemStatusRequest
 ) -> SystemStatusResponse:
     """MCP Tool: Get comprehensive system status.
-    
+
     This is the primary monitoring tool that provides an overview of all
     sessions, agents, and system health in the orchestration system.
     """
     try:
         result = get_session_status(tmux)
-        
+
         # Determine system health based on agent states
         system_health = "healthy"
         if result.total_agents == 0:
@@ -146,7 +146,7 @@ async def get_system_status_tool(
             system_health = "all_idle"
         elif result.active_agents / result.total_agents < 0.3:
             system_health = "low_activity"
-        
+
         return SystemStatusResponse(
             total_sessions=result.total_sessions,
             total_agents=result.total_agents,
@@ -156,7 +156,7 @@ async def get_system_status_tool(
             agents=result.agents,
             system_health=system_health
         )
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -164,32 +164,32 @@ async def get_system_status_tool(
 @router.get("/sessions", response_model=list[dict[str, Any]])
 async def list_all_sessions_tool() -> list[dict[str, Any]]:
     """MCP Tool: List all tmux sessions with basic information.
-    
+
     This tool provides a quick overview of all active tmux sessions
     without detailed agent information.
     """
     try:
         sessions = tmux.list_sessions()
-        
+
         # Enhance session info with agent counts
         enhanced_sessions = []
         for session in sessions:
             # Get agents for this session
             all_agents = tmux.list_agents()
             session_agents = [
-                agent for agent in all_agents 
+                agent for agent in all_agents
                 if agent['session'] == session['name']
             ]
-            
+
             enhanced_sessions.append({
                 **session,
                 "agent_count": len(session_agents),
                 "active_agents": len([a for a in session_agents if a['status'] == 'Active']),
                 "idle_agents": len([a for a in session_agents if a['status'] == 'Idle'])
             })
-        
+
         return enhanced_sessions
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -199,52 +199,52 @@ async def get_session_detail_tool(
     session_name: str, request: SessionDetailRequest
 ) -> SessionDetailResponse:
     """MCP Tool: Get detailed information about a specific session.
-    
+
     This tool provides comprehensive information about a single session
     including windows, agents, and recent activity.
     """
     try:
         if not tmux.has_session(session_name):
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
         # Get session info
         sessions = tmux.list_sessions()
         session_info = next((s for s in sessions if s['name'] == session_name), None)
-        
+
         if not session_info:
             raise HTTPException(status_code=404, detail="Session not found in list")
-        
+
         # Get windows
         windows = tmux.list_windows(session_name)
-        
+
         # Get agents
         all_agents = tmux.list_agents()
         session_agents = [
-            agent for agent in all_agents 
+            agent for agent in all_agents
             if agent['session'] == session_name
         ]
-        
+
         # Get recent activity if requested
         window_activity = []
         if request.include_activity:
             for window in windows:
                 target = f"{session_name}:{window['index']}"
                 recent_output = tmux.capture_pane(target, lines=request.activity_lines)
-                
+
                 window_activity.append({
                     "window": window,
                     "recent_output": recent_output.split('\n')[-5:] if recent_output else [],
                     "is_idle": tmux._is_idle(recent_output) if recent_output else True,
                     "last_lines_count": len(recent_output.split('\n')) if recent_output else 0
                 })
-        
+
         return SessionDetailResponse(
             session=session_info,
             windows=windows,
             agents=session_agents,
             window_activity=window_activity
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -254,7 +254,7 @@ async def get_session_detail_tool(
 @router.get("/health", response_model=HealthCheckResponse)
 async def health_check_tool() -> HealthCheckResponse:
     """MCP Tool: Comprehensive health check for the orchestration system.
-    
+
     This tool performs a health check of the entire system including
     tmux connectivity and agent responsiveness.
     """
@@ -262,7 +262,7 @@ async def health_check_tool() -> HealthCheckResponse:
         # Test tmux connectivity
         sessions = tmux.list_sessions()
         agents = tmux.list_agents()
-        
+
         # Perform basic health checks
         details = {
             "tmux_sessions": len(sessions),
@@ -270,21 +270,21 @@ async def health_check_tool() -> HealthCheckResponse:
             "responsive_agents": len([a for a in agents if a['status'] == 'Active']),
             "checks_passed": []
         }
-        
+
         # Check if tmux is responding
         if len(sessions) >= 0:  # Even 0 sessions means tmux is responsive
             details["checks_passed"].append("tmux_connectivity")
-        
+
         # Check if we have any agents
         if len(agents) > 0:
             details["checks_passed"].append("agents_present")
-        
+
         # Check if at least some agents are active (if any exist)
         if len(agents) == 0 or len([a for a in agents if a['status'] == 'Active']) > 0:
             details["checks_passed"].append("agents_responsive")
-        
+
         status = "healthy" if len(details["checks_passed"]) >= 2 else "degraded"
-        
+
         return HealthCheckResponse(
             status=status,
             tmux_responsive=True,
@@ -292,7 +292,7 @@ async def health_check_tool() -> HealthCheckResponse:
             timestamp="2025-01-08T00:00:00Z",  # Would use datetime.utcnow() in real implementation
             details=details
         )
-        
+
     except Exception as e:
         return HealthCheckResponse(
             status="unhealthy",
@@ -306,14 +306,14 @@ async def health_check_tool() -> HealthCheckResponse:
 @router.get("/agents/idle")
 async def get_idle_agents_tool() -> dict[str, Any]:
     """MCP Tool: Get list of idle agents available for new tasks.
-    
+
     This tool identifies agents that are currently idle and can
     be assigned new tasks or responsibilities.
     """
     try:
         agents = tmux.list_agents()
         idle_agents = [agent for agent in agents if agent['status'] == 'Idle']
-        
+
         # Group idle agents by type
         by_type = {}
         for agent in idle_agents:
@@ -321,7 +321,7 @@ async def get_idle_agents_tool() -> dict[str, Any]:
             if agent_type not in by_type:
                 by_type[agent_type] = []
             by_type[agent_type].append(agent)
-        
+
         return {
             "idle_agents": idle_agents,
             "count": len(idle_agents),
@@ -329,7 +329,7 @@ async def get_idle_agents_tool() -> dict[str, Any]:
             "available_types": list(by_type.keys()),
             "sessions": list(set(agent['session'] for agent in idle_agents))
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -337,26 +337,26 @@ async def get_idle_agents_tool() -> dict[str, Any]:
 @router.get("/agents/active")
 async def get_active_agents_tool() -> dict[str, Any]:
     """MCP Tool: Get list of active agents and their current activities.
-    
+
     This tool shows which agents are currently active and provides
     insight into their recent activities for monitoring purposes.
     """
     try:
         agents = tmux.list_agents()
         active_agents = []
-        
+
         for agent in agents:
             if agent['status'] == 'Active':
                 # Get recent output to understand what they're working on
                 target = f"{agent['session']}:{agent['window']}"
                 recent_output = tmux.capture_pane(target, lines=20)
-                
+
                 active_agents.append({
                     **agent,
                     "recent_activity": recent_output.split('\n')[-5:] if recent_output else [],
                     "activity_length": len(recent_output.split('\n')) if recent_output else 0
                 })
-        
+
         # Group active agents by session
         by_session = {}
         for agent in active_agents:
@@ -364,13 +364,13 @@ async def get_active_agents_tool() -> dict[str, Any]:
             if session not in by_session:
                 by_session[session] = []
             by_session[session].append(agent)
-        
+
         return {
             "active_agents": active_agents,
             "count": len(active_agents),
             "by_session": by_session,
             "sessions": list(by_session.keys())
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

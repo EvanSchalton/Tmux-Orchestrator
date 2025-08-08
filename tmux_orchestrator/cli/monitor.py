@@ -1,10 +1,11 @@
 """Monitoring commands with enhanced idle detection."""
 
-import click
-from rich.console import Console
-import subprocess
 import os
 import signal
+import subprocess
+
+import click
+from rich.console import Console
 
 console = Console()
 PID_FILE = "/tmp/tmux-orchestrator-idle-monitor.pid"
@@ -25,14 +26,14 @@ def monitor():
 def start(ctx, interval):
     """Start the idle monitor daemon."""
     from tmux_orchestrator.core.monitor import IdleMonitor
-    
+
     monitor = IdleMonitor(ctx.obj['tmux'])
-    
+
     if monitor.is_running():
         console.print("[yellow]Monitor is already running[/yellow]")
         monitor.status()
         return
-    
+
     pid = monitor.start(interval)
     console.print(f"[green]✓ Idle monitor started (PID: {pid})[/green]")
     console.print(f"  Check interval: {interval} seconds")
@@ -44,13 +45,13 @@ def start(ctx, interval):
 def stop(ctx):
     """Stop the idle monitor daemon."""
     from tmux_orchestrator.core.monitor import IdleMonitor
-    
+
     monitor = IdleMonitor(ctx.obj['tmux'])
-    
+
     if not monitor.is_running():
         console.print("[yellow]Monitor is not running[/yellow]")
         return
-    
+
     if monitor.stop():
         console.print("[green]✓ Monitor stopped successfully[/green]")
     else:
@@ -65,7 +66,7 @@ def logs(follow, lines):
     if not os.path.exists(LOG_FILE):
         console.print("[yellow]No log file found[/yellow]")
         return
-    
+
     if follow:
         try:
             subprocess.run(['tail', '-f', LOG_FILE])
@@ -80,7 +81,7 @@ def logs(follow, lines):
 def status(ctx):
     """Check monitor status."""
     from tmux_orchestrator.core.monitor import IdleMonitor
-    
+
     monitor = IdleMonitor(ctx.obj['tmux'])
     monitor.status()
 
@@ -91,27 +92,27 @@ def status(ctx):
 def recovery_start(ctx, config):
     """Start the recovery daemon with bulletproof idle detection."""
     from tmux_orchestrator.core.recovery_daemon import RecoveryDaemon
-    
+
     daemon = RecoveryDaemon(config)
-    
+
     if daemon.is_running():
         console.print("[yellow]Recovery daemon is already running[/yellow]")
         return
-    
+
     console.print("[blue]Starting recovery daemon with enhanced detection...[/blue]")
-    
+
     # Start daemon in background
     import threading
     def run_daemon():
         daemon.start()
-    
+
     daemon_thread = threading.Thread(target=run_daemon, daemon=True)
     daemon_thread.start()
-    
+
     # Give daemon time to start
     import time
     time.sleep(2)
-    
+
     if daemon.is_running():
         status = daemon.get_status()
         console.print(f"[green]✓ Recovery daemon started (PID: {status['pid']})[/green]")
@@ -129,14 +130,14 @@ def recovery_stop():
     if not os.path.exists(RECOVERY_PID_FILE):
         console.print("[yellow]Recovery daemon is not running[/yellow]")
         return
-    
+
     try:
-        with open(RECOVERY_PID_FILE, 'r') as f:
+        with open(RECOVERY_PID_FILE) as f:
             pid = int(f.read().strip())
-        
+
         os.kill(pid, signal.SIGTERM)
         console.print(f"[green]✓ Recovery daemon stopped (PID: {pid})[/green]")
-        
+
     except (ProcessLookupError, ValueError):
         console.print("[yellow]Recovery daemon process not found[/yellow]")
     except Exception as e:
@@ -148,41 +149,42 @@ def recovery_stop():
 @click.pass_context
 def recovery_status(ctx, verbose):
     """Show recovery daemon status with enhanced monitoring details."""
-    from tmux_orchestrator.core.recovery_daemon import RecoveryDaemon
-    from tmux_orchestrator.core.monitor import AgentMonitor
-    from tmux_orchestrator.core.config import Config
-    from rich.table import Table
     from rich.panel import Panel
-    
+    from rich.table import Table
+
+    from tmux_orchestrator.core.config import Config
+    from tmux_orchestrator.core.monitor import AgentMonitor
+    from tmux_orchestrator.core.recovery_daemon import RecoveryDaemon
+
     daemon = RecoveryDaemon()
     status = daemon.get_status()
-    
+
     # Show daemon status
     if status['running']:
         console.print(f"[green]✓ Recovery daemon is running (PID: {status['pid']})[/green]")
-        console.print(f"  Using bulletproof 4-snapshot idle detection")
+        console.print("  Using bulletproof 4-snapshot idle detection")
     else:
         console.print("[red]✗ Recovery daemon is not running[/red]")
-    
+
     if verbose:
         console.print(Panel(f"Check interval: {status['check_interval']}s\n"
                           f"Auto-discovery: {status['auto_discover']}\n"
                           f"Enhanced detection: {status['enhanced_detection']}\n"
                           f"Log file: {status['log_file']}\n"
-                          f"PID file: {status['pid_file']}", 
+                          f"PID file: {status['pid_file']}",
                           title="Recovery Daemon Config", style="blue"))
-    
+
     # Show agent health if daemon is running
     if status['running']:
         try:
             tmux = ctx.obj['tmux']
             config = Config()
             monitor = AgentMonitor(config, tmux)
-            
+
             summary = monitor.get_monitoring_summary()
-            
+
             if summary['total_agents'] > 0:
-                console.print(f"\n[bold]Enhanced Agent Health Summary:[/bold]")
+                console.print("\n[bold]Enhanced Agent Health Summary:[/bold]")
                 console.print(f"  Total agents: {summary['total_agents']}")
                 console.print(f"  [green]Healthy: {summary['healthy']}[/green]")
                 console.print(f"  [yellow]Warning: {summary['warning']}[/yellow]")
@@ -190,7 +192,7 @@ def recovery_status(ctx, verbose):
                 console.print(f"  [red]Unresponsive: {summary['unresponsive']}[/red]")
                 console.print(f"  [blue]Idle: {summary['idle']}[/blue]")
                 console.print(f"  Recent recoveries: {summary['recent_recoveries']}")
-                
+
                 # Show detailed agent status
                 if verbose:
                     unhealthy = monitor.get_unhealthy_agents()
@@ -202,7 +204,7 @@ def recovery_status(ctx, verbose):
                         table.add_column("Failures", style="yellow")
                         table.add_column("Activity", style="green")
                         table.add_column("Last Response", style="white")
-                        
+
                         for target, agent_status in unhealthy:
                             idle_status = "✓" if agent_status.is_idle else "✗"
                             table.add_row(
@@ -213,12 +215,12 @@ def recovery_status(ctx, verbose):
                                 str(agent_status.activity_changes),
                                 agent_status.last_response.strftime("%H:%M:%S")
                             )
-                        
+
                         console.print("\n")
                         console.print(table)
             else:
                 console.print("\n[yellow]No agents currently registered for monitoring[/yellow]")
-                
+
         except Exception as e:
             console.print(f"\n[red]Error getting agent health status: {e}[/red]")
 
@@ -231,7 +233,7 @@ def recovery_logs(follow, lines):
     if not os.path.exists(RECOVERY_LOG_FILE):
         console.print("[yellow]No recovery log file found[/yellow]")
         return
-    
+
     if follow:
         try:
             subprocess.run(['tail', '-f', RECOVERY_LOG_FILE])

@@ -33,7 +33,7 @@ class SessionStatus(BaseModel):
 @router.get("/status", response_model=SystemStatus)
 async def tmux_get_session_status() -> SystemStatus:
     """Get comprehensive system status.
-    
+
     Primary MCP tool for system monitoring.
     """
     try:
@@ -54,7 +54,7 @@ async def tmux_get_session_status() -> SystemStatus:
 @router.get("/sessions", response_model=List[SessionStatus])
 async def list_sessions() -> List[SessionStatus]:
     """List all tmux sessions with detailed information.
-    
+
     MCP tool for session monitoring.
     """
     try:
@@ -89,7 +89,7 @@ async def list_sessions() -> List[SessionStatus]:
 @router.get("/sessions/{session_name}")
 async def get_session_detail(session_name: str) -> Dict[str, Any]:
     """Get detailed information about a specific session.
-    
+
     MCP tool for individual session monitoring.
     """
     try:
@@ -164,7 +164,7 @@ async def health_check() -> Dict[str, Any]:
 @router.get("/agents/idle")
 async def get_idle_agents() -> Dict[str, Any]:
     """Get list of idle agents that can receive new tasks.
-    
+
     MCP tool for workload distribution.
     """
     try:
@@ -184,7 +184,7 @@ async def get_idle_agents() -> Dict[str, Any]:
 @router.get("/agents/active")
 async def get_active_agents() -> Dict[str, Any]:
     """Get list of active agents and their current tasks.
-    
+
     MCP tool for activity monitoring.
     """
     try:

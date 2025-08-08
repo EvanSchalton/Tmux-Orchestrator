@@ -40,7 +40,7 @@ async def tmux_create_team(
     background_tasks: BackgroundTasks
 ) -> TeamDeploymentResponse:
     """Deploy a complete agent team for a project.
-    
+
     Primary MCP tool for team deployment.
     """
     try:
@@ -112,14 +112,14 @@ async def tmux_create_team(
 @router.post("/coordinate/standup")
 async def conduct_standup(session_names: List[str]) -> Dict[str, Any]:
     """Conduct async standup across multiple sessions.
-    
+
     MCP tool for team coordination.
     """
     try:
         standup_request = """STATUS UPDATE REQUEST:
 Please provide:
 1) Completed tasks since last update
-2) Current work in progress  
+2) Current work in progress
 3) Any blockers or impediments
 4) ETA for current task
 

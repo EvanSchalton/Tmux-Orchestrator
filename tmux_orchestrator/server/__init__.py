@@ -9,8 +9,8 @@ from tmux_orchestrator.server.middleware import TimingMiddleware
 from tmux_orchestrator.server.routes import (
     agent_management,
     communication,
-    monitoring,
     coordination,
+    monitoring,
     tasks,
 )
 
@@ -37,8 +37,8 @@ app.add_middleware(TimingMiddleware)
 
 # Include MCP tool routers with proper prefixes and tags
 app.include_router(
-    agent_management.router, 
-    prefix="/agents", 
+    agent_management.router,
+    prefix="/agents",
     tags=["Agent Management"],
     responses={
         404: {"description": "Agent or session not found"},
@@ -46,8 +46,8 @@ app.include_router(
     }
 )
 app.include_router(
-    communication.router, 
-    prefix="/messages", 
+    communication.router,
+    prefix="/messages",
     tags=["Communication"],
     responses={
         404: {"description": "Target not found"},
@@ -55,24 +55,24 @@ app.include_router(
     }
 )
 app.include_router(
-    monitoring.router, 
-    prefix="/monitor", 
+    monitoring.router,
+    prefix="/monitor",
     tags=["Monitoring"],
     responses={
         500: {"description": "Monitoring system error"}
     }
 )
 app.include_router(
-    coordination.router, 
-    prefix="/coordination", 
+    coordination.router,
+    prefix="/coordination",
     tags=["Coordination"],
     responses={
         500: {"description": "Team coordination error"}
     }
 )
 app.include_router(
-    tasks.router, 
-    prefix="/tasks", 
+    tasks.router,
+    prefix="/tasks",
     tags=["Task Management"],
     responses={
         404: {"description": "Task not found"},

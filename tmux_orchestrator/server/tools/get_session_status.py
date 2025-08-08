@@ -20,13 +20,13 @@ class SessionStatusResult:
 def get_session_status(tmux: TMUXManager) -> SessionStatusResult:
     """
     Get comprehensive system status including sessions and agents.
-    
+
     Args:
         tmux: TMUXManager instance for tmux operations
-        
+
     Returns:
         SessionStatusResult with complete system status
-        
+
     Raises:
         RuntimeError: If tmux operations fail
     """
@@ -77,14 +77,14 @@ class AgentStatusResult:
 def get_agent_status(tmux: TMUXManager, request: AgentStatusRequest) -> AgentStatusResult:
     """
     Get detailed status of a specific agent.
-    
+
     Args:
         tmux: TMUXManager instance for tmux operations
         request: AgentStatusRequest with agent identification
-        
+
     Returns:
         AgentStatusResult with agent details
-        
+
     Raises:
         ValueError: If session or window names are invalid
     """

@@ -40,7 +40,7 @@ class BroadcastRequest(BaseModel):
 @router.post("/send", response_model=MessageResponse)
 async def tmux_send_message(request: MessageRequest) -> MessageResponse:
     """Send a message to a Claude agent.
-    
+
     Primary MCP tool for inter-agent communication.
     """
     # Convert API request to business logic request
@@ -68,7 +68,7 @@ async def tmux_send_message(request: MessageRequest) -> MessageResponse:
 @router.post("/broadcast")
 async def broadcast_message(request: BroadcastRequest) -> dict[str, List[dict[str, str | bool]] | List[str] | int]:
     """Broadcast a message to multiple agents.
-    
+
     MCP tool for coordinated communication.
     """
     try:
@@ -115,7 +115,7 @@ async def broadcast_message(request: BroadcastRequest) -> dict[str, List[dict[st
 @router.get("/history/{session}/{window}")
 async def get_message_history(session: str, window: str, lines: int = 100) -> dict[str, str | List[str] | int]:
     """Get recent message history for an agent.
-    
+
     MCP tool for conversation monitoring.
     """
     try:
@@ -141,7 +141,7 @@ async def get_message_history(session: str, window: str, lines: int = 100) -> di
 @router.post("/interrupt/{session}/{window}")
 async def interrupt_agent(session: str, window: str) -> dict[str, str | bool]:
     """Send interrupt signal to an agent.
-    
+
     MCP tool for stopping runaway agents.
     """
     try:

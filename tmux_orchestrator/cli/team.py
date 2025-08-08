@@ -12,6 +12,10 @@ from tmux_orchestrator.core.team_operations import (
     get_team_status,
     list_all_teams,
 )
+from tmux_orchestrator.core.team_operations.deploy_team import (
+    deploy_standard_team,
+    recover_team_agents,
+)
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 console: Console = Console()
@@ -145,3 +149,53 @@ def broadcast(ctx: click.Context, session: str, message: str) -> None:
             )
 
     console.print(f"\n[bold]{summary_message}[/bold]")
+
+
+@team.command()
+@click.argument('team_type', type=click.Choice(['frontend', 'backend', 'fullstack', 'testing']))
+@click.argument('size', type=int, default=3)
+@click.option('--project-name', help='Project name (defaults to current directory)')
+@click.pass_context
+def deploy(ctx: click.Context, team_type: str, size: int, project_name: Optional[str]) -> None:
+    """Deploy a standard team configuration.
+    
+    TEAM_TYPE: Type of team (frontend, backend, fullstack, testing)
+    SIZE: Number of agents to deploy (1-20)
+    """
+    from pathlib import Path
+    
+    tmux: TMUXManager = ctx.obj['tmux']
+    
+    if not project_name:
+        project_name = Path.cwd().name
+    
+    console.print(f"[blue]Deploying {team_type} team with {size} agents...[/blue]")
+    
+    # Delegate to business logic
+    success, message = deploy_standard_team(tmux, team_type, size, project_name)
+    
+    if success:
+        console.print(f"[green]✓ {message}[/green]")
+    else:
+        console.print(f"[red]✗ {message}[/red]")
+
+
+@team.command()
+@click.argument('session')
+@click.pass_context
+def recover(ctx: click.Context, session: str) -> None:
+    """Recover failed agents in a team session.
+    
+    SESSION: Session name to recover
+    """
+    tmux: TMUXManager = ctx.obj['tmux']
+    
+    console.print(f"[blue]Recovering failed agents in session '{session}'...[/blue]")
+    
+    # Delegate to business logic
+    success, message = recover_team_agents(tmux, session)
+    
+    if success:
+        console.print(f"[green]✓ {message}[/green]")
+    else:
+        console.print(f"[red]✗ {message}[/red]")
