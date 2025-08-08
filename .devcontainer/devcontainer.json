@@ -45,7 +45,8 @@
         "redhat.vscode-yaml",
         "streetsidesoftware.code-spell-checker",
         "eamodio.gitlens",
-        "GitHub.copilot"
+        "GitHub.copilot",
+        "bierner.markdown-mermaid"
       ]
     }
   },

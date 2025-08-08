@@ -1,5 +1,6 @@
 """Task list management commands for orchestrating PRD-driven development."""
 
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -15,10 +16,24 @@ from rich.tree import Tree
 console = Console()
 
 # Base directory for all task management
-TASK_BASE_DIR = Path.home() / "workspaces" / "Tmux-Orchestrator" / ".tmux_orchestrator"
-PROJECTS_DIR = TASK_BASE_DIR / "projects"
-TEMPLATES_DIR = TASK_BASE_DIR / "templates"
-ARCHIVE_DIR = TASK_BASE_DIR / "archive"
+def get_orchestrator_home() -> Path:
+    """Get the orchestrator home directory from environment or default."""
+    if 'TMUX_ORCHESTRATOR_HOME' in os.environ:
+        return Path(os.environ['TMUX_ORCHESTRATOR_HOME'])
+    return Path.home() / ".tmux_orchestrator"
+
+# Directory getters that respect environment variable
+def get_projects_dir() -> Path:
+    """Get projects directory."""
+    return get_orchestrator_home() / "projects"
+
+def get_templates_dir() -> Path:
+    """Get templates directory."""
+    return get_orchestrator_home() / "templates"
+
+def get_archive_dir() -> Path:
+    """Get archive directory."""
+    return get_orchestrator_home() / "archive"
 
 
 @click.group()
@@ -54,9 +69,9 @@ def tasks() -> None:
         tmux-orc tasks status my-feature
     """
     # Ensure directories exist
-    PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
-    TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    get_projects_dir().mkdir(parents=True, exist_ok=True)
+    get_templates_dir().mkdir(parents=True, exist_ok=True)
+    get_archive_dir().mkdir(parents=True, exist_ok=True)
 
 
 @tasks.command()
@@ -76,7 +91,7 @@ def create(project_name: str, prd: Optional[str], template: bool) -> None:
         tmux-orc tasks create payment-system --prd ./payment-prd.md
         tmux-orc tasks create new-feature --template
     """
-    project_dir = PROJECTS_DIR / project_name
+    project_dir = get_projects_dir() / project_name
     
     if project_dir.exists():
         console.print(f"[red]Project '{project_name}' already exists[/red]")
@@ -112,7 +127,7 @@ def create(project_name: str, prd: Optional[str], template: bool) -> None:
                 return
         elif template:
             # Use template
-            template_path = TEMPLATES_DIR / "prd-template.md"
+            template_path = get_templates_dir() / "prd-template.md"
             if template_path.exists():
                 shutil.copy(template_path, prd_path)
             else:
@@ -193,7 +208,7 @@ def status(project_name: str, agent: Optional[str], tree: bool) -> None:
         tmux-orc tasks status my-project --agent frontend
         tmux-orc tasks status my-project --tree
     """
-    project_dir = PROJECTS_DIR / project_name
+    project_dir = get_projects_dir() / project_name
     
     if not project_dir.exists():
         console.print(f"[red]Project '{project_name}' not found[/red]")
@@ -327,7 +342,7 @@ def distribute(project_name: str, frontend: int, backend: int, qa: int, test: in
         tmux-orc tasks distribute my-project
         tmux-orc tasks distribute my-project --frontend 3 --backend 3
     """
-    project_dir = PROJECTS_DIR / project_name
+    project_dir = get_projects_dir() / project_name
     
     if not project_dir.exists():
         console.print(f"[red]Project '{project_name}' not found[/red]")
@@ -444,7 +459,7 @@ def export(project_name: str, format: str, output: Optional[str]) -> None:
         tmux-orc tasks export my-project
         tmux-orc tasks export my-project --format json --output report.json
     """
-    project_dir = PROJECTS_DIR / project_name
+    project_dir = get_projects_dir() / project_name
     
     if not project_dir.exists():
         console.print(f"[red]Project '{project_name}' not found[/red]")
@@ -551,7 +566,7 @@ def archive(project_name: str, force: bool) -> None:
         tmux-orc tasks archive old-project
         tmux-orc tasks archive completed-feature --force
     """
-    project_dir = PROJECTS_DIR / project_name
+    project_dir = get_projects_dir() / project_name
     
     if not project_dir.exists():
         console.print(f"[red]Project '{project_name}' not found[/red]")
@@ -571,7 +586,7 @@ def archive(project_name: str, force: bool) -> None:
     
     # Create archive name with timestamp
     archive_name = f"{project_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-    archive_path = ARCHIVE_DIR / archive_name
+    archive_path = get_archive_dir() / archive_name
     
     try:
         # Move to archive
@@ -620,8 +635,8 @@ def list(active: bool, archived: bool) -> None:
     table.add_column("Last Modified", style="magenta")
     
     # Active projects
-    if show_active and PROJECTS_DIR.exists():
-        for project_dir in sorted(PROJECTS_DIR.iterdir()):
+    if show_active and get_projects_dir().exists():
+        for project_dir in sorted(get_projects_dir().iterdir()):
             if project_dir.is_dir():
                 # Get task stats
                 tasks_path = project_dir / "tasks.md"
@@ -658,8 +673,8 @@ def list(active: bool, archived: bool) -> None:
                 )
     
     # Archived projects
-    if show_archived and ARCHIVE_DIR.exists():
-        for archive_dir in sorted(ARCHIVE_DIR.iterdir()):
+    if show_archived and get_archive_dir().exists():
+        for archive_dir in sorted(get_archive_dir().iterdir()):
             if archive_dir.is_dir():
                 # Extract original name
                 parts = archive_dir.name.rsplit('-', 2)
@@ -683,9 +698,9 @@ def list(active: bool, archived: bool) -> None:
         console.print(table)
         
         if show_active:
-            console.print(f"\nActive projects: {sum(1 for _ in PROJECTS_DIR.iterdir() if _.is_dir()) if PROJECTS_DIR.exists() else 0}")
+            console.print(f"\nActive projects: {sum(1 for _ in get_projects_dir().iterdir() if _.is_dir()) if get_projects_dir().exists() else 0}")
         if show_archived:
-            console.print(f"Archived projects: {sum(1 for _ in ARCHIVE_DIR.iterdir() if _.is_dir()) if ARCHIVE_DIR.exists() else 0}")
+            console.print(f"Archived projects: {sum(1 for _ in get_archive_dir().iterdir() if _.is_dir()) if get_archive_dir().exists() else 0}")
 
 
 @tasks.command()
@@ -701,7 +716,7 @@ def generate(project_name: str) -> None:
     Examples:
         tmux-orc tasks generate my-project
     """
-    project_dir = PROJECTS_DIR / project_name
+    project_dir = get_projects_dir() / project_name
     
     if not project_dir.exists():
         console.print(f"[red]Project '{project_name}' not found[/red]")

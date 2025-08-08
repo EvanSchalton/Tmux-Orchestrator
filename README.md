@@ -75,34 +75,7 @@ tmux-orc agent status     # Monitor agents
 - **Persist** - Work continues even when you close your laptop
 - **Scale** - Run multiple teams working on different projects simultaneously
 
-## 🏗️ Architecture
-
-The Tmux Orchestrator uses a three-tier hierarchy to overcome context window limitations:
-
-```
-┌─────────────┐
-│ Orchestrator│ ← You interact here
-└──────┬──────┘
-       │ Monitors & coordinates
-       ▼
-┌─────────────┐     ┌─────────────┐
-│  Project    │     │  Project    │
-│  Manager 1  │     │  Manager 2  │ ← Assign tasks, enforce specs
-└──────┬──────┘     └──────┬──────┘
-       │                   │
-       ▼                   ▼
-┌─────────────┐     ┌─────────────┐
-│ Engineer 1  │     │ Engineer 2  │ ← Write code, fix bugs
-└─────────────┘     └─────────────┘
-```
-
-### Why Separate Agents?
-- **Limited context windows** - Each agent stays focused on its role
-- **Specialized expertise** - PMs manage, engineers code
-- **Parallel work** - Multiple engineers can work simultaneously
-- **Better memory** - Smaller contexts mean better recall
-
-### PRD-Driven Development Workflow
+## 🏗️ PRD-Driven Development Workflow
 
 ```mermaid
 ---
