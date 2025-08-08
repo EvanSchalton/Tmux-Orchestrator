@@ -21,45 +21,63 @@
 - tmux 2.0+
 - Unix-like system (macOS, Linux, WSL)
 
+### Install tmux First
+Tmux is required before installing the orchestrator:
+
+```bash
+# macOS
+brew install tmux
+
+# Ubuntu/Debian
+sudo apt-get update && sudo apt-get install -y tmux
+
+# RHEL/CentOS/Fedora
+sudo yum install -y tmux
+
+# Arch Linux
+sudo pacman -S tmux
+
+# Check installation
+tmux -V  # Should show version 2.0 or higher
+```
+
 ### Quick Install
 
-#### Option 1: Install with Poetry (Recommended)
+#### Option 1: Install from GitHub with pip (Recommended)
 ```bash
-# Clone the repository
-git clone https://github.com/[your-username]/Tmux-Orchestrator.git
-cd Tmux-Orchestrator
-
-# Install Poetry if you don't have it
-pip install poetry
-
-# Install dependencies and create environment
-poetry install
-
-# Activate the environment
-poetry shell
+# Install directly from GitHub
+pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
 
 # Run initial setup
 tmux-orc setup
 ```
 
-#### Option 2: Install with pip (Development Mode)
+#### Option 2: Install from GitHub with Poetry
 ```bash
-# Clone the repository
+# Add as a dependency to your project
+poetry add git+https://github.com/[your-username]/Tmux-Orchestrator.git
+
+# Or install globally with pipx
+pipx install git+https://github.com/[your-username]/Tmux-Orchestrator.git
+
+# Run initial setup
+tmux-orc setup
+```
+
+#### Option 3: Install for Development
+```bash
+# Clone for development
 git clone https://github.com/[your-username]/Tmux-Orchestrator.git
 cd Tmux-Orchestrator
 
-# Install in development mode
+# Install with Poetry in development mode
+poetry install
+
+# Or with pip
 pip install -e .
 
 # Run initial setup
 tmux-orc setup
-```
-
-#### Option 3: Remote Bootstrap (For DevContainers)
-Add to your project's devcontainer or setup script:
-```bash
-# Download and run bootstrap script
-curl -sSL https://raw.githubusercontent.com/[your-username]/Tmux-Orchestrator/main/bootstrap.sh | bash
 ```
 
 ### Verify Installation
@@ -79,7 +97,7 @@ For existing projects, add Tmux Orchestrator to your development environment:
 ```json
 // .devcontainer/devcontainer.json
 {
-  "postCreateCommand": "curl -sSL https://raw.githubusercontent.com/[your-username]/Tmux-Orchestrator/main/bootstrap.sh | bash",
+  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {}
   }
@@ -96,11 +114,20 @@ poetry add --group dev git+https://github.com/[your-username]/Tmux-Orchestrator.
 
 #### Pip/Requirements Project
 ```bash
-# For projects not using Poetry, add to requirements-dev.txt
+# Add to requirements-dev.txt
 git+https://github.com/[your-username]/Tmux-Orchestrator.git
 
 # Then install
 pip install -r requirements-dev.txt
+```
+
+#### Docker/Dockerfile Integration
+```dockerfile
+# Install system dependencies
+RUN apt-get update && apt-get install -y tmux
+
+# Install Tmux Orchestrator
+RUN pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
 ```
 
 #### Quick Setup for Your Project
@@ -235,39 +262,56 @@ graph TB
 
 ## 🐳 Quick Setup for Devcontainer Projects
 
-### One-Command Integration
-```bash
-# Download and run the setup script
-curl -O https://raw.githubusercontent.com/your-repo/tmux-orchestrator/main/setup-devcontainer.sh
-chmod +x setup-devcontainer.sh
-./setup-devcontainer.sh my-project-name
-```
+### Simple Integration
+Add to your `.devcontainer/devcontainer.json`:
 
-This automatically:
-- Copies all orchestrator files
-- Updates `devcontainer.json` 
-- Creates project-specific scripts
-- Sets up environment variables
-
-### Manual Integration
-```bash
-# 1. Copy orchestrator to your project
-cp -r Tmux-Orchestrator references/
-
-# 2. Create installation script  
-cp references/Tmux-Orchestrator/install-template.sh scripts/install-tmux-orchestrator.sh
-
-# 3. Update devcontainer.json
+```json
 {
-  "postCreateCommand": "bash scripts/install-tmux-orchestrator.sh",
+  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git && tmux-orc setup",
   "remoteEnv": {
-    "TMUX_ORCHESTRATOR_HOME": "/workspaces/my-project/.tmux-orchestrator",
-    "TMUX_ORCHESTRATOR_REGISTRY": "/workspaces/my-project/.tmux-orchestrator/registry"
+    "TMUX_ORCHESTRATOR_HOME": "${containerWorkspaceFolder}/.tmux_orchestrator"
   }
 }
+```
 
-# 4. Rebuild devcontainer and deploy team
-./scripts/deploy-my-project-team.sh tasks.md
+### Poetry-based Projects
+For projects using Poetry:
+
+```json
+{
+  "postCreateCommand": "apt-get update && apt-get install -y tmux && poetry add --group dev git+https://github.com/[your-username]/Tmux-Orchestrator.git && poetry run tmux-orc setup",
+  "remoteEnv": {
+    "TMUX_ORCHESTRATOR_HOME": "${containerWorkspaceFolder}/.tmux_orchestrator"
+  }
+}
+```
+
+### Advanced Setup with Auto-start
+```json
+{
+  "name": "My AI-Powered Project",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  
+  "postCreateCommand": [
+    "apt-get update && apt-get install -y tmux",
+    "pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git",
+    "tmux-orc setup-all",
+    "tmux-orc orchestrator start"
+  ],
+  
+  "remoteEnv": {
+    "TMUX_ORCHESTRATOR_HOME": "${containerWorkspaceFolder}/.tmux_orchestrator"
+  },
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.terminal-tabs"
+      ]
+    }
+  }
+}
 ```
 
 ## 🎯 VS Code Integration - New in v2.0!

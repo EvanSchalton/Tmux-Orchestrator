@@ -1,37 +1,48 @@
 {
   "// Tmux Orchestrator Integration": "Add these sections to your devcontainer.json",
   
-  "// Method 1: Direct GitHub installation": {
-    "postCreateCommand": "curl -sSL https://raw.githubusercontent.com/EvanSchalton/Tmux-Orchestrator/main/bootstrap.sh | bash"
+  "// Method 1: Simple pip installation": {
+    "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git"
   },
   
-  "// Method 2: Local installation (if you have the scripts)": {
-    "postCreateCommand": "if [ -f ./references/Tmux-Orchestrator/install.sh ]; then ./references/Tmux-Orchestrator/install.sh; fi"
+  "// Method 2: Poetry-based project": {
+    "postCreateCommand": "apt-get update && apt-get install -y tmux && poetry add --group dev git+https://github.com/[your-username]/Tmux-Orchestrator.git"
   },
   
   "// Method 3: Full integration with auto-start": {
     "postCreateCommand": [
-      "curl -sSL https://raw.githubusercontent.com/EvanSchalton/Tmux-Orchestrator/main/bootstrap.sh | bash",
-      "tmux-orchestrator start"
+      "apt-get update && apt-get install -y tmux",
+      "pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git",
+      "tmux-orc setup-all",
+      "tmux-orc orchestrator start"
     ],
     "remoteEnv": {
-      "TMUX_ORCHESTRATOR_HOME": "${localEnv:HOME}/.tmux-orchestrator",
-      "TMUX_ORCHESTRATOR_AUTO_START": "true"
+      "TMUX_ORCHESTRATOR_HOME": "${containerWorkspaceFolder}/.tmux_orchestrator"
+    }
+  },
+  
+  "// Method 4: With VS Code integration": {
+    "postCreateCommand": [
+      "apt-get update && apt-get install -y tmux",
+      "pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git",
+      "tmux-orc setup-vscode .",
+      "tmux-orc setup-claude-code"
+    ],
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-python.python",
+          "ms-vscode.terminal-tabs"
+        ]
+      }
     }
   },
   
   "// Recommended features to include": {
     "features": {
+      "ghcr.io/devcontainers/features/python:1": {},
       "ghcr.io/devcontainers/features/common-utils:2": {},
       "ghcr.io/devcontainers/features/git:1": {}
     }
-  },
-  
-  "// Optional: Custom Claude commands": {
-    "postCreateCommand": [
-      "curl -sSL https://raw.githubusercontent.com/EvanSchalton/Tmux-Orchestrator/main/bootstrap.sh | bash",
-      "mkdir -p .claude/commands",
-      "curl -sSL https://raw.githubusercontent.com/EvanSchalton/Tmux-Orchestrator/main/claude-commands.tar.gz | tar -xz -C .claude/commands"
-    ]
   }
 }

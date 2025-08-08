@@ -1,12 +1,18 @@
-# Tmux Orchestrator Quick Start for Devcontainers
+# Tmux Orchestrator Quick Start Guide
 
 ## 🚀 One-Line Installation
 
-Add this to your `devcontainer.json`:
+Install directly from GitHub:
+
+```bash
+pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
+```
+
+For DevContainers, add this to your `devcontainer.json`:
 
 ```json
 {
-  "postCreateCommand": "curl -sSL https://raw.githubusercontent.com/EvanSchalton/Tmux-Orchestrator/main/bootstrap.sh | bash"
+  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git"
 }
 ```
 
@@ -19,19 +25,29 @@ Add this to your `devcontainer.json`:
 
 ## 🛠️ Basic Usage
 
-### Start the Orchestrator
+### Check System Requirements
 ```bash
-tmux-orchestrator start
+tmux-orc setup
 ```
 
-### Send a Message
+### Start the Orchestrator
 ```bash
-tmux-orchestrator send orchestrator:0 "Create a new React component"
+tmux-orc orchestrator start
+```
+
+### Deploy a Team
+```bash
+tmux-orc team deploy frontend 3
+```
+
+### Send a Message to an Agent
+```bash
+tmux-orc agent message session:0 "Create a new React component"
 ```
 
 ### Schedule a Check-in
 ```bash
-tmux-orchestrator schedule 30 orchestrator:0 "Review progress on React component"
+tmux-orc orchestrator schedule 30 "Review progress on React component"
 ```
 
 ## 📦 Full Integration Example
@@ -44,19 +60,21 @@ For a complete devcontainer setup with Tmux Orchestrator:
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
   
   "postCreateCommand": [
-    "curl -sSL https://raw.githubusercontent.com/EvanSchalton/Tmux-Orchestrator/main/bootstrap.sh | bash",
-    "tmux-orchestrator start"
+    "apt-get update && apt-get install -y tmux",
+    "pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git",
+    "tmux-orc setup-all",
+    "tmux-orc orchestrator start"
   ],
   
   "remoteEnv": {
-    "TMUX_ORCHESTRATOR_HOME": "${localEnv:HOME}/.tmux-orchestrator"
+    "TMUX_ORCHESTRATOR_HOME": "${localEnv:HOME}/.tmux_orchestrator"
   },
   
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-vscode.cpptools"
+        "ms-vscode.terminal-tabs"
       ]
     }
   }
@@ -65,67 +83,97 @@ For a complete devcontainer setup with Tmux Orchestrator:
 
 ## 🔧 Advanced Setup
 
-### Custom Installation Directory
+### Install to Custom Location
 ```bash
-curl -sSL https://raw.githubusercontent.com/EvanSchalton/Tmux-Orchestrator/main/bootstrap.sh | TMUX_ORCHESTRATOR_HOME=/opt/orchestrator bash
+# Set environment variable before installation
+export TMUX_ORCHESTRATOR_HOME=/opt/orchestrator
+pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
 ```
 
-### Add Claude Commands
-The bootstrap script automatically creates slash commands for Claude:
-- `/orchestrator` - Send messages to the orchestrator
-- `/schedule` - Schedule check-ins
+### Setup Claude Code Integration
+After installation, set up slash commands and MCP server:
+```bash
+tmux-orc setup-claude-code
+```
+
+This creates:
+- `/create-prd` - Generate PRD from description
+- `/generate-tasks` - Create task list from PRD
+- `/process-task-list` - Execute tasks with agent team
 
 ### Environment Variables
-- `TMUX_ORCHESTRATOR_HOME` - Installation directory
-- `TMUX_ORCHESTRATOR_PROJECTS_DIR` - Default projects directory
-- `TMUX_ORCHESTRATOR_CLAUDE_CMD` - Claude command (default: "claude --dangerously-skip-permissions")
+- `TMUX_ORCHESTRATOR_HOME` - Installation directory (default: `~/.tmux_orchestrator`)
+- `TMUX_ORCHESTRATOR_PROJECTS_DIR` - Projects directory
 
 ## 📚 Examples
 
-### Single Agent Project
+### PRD-Driven Development
 ```bash
-# Start orchestrator
-tmux-orchestrator start
+# Create a PRD for your project
+cat > todo-app.md << EOF
+Build a TODO app with React and TypeScript
+- User authentication
+- CRUD operations for tasks
+- Responsive design
+EOF
 
-# Create a project manager session
-tmux new -s project-manager
-claude  # Start Claude in the session
-
-# Send initial task
-tmux-orchestrator send project-manager:0 "Build a TODO app with React and TypeScript"
+# Execute with automatic team deployment
+tmux-orc execute todo-app.md
 ```
 
-### Multi-Agent Setup
+### Manual Team Deployment
 ```bash
 # Start orchestrator
-tmux-orchestrator start orchestrator
+tmux-orc orchestrator start
 
-# Create specialized agents
-tmux new -d -s frontend-dev
-tmux new -d -s backend-dev
-tmux new -d -s tester
+# Deploy a frontend team
+tmux-orc team deploy frontend 3
 
-# Coordinate work
-tmux-orchestrator send orchestrator:0 "Coordinate building a full-stack app using the three agents"
+# Deploy a backend team
+tmux-orc team deploy backend 2
+
+# Check all agents
+tmux-orc list
+```
+
+### Quick Deploy for Common Projects
+```bash
+# Deploy optimized team configurations
+tmux-orc quick-deploy frontend 3        # 3-agent frontend team
+tmux-orc quick-deploy backend 4         # 4-agent backend team
+tmux-orc quick-deploy fullstack 5       # 5-agent fullstack team
 ```
 
 ## 🐛 Troubleshooting
 
-### Check Status
+### Check System Status
 ```bash
-tmux-orchestrator status
+# Comprehensive system check
+tmux-orc status
+
+# Check specific team
+tmux-orc team status my-project
+
+# List all agents
+tmux-orc list
 ```
 
 ### View Logs
 ```bash
-ls ~/.tmux-orchestrator/registry/logs/
+# Agent logs are stored in task directories
+ls ~/.tmux_orchestrator/projects/*/logs/
+
+# Monitor agent activity
+tmux-orc monitor dashboard
 ```
 
-### Manual Installation
+### Manual Installation for Development
 ```bash
-git clone https://github.com/EvanSchalton/Tmux-Orchestrator.git
+git clone https://github.com/[your-username]/Tmux-Orchestrator.git
 cd Tmux-Orchestrator
-./install.sh
+poetry install
+poetry shell
+tmux-orc setup
 ```
 
 ## 📖 More Information
