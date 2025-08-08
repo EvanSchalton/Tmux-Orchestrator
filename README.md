@@ -208,19 +208,19 @@ tmux-orc list sessions
 ## 📸 Examples in Action
 
 ### Project Manager Coordination
-![Initiate Project Manager](Examples/Initiate%20Project%20Manager.png)
+![Initiate Project Manager](examples/screenshots/Initiate%20Project%20Manager.png)
 *The orchestrator creating and briefing a new project manager agent*
 
 ### Status Reports & Monitoring
-![Status Reports](Examples/Status%20reports.png)
+![Status Reports](examples/screenshots/Status%20reports.png)
 *Real-time status updates from multiple agents working in parallel*
 
 ### Tmux Communication
-![Reading TMUX Windows and Sending Messages](Examples/Reading%20TMUX%20Windows%20and%20Sending%20Messages.png)
+![Reading TMUX Windows and Sending Messages](examples/screenshots/Reading%20TMUX%20Windows%20and%20Sending%20Messages.png)
 *How agents communicate across tmux windows and sessions*
 
 ### Project Completion
-![Project Completed](Examples/Project%20Completed.png)
+![Project Completed](examples/screenshots/Project%20Completed.png)
 *Successful project completion with all tasks verified and committed*
 
 ## 🎯 Quick Start (Any Project Type)
