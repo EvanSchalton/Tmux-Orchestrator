@@ -1,5 +1,7 @@
 """TMUX Orchestrator MCP Server."""
 
+from typing import Dict, List, Union
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,7 +84,7 @@ app.include_router(
 
 
 @app.get("/")
-async def root() -> dict[str, str | list[str]]:
+async def root() -> dict[str, Union[str, List[str]]]:
     """Root endpoint with MCP server information."""
     return {
         "name": "TMUX Orchestrator MCP Server",
@@ -94,7 +96,8 @@ async def root() -> dict[str, str | list[str]]:
             "spawn_agent", "restart_agent", "kill_agent", "get_agent_status", "list_agents",
             "send_message", "broadcast_message", "interrupt_agent", "get_conversation_history",
             "get_system_status", "get_session_detail", "health_check", "get_idle_agents",
-            "deploy_team", "coordinate_standup", "create_task", "get_task_status"
+            "deploy_team", "coordinate_standup", "recover_team", "get_team_status", 
+            "list_teams", "setup_hub_spoke_coordination", "create_task", "get_task_status"
         ],
         "documentation": "/docs",
         "openapi_spec": "/openapi.json"

@@ -158,22 +158,22 @@ def broadcast(ctx: click.Context, session: str, message: str) -> None:
 @click.pass_context
 def deploy(ctx: click.Context, team_type: str, size: int, project_name: Optional[str]) -> None:
     """Deploy a standard team configuration.
-    
+
     TEAM_TYPE: Type of team (frontend, backend, fullstack, testing)
     SIZE: Number of agents to deploy (1-20)
     """
     from pathlib import Path
-    
+
     tmux: TMUXManager = ctx.obj['tmux']
-    
+
     if not project_name:
         project_name = Path.cwd().name
-    
+
     console.print(f"[blue]Deploying {team_type} team with {size} agents...[/blue]")
-    
+
     # Delegate to business logic
     success, message = deploy_standard_team(tmux, team_type, size, project_name)
-    
+
     if success:
         console.print(f"[green]✓ {message}[/green]")
     else:
@@ -185,16 +185,16 @@ def deploy(ctx: click.Context, team_type: str, size: int, project_name: Optional
 @click.pass_context
 def recover(ctx: click.Context, session: str) -> None:
     """Recover failed agents in a team session.
-    
+
     SESSION: Session name to recover
     """
     tmux: TMUXManager = ctx.obj['tmux']
-    
+
     console.print(f"[blue]Recovering failed agents in session '{session}'...[/blue]")
-    
+
     # Delegate to business logic
     success, message = recover_team_agents(tmux, session)
-    
+
     if success:
         console.print(f"[green]✓ {message}[/green]")
     else:

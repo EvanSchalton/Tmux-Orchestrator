@@ -1,6 +1,6 @@
 """Inter-agent communication routes for MCP server."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -75,7 +75,7 @@ class BroadcastResponse(BaseModel):
     success: bool
     total_sent: int
     total_failed: int
-    results: list[dict[str, str | bool]]
+    results: List[Dict[str, Union[str, bool]]]
     errors: list[str]
 
     class Config:
@@ -224,7 +224,7 @@ async def broadcast_message_tool(request: BroadcastRequest) -> BroadcastResponse
 @router.get("/history")
 async def get_conversation_history_tool(
     request: ConversationHistoryRequest
-) -> dict[str, str | list[str] | int]:
+) -> Dict[str, Union[str, List[str], int]]:
     """MCP Tool: Get conversation history for an agent.
 
     This tool retrieves the recent conversation history from an agent's
@@ -256,7 +256,7 @@ async def get_conversation_history_tool(
 
 
 @router.post("/interrupt")
-async def interrupt_agent_tool(request: InterruptRequest) -> dict[str, str | bool]:
+async def interrupt_agent_tool(request: InterruptRequest) -> Dict[str, Union[str, bool]]:
     """MCP Tool: Send interrupt signal to an agent.
 
     This tool sends a Ctrl+C signal to interrupt a running agent,
@@ -294,7 +294,7 @@ async def interrupt_agent_tool(request: InterruptRequest) -> dict[str, str | boo
 
 
 @router.get("/agents/{session}")
-async def get_session_agents(session: str) -> dict[str, list[dict[str, str]] | int]:
+async def get_session_agents(session: str) -> Dict[str, Union[List[Dict[str, str]], int]]:
     """MCP Tool: Get all agents in a specific session.
 
     This tool lists all Claude agents running within a specific tmux session

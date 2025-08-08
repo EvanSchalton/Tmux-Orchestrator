@@ -1,6 +1,6 @@
 """Inter-agent messaging routes for MCP server."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -66,7 +66,7 @@ async def tmux_send_message(request: MessageRequest) -> MessageResponse:
 
 
 @router.post("/broadcast")
-async def broadcast_message(request: BroadcastRequest) -> dict[str, List[dict[str, str | bool]] | List[str] | int]:
+async def broadcast_message(request: BroadcastRequest) -> Dict[str, Union[List[Dict[str, Union[str, bool]]], List[str], int]]:
     """Broadcast a message to multiple agents.
 
     MCP tool for coordinated communication.
@@ -113,7 +113,7 @@ async def broadcast_message(request: BroadcastRequest) -> dict[str, List[dict[st
 
 
 @router.get("/history/{session}/{window}")
-async def get_message_history(session: str, window: str, lines: int = 100) -> dict[str, str | List[str] | int]:
+async def get_message_history(session: str, window: str, lines: int = 100) -> Dict[str, Union[str, List[str], int]]:
     """Get recent message history for an agent.
 
     MCP tool for conversation monitoring.
@@ -139,7 +139,7 @@ async def get_message_history(session: str, window: str, lines: int = 100) -> di
 
 
 @router.post("/interrupt/{session}/{window}")
-async def interrupt_agent(session: str, window: str) -> dict[str, str | bool]:
+async def interrupt_agent(session: str, window: str) -> Dict[str, Union[str, bool]]:
     """Send interrupt signal to an agent.
 
     MCP tool for stopping runaway agents.

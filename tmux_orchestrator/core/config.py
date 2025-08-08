@@ -37,7 +37,7 @@ class Config:
     }
 
     def __init__(self, config_dict: Optional[Dict[str, Any]] = None):
-        self._config = config_dict or self.DEFAULT_CONFIG.copy()
+        self._config: Dict[str, Any] = config_dict or self.DEFAULT_CONFIG.copy()
 
     @classmethod
     def load(cls, config_path: Optional[Path] = None) -> 'Config':
@@ -58,7 +58,7 @@ class Config:
 
         if config_path and config_path.exists():
             with open(config_path) as f:
-                config_dict = yaml.safe_load(f)
+                config_dict: Dict[str, Any] = yaml.safe_load(f) or {}
                 # Merge with defaults
                 merged_config = cls.DEFAULT_CONFIG.copy()
                 cls._deep_merge(merged_config, config_dict)
@@ -70,7 +70,7 @@ class Config:
         return config
 
     @staticmethod
-    def _deep_merge(base: Dict, update: Dict) -> None:
+    def _deep_merge(base: Dict[str, Any], update: Dict[str, Any]) -> None:
         """Deep merge update dict into base dict."""
         for key, value in update.items():
             if key in base and isinstance(base[key], dict) and isinstance(value, dict):
@@ -94,7 +94,7 @@ class Config:
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value using dot notation."""
         keys = key.split('.')
-        value = self._config
+        value: Any = self._config
 
         for k in keys:
             if isinstance(value, dict) and k in value:
@@ -107,7 +107,7 @@ class Config:
     def set(self, key: str, value: Any) -> None:
         """Set configuration value using dot notation."""
         keys = key.split('.')
-        config = self._config
+        config: Dict[str, Any] = self._config
 
         for k in keys[:-1]:
             if k not in config:
@@ -129,11 +129,10 @@ class Config:
     @property
     def project_name(self) -> Optional[str]:
         """Get project name."""
-        return self._config['project']['name'] or (
-            Path(self._config['project']['path']).name
-            if self._config['project']['path']
-            else None
-        )
+        project_config = self._config['project']
+        name = project_config.get('name')
+        path = project_config.get('path')
+        return name or (Path(path).name if path else None)
 
     @property
     def project_path(self) -> Optional[Path]:
@@ -144,16 +143,17 @@ class Config:
     @property
     def monitoring_interval(self) -> int:
         """Get monitoring interval."""
-        return self._config['monitoring']['idle_check_interval']
+        return int(self._config['monitoring']['idle_check_interval'])
 
     @property
     def notification_cooldown(self) -> int:
         """Get notification cooldown."""
-        return self._config['monitoring']['notification_cooldown']
+        return int(self._config['monitoring']['notification_cooldown'])
 
     def get_agent_config(self, agent_type: str) -> Optional[Dict[str, Any]]:
         """Get configuration for a specific agent type."""
-        for agent in self._config['team']['agents']:
-            if agent.get('type') == agent_type:
+        agents = self._config['team']['agents']
+        for agent in agents:
+            if isinstance(agent, dict) and agent.get('type') == agent_type:
                 return agent
         return None

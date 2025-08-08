@@ -1,10 +1,20 @@
 """Team coordination and deployment routes for MCP server."""
 
+import asyncio
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
+from tmux_orchestrator.core.team_operations import (
+    broadcast_to_team,
+    get_team_status,
+    list_all_teams,
+)
+from tmux_orchestrator.core.team_operations.deploy_team import (
+    deploy_standard_team,
+    recover_team_agents,
+)
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 router = APIRouter()
@@ -32,6 +42,48 @@ class TeamDeploymentResponse(BaseModel):
     session_name: str
     deployed_agents: List[Dict[str, str]]
     coordination_setup: Dict[str, Any]
+
+
+class StandupRequest(BaseModel):
+    """API request model for standup coordination."""
+    session_names: List[str]
+    include_idle_agents: bool = True
+    timeout_seconds: int = 30
+
+
+class StandupResponse(BaseModel):
+    """API response model for standup results."""
+    success: bool
+    standup_initiated: bool
+    results: List[Dict[str, Any]]
+    total_agents_contacted: int
+
+
+class TeamRecoveryRequest(BaseModel):
+    """API request model for team recovery."""
+    session_name: str
+    recovery_strategy: str = "restart_failed"  # restart_failed, restart_all
+
+
+class TeamRecoveryResponse(BaseModel):
+    """API response model for team recovery."""
+    success: bool
+    message: str
+    recovered_agents: List[str]
+    failed_recoveries: List[str]
+
+
+class TeamStatusRequest(BaseModel):
+    """API request model for team status."""
+    session_name: str
+
+
+class TeamStatusResponse(BaseModel):
+    """API response model for team status."""
+    success: bool
+    session_info: Dict[str, Any]
+    windows: List[Dict[str, Any]]
+    summary: Dict[str, int]
 
 
 @router.post("/deploy-team", response_model=TeamDeploymentResponse)
@@ -109,14 +161,16 @@ async def tmux_create_team(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/coordinate/standup")
-async def conduct_standup(session_names: List[str]) -> Dict[str, Any]:
+@router.post("/standup", response_model=StandupResponse)
+async def conduct_standup_tool(
+    request: StandupRequest
+) -> StandupResponse:
     """Conduct async standup across multiple sessions.
 
     MCP tool for team coordination.
     """
     try:
-        standup_request = """STATUS UPDATE REQUEST:
+        standup_message = """STATUS UPDATE REQUEST:
 Please provide:
 1) Completed tasks since last update
 2) Current work in progress
@@ -126,38 +180,214 @@ Please provide:
 Format: Keep it brief and focused."""
 
         results = []
+        total_contacted = 0
 
-        for session_name in session_names:
+        for session_name in request.session_names:
             if not tmux.has_session(session_name):
                 results.append({
                     "session": session_name,
-                    "status": "session_not_found"
+                    "status": "session_not_found",
+                    "agents_contacted": 0
                 })
                 continue
 
-            # Get agents in this session
-            all_agents = tmux.list_agents()
-            session_agents = [
-                agent for agent in all_agents
-                if agent['session'] == session_name
-            ]
+            # Use core business logic for broadcasting
+            success, summary_message, broadcast_results = broadcast_to_team(
+                tmux, session_name, standup_message
+            )
 
-            for agent in session_agents:
-                target = f"{agent['session']}:{agent['window']}"
-                success = tmux.send_message(target, standup_request)
+            session_contacted = len([
+                r for r in broadcast_results if r.get('success', False)
+            ])
+            total_contacted += session_contacted
 
-                results.append({
-                    "session": session_name,
-                    "agent_type": agent['type'],
-                    "target": target,
-                    "request_sent": success
-                })
+            results.append({
+                "session": session_name,
+                "status": "completed" if success else "failed",
+                "message": summary_message,
+                "agents_contacted": session_contacted,
+                "details": broadcast_results
+            })
+
+        return StandupResponse(
+            success=True,
+            standup_initiated=True,
+            results=results,
+            total_agents_contacted=total_contacted
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/recover-team", response_model=TeamRecoveryResponse)
+async def recover_team_tool(
+    request: TeamRecoveryRequest
+) -> TeamRecoveryResponse:
+    """Recover failed agents in a team session.
+
+    MCP tool for team recovery operations.
+    """
+    try:
+        # Use core business logic for team recovery
+        success, message = recover_team_agents(tmux, request.session_name)
+
+        # For detailed recovery info, we'd need to enhance the core function
+        # For now, provide basic response
+        return TeamRecoveryResponse(
+            success=success,
+            message=message,
+            recovered_agents=[],  # Would be populated by enhanced core function
+            failed_recoveries=[]   # Would be populated by enhanced core function
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/team-status/{session_name}", response_model=TeamStatusResponse)
+async def get_team_status_tool(
+    session_name: str
+) -> TeamStatusResponse:
+    """Get detailed status for a team session.
+
+    MCP tool for team monitoring.
+    """
+    try:
+        # Use core business logic for team status
+        team_status = get_team_status(tmux, session_name)
+
+        if not team_status:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Session '{session_name}' not found"
+            )
+
+        return TeamStatusResponse(
+            success=True,
+            session_info=team_status['session_info'],
+            windows=team_status['windows'],
+            summary=team_status['summary']
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/list-teams")
+async def list_all_teams_tool() -> Dict[str, Any]:
+    """List all active team sessions.
+
+    MCP tool for team discovery.
+    """
+    try:
+        # Use core business logic for listing teams
+        teams = list_all_teams(tmux)
 
         return {
-            "standup_initiated": True,
-            "results": results,
-            "total_agents_contacted": len([r for r in results if r.get('request_sent', False)])
+            "success": True,
+            "teams": teams,
+            "total_teams": len(teams)
         }
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/coordinate/hub-spoke")
+async def setup_hub_spoke_coordination(
+    session_name: str,
+    hub_agent_type: str = "pm"
+) -> Dict[str, Any]:
+    """Set up hub-and-spoke coordination pattern.
+
+    MCP tool for coordination pattern setup.
+    """
+    try:
+        if not tmux.has_session(session_name):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Session '{session_name}' not found"
+            )
+
+        # Get all agents in session
+        all_agents = tmux.list_agents()
+        session_agents = [
+            agent for agent in all_agents
+            if agent['session'] == session_name
+        ]
+
+        # Find hub agent
+        hub_agent = next(
+            (agent for agent in session_agents if agent['type'] == hub_agent_type),
+            None
+        )
+
+        if not hub_agent:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No {hub_agent_type} agent found in session '{session_name}'"
+            )
+
+        # Get spoke agents (all others)
+        spoke_agents = [
+            agent for agent in session_agents
+            if agent['type'] != hub_agent_type
+        ]
+
+        # Send coordination setup message to hub
+        hub_target = f"{hub_agent['session']}:{hub_agent['window']}"
+        coordination_message = f"""COORDINATION SETUP:
+You are now the HUB in a hub-and-spoke coordination pattern.
+
+Your spoke agents:
+{chr(10).join([f"- {agent['type']}: {agent['session']}:{agent['window']}" for agent in spoke_agents])}
+
+Responsibilities:
+- Coordinate work between team members
+- Collect status updates from spokes
+- Report team progress to orchestrator
+- Resolve conflicts and blockers"""
+
+        hub_message_sent = tmux.send_message(hub_target, coordination_message)
+
+        # Send coordination message to each spoke
+        spoke_results = []
+        for spoke in spoke_agents:
+            spoke_target = f"{spoke['session']}:{spoke['window']}"
+            spoke_message = f"""COORDINATION SETUP:
+You are a SPOKE in a hub-and-spoke coordination pattern.
+
+Your hub agent: {hub_agent['type']} ({hub_target})
+
+Responsibilities:
+- Report status updates to your hub
+- Coordinate through the hub, not directly with other spokes
+- Escalate blockers to the hub
+- Focus on your assigned tasks"""
+
+            success = tmux.send_message(spoke_target, spoke_message)
+            spoke_results.append({
+                "agent": spoke['type'],
+                "target": spoke_target,
+                "message_sent": success
+            })
+
+        return {
+            "success": True,
+            "coordination_pattern": "hub_and_spoke",
+            "hub_agent": {
+                "type": hub_agent['type'],
+                "target": hub_target,
+                "message_sent": hub_message_sent
+            },
+            "spoke_agents": spoke_results,
+            "total_agents_configured": 1 + len(spoke_results)
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

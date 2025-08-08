@@ -3,11 +3,14 @@
 import os
 import signal
 import subprocess
+from typing import Optional
 
 import click
 from rich.console import Console
 
-console = Console()
+from tmux_orchestrator.utils.tmux import TMUXManager
+
+console: Console = Console()
 PID_FILE = "/tmp/tmux-orchestrator-idle-monitor.pid"
 LOG_FILE = "/tmp/tmux-orchestrator-idle-monitor.log"
 RECOVERY_PID_FILE = "/tmp/tmux-orchestrator-recovery.pid"
@@ -15,7 +18,7 @@ RECOVERY_LOG_FILE = "/tmp/tmux-orchestrator-recovery.log"
 
 
 @click.group()
-def monitor():
+def monitor() -> None:
     """Manage the idle agent monitor."""
     pass
 
@@ -23,7 +26,7 @@ def monitor():
 @monitor.command()
 @click.option('--interval', default=10, help='Check interval in seconds')
 @click.pass_context
-def start(ctx, interval):
+def start(ctx: click.Context, interval: int) -> None:
     """Start the idle monitor daemon."""
     from tmux_orchestrator.core.monitor import IdleMonitor
 
@@ -42,7 +45,7 @@ def start(ctx, interval):
 
 @monitor.command()
 @click.pass_context
-def stop(ctx):
+def stop(ctx: click.Context) -> None:
     """Stop the idle monitor daemon."""
     from tmux_orchestrator.core.monitor import IdleMonitor
 
@@ -61,7 +64,7 @@ def stop(ctx):
 @monitor.command()
 @click.option('--follow', '-f', is_flag=True, help='Follow log output')
 @click.option('--lines', '-n', default=20, help='Number of lines to show')
-def logs(follow, lines):
+def logs(follow: bool, lines: int) -> None:
     """View monitor logs."""
     if not os.path.exists(LOG_FILE):
         console.print("[yellow]No log file found[/yellow]")
@@ -78,7 +81,7 @@ def logs(follow, lines):
 
 @monitor.command()
 @click.pass_context
-def status(ctx):
+def status(ctx: click.Context) -> None:
     """Check monitor status."""
     from tmux_orchestrator.core.monitor import IdleMonitor
 
@@ -89,7 +92,7 @@ def status(ctx):
 @monitor.command('recovery-start')
 @click.option('--config', '-c', help='Configuration file path')
 @click.pass_context
-def recovery_start(ctx, config):
+def recovery_start(ctx: click.Context, config: Optional[str]) -> None:
     """Start the recovery daemon with bulletproof idle detection."""
     from tmux_orchestrator.core.recovery_daemon import RecoveryDaemon
 
@@ -125,7 +128,7 @@ def recovery_start(ctx, config):
 
 
 @monitor.command('recovery-stop')
-def recovery_stop():
+def recovery_stop() -> None:
     """Stop the recovery daemon."""
     if not os.path.exists(RECOVERY_PID_FILE):
         console.print("[yellow]Recovery daemon is not running[/yellow]")
@@ -147,7 +150,7 @@ def recovery_stop():
 @monitor.command('recovery-status')
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed information')
 @click.pass_context
-def recovery_status(ctx, verbose):
+def recovery_status(ctx: click.Context, verbose: bool) -> None:
     """Show recovery daemon status with enhanced monitoring details."""
     from rich.panel import Panel
     from rich.table import Table
@@ -228,7 +231,7 @@ def recovery_status(ctx, verbose):
 @monitor.command('recovery-logs')
 @click.option('--follow', '-f', is_flag=True, help='Follow log output')
 @click.option('--lines', '-n', default=20, help='Number of lines to show')
-def recovery_logs(follow, lines):
+def recovery_logs(follow: bool, lines: int) -> None:
     """View recovery daemon logs."""
     if not os.path.exists(RECOVERY_LOG_FILE):
         console.print("[yellow]No recovery log file found[/yellow]")
@@ -241,3 +244,110 @@ def recovery_logs(follow, lines):
             pass
     else:
         subprocess.run(['tail', f'-{lines}', RECOVERY_LOG_FILE])
+
+
+@monitor.command()
+@click.option('--session', help='Filter by specific session')
+@click.option('--refresh', default=5, help='Auto-refresh interval in seconds (0 to disable)')
+@click.option('--json', is_flag=True, help='Output in JSON format')
+@click.pass_context
+def dashboard(ctx: click.Context, session: Optional[str], refresh: int, json: bool) -> None:
+    """Show comprehensive monitoring dashboard.
+
+    Displays real-time agent status, health metrics, and system overview.
+    """
+    from rich.columns import Columns
+    from rich.live import Live
+    from rich.panel import Panel
+    from rich.table import Table
+
+    tmux: TMUXManager = ctx.obj['tmux']
+
+    def create_dashboard() -> str:
+        """Create the dashboard layout."""
+        # Get system data
+        sessions = tmux.list_sessions()
+        agents = tmux.list_agents()
+
+        if session:
+            sessions = [s for s in sessions if s['name'] == session]
+            agents = [a for a in agents if a['session'] == session]
+
+        if json:
+            dashboard_data = {
+                'timestamp': '2024-01-01T10:00:00Z',  # Would use real timestamp
+                'sessions': sessions,
+                'agents': agents,
+                'summary': {
+                    'total_sessions': len(sessions),
+                    'total_agents': len(agents),
+                    'active_agents': len([a for a in agents if a['status'] == 'Active'])
+                }
+            }
+            import json as json_module
+            return json_module.dumps(dashboard_data, indent=2)
+
+        # Create dashboard components
+        title = "🔍 TMUX Orchestrator Dashboard" + (f" - {session}" if session else "")
+
+        # System summary
+        summary_text = (
+            f"Sessions: {len(sessions)} | "
+            f"Agents: {len(agents)} | "
+            f"Active: {len([a for a in agents if a['status'] == 'Active'])}"
+        )
+        summary_panel = Panel(summary_text, title="System Summary", style="blue")
+
+        # Sessions table
+        sessions_table = Table(title="Sessions")
+        sessions_table.add_column("Name", style="cyan")
+        sessions_table.add_column("Attached", style="green")
+        sessions_table.add_column("Windows", style="yellow")
+        sessions_table.add_column("Created", style="white")
+
+        for sess in sessions[:10]:  # Limit to top 10
+            attached = "✓" if sess.get('attached') == '1' else "○"
+            sessions_table.add_row(
+                sess['name'],
+                attached,
+                sess.get('windows', '0'),
+                sess.get('created', 'Unknown')
+            )
+
+        # Agents table
+        agents_table = Table(title="Agent Status")
+        agents_table.add_column("Session", style="cyan")
+        agents_table.add_column("Window", style="magenta")
+        agents_table.add_column("Type", style="green")
+        agents_table.add_column("Status", style="yellow")
+        agents_table.add_column("Activity", style="blue")
+
+        for agent in agents[:15]:  # Limit to top 15
+            agents_table.add_row(
+                agent['session'],
+                str(agent['window']),
+                agent['type'],
+                agent['status'],
+                agent.get('last_activity', 'Unknown')
+            )
+
+        # Layout
+        upper = Columns([summary_panel])
+        lower = Columns([sessions_table, agents_table])
+
+        return f"{title}\n\n{upper}\n\n{lower}"
+
+    if refresh > 0:
+        # Live updating dashboard
+        try:
+            with Live(create_dashboard(), refresh_per_second=1/refresh) as live:
+                import time
+                while True:
+                    time.sleep(refresh)
+                    live.update(create_dashboard())
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Dashboard stopped[/yellow]")
+    else:
+        # Static dashboard
+        result = create_dashboard()
+        console.print(result)

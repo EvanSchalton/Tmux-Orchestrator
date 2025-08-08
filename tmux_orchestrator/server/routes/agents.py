@@ -1,7 +1,7 @@
 """Agent management routes for MCP server."""
 
 import asyncio
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
@@ -85,7 +85,7 @@ async def tmux_spawn_agent(request: AgentSpawnRequest, background_tasks: Backgro
 
 
 @router.post("/restart")
-async def tmux_restart_agent(session: str, window: str) -> dict[str, str | bool]:
+async def tmux_restart_agent(session: str, window: str) -> Dict[str, Union[str, bool]]:
     """Restart a failed or stuck agent.
 
     MCP tool for agent recovery.
@@ -128,7 +128,7 @@ async def list_agents() -> List[AgentStatusResponse]:
 
 
 @router.get("/status/{session}/{window}")
-async def get_agent_status_route(session: str, window: str) -> dict[str, str | List[str] | int]:
+async def get_agent_status_route(session: str, window: str) -> Dict[str, Union[str, List[str], int]]:
     """Get detailed status of a specific agent.
 
     MCP tool for individual agent monitoring.

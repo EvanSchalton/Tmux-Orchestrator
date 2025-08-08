@@ -1,7 +1,7 @@
 """Agent lifecycle management routes for MCP server."""
 
 import asyncio
-from typing import Optional
+from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
@@ -106,7 +106,7 @@ class AgentStatusResponse(BaseModel):
     window: str
     target: str
     status: str
-    recent_output: list[str]
+    recent_output: List[str]
     output_length: int
 
     class Config:
@@ -164,7 +164,7 @@ async def spawn_agent_tool(
 
 
 @router.post("/restart")
-async def restart_agent_tool(request: AgentRestartRequest) -> dict[str, str | bool]:
+async def restart_agent_tool(request: AgentRestartRequest) -> Dict[str, Union[str, bool]]:
     """MCP Tool: Restart a failed or stuck agent.
 
     This tool handles agent recovery by safely restarting Claude processes
@@ -221,7 +221,7 @@ async def get_agent_status_tool(request: AgentStatusRequest) -> AgentStatusRespo
 
 
 @router.delete("/kill/{session}/{window}")
-async def kill_agent_tool(session: str, window: str) -> dict[str, str | bool]:
+async def kill_agent_tool(session: str, window: str) -> Dict[str, Union[str, bool]]:
     """MCP Tool: Kill a specific agent.
 
     This tool forcefully terminates an agent by killing its tmux window.

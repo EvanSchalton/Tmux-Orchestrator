@@ -105,3 +105,81 @@ def status(ctx: click.Context) -> None:
         console.print(f"  Last Activity: {status['last_activity']}")
         if status.get('current_task'):
             console.print(f"  Current Task: {status['current_task']}")
+
+
+@agent.command()
+@click.argument('target')
+@click.pass_context
+def kill(ctx: click.Context, target: str) -> None:
+    """Kill a specific agent.
+
+    TARGET: Target agent in format session:window
+    """
+    tmux: TMUXManager = ctx.obj['tmux']
+
+    console.print(f"[yellow]Killing agent at {target}...[/yellow]")
+
+    # Parse target to get session and window
+    if ':' not in target:
+        console.print("[red]✗ Invalid target format. Use session:window[/red]")
+        return
+
+    try:
+        # Kill the specific window (using session kill as fallback)
+        try:
+            if hasattr(tmux, 'kill_window'):
+                success = tmux.kill_window(target)
+            else:
+                # Fallback: kill entire session if method doesn't exist
+                session = target.split(':')[0]
+                success = tmux.kill_session(session)
+        except Exception:
+            success = False
+            
+        if success:
+            console.print(f"[green]✓ Agent at {target} killed successfully[/green]")
+        else:
+            console.print(f"[red]✗ Failed to kill agent at {target}[/red]")
+    except Exception as e:
+        console.print(f"[red]✗ Error killing agent: {str(e)}[/red]")
+
+
+@agent.command()
+@click.argument('target')
+@click.option('--json', is_flag=True, help='Output in JSON format')
+@click.pass_context
+def info(ctx: click.Context, target: str, json: bool) -> None:
+    """Get detailed information about a specific agent.
+
+    TARGET: Target agent in format session:window
+    """
+    tmux: TMUXManager = ctx.obj['tmux']
+
+    # Get detailed agent information
+    agent_info = {
+        'target': target,
+        'exists': tmux.has_session(target.split(':')[0]) if ':' in target else False,
+        'pane_content': '',
+        'status': 'unknown'
+    }
+
+    if agent_info['exists']:
+        try:
+            agent_info['pane_content'] = tmux.capture_pane(target, lines=20)
+            agent_info['status'] = 'active' if agent_info['pane_content'] else 'inactive'
+        except Exception as e:
+            agent_info['status'] = f'error: {str(e)}'
+
+    if json:
+        import json as json_module
+        console.print(json_module.dumps(agent_info, indent=2))
+    else:
+        console.print(f"[bold cyan]Agent Information: {target}[/bold cyan]")
+        console.print(f"  Exists: {'✓' if agent_info['exists'] else '✗'}")
+        console.print(f"  Status: {agent_info['status']}")
+        if agent_info['pane_content'] and isinstance(agent_info['pane_content'], str):
+            console.print("  Recent activity:")
+            lines = str(agent_info['pane_content']).split('\n')[-5:]
+            for line in lines:
+                if line.strip():
+                    console.print(f"    {line[:60]}..." if len(line) > 60 else f"    {line}")
