@@ -10,25 +10,25 @@
 
 ---
 
-> **📌 Attribution**: This project is a fork and major refactor of the original [Tmux-Orchestrator by Jedward23](https://github.com/Jedward23/Tmux-Orchestrator). While inspired by the original concept, this version has been extensively redesigned with new architecture, CLI system, and enterprise features. Many examples and workflows from the original may no longer apply to this implementation.
+> **🙏 Attribution**: This project builds upon the excellent foundation created by [Jedward23's Tmux-Orchestrator](https://github.com/Jedward23/Tmux-Orchestrator). The original vision of AI agents working autonomously in tmux sessions was groundbreaking. This fork extends that vision with additional features and a different architectural approach.
 
 ---
 
 ## 🚀 NEW: Version 2.0 - AI-Powered Team Management
 
-### 🔄 Major Changes from Original
+### 🌟 What's New in This Fork
 
-This fork introduces fundamental architectural changes:
+Building on the original's solid foundation, this fork adds:
 
-| Original | Version 2.0 |
-|----------|------------|
-| Shell script based | Full Python CLI (`tmux-orc`) |
-| Fixed team templates | Dynamic team composition |
-| Manual task distribution | PRD-driven automation |
-| Basic monitoring | Advanced idle detection & recovery |
-| Scattered scripts | Centralized task management |
-| Limited agent types | 20+ specialized agent templates |
-| No API | MCP Server with REST API |
+| Feature | Enhancement |
+|---------|------------|
+| **CLI System** | Python-based `tmux-orc` command for easier interaction |
+| **Team Flexibility** | Dynamic team composition based on project needs |
+| **Task Workflow** | PRD-driven development with automated task distribution |
+| **Monitoring** | Enhanced idle detection and automatic recovery |
+| **Organization** | Centralized task management in `.tmux_orchestrator/` |
+| **Agent Variety** | Expanded to 20+ specialized agent templates |
+| **API Access** | Added MCP Server with REST API for integrations |
 
 ### 🎯 Dynamic Team Composition (NEW!)
 No more one-size-fits-all teams! The orchestrator now analyzes your project requirements and assembles the perfect team:
@@ -233,7 +233,7 @@ tmux-orc list sessions
 
 ## 📸 Examples in Action
 
-> **Note**: These screenshots are from the original implementation. The v2.0 interface and workflows have been significantly enhanced.
+> **Note**: These screenshots showcase the original implementation's capabilities. The current version maintains this functionality while adding new features.
 
 ### Project Manager Coordination
 ![Initiate Project Manager](examples/screenshots/Initiate%20Project%20Manager.png)
