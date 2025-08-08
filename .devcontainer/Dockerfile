@@ -1,6 +1,11 @@
 FROM mcr.microsoft.com/devcontainers/python:3.11-bullseye
 
 # Install tmux and other essential tools
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g @anthropic-ai/claude-code
+
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
         tmux \

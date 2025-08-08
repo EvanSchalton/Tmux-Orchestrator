@@ -87,7 +87,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Copy main scripts
 cp "$SCRIPT_DIR/send-claude-message.sh" "$INSTALL_DIR/scripts/"
 cp "$SCRIPT_DIR/schedule_with_note.sh" "$INSTALL_DIR/scripts/"
-cp "$SCRIPT_DIR/tmux_utils.py" "$INSTALL_DIR/scripts/"
+cp "$SCRIPT_DIR/scripts/tmux_utils.py" "$INSTALL_DIR/scripts/"
 
 # Make scripts executable
 chmod +x "$INSTALL_DIR/scripts"/*.sh

@@ -138,9 +138,11 @@ cython_debug/
 
 # TMUX Orchestrator specific
 .tmux-orchestrator/config.yml
+.tmux_orchestrator/registry/
 logs/
 *.pid
 *.sock
+next_check_note.txt
 
 # OS
 .DS_Store
