@@ -1,4 +1,4 @@
-"""Recovery daemon with 100% accurate idle detection integration."""
+"""Recovery daemon with bulletproof idle detection integration."""
 
 import time
 import signal
@@ -6,32 +6,41 @@ import sys
 import os
 import logging
 from pathlib import Path
-from typing import Set
-from datetime import datetime
+from typing import Set, Dict, Optional
+from datetime import datetime, timedelta
 
-from tmux_orchestrator.core.monitor import AgentMonitor
-from tmux_orchestrator.core.config import Config
-from tmux_orchestrator.utils.tmux import TMUXManager
+from .recovery import discover_agents, check_agent_health, restart_agent, restore_context
+from .recovery.check_agent_health import AgentHealthStatus
+from .config import Config
+from ..utils.tmux import TMUXManager
 
 
 class RecoveryDaemon:
-    """Recovery daemon with bulletproof idle detection and automatic recovery."""
+    """
+    Recovery daemon with bulletproof idle detection and automatic recovery.
     
-    def __init__(self, config_file: str = None):
-        self.config = Config(config_file)
-        self.tmux = TMUXManager()
-        self.monitor = AgentMonitor(self.config, self.tmux)
-        self.logger = self._setup_logging()
-        self.running = False
+    Orchestrates the recovery system by coordinating single-function modules
+    following SOLID principles and proper separation of concerns.
+    """
+    
+    def __init__(self, config_file: Optional[str] = None) -> None:
+        """Initialize recovery daemon with configuration."""
+        self.config: Config = Config(config_file)
+        self.tmux: TMUXManager = TMUXManager()
+        self.logger: logging.Logger = self._setup_logging()
+        self.running: bool = False
         
         # Daemon configuration
-        self.check_interval = self.config.get('daemon.check_interval', 30)  
-        self.auto_discover = self.config.get('daemon.auto_discover', True)
-        self.pid_file = Path('/tmp/tmux-orchestrator-recovery.pid')
-        self.log_file = Path('/tmp/tmux-orchestrator-recovery.log')
+        self.check_interval: int = self.config.get('daemon.check_interval', 30)
+        self.auto_discover: bool = self.config.get('daemon.auto_discover', True)
+        self.pid_file: Path = Path('/tmp/tmux-orchestrator-recovery.pid')
+        self.log_file: Path = Path('/tmp/tmux-orchestrator-recovery.log')
         
-        # Track discovered agents
+        # Agent tracking
         self.known_agents: Set[str] = set()
+        self.agent_health: Dict[str, AgentHealthStatus] = {}
+        self.recent_recoveries: Dict[str, datetime] = {}
+        self.recovery_cooldown: int = self.config.get('daemon.recovery_cooldown', 300)
         
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -39,15 +48,15 @@ class RecoveryDaemon:
     
     def _setup_logging(self) -> logging.Logger:
         """Set up daemon logging."""
-        logger = logging.getLogger('recovery_daemon')
+        logger: logging.Logger = logging.getLogger('recovery_daemon')
         logger.setLevel(logging.INFO)
         
         # Clear existing handlers
         logger.handlers.clear()
         
         # File handler
-        handler = logging.FileHandler(self.log_file)
-        formatter = logging.Formatter(
+        handler: logging.FileHandler = logging.FileHandler(self.log_file)
+        formatter: logging.Formatter = logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         handler.setFormatter(formatter)
@@ -55,127 +64,87 @@ class RecoveryDaemon:
         
         return logger
     
-    def _signal_handler(self, signum, frame):
+    def _signal_handler(self, signum: int, frame) -> None:
         """Handle shutdown signals gracefully."""
         self.logger.info(f"Received signal {signum}, shutting down...")
         self.stop()
         sys.exit(0)
     
-    def _write_pid_file(self):
+    def _write_pid_file(self) -> None:
         """Write daemon PID to file."""
         with open(self.pid_file, 'w') as f:
             f.write(str(os.getpid()))
     
-    def _remove_pid_file(self):
+    def _remove_pid_file(self) -> None:
         """Remove daemon PID file."""
         if self.pid_file.exists():
             self.pid_file.unlink()
     
-    def _discover_agents(self) -> Set[str]:
-        """Discover Claude agents using improved detection."""
-        discovered = set()
+    def _should_attempt_recovery(
+        self, 
+        target: str, 
+        health_status: AgentHealthStatus
+    ) -> bool:
+        """
+        Determine if recovery should be attempted for an agent.
         
-        try:
-            sessions = self.tmux.list_sessions()
+        Args:
+            target: Target agent identifier
+            health_status: Current health status
             
-            for session in sessions:
-                session_name = session['name']
-                
-                # Skip orchestrator sessions
-                if any(skip in session_name.lower() for skip in ['orchestrator', 'tmux-orc', 'recovery']):
-                    continue
-                
-                windows = self.tmux.list_windows(session_name)
-                
-                for window in windows:
-                    window_index = window.get('index', '0')
-                    target = f"{session_name}:{window_index}"
-                    
-                    # Enhanced Claude agent detection
-                    if self._is_claude_agent(target):
-                        discovered.add(target)
-                        
-                        # Register new agents
-                        if target not in self.known_agents:
-                            self.monitor.register_agent(target)
-                            self.logger.info(f"Auto-discovered Claude agent: {target}")
-                            self.known_agents.add(target)
-        
-        except Exception as e:
-            self.logger.error(f"Error during agent discovery: {e}")
-        
-        return discovered
-    
-    def _is_claude_agent(self, target: str) -> bool:
-        """Enhanced Claude agent detection using multiple indicators."""
-        try:
-            # Get both recent and historical content
-            recent_content = self.tmux.capture_pane(target, lines=30)
-            if not recent_content:
+        Returns:
+            True if recovery should be attempted
+        """
+        # Don't recover if recently recovered
+        if target in self.recent_recoveries:
+            time_since_recovery: timedelta = (
+                datetime.now() - self.recent_recoveries[target]
+            )
+            if time_since_recovery < timedelta(seconds=self.recovery_cooldown):
                 return False
-            
-            content_lower = recent_content.lower()
-            
-            # Strong indicators of Claude agents
-            strong_indicators = [
-                "│ >",                    # Claude prompt box
-                "assistant:",             # Claude response marker
-                "claude:",               # Claude name
-                "anthropic",             # Company name
-                "i'll help",             # Common Claude response
-                "let me",                # Common Claude start
-                "human:",                # Human input marker
-            ]
-            
-            # Medium indicators (need multiple)
-            medium_indicators = [
-                "i can",
-                "certainly",
-                "would you like",
-                "happy to help",
-                "analyze",
-                "implement",
-                "understand"
-            ]
-            
-            # Check for strong indicators
-            strong_matches = sum(1 for indicator in strong_indicators 
-                               if indicator in content_lower)
-            
-            # Check for medium indicators  
-            medium_matches = sum(1 for indicator in medium_indicators
-                               if indicator in content_lower)
-            
-            # Agent detection logic
-            if strong_matches >= 1:  # Any strong indicator
-                return True
-            elif medium_matches >= 3:  # Multiple medium indicators
-                return True
-            elif "claude" in content_lower and medium_matches >= 1:
-                return True
-            
-            return False
-            
-        except Exception as e:
-            self.logger.debug(f"Error checking if {target} is Claude agent: {e}")
-            return False
-    
-    def _cleanup_stale_agents(self, current_agents: Set[str]):
-        """Remove agents that no longer exist from monitoring."""
-        stale_agents = self.known_agents - current_agents
         
-        for stale_agent in stale_agents:
-            self.monitor.unregister_agent(stale_agent)
-            self.known_agents.remove(stale_agent)
-            self.logger.info(f"Removed stale agent from monitoring: {stale_agent}")
+        # Only recover unhealthy agents
+        if health_status.is_healthy:
+            return False
+        
+        # Check failure patterns that warrant recovery
+        critical_failures: Set[str] = {
+            'critical_error_detected',
+            'max_consecutive_failures_reached', 
+            'extended_unresponsiveness',
+            'abnormal_interface_state'
+        }
+        
+        return health_status.failure_reason in critical_failures
     
-    def start(self):
+    def _update_agent_tracking(self, current_agents: Set[str]) -> None:
+        """
+        Update agent tracking with discovered agents.
+        
+        Args:
+            current_agents: Currently discovered agents
+        """
+        # Remove stale agents
+        stale_agents: Set[str] = self.known_agents - current_agents
+        for stale_agent in stale_agents:
+            if stale_agent in self.agent_health:
+                del self.agent_health[stale_agent]
+            self.known_agents.remove(stale_agent)
+            self.logger.info(f"Removed stale agent: {stale_agent}")
+        
+        # Add new agents
+        new_agents: Set[str] = current_agents - self.known_agents
+        for new_agent in new_agents:
+            self.known_agents.add(new_agent)
+            self.logger.info(f"Added new agent: {new_agent}")
+    
+    def start(self) -> bool:
         """Start the recovery daemon."""
         if self.is_running():
             self.logger.error("Daemon is already running")
             return False
         
-        self.logger.info("Starting recovery daemon with improved idle detection...")
+        self.logger.info("Starting recovery daemon with bulletproof detection...")
         self._write_pid_file()
         self.running = True
         
@@ -190,7 +159,7 @@ class RecoveryDaemon:
         
         return True
     
-    def stop(self):
+    def stop(self) -> None:
         """Stop the recovery daemon."""
         if self.running:
             self.logger.info("Stopping recovery daemon...")
@@ -204,7 +173,7 @@ class RecoveryDaemon:
         
         try:
             with open(self.pid_file, 'r') as f:
-                pid = int(f.read().strip())
+                pid: int = int(f.read().strip())
             
             os.kill(pid, 0)  # Check if process exists
             return True
@@ -212,54 +181,31 @@ class RecoveryDaemon:
             self._remove_pid_file()
             return False
     
-    def _run_daemon_loop(self):
+    def _run_daemon_loop(self) -> None:
         """Main daemon loop with enhanced monitoring."""
-        self.logger.info(f"Daemon started with check interval: {self.check_interval}s")
-        self.logger.info("Using bulletproof 4-snapshot idle detection algorithm")
+        self.logger.info(f"Daemon loop started (interval: {self.check_interval}s)")
         
         while self.running:
             try:
-                start_time = datetime.now()
+                loop_start: datetime = datetime.now()
                 
-                # Discover agents if auto-discovery is enabled
-                current_agents = set()
+                # Discover agents if auto-discovery enabled
                 if self.auto_discover:
-                    current_agents = self._discover_agents()
-                    self._cleanup_stale_agents(current_agents)
-                
-                # Monitor all registered agents with improved detection
-                statuses = self.monitor.monitor_all_agents()
-                
-                # Enhanced logging with idle status
-                summary = self.monitor.get_monitoring_summary()
-                if summary['total_agents'] > 0:
-                    self.logger.info(
-                        f"Monitoring {summary['total_agents']} agents: "
-                        f"{summary['healthy']} healthy, "
-                        f"{summary['warning']} warning, "
-                        f"{summary['critical']} critical, "
-                        f"{summary['unresponsive']} unresponsive, "
-                        f"{summary['idle']} idle"
+                    current_agents: Set[str] = discover_agents(
+                        self.tmux, 
+                        self.logger
                     )
+                    self._update_agent_tracking(current_agents)
                 
-                # Log detailed status for unhealthy agents
-                unhealthy = self.monitor.get_unhealthy_agents()
-                for target, status in unhealthy:
-                    idle_status = "idle" if status.is_idle else "active"
-                    self.logger.warning(
-                        f"Agent {target} is {status.status} ({idle_status}): "
-                        f"{status.consecutive_failures} failures, "
-                        f"last response: {status.last_response.strftime('%H:%M:%S')}, "
-                        f"activity changes: {status.activity_changes}"
-                    )
+                # Monitor all known agents
+                self._monitor_agents()
                 
-                # Log successful recoveries
-                if summary.get('recent_recoveries', 0) > 0:
-                    self.logger.info(f"Recent recoveries: {summary['recent_recoveries']}")
+                # Log summary
+                self._log_monitoring_summary()
                 
-                # Calculate sleep time to maintain consistent interval
-                elapsed = (datetime.now() - start_time).total_seconds()
-                sleep_time = max(0, self.check_interval - elapsed)
+                # Calculate sleep time
+                elapsed: float = (datetime.now() - loop_start).total_seconds()
+                sleep_time: float = max(0, self.check_interval - elapsed)
                 
                 if self.running:
                     time.sleep(sleep_time)
@@ -269,10 +215,119 @@ class RecoveryDaemon:
                 if self.running:
                     time.sleep(self.check_interval)
     
-    def get_status(self) -> dict:
+    def _monitor_agents(self) -> None:
+        """Monitor all known agents for health issues."""
+        for target in list(self.known_agents):
+            try:
+                # Get previous health status
+                previous_health: Optional[AgentHealthStatus] = (
+                    self.agent_health.get(target)
+                )
+                
+                # Determine last response time
+                last_response: datetime = (
+                    previous_health.last_check if previous_health
+                    else datetime.now()
+                )
+                
+                # Check agent health
+                health_status: AgentHealthStatus = check_agent_health(
+                    self.tmux,
+                    target,
+                    last_response,
+                    previous_health.consecutive_failures if previous_health else 0
+                )
+                
+                # Update health tracking
+                self.agent_health[target] = health_status
+                
+                # Attempt recovery if needed
+                if self._should_attempt_recovery(target, health_status):
+                    self._attempt_agent_recovery(target)
+                    
+            except Exception as e:
+                self.logger.error(f"Error monitoring agent {target}: {e}")
+    
+    def _attempt_agent_recovery(self, target: str) -> None:
+        """
+        Attempt to recover a failed agent.
+        
+        Args:
+            target: Target agent identifier
+        """
+        self.logger.warning(f"Attempting recovery for: {target}")
+        
+        try:
+            # Restart the agent
+            success, message = restart_agent(target, self.logger)
+            
+            if success:
+                # Mark recovery attempt
+                self.recent_recoveries[target] = datetime.now()
+                
+                # Restore context
+                context_success: bool = restore_context(
+                    self.tmux, 
+                    target, 
+                    self.logger
+                )
+                
+                if context_success:
+                    self.logger.info(f"Successfully recovered agent: {target}")
+                else:
+                    self.logger.warning(f"Agent restarted but context restore failed: {target}")
+                    
+                # Reset health status
+                if target in self.agent_health:
+                    # Create new healthy status
+                    self.agent_health[target] = AgentHealthStatus(
+                        target=target,
+                        is_healthy=True,
+                        is_idle=False,
+                        failure_reason="healthy",
+                        last_check=datetime.now(),
+                        consecutive_failures=0
+                    )
+            else:
+                self.logger.error(f"Failed to restart agent {target}: {message}")
+                
+        except Exception as e:
+            self.logger.error(f"Recovery attempt failed for {target}: {e}")
+    
+    def _log_monitoring_summary(self) -> None:
+        """Log monitoring summary with health statistics."""
+        total_agents: int = len(self.known_agents)
+        
+        if total_agents == 0:
+            return
+        
+        healthy_count: int = sum(
+            1 for h in self.agent_health.values() if h.is_healthy
+        )
+        unhealthy_count: int = total_agents - healthy_count
+        idle_count: int = sum(
+            1 for h in self.agent_health.values() if h.is_idle
+        )
+        recent_recoveries: int = len(self.recent_recoveries)
+        
+        self.logger.info(
+            f"Monitoring summary: {total_agents} agents total, "
+            f"{healthy_count} healthy, {unhealthy_count} unhealthy, "
+            f"{idle_count} idle, {recent_recoveries} recent recoveries"
+        )
+        
+        # Log unhealthy agents
+        for target, health in self.agent_health.items():
+            if not health.is_healthy:
+                self.logger.warning(
+                    f"Unhealthy agent {target}: {health.failure_reason} "
+                    f"(failures: {health.consecutive_failures})"
+                )
+    
+    def get_status(self) -> Dict[str, any]:
         """Get daemon status information."""
-        is_running = self.is_running()
-        pid = None
+        is_running: bool = self.is_running()
+        pid: Optional[int] = None
         
         if is_running and self.pid_file.exists():
             with open(self.pid_file, 'r') as f:
@@ -281,64 +336,13 @@ class RecoveryDaemon:
         return {
             'running': is_running,
             'pid': pid,
-            'config_file': self.config.config_file,
+            'config_file': getattr(self.config, 'config_file', None),
             'check_interval': self.check_interval,
             'auto_discover': self.auto_discover,
             'log_file': str(self.log_file),
             'pid_file': str(self.pid_file),
-            'enhanced_detection': True  # Flag indicating improved idle detection
+            'enhanced_detection': True,
+            'known_agents': len(self.known_agents),
+            'healthy_agents': sum(1 for h in self.agent_health.values() if h.is_healthy),
+            'recent_recoveries': len(self.recent_recoveries)
         }
-
-
-def main():
-    """Main entry point for recovery daemon."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Tmux Orchestrator Recovery Daemon with Enhanced Detection')
-    parser.add_argument('command', choices=['start', 'stop', 'restart', 'status'],
-                       help='Daemon command')
-    parser.add_argument('--config', '-c', help='Configuration file path')
-    
-    args = parser.parse_args()
-    
-    daemon = RecoveryDaemon(args.config)
-    
-    if args.command == 'start':
-        if daemon.is_running():
-            print("Recovery daemon is already running")
-            sys.exit(1)
-        print("Starting recovery daemon with bulletproof idle detection...")
-        daemon.start()
-    
-    elif args.command == 'stop':
-        if not daemon.is_running():
-            print("Recovery daemon is not running")
-            sys.exit(1)
-        
-        with open(daemon.pid_file, 'r') as f:
-            pid = int(f.read().strip())
-        os.kill(pid, signal.SIGTERM)
-        print("Sent stop signal to recovery daemon")
-    
-    elif args.command == 'restart':
-        if daemon.is_running():
-            with open(daemon.pid_file, 'r') as f:
-                pid = int(f.read().strip())
-            os.kill(pid, signal.SIGTERM)
-            time.sleep(2)
-        print("Restarting recovery daemon with enhanced detection...")
-        daemon.start()
-    
-    elif args.command == 'status':
-        status = daemon.get_status()
-        print(f"Recovery daemon running: {status['running']}")
-        if status['pid']:
-            print(f"PID: {status['pid']}")
-        print(f"Check interval: {status['check_interval']}s")
-        print(f"Auto-discovery: {status['auto_discover']}")
-        print(f"Enhanced idle detection: {status['enhanced_detection']}")
-        print(f"Log file: {status['log_file']}")
-
-
-if __name__ == '__main__':
-    main()

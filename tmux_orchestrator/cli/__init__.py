@@ -13,6 +13,7 @@ from tmux_orchestrator.cli import (
     monitor,
     orchestrator,
     pm,
+    team,
 )
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -118,6 +119,7 @@ cli.add_command(agent.agent)
 cli.add_command(monitor.monitor)
 cli.add_command(orchestrator.orchestrator)
 cli.add_command(pm.pm)
+cli.add_command(team.team)
 
 
 if __name__ == '__main__':

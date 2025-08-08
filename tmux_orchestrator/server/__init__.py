@@ -4,9 +4,15 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from tmux_orchestrator.server.routes import agents, messages, tasks, monitor, coordination
-from tmux_orchestrator.server.middleware import TimingMiddleware
 from tmux_orchestrator.core.config import Config
+from tmux_orchestrator.server.middleware import TimingMiddleware
+from tmux_orchestrator.server.routes import (
+    agents,
+    coordination,
+    messages,
+    monitor,
+    tasks,
+)
 
 app = FastAPI(
     title="TMUX Orchestrator MCP Server",
@@ -55,7 +61,7 @@ def main():
     config = Config.load()
     host = config.get('server.host', '127.0.0.1')
     port = config.get('server.port', 8000)
-    
+
     uvicorn.run(
         "tmux_orchestrator.server:app",
         host=host,

@@ -22,7 +22,7 @@ class TMUXManager:
         result = self._run_tmux(['has-session', '-t', session_name], check=False)
         return result.returncode == 0
     
-    def create_session(self, session_name: str, window_name: str = None, start_directory: str = None) -> bool:
+    def create_session(self, session_name: str, window_name: Optional[str] = None, start_directory: Optional[str] = None) -> bool:
         """Create a new tmux session."""
         cmd = ['new-session', '-d', '-s', session_name]
         if window_name:
@@ -33,7 +33,7 @@ class TMUXManager:
         result = self._run_tmux(cmd, check=False)
         return result.returncode == 0
     
-    def create_window(self, session_name: str, window_name: str, start_directory: str = None) -> bool:
+    def create_window(self, session_name: str, window_name: str, start_directory: Optional[str] = None) -> bool:
         """Create a new window in a session."""
         cmd = ['new-window', '-t', session_name, '-n', window_name]
         if start_directory:
