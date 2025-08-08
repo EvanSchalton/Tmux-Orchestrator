@@ -22,6 +22,7 @@ class TestSpawnAgent:
         result = spawn_agent(tmux, request)
 
         assert not result.success
+        assert result.error_message is not None
         assert "Session name cannot be empty" in result.error_message
         assert result.session == ""
         assert result.window == ""
@@ -38,6 +39,7 @@ class TestSpawnAgent:
         result = spawn_agent(tmux, request)
 
         assert not result.success
+        assert result.error_message is not None
         assert "Invalid agent type" in result.error_message
         assert "developer, pm, qa, devops, reviewer, researcher, docs" in result.error_message
 
@@ -111,6 +113,7 @@ class TestSpawnAgent:
         result = spawn_agent(tmux, request)
 
         assert not result.success
+        assert result.error_message is not None
         assert "Failed to create new session" in result.error_message
 
     def test_spawn_agent_window_creation_fails(self) -> None:
@@ -127,6 +130,7 @@ class TestSpawnAgent:
         result = spawn_agent(tmux, request)
 
         assert not result.success
+        assert result.error_message is not None
         assert "Failed to create window in existing session" in result.error_message
 
     def test_spawn_agent_send_keys_fails(self) -> None:
@@ -144,6 +148,7 @@ class TestSpawnAgent:
         result = spawn_agent(tmux, request)
 
         assert not result.success
+        assert result.error_message is not None
         assert "Failed to start Claude command" in result.error_message
         assert result.target == "test-session:Claude-developer"
 
@@ -160,6 +165,7 @@ class TestSpawnAgent:
         result = spawn_agent(tmux, request)
 
         assert not result.success
+        assert result.error_message is not None
         assert "Unexpected error during agent spawn" in result.error_message
         assert "Unexpected error" in result.error_message
 

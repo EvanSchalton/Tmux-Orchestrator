@@ -7,7 +7,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from ..utils.tmux import TMUXManager
 from .config import Config
@@ -30,7 +30,7 @@ class RecoveryDaemon:
 
     def __init__(self, config_file: Optional[str] = None) -> None:
         """Initialize recovery daemon with configuration."""
-        self.config: Config = Config.load(Path(config_file)) if config_file else Config.load()
+        self.config: Config = Config.load(Path(config_file) if config_file else None)
         self.tmux: TMUXManager = TMUXManager()
         self.logger: logging.Logger = self._setup_logging()
         self.running: bool = False
@@ -69,7 +69,7 @@ class RecoveryDaemon:
 
         return logger
 
-    def _signal_handler(self, signum: int, frame) -> None:
+    def _signal_handler(self, signum: int, frame: Any) -> None:
         """Handle shutdown signals gracefully."""
         self.logger.info(f"Received signal {signum}, shutting down...")
         self.stop()
@@ -329,7 +329,7 @@ class RecoveryDaemon:
                     f"(failures: {health.consecutive_failures})"
                 )
 
-    def get_status(self) -> Dict[str, any]:
+    def get_status(self) -> Dict[str, Any]:
         """Get daemon status information."""
         is_running: bool = self.is_running()
         pid: Optional[int] = None
