@@ -1,1 +1,0 @@
-../../scripts/monitor-prd-team.sh
