@@ -7,7 +7,7 @@ import signal
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import click
 from rich.console import Console
@@ -249,23 +249,66 @@ def recovery_status(json: bool) -> None:
 @click.option('--stress-test', is_flag=True, help='Include stress testing')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
 def test_recovery(target: Optional[str], no_restart: bool, comprehensive: bool, stress_test: bool, verbose: bool) -> None:
-    """Test recovery system with a specific agent.
+    """Test recovery system with specific agent or run comprehensive tests.
     
     TARGET: Agent target in format 'session:window' (e.g., 'tmux-orc-dev:4')
+            Optional - if not provided, will auto-discover test agents
     
-    Performs a complete recovery test including:
-        • Health check and failure detection
-        • Recovery coordination (if enabled)  
-        • Context preservation
-        • Briefing restoration
-        • Notification system
+    Test Modes:
+        Single Agent Test (default):
+            • Health check and failure detection
+            • Recovery coordination (if enabled)  
+            • Context preservation
+            • Briefing restoration
+            • Notification system
+        
+        Comprehensive Test Suite (--comprehensive):
+            • Failure detection validation
+            • Recovery coordination testing
+            • Context preservation testing
+            • Notification system testing
+            • Optional stress testing (--stress-test)
     
     Examples:
-        tmux-orc recovery test tmux-orc-dev:4          # Full recovery test
-        tmux-orc recovery test frontend:0 --no-restart # Detection only
+        tmux-orc recovery test tmux-orc-dev:4          # Single agent test
+        tmux-orc recovery test --no-restart            # Detection only
+        tmux-orc recovery test --comprehensive         # Full test suite
+        tmux-orc recovery test --comprehensive --stress-test  # Include stress tests
+        tmux-orc recovery test --comprehensive --verbose      # Detailed output
     
-    Use --no-restart to test detection without actually restarting the agent.
+    Use --no-restart to test detection without actually restarting agents.
+    Use --comprehensive to run the complete test suite on all available agents.
     """
+    if comprehensive:
+        # Run comprehensive test suite
+        console.print("[blue]Running comprehensive recovery system test suite...[/blue]")
+        
+        try:
+            from tmux_orchestrator.core.recovery.recovery_test import run_recovery_system_test
+            
+            target_list = [target] if target else None
+            
+            # Run async test
+            results = asyncio.run(run_recovery_system_test(
+                target_agents=target_list,
+                include_stress_test=stress_test,
+                verbose=verbose
+            ))
+            
+            # Display comprehensive results
+            _display_comprehensive_test_results(results)
+        
+        except Exception as e:
+            console.print(f"[red]Comprehensive test error: {e}[/red]")
+        
+        return
+    
+    # Single agent test mode
+    if not target:
+        console.print("[red]Target agent required for single agent test mode[/red]")
+        console.print("[dim]Use --comprehensive to test all agents automatically[/dim]")
+        return
+    
     from tmux_orchestrator.core.recovery import coordinate_agent_recovery
     
     console.print(f"[blue]Testing recovery system with agent: {target}[/blue]")
@@ -321,6 +364,60 @@ def test_recovery(target: Optional[str], no_restart: bool, comprehensive: bool, 
     
     except Exception as e:
         console.print(f"[red]Recovery test error: {e}[/red]")
+
+
+def _display_comprehensive_test_results(results: Dict[str, Any]) -> None:
+    """Display comprehensive test results in rich format."""
+    console.print(f"\n[bold blue]Comprehensive Recovery Test Results[/bold blue]")
+    
+    # Test summary
+    summary = results.get('summary', {})
+    total_tests = summary.get('total_tests', 0)
+    tests_passed = summary.get('tests_passed', 0)
+    tests_failed = summary.get('tests_failed', 0)
+    success_rate = summary.get('overall_success_rate', 0)
+    
+    # Summary panel
+    summary_info = f"Tests Run: {total_tests}\nPassed: {tests_passed}\nFailed: {tests_failed}\nSuccess Rate: {success_rate:.1f}%"
+    summary_panel = Panel(
+        summary_info, 
+        title="Test Summary", 
+        border_style="green" if success_rate >= 80 else "yellow" if success_rate >= 60 else "red"
+    )
+    console.print(summary_panel)
+    
+    # Detailed results table
+    if 'test_breakdown' in summary:
+        results_table = Table(title="Test Breakdown")
+        results_table.add_column("Test Name", style="cyan")
+        results_table.add_column("Passed", style="green")
+        results_table.add_column("Failed", style="red")
+        results_table.add_column("Success Rate", style="yellow")
+        
+        for test_name, breakdown in summary['test_breakdown'].items():
+            passed = breakdown['passed']
+            failed = breakdown['failed']
+            rate = breakdown['success_rate']
+            
+            results_table.add_row(
+                test_name.replace('_', ' ').title(),
+                str(passed),
+                str(failed),
+                f"{rate:.1f}%"
+            )
+        
+        console.print(results_table)
+    
+    # Test metadata
+    target_agents = results.get('target_agents', [])
+    total_duration = results.get('total_duration', 0)
+    
+    console.print(f"\n[dim]Agents Tested: {len(target_agents)}[/dim]")
+    console.print(f"[dim]Total Duration: {total_duration:.1f}s[/dim]")
+    console.print(f"[dim]Test Session: {results.get('test_session_id', 'unknown')}[/dim]")
+    
+    if results.get('test_error'):
+        console.print(f"[red]Test Error: {results['test_error']}[/red]")
 
 
 def _start_daemon_background(

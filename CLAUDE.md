@@ -42,3 +42,10 @@ As the Orchestrator, you maintain high-level oversight without getting bogged do
 - Instructions for project coordination should be documented in a separate `coordination.md` file to be used in prompt templating
 - The coordination file will help standardize communication and workflow protocols across different projects
 - Ensures consistent project management approach regardless of the specific project or team composition
+
+### PRD-Driven Development Workflow
+
+- **Comprehensive workflow documentation**: See `/workspaces/Tmux-Orchestrator/orchestration-workflow.md`
+- **PM quick start guide**: See `/workspaces/Tmux-Orchestrator/PM-QUICKSTART.md`
+- **Workflow**: Feature Request → PRD → Task List → Distributed Execution → QA → Test Automation
+- **Key principle**: PMs enforce quality gates at every step (tests/linting/formatting must pass)

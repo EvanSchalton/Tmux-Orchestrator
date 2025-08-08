@@ -1,5 +1,7 @@
 # Project Manager Coordination Guide
 
+**For the complete PRD-driven development workflow**: See `/workspaces/Tmux-Orchestrator/orchestration-workflow.md`
+
 ## Core PM Responsibilities
 
 ### 1. Proactive Status Reporting Management
@@ -162,6 +164,42 @@ Please confirm you understand the context and continue from where you left off."
 - Escalate to Orchestrator immediately (try recovery first)
 - Lose track of what the agent was working on
 - Panic - timeouts are expected edge cases
+
+### 9. Session Management and Cleanup
+
+**End-of-Day Cleanup**
+
+When development work is complete, use the kill-all command for clean shutdown:
+
+#### CLI Commands:
+```bash
+# Interactive confirmation (recommended)
+tmux-orc orchestrator kill-all
+
+# Skip confirmation for automation
+tmux-orc orchestrator kill-all --force
+
+# Preserve specific sessions
+tmux-orc orchestrator kill-all --exclude main,production
+```
+
+#### VS Code Tasks:
+- **🛑 Kill All Sessions**: Interactive confirmation with impact assessment
+- **🛑 Kill All Sessions (Force)**: Emergency shutdown without confirmation
+
+#### Safety Features:
+- **Impact assessment** shows all sessions before termination
+- **Session categorization** (Orchestrator, Team, Other)
+- **Selective preservation** with --exclude option
+- **Confirmation requirement** (type 'KILL ALL' to confirm)
+
+#### Use Cases:
+- End-of-day workspace cleanup
+- Development environment reset
+- Emergency system shutdown
+- Resource reclamation before switching projects
+
+**Note**: This terminates ALL development work and agent sessions. Ensure all important work is committed to git before using.
 
 ## PM Templates for Common Scenarios
 

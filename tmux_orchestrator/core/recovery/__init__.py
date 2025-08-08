@@ -9,6 +9,7 @@ from .notification_manager import should_send_recovery_notification, send_recove
 from .recovery_coordinator import coordinate_agent_recovery, batch_recovery_coordination
 from .recovery_daemon import RecoveryDaemon, run_recovery_daemon
 from .recovery_logger import setup_recovery_logger, log_recovery_event, create_recovery_audit_log
+from .recovery_test import RecoveryTestSuite, run_recovery_system_test
 from .restart_agent import restart_agent
 from .restore_context import restore_context
 
@@ -22,10 +23,12 @@ __all__ = [
     'discover_agents',
     'log_recovery_event',
     'RecoveryDaemon',
+    'RecoveryTestSuite',
     'restart_agent',
     'restore_agent_briefing',
     'restore_context',
     'run_recovery_daemon',
+    'run_recovery_system_test',
     'send_recovery_notification',
     'setup_recovery_logger',
     'should_send_recovery_notification'

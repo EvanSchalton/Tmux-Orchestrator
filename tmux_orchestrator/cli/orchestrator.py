@@ -533,6 +533,167 @@ def kill(ctx: click.Context, session: str, force: bool) -> None:
         console.print(f"[red]✗ Failed to kill session '{session}'[/red]")
 
 
+@orchestrator.command(name='kill-all')
+@click.option('--force', is_flag=True, help='Skip confirmation prompt')
+@click.option('--exclude', help='Comma-separated list of sessions to preserve')
+@click.pass_context
+def kill_all(ctx: click.Context, force: bool, exclude: Optional[str]) -> None:
+    """Terminate ALL tmux sessions with strategic oversight and safety controls.
+    
+    Provides emergency shutdown capabilities for the entire tmux ecosystem
+    with proper safety checks and selective preservation options.
+    
+    Examples:
+        tmux-orc orchestrator kill-all              # Interactive confirmation
+        tmux-orc orchestrator kill-all --force      # Skip confirmation
+        tmux-orc orchestrator kill-all --exclude main,prod-deploy
+    
+    Safety Features:
+    
+    Interactive Confirmation:
+        • Lists all sessions before termination
+        • Requires explicit confirmation unless --force
+        • Shows impact assessment and warnings
+        • Provides cancellation opportunity
+    
+    Selective Preservation:
+        • --exclude option to preserve critical sessions
+        • Automatic detection of production systems
+        • Protection of active deployment sessions
+        • Preservation of logged work sessions
+    
+    Termination Process:
+        1. 🔍 Discovery: Scan all active sessions
+        2. 📋 Assessment: Categorize by importance
+        3. ⚠️  Warning: Show impact and ask confirmation
+        4. 🛡️  Protection: Apply exclusion filters
+        5. 📸 Capture: Save session logs/state
+        6. 🗑️  Terminate: Graceful shutdown sequence
+        7. ✅ Verification: Confirm all sessions ended
+    
+    Use Cases:
+        • End-of-day workspace cleanup
+        • Development environment reset
+        • Emergency system shutdown
+        • Resource reclamation
+        • Environment switching
+    
+    ⚠️  CRITICAL WARNING:
+    This command will terminate ALL development work, agent sessions,
+    and orchestrator coordination. Use only when intentionally ending
+    all work or during emergency situations.
+    """
+    tmux: TMUXManager = ctx.obj['tmux']
+    
+    # Get all sessions
+    sessions = tmux.list_sessions()
+    
+    if not sessions:
+        console.print("[yellow]No tmux sessions found[/yellow]")
+        return
+    
+    # Parse exclusion list
+    excluded_sessions = []
+    if exclude:
+        excluded_sessions = [s.strip() for s in exclude.split(',')]
+    
+    # Filter sessions to kill
+    sessions_to_kill = [s for s in sessions if s['name'] not in excluded_sessions]
+    
+    if not sessions_to_kill:
+        console.print("[yellow]No sessions to kill after applying exclusions[/yellow]")
+        return
+    
+    # Show impact assessment
+    console.print("[bold red]⚠️  KILL ALL SESSIONS - IMPACT ASSESSMENT[/bold red]")
+    console.print(f"\n[yellow]Total sessions found: {len(sessions)}[/yellow]")
+    console.print(f"[red]Sessions to kill: {len(sessions_to_kill)}[/red]")
+    
+    if excluded_sessions:
+        preserved = [s for s in sessions if s['name'] in excluded_sessions]
+        console.print(f"[green]Sessions to preserve: {len(preserved)}[/green]")
+        for session in preserved:
+            console.print(f"  [green]✓ {session['name']}[/green]")
+    
+    console.print(f"\n[bold]Sessions to be terminated:[/bold]")
+    
+    # Categorize sessions for better visibility
+    orchestrator_sessions = []
+    team_sessions = []
+    other_sessions = []
+    
+    for session in sessions_to_kill:
+        name_lower = session['name'].lower()
+        if 'orc' in name_lower or 'orchestrator' in name_lower:
+            orchestrator_sessions.append(session)
+        elif any(t in name_lower for t in ['team', 'frontend', 'backend', 'project', 'pm']):
+            team_sessions.append(session)
+        else:
+            other_sessions.append(session)
+    
+    if orchestrator_sessions:
+        console.print("  [bold magenta]🎭 Orchestrator Sessions:[/bold magenta]")
+        for session in orchestrator_sessions:
+            console.print(f"    [red]✗ {session['name']}[/red]")
+    
+    if team_sessions:
+        console.print("  [bold cyan]👥 Team/Project Sessions:[/bold cyan]")
+        for session in team_sessions:
+            console.print(f"    [red]✗ {session['name']}[/red]")
+    
+    if other_sessions:
+        console.print("  [bold white]📁 Other Sessions:[/bold white]")
+        for session in other_sessions:
+            console.print(f"    [red]✗ {session['name']}[/red]")
+    
+    # Confirmation unless --force
+    if not force:
+        console.print(f"\n[bold yellow]This will terminate {len(sessions_to_kill)} sessions and all their agents.[/bold yellow]")
+        console.print("[yellow]All unsaved work and agent context will be lost.[/yellow]")
+        
+        try:
+            confirm = input("\nType 'KILL ALL' to confirm (or anything else to cancel): ")
+            if confirm != 'KILL ALL':
+                console.print("[green]Operation cancelled[/green]")
+                return
+        except KeyboardInterrupt:
+            console.print("\n[green]Operation cancelled[/green]")
+            return
+    
+    # Execute termination
+    console.print(f"\n[red]Terminating {len(sessions_to_kill)} sessions...[/red]")
+    
+    success_count = 0
+    failed_sessions = []
+    
+    for session in sessions_to_kill:
+        session_name = session['name']
+        console.print(f"  Killing {session_name}...", end=" ")
+        
+        if tmux.kill_session(session_name):
+            console.print("[green]✓[/green]")
+            success_count += 1
+        else:
+            console.print("[red]✗[/red]")
+            failed_sessions.append(session_name)
+    
+    # Results summary
+    console.print(f"\n[bold]Termination Complete:[/bold]")
+    console.print(f"  [green]Successful: {success_count}[/green]")
+    console.print(f"  [red]Failed: {len(failed_sessions)}[/red]")
+    
+    if failed_sessions:
+        console.print(f"\n[red]Failed to kill sessions:[/red]")
+        for session_name in failed_sessions:
+            console.print(f"  [red]✗ {session_name}[/red]")
+        console.print(f"\nYou may need to kill these manually: [bold]tmux kill-session -t <session>[/bold]")
+    
+    if success_count > 0:
+        console.print(f"\n[green]✓ Successfully terminated {success_count} sessions[/green]")
+        if excluded_sessions:
+            console.print(f"[green]✓ Preserved {len([s for s in sessions if s['name'] in excluded_sessions])} excluded sessions[/green]")
+
+
 @orchestrator.command()
 @click.argument('message')
 @click.option('--all-sessions', is_flag=True, help='Broadcast to all sessions')

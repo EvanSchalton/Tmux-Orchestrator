@@ -12,11 +12,38 @@ log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
 }
 
+# Function to check if Claude Code has crashed
+has_claude_crashed() {
+    local session=$1
+    local window=$2
+    local agent_name=$3
+    
+    # Get full pane content
+    local pane_content=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null || echo "")
+    
+    # Check for Claude input box - if missing when idle, Claude has likely crashed
+    if ! echo "$pane_content" | grep -q "│ >" && ! echo "$pane_content" | grep -q "╭─.*─╮"; then
+        # No Claude UI elements found - check if it's just a shell prompt
+        if echo "$pane_content" | tail -5 | grep -qE "(\$|>|#|%) *$"; then
+            log_message "WARNING: Claude Code appears to have crashed for $agent_name ($session:$window)"
+            return 0  # Claude has crashed
+        fi
+    fi
+    
+    return 1  # Claude is running
+}
+
 # Function to check if an agent is idle by monitoring last line changes
 is_agent_idle() {
     local session=$1
     local window=$2
     local agent_name=$3
+    
+    # First check if Claude has crashed
+    if has_claude_crashed "$session" "$window" "$agent_name"; then
+        # Report crash instead of idle
+        return 2  # Special return code for crash
+    fi
     
     # Take 4 snapshots of the last 5 lines (excluding input box) at 300ms intervals
     local content1=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | head -n -3 | tail -5 | tr '\n' ' ' || echo "")
@@ -155,7 +182,15 @@ Please check their status and assign work as needed.
 This is an automated notification from the idle monitor."
     
     # Send notification to PM using the correct script
-    "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$pm_target" "$message"
+    # Try CLI first, fallback to direct message script
+    if command -v tmux-orc >/dev/null 2>&1; then
+        # Use CLI publish command
+        tmux-orc publish --session "$pm_target" --priority high --tag idle "$message" 2>/dev/null || \
+            "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$pm_target" "$message"
+    else
+        # Fallback to direct message script
+        "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$pm_target" "$message"
+    fi
     log_message "Notified PM about idle agents: $(echo "$idle_agents" | tr '\n' ', ')"
 }
 
@@ -227,6 +262,7 @@ main() {
         # Second pass: Check for idle agents
         IDLE_AGENTS=""
         IDLE_AGENTS_FOR_NOTIFICATION=""
+        CRASHED_AGENTS=""
         CURRENT_TIME=$(date +%s)
         
         # Check tmux-orc-dev session agents
@@ -242,8 +278,15 @@ main() {
             
             for window in "${!agent_windows[@]}"; do
                 agent_type="${agent_windows[$window]}"
-                if is_agent_idle "tmux-orc-dev" "$window" "$agent_type"; then
-                    # Add to idle agents list for logging
+                is_agent_idle "tmux-orc-dev" "$window" "$agent_type"
+                idle_status=$?
+                
+                if [ $idle_status -eq 2 ]; then
+                    # Claude has crashed
+                    CRASHED_AGENTS="${CRASHED_AGENTS}tmux-orc-dev:${window} (${agent_type})\n"
+                    log_message "CRASH DETECTED: $agent_type at tmux-orc-dev:$window"
+                elif [ $idle_status -eq 0 ]; then
+                    # Agent is idle
                     IDLE_AGENTS="${IDLE_AGENTS}tmux-orc-dev:${window} (${agent_type})\n"
                     
                     # Check cooldown for notifications
@@ -312,6 +355,41 @@ main() {
                 fi
             fi
         done <<< "$ALL_SESSIONS"
+        
+        # Handle crashed agents FIRST (highest priority)
+        if [ -n "$CRASHED_AGENTS" ]; then
+            # Remove trailing newline
+            CRASHED_AGENTS=$(echo -e "$CRASHED_AGENTS" | sed '/^$/d')
+            log_message "CRASHED AGENTS DETECTED: $(echo "$CRASHED_AGENTS" | tr '\n' ', ')"
+            
+            # Notify PM immediately about crashes
+            crash_message="🚨 AGENT CRASH ALERT:
+
+Claude Code has crashed for the following agents:
+$CRASHED_AGENTS
+
+**RECOVERY ACTIONS NEEDED**:
+1. Restart Claude Code in each crashed window
+2. Provide system prompt from /workspaces/Tmux-Orchestrator/agent-prompts.yaml
+3. Re-assign current tasks
+4. Verify agent is responsive
+
+Use these commands:
+$(echo "$CRASHED_AGENTS" | while read agent; do
+    if [ -n "$agent" ]; then
+        target=$(echo "$agent" | cut -d' ' -f1)
+        echo "• tmux send-keys -t $target 'claude --dangerously-skip-permissions' Enter"
+    fi
+done)"
+            
+            # Send crash notification with critical priority
+            if command -v tmux-orc >/dev/null 2>&1; then
+                tmux-orc publish --session "$PM_TARGET" --priority critical --tag crash "$crash_message" 2>/dev/null || \
+                    "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$PM_TARGET" "$crash_message"
+            else
+                "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$PM_TARGET" "$crash_message"
+            fi
+        fi
         
         # Report status based on actual idle detection
         if [ -n "$IDLE_AGENTS" ]; then

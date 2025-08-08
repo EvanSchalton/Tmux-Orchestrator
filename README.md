@@ -45,6 +45,61 @@ The Tmux Orchestrator uses a three-tier hierarchy to overcome context window lim
 - **Parallel work** - Multiple engineers can work simultaneously
 - **Better memory** - Smaller contexts mean better recall
 
+### PRD-Driven Development Workflow
+
+```mermaid
+---
+title: "TMUX Orchestration Workflow"
+---
+graph TB
+    user --> short_description
+    user --> clarification_conversation
+    user --> clarification_survey
+    user -->|feedback/guidance| pm
+
+    subgraph human_in_the_loop
+        short_description --> claude_code
+        claude_code --> clarification_conversation
+        
+        short_description --> create_prd_cli
+        create_prd_cli --> clarification_survey
+
+        clarification_conversation --> prd
+        clarification_survey --> prd
+
+        prd --> task_list
+    end
+    
+    task_list -->|CLI or MCP| setup
+
+    subgraph agentic_orchestration
+
+        setup -->|create| pm
+        setup -->|create| be
+        setup -->|create| fe
+        setup -->|create| qa
+        setup -->|create| test_eng
+        setup -->|create| daemon
+
+        pm -->|idle_check| daemon
+        be -->|idle_check| daemon
+        fe -->|idle_check| daemon
+        qa -->|idle_check| daemon
+        test_eng -->|idle_check| daemon
+        daemon -->|status| pm
+
+        pm -->|subtask list| be
+        pm -->|subtask list| fe
+        pm -->|subtask list| qa
+        pm -->|subtask list| test_eng
+        qa -->|feedback| pm
+
+    end
+
+    pm --> finished
+    finished --> cleanup
+```
+
 ## 🐳 Quick Setup for Devcontainer Projects
 
 ### One-Command Integration

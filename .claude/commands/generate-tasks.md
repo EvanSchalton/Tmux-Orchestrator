@@ -7,8 +7,8 @@ To guide an AI assistant in creating a detailed, step-by-step task list in Markd
 ## Output
 
 - **Format:** Markdown (`.md`)
-- **Location:** `/planning/`
-- **Filename:** `tasks-[prd-file-name].md` (e.g., `tasks-prd-user-profile-editing.md`)
+- **Location:** `.tmux_orchestrator/projects/{project-name}/tasks.md`
+- **Note:** Master task list is always named `tasks.md` for consistency
 
 ## Process
 
@@ -19,7 +19,7 @@ To guide an AI assistant in creating a detailed, step-by-step task list in Markd
 6. **Apply Development Standards:** Enrich the subtask list with all of the development standards outlined in the development-patterns.md and/or the CLAUDE.md. For each step add reminders, as relevant, to follow the patterns/practices outlined. As major/minor features are completed consider adding subtasks to /clear or /compact agent context (e.g. when switching between less-relevant works). Also include clear guidance as to if the use of "subagents" is appropriate for the task.
 7.  **Identify Relevant Files:** Based on the tasks and PRD, identify potential files that will need to be created or modified. List these under the `Relevant Files` section, including corresponding test files if applicable.
 8.  **Generate Final Output:** Combine the parent tasks, sub-tasks, relevant files, and notes into the final Markdown structure.
-9.  **Save Task List:** Save the generated document in the `/tasks/` directory with the filename `tasks-[prd-file-name].md`, where `[prd-file-name]` matches the base name of the input PRD file (e.g., if the input was `prd-user-profile-editing.md`, the output is `tasks-prd-user-profile-editing.md`).
+9.  **Save Task List:** Save to `.tmux_orchestrator/projects/{project-name}/tasks.md`. The master task list is always named `tasks.md` regardless of the PRD filename.
 
 ## Output Format
 

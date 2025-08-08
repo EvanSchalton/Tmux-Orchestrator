@@ -311,12 +311,17 @@ def _setup_command_groups() -> None:
         cli.add_command(monitor.monitor)
         cli.add_command(pm.pm)
 
-        # Add team commands (may not exist yet)
+        # Add team commands
         try:
             from tmux_orchestrator.cli import team
             cli.add_command(team.team)
         except ImportError:
-            pass  # team.py module will be created in Task 2.3
+            # Try new team compose module
+            try:
+                from tmux_orchestrator.cli import team_compose
+                cli.add_command(team_compose.team)
+            except ImportError:
+                pass  # team modules not available
 
         # Add orchestrator commands (may not exist yet)
         try:
@@ -325,12 +330,12 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # orchestrator.py module will be created in Task 2.4
 
-        # Add setup commands (may not exist yet)
+        # Add setup commands
         try:
-            from tmux_orchestrator.cli import setup
-            cli.add_command(setup.setup)
+            from tmux_orchestrator.cli import setup_claude
+            cli.add_command(setup_claude.setup)
         except ImportError:
-            pass  # setup.py module will be created in Task 2.5
+            pass  # setup_claude.py module for environment setup
 
         # Add recovery commands
         try:
@@ -338,6 +343,27 @@ def _setup_command_groups() -> None:
             cli.add_command(recovery.recovery)
         except ImportError:
             pass  # recovery.py module for automatic agent recovery
+
+        # Add pubsub commands
+        try:
+            from tmux_orchestrator.cli import pubsub
+            cli.add_command(pubsub.pubsub)
+        except ImportError:
+            pass  # pubsub.py module for agent communication
+
+        # Add tasks commands
+        try:
+            from tmux_orchestrator.cli import tasks
+            cli.add_command(tasks.tasks)
+        except ImportError:
+            pass  # tasks.py module for task list management
+
+        # Add execute command
+        try:
+            from tmux_orchestrator.cli import execute
+            cli.add_command(execute.execute)
+        except ImportError:
+            pass  # execute.py module for PRD execution
 
     except ImportError as e:
         # Handle missing modules gracefully during development
