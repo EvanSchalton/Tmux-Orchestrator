@@ -17,7 +17,7 @@ fi
 
 # Install Tmux Orchestrator
 echo "📦 Installing Tmux Orchestrator from GitHub..."
-pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
+pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 
 # Run setup
 echo "🔧 Running initial setup..."

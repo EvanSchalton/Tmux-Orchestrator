@@ -5,14 +5,14 @@
 Install directly from GitHub:
 
 ```bash
-pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
+pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 ```
 
 For DevContainers, add this to your `devcontainer.json`:
 
 ```json
 {
-  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git"
+  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git"
 }
 ```
 
@@ -61,7 +61,7 @@ For a complete devcontainer setup with Tmux Orchestrator:
   
   "postCreateCommand": [
     "apt-get update && apt-get install -y tmux",
-    "pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git",
+    "pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
     "tmux-orc setup-all",
     "tmux-orc orchestrator start"
   ],
@@ -87,7 +87,7 @@ For a complete devcontainer setup with Tmux Orchestrator:
 ```bash
 # Set environment variable before installation
 export TMUX_ORCHESTRATOR_HOME=/opt/orchestrator
-pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
+pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 ```
 
 ### Setup Claude Code Integration
@@ -169,7 +169,7 @@ tmux-orc monitor dashboard
 
 ### Manual Installation for Development
 ```bash
-git clone https://github.com/[your-username]/Tmux-Orchestrator.git
+git clone https://github.com/EvanSchalton/Tmux-Orchestrator.git
 cd Tmux-Orchestrator
 poetry install
 poetry shell

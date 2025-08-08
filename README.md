@@ -46,7 +46,7 @@ tmux -V  # Should show version 2.0 or higher
 #### Option 1: Install from GitHub with pip (Recommended)
 ```bash
 # Install directly from GitHub
-pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
+pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 
 # Run initial setup
 tmux-orc setup
@@ -55,10 +55,10 @@ tmux-orc setup
 #### Option 2: Install from GitHub with Poetry
 ```bash
 # Add as a dependency to your project
-poetry add git+https://github.com/[your-username]/Tmux-Orchestrator.git
+poetry add git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 
 # Or install globally with pipx
-pipx install git+https://github.com/[your-username]/Tmux-Orchestrator.git
+pipx install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 
 # Run initial setup
 tmux-orc setup
@@ -67,7 +67,7 @@ tmux-orc setup
 #### Option 3: Install for Development
 ```bash
 # Clone for development
-git clone https://github.com/[your-username]/Tmux-Orchestrator.git
+git clone https://github.com/EvanSchalton/Tmux-Orchestrator.git
 cd Tmux-Orchestrator
 
 # Install with Poetry in development mode
@@ -97,7 +97,7 @@ For existing projects, add Tmux Orchestrator to your development environment:
 ```json
 // .devcontainer/devcontainer.json
 {
-  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git",
+  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {}
   }
@@ -107,7 +107,7 @@ For existing projects, add Tmux Orchestrator to your development environment:
 #### Poetry Project
 ```bash
 # Add as dev dependency using Poetry command
-poetry add --group dev git+https://github.com/[your-username]/Tmux-Orchestrator.git
+poetry add --group dev git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 
 # This will automatically update your pyproject.toml
 ```
@@ -115,7 +115,7 @@ poetry add --group dev git+https://github.com/[your-username]/Tmux-Orchestrator.
 #### Pip/Requirements Project
 ```bash
 # Add to requirements-dev.txt
-git+https://github.com/[your-username]/Tmux-Orchestrator.git
+git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 
 # Then install
 pip install -r requirements-dev.txt
@@ -127,7 +127,7 @@ pip install -r requirements-dev.txt
 RUN apt-get update && apt-get install -y tmux
 
 # Install Tmux Orchestrator
-RUN pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git
+RUN pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 ```
 
 #### Quick Setup for Your Project
@@ -267,7 +267,7 @@ Add to your `.devcontainer/devcontainer.json`:
 
 ```json
 {
-  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git && tmux-orc setup",
+  "postCreateCommand": "apt-get update && apt-get install -y tmux && pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git && tmux-orc setup",
   "remoteEnv": {
     "TMUX_ORCHESTRATOR_HOME": "${containerWorkspaceFolder}/.tmux_orchestrator"
   }
@@ -279,7 +279,7 @@ For projects using Poetry:
 
 ```json
 {
-  "postCreateCommand": "apt-get update && apt-get install -y tmux && poetry add --group dev git+https://github.com/[your-username]/Tmux-Orchestrator.git && poetry run tmux-orc setup",
+  "postCreateCommand": "apt-get update && apt-get install -y tmux && poetry add --group dev git+https://github.com/EvanSchalton/Tmux-Orchestrator.git && poetry run tmux-orc setup",
   "remoteEnv": {
     "TMUX_ORCHESTRATOR_HOME": "${containerWorkspaceFolder}/.tmux_orchestrator"
   }
@@ -294,7 +294,7 @@ For projects using Poetry:
   
   "postCreateCommand": [
     "apt-get update && apt-get install -y tmux",
-    "pip install git+https://github.com/[your-username]/Tmux-Orchestrator.git",
+    "pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
     "tmux-orc setup-all",
     "tmux-orc orchestrator start"
   ],
