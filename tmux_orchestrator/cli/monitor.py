@@ -19,7 +19,30 @@ RECOVERY_LOG_FILE = "/tmp/tmux-orchestrator-recovery.log"
 
 @click.group()
 def monitor() -> None:
-    """Manage the idle agent monitor."""
+    """Advanced monitoring and health management for agent systems.
+    
+    The monitor command group provides comprehensive monitoring capabilities,
+    including real-time dashboards, automated recovery, health checks, and
+    diagnostic tools for maintaining optimal system performance.
+    
+    Examples:
+        tmux-orc monitor start --interval 30    # Start monitoring daemon
+        tmux-orc monitor dashboard              # Live system dashboard
+        tmux-orc monitor recovery-start         # Start automated recovery
+        tmux-orc monitor status                 # Check monitoring status
+        tmux-orc monitor logs -f                # Follow monitor logs
+    
+    Monitoring Features:
+        • Real-time agent health tracking
+        • Automated failure detection and recovery
+        • Performance metrics and analytics
+        • Interactive dashboard with live updates
+        • Comprehensive logging and diagnostics
+        • Bulletproof idle detection algorithms
+    
+    Critical for maintaining 24/7 agent operations and ensuring
+    system reliability in production environments.
+    """
     pass
 
 
@@ -27,7 +50,33 @@ def monitor() -> None:
 @click.option('--interval', default=10, help='Check interval in seconds')
 @click.pass_context
 def start(ctx: click.Context, interval: int) -> None:
-    """Start the idle monitor daemon."""
+    """Start the intelligent idle detection and monitoring daemon.
+    
+    Launches a background service that continuously monitors all Claude agents
+    for responsiveness, health status, and activity patterns.
+    
+    Examples:
+        tmux-orc monitor start                 # Start with default 10s interval
+        tmux-orc monitor start --interval 30  # Custom 30-second checks
+        tmux-orc monitor start --interval 5   # High-frequency monitoring
+    
+    Monitoring Capabilities:
+        • Agent responsiveness detection
+        • Idle state identification
+        • Performance degradation alerts
+        • Resource usage tracking
+        • Communication health checks
+        • Automatic failure notifications
+    
+    Recommended Intervals:
+        • Development: 10-15 seconds
+        • Production: 30-60 seconds
+        • Critical systems: 5-10 seconds
+        • Resource-constrained: 60+ seconds
+    
+    The daemon runs in the background and provides continuous health
+    monitoring without affecting agent performance.
+    """
     from tmux_orchestrator.core.monitor import IdleMonitor
 
     monitor = IdleMonitor(ctx.obj['tmux'])
@@ -46,7 +95,32 @@ def start(ctx: click.Context, interval: int) -> None:
 @monitor.command()
 @click.pass_context
 def stop(ctx: click.Context) -> None:
-    """Stop the idle monitor daemon."""
+    """Stop the monitoring daemon and disable automated health checks.
+    
+    Gracefully shuts down the monitoring daemon, stopping all automated
+    health checks and recovery operations.
+    
+    Examples:
+        tmux-orc monitor stop                  # Stop monitoring daemon
+    
+    Impact of Stopping:
+        • No automatic agent health monitoring
+        • No automated failure detection
+        • No idle agent identification
+        • Manual intervention required for issues
+        • Loss of performance metrics collection
+    
+    ⚠️  Warning: Stopping monitoring disables automated recovery
+    
+    Use this when:
+        • Performing system maintenance
+        • Debugging monitoring issues
+        • Temporarily reducing system load
+        • Switching to manual management mode
+    
+    Remember to restart monitoring after maintenance to ensure
+    continued system reliability.
+    """
     from tmux_orchestrator.core.monitor import IdleMonitor
 
     monitor = IdleMonitor(ctx.obj['tmux'])
@@ -65,7 +139,34 @@ def stop(ctx: click.Context) -> None:
 @click.option('--follow', '-f', is_flag=True, help='Follow log output')
 @click.option('--lines', '-n', default=20, help='Number of lines to show')
 def logs(follow: bool, lines: int) -> None:
-    """View monitor logs."""
+    """View monitoring daemon logs and diagnostic information.
+    
+    Displays detailed logs from the monitoring system, including agent
+    health checks, detection events, and system diagnostics.
+    
+    Examples:
+        tmux-orc monitor logs                  # Show last 20 log lines
+        tmux-orc monitor logs -n 50           # Show last 50 lines
+        tmux-orc monitor logs -f              # Follow live log output
+        tmux-orc monitor logs -f -n 100      # Follow with more history
+    
+    Log Information Includes:
+        • Agent health check results
+        • Idle detection events
+        • Performance metrics
+        • Error conditions and recovery actions
+        • System resource usage
+        • Communication statistics
+    
+    Log Levels:
+        • INFO: Normal operations and status updates
+        • WARN: Minor issues and degraded performance
+        • ERROR: Failures and recovery actions
+        • DEBUG: Detailed diagnostic information
+    
+    Use for troubleshooting monitoring issues, understanding system
+    behavior, and analyzing agent performance patterns.
+    """
     if not os.path.exists(LOG_FILE):
         console.print("[yellow]No log file found[/yellow]")
         return
@@ -82,7 +183,31 @@ def logs(follow: bool, lines: int) -> None:
 @monitor.command()
 @click.pass_context
 def status(ctx: click.Context) -> None:
-    """Check monitor status."""
+    """Display comprehensive monitoring system status and health.
+    
+    Shows detailed information about the monitoring daemon, including
+    operational status, performance metrics, and agent health summary.
+    
+    Examples:
+        tmux-orc monitor status                # Show monitoring system status
+    
+    Status Information:
+        • Monitoring daemon operational state
+        • Check interval and timing configuration
+        • Number of agents under monitoring
+        • Recent health check results
+        • Performance metrics and statistics
+        • Error rates and recovery actions
+    
+    Daemon Status Indicators:
+        🟢 Running:   Daemon active and monitoring
+        🔴 Stopped:   Daemon not running (no monitoring)
+        🟡 Warning:   Daemon running but issues detected
+        ⚫ Error:     Daemon in error state
+    
+    Use this to verify monitoring is working correctly and to
+    get an overview of system health before making changes.
+    """
     from tmux_orchestrator.core.monitor import IdleMonitor
 
     monitor = IdleMonitor(ctx.obj['tmux'])
@@ -93,7 +218,39 @@ def status(ctx: click.Context) -> None:
 @click.option('--config', '-c', help='Configuration file path')
 @click.pass_context
 def recovery_start(ctx: click.Context, config: Optional[str]) -> None:
-    """Start the recovery daemon with bulletproof idle detection."""
+    """Start the advanced recovery daemon with bulletproof agent restoration.
+    
+    Launches an intelligent recovery system that automatically detects and
+    restores failed, crashed, or unresponsive agents using advanced algorithms.
+    
+    Examples:
+        tmux-orc monitor recovery-start        # Start with default config
+        tmux-orc monitor recovery-start -c custom.conf
+    
+    Recovery Features:
+        • 4-snapshot idle detection algorithm
+        • Intelligent failure pattern recognition
+        • Graduated recovery escalation
+        • Context-preserving agent restoration
+        • Communication pathway recovery
+        • Resource conflict resolution
+    
+    Detection Algorithms:
+        • Activity-based monitoring
+        • Response time analysis
+        • Resource usage patterns
+        • Communication health checks
+        • Process state verification
+    
+    Recovery Actions:
+        1. Soft restart: Gentle agent refresh
+        2. Hard restart: Complete agent recreation
+        3. Session recovery: Full session restoration
+        4. Escalation: Human operator notification
+    
+    Essential for production environments where 24/7 agent availability
+    is critical and manual intervention isn't feasible.
+    """
     from tmux_orchestrator.core.recovery_daemon import RecoveryDaemon
 
     daemon = RecoveryDaemon(config)
@@ -151,7 +308,41 @@ def recovery_stop() -> None:
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed information')
 @click.pass_context
 def recovery_status(ctx: click.Context, verbose: bool) -> None:
-    """Show recovery daemon status with enhanced monitoring details."""
+    """Display comprehensive recovery daemon status and agent health analytics.
+    
+    Provides detailed information about the recovery system status, including
+    daemon health, agent monitoring statistics, and recovery operation history.
+    
+    Examples:
+        tmux-orc monitor recovery-status       # Show recovery system status
+        tmux-orc monitor recovery-status -v   # Detailed diagnostics
+    
+    Recovery Status Information:
+        • Recovery daemon operational state
+        • Monitoring configuration and intervals
+        • Agent health summary and statistics
+        • Recent recovery operations
+        • Performance metrics and trends
+        • Error rates and success statistics
+    
+    Agent Health Categories:
+        🟢 Healthy:      Agent fully operational
+        🟡 Warning:      Minor performance issues
+        🔴 Critical:     Major problems detected
+        ⚫ Unresponsive:  Agent not responding
+        🔵 Idle:         Agent waiting for tasks
+    
+    Verbose Mode Includes:
+        • Individual agent diagnostic details
+        • Recent activity patterns
+        • Failure analysis and root causes
+        • Recovery action history
+        • Resource utilization metrics
+        • Communication pathway health
+    
+    Use for monitoring system health, troubleshooting issues,
+    and analyzing recovery effectiveness.
+    """
     from rich.panel import Panel
     from rich.table import Table
 
@@ -252,9 +443,57 @@ def recovery_logs(follow: bool, lines: int) -> None:
 @click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
 def dashboard(ctx: click.Context, session: Optional[str], refresh: int, json: bool) -> None:
-    """Show comprehensive monitoring dashboard.
-
-    Displays real-time agent status, health metrics, and system overview.
+    """Launch interactive real-time monitoring dashboard with live updates.
+    
+    Displays a comprehensive, continuously updating overview of all system
+    components, agent health, performance metrics, and operational status.
+    
+    Examples:
+        tmux-orc monitor dashboard             # Full system dashboard
+        tmux-orc monitor dashboard --session my-project
+        tmux-orc monitor dashboard --refresh 10  # 10-second updates
+        tmux-orc monitor dashboard --json     # JSON output for integration
+    
+    Dashboard Components:
+    
+    System Overview:
+        • Total sessions and agent counts
+        • System health indicators
+        • Resource utilization metrics
+        • Recent activity summary
+    
+    Agent Status Grid:
+        • Individual agent health and status
+        • Response times and performance
+        • Current tasks and activity
+        • Error states and recovery actions
+    
+    Session Management:
+        • Session creation times and uptime
+        • Window counts and configuration
+        • Attachment status and accessibility
+        • Resource consumption per session
+    
+    Performance Metrics:
+        • Average response times
+        • Task completion rates
+        • Error frequencies
+        • Recovery success rates
+    
+    Interactive Features:
+        • Live updates without page refresh
+        • Session filtering and focus
+        • Customizable refresh intervals
+        • Export to JSON for automation
+    
+    Dashboard Controls:
+        • Press Ctrl+C to exit live mode
+        • Use --refresh 0 for static snapshot
+        • Filter by --session for project focus
+        • Use --json for machine-readable output
+    
+    Perfect for operations centers, development monitoring,
+    and integration with external monitoring systems.
     """
     from rich.columns import Columns
     from rich.live import Live

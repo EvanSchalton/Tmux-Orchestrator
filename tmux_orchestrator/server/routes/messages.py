@@ -55,7 +55,8 @@ async def tmux_send_message(request: MessageRequest) -> MessageResponse:
 
     if not result.success:
         # Determine appropriate HTTP status code
-        status_code = 404 if "not found" in result.error_message.lower() else 500
+        error_msg = result.error_message or "Unknown error"
+        status_code = 404 if "not found" in error_msg.lower() else 500
         raise HTTPException(status_code=status_code, detail=result.error_message)
 
     return MessageResponse(
@@ -66,7 +67,7 @@ async def tmux_send_message(request: MessageRequest) -> MessageResponse:
 
 
 @router.post("/broadcast")
-async def broadcast_message(request: BroadcastRequest) -> Dict[str, Union[List[Dict[str, Union[str, bool]]], List[str], int]]:
+async def broadcast_message(request: BroadcastRequest) -> Dict[str, Union[List[Dict[str, object]], List[str], int]]:
     """Broadcast a message to multiple agents.
 
     MCP tool for coordinated communication.

@@ -1,6 +1,6 @@
 """System monitoring and status reporting routes for MCP server."""
 
-from typing import Any
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -364,7 +364,7 @@ async def get_active_agents_tool() -> dict[str, Any]:
             session: str = agent['session']
             if session not in by_session:
                 by_session[session] = []
-            by_session[session].append(agent)
+            by_session[session].append(dict(agent))
 
         return {
             "active_agents": active_agents,

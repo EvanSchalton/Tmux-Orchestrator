@@ -150,10 +150,7 @@ notify_pm() {
 The following agents appear to be idle and need tasks:
 $idle_agents
 
-Please check their status and assign work:
-$(echo "$idle_agents" | while read agent; do
-    [ -n "$agent" ] && echo "• tmux-message $agent 'Please report your current status'"
-done)
+Please check their status and assign work as needed.
 
 This is an automated notification from the idle monitor."
     

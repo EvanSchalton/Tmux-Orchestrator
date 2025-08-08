@@ -1,7 +1,7 @@
 """Status dashboard for monitoring agents."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from rich.console import Console
 from rich.layout import Layout
@@ -12,7 +12,7 @@ from rich.table import Table
 class StatusDashboard:
     """Interactive status dashboard for monitoring agents."""
 
-    def __init__(self, tmux_manager):
+    def __init__(self, tmux_manager: Any) -> None:
         self.tmux = tmux_manager
         self.console = Console()
 

@@ -4,7 +4,7 @@ import json
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 @dataclass
@@ -21,7 +21,7 @@ class TmuxSession:
     attached: bool
 
 class TmuxOrchestrator:
-    def __init__(self):
+    def __init__(self) -> None:
         self.safety_mode = True
         self.max_lines_capture = 1000
 
@@ -77,7 +77,7 @@ class TmuxOrchestrator:
         except subprocess.CalledProcessError as e:
             return f"Error capturing window content: {e}"
 
-    def get_window_info(self, session_name: str, window_index: int) -> Dict:
+    def get_window_info(self, session_name: str, window_index: int) -> Dict[str, Any]:
         """Get detailed information about a specific window"""
         try:
             cmd = ["tmux", "display-message", "-t", f"{session_name}:{window_index}", "-p",
@@ -93,6 +93,8 @@ class TmuxOrchestrator:
                     "layout": parts[3],
                     "content": self.capture_window_content(session_name, window_index)
                 }
+            else:
+                return {"error": "No window information returned"}
         except subprocess.CalledProcessError as e:
             return {"error": f"Could not get window info: {e}"}
 
@@ -127,16 +129,16 @@ class TmuxOrchestrator:
             print(f"Error sending Enter key: {e}")
             return False
 
-    def get_all_windows_status(self) -> Dict:
+    def get_all_windows_status(self) -> Dict[str, Any]:
         """Get status of all windows across all sessions"""
         sessions = self.get_tmux_sessions()
-        status = {
+        status: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "sessions": []
         }
 
         for session in sessions:
-            session_data = {
+            session_data: Dict[str, Any] = {
                 "name": session.name,
                 "attached": session.attached,
                 "windows": []

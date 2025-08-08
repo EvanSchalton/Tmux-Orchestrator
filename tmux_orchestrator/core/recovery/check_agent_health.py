@@ -1,7 +1,7 @@
 """Check agent health status using enhanced monitoring."""
 
 from datetime import datetime
-from typing import NamedTuple
+from typing import Any, Dict, NamedTuple
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 

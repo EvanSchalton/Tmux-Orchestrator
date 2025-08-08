@@ -12,14 +12,61 @@ console: Console = Console()
 
 @click.group()
 def pm() -> None:
-    """Project Manager operations."""
+    """Project Manager operations and team coordination.
+    
+    The PM command group provides tools for creating and managing Project Managers,
+    specialized Claude agents responsible for team coordination, quality assurance,
+    and project oversight.
+    
+    Examples:
+        tmux-orc pm create my-project           # Create PM for project
+        tmux-orc pm status                      # Check PM and team status
+        tmux-orc pm checkin                     # Trigger team status review
+        tmux-orc pm message "Sprint review at 3pm"
+        tmux-orc pm broadcast "Deploy to staging now"
+    
+    Project Manager Responsibilities:
+        • Team coordination and communication
+        • Quality standards enforcement
+        • Progress monitoring and reporting
+        • Risk identification and mitigation
+        • Resource allocation and optimization
+    
+    PM agents work alongside development teams to ensure projects
+    stay on track and meet quality standards.
+    """
     pass
 
 
 @pm.command()
 @click.pass_context
 def checkin(ctx: click.Context) -> None:
-    """Trigger PM status review of all agents."""
+    """Trigger comprehensive team status review by Project Manager.
+    
+    Initiates a systematic status check where the PM requests updates
+    from all team agents and compiles a comprehensive progress report.
+    
+    Examples:
+        tmux-orc pm checkin                    # Trigger standard status review
+    
+    Review Process:
+        1. 🔍 PM identifies all team agents
+        2. 📹 Sends status request to each agent
+        3. 📄 Collects and analyzes responses
+        4. 📊 Generates progress summary
+        5. ⚠️ Identifies blockers and risks
+        6. 📨 Reports findings to orchestrator
+    
+    When to Use:
+        • Daily standup coordination
+        • Sprint milestone reviews
+        • Pre-deployment assessments
+        • Troubleshooting team issues
+        • Orchestrator status requests
+    
+    The PM will provide structured feedback including task completion
+    status, identified blockers, resource needs, and timeline updates.
+    """
     from tmux_orchestrator.core.pm_manager import PMManager
 
     manager = PMManager(ctx.obj['tmux'])
@@ -32,7 +79,30 @@ def checkin(ctx: click.Context) -> None:
 @click.argument('message')
 @click.pass_context
 def message(ctx: click.Context, message: str) -> None:
-    """Send a direct message to the PM."""
+    """Send a direct message to the Project Manager.
+    
+    Delivers a message directly to the PM agent, useful for providing
+    instructions, updates, or requesting specific PM actions.
+    
+    MESSAGE: Message text to send to the Project Manager
+    
+    Examples:
+        tmux-orc pm message "Prioritize the API testing tasks"
+        tmux-orc pm message "Client meeting moved to tomorrow 2pm"
+        tmux-orc pm message "Generate weekly progress report"
+        tmux-orc pm message "Review code quality metrics"
+    
+    Common PM Message Types:
+        • Priority changes and urgent updates
+        • Meeting schedules and deadlines
+        • Resource allocation decisions
+        • Quality standards clarifications
+        • Stakeholder communication requests
+        • Risk assessment instructions
+    
+    The PM will acknowledge the message and take appropriate action
+    based on the content and current project context.
+    """
     from tmux_orchestrator.core.pm_manager import PMManager
 
     manager = PMManager(ctx.obj['tmux'])
@@ -52,7 +122,33 @@ def message(ctx: click.Context, message: str) -> None:
 @click.argument('message')
 @click.pass_context
 def broadcast(ctx: click.Context, message: str) -> None:
-    """PM broadcasts a message to all agents."""
+    """Have the Project Manager broadcast a message to all team agents.
+    
+    Uses the PM as a communication hub to send coordinated messages to
+    the entire development team, maintaining proper chain of command.
+    
+    MESSAGE: Message text for PM to broadcast to all team agents
+    
+    Examples:
+        tmux-orc pm broadcast "Code freeze begins now for release candidate"
+        tmux-orc pm broadcast "Daily standup moved to 10am tomorrow"
+        tmux-orc pm broadcast "Focus on critical bugs for next 2 hours"
+        tmux-orc pm broadcast "Demo preparation starts after lunch"
+    
+    PM Broadcast Features:
+        • Consistent message formatting and context
+        • Role-appropriate message delivery
+        • Delivery confirmation and failure handling
+        • Follow-up coordination as needed
+        • Integration with project timeline
+    
+    Difference from Direct Team Broadcast:
+        • PM broadcast: Goes through PM with context and follow-up
+        • Team broadcast: Direct message to all agents
+    
+    The PM adds project context, ensures message clarity, and
+    coordinates any follow-up actions required from the team.
+    """
     from tmux_orchestrator.core.pm_manager import PMManager
 
     manager = PMManager(ctx.obj['tmux'])
@@ -69,7 +165,30 @@ def broadcast(ctx: click.Context, message: str) -> None:
 @click.option('--custom-message', help='Custom check-in message')
 @click.pass_context
 def custom_checkin(ctx: click.Context, custom_message: Optional[str]) -> None:
-    """Send custom check-in message to all agents."""
+    """Send customized status check-in request to all team agents.
+    
+    Allows the PM to send a tailored status request instead of the
+    standard check-in message, useful for specific project phases.
+    
+    Examples:
+        tmux-orc pm custom-checkin --custom-message "Report testing progress for release"
+        tmux-orc pm custom-checkin --custom-message "Status on API endpoint implementation"
+        tmux-orc pm custom-checkin --custom-message "Update on database migration tasks"
+    
+    Custom Check-in Use Cases:
+        • Feature-specific progress updates
+        • Bug fix status during critical periods
+        • Pre-deployment readiness checks
+        • Performance optimization reports
+        • Security audit preparations
+        • Client demo preparation status
+    
+    Default Message (if none provided):
+        "Please provide a status update on your current work."
+    
+    The PM will collect all responses, analyze them for patterns and
+    issues, and provide a consolidated report with actionable insights.
+    """
     from tmux_orchestrator.core.pm_manager import PMManager
 
     if not custom_message:
@@ -85,7 +204,39 @@ def custom_checkin(ctx: click.Context, custom_message: Optional[str]) -> None:
 @click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
 def status(ctx: click.Context, json: bool) -> None:
-    """Show PM status and team overview."""
+    """Display comprehensive Project Manager and team status overview.
+    
+    Shows detailed information about the PM agent status, team composition,
+    agent health, and overall project coordination metrics.
+    
+    Examples:
+        tmux-orc pm status                     # Show PM and team status
+        tmux-orc pm status --json             # JSON output for monitoring
+    
+    PM Status Information:
+        • PM agent location and responsiveness
+        • Current PM session and window details
+        • PM health and activity metrics
+        • Communication channel status
+    
+    Team Overview Includes:
+        • Total number of team agents
+        • Agent types and specializations
+        • Individual agent status and activity
+        • Team coordination health
+        • Recent communication patterns
+        • Project progress indicators
+    
+    Status Indicators:
+        🟢 Active:    PM and team functioning normally
+        🟡 Warning:   Some coordination issues detected
+        🔴 Critical:  PM unresponsive or major team problems
+        ⚫ Unknown:   Unable to determine status
+    
+    If no PM is found, provides guidance on creating one.
+    JSON mode outputs machine-readable data for integration
+    with monitoring and automation systems.
+    """
     from rich.table import Table
 
     from tmux_orchestrator.core.pm_manager import PMManager
@@ -160,9 +311,50 @@ def status(ctx: click.Context, json: bool) -> None:
 @click.option('--project-dir', help='Project directory (defaults to current)')
 @click.pass_context
 def create(ctx: click.Context, session: str, project_dir: Optional[str]) -> None:
-    """Create a new Project Manager in specified session.
-
-    SESSION: Session name where PM will be created
+    """Create a new Project Manager for team coordination and oversight.
+    
+    Deploys a specialized Claude agent configured as a Project Manager
+    with team coordination, quality assurance, and project management
+    capabilities.
+    
+    SESSION: Session name where PM will be created (e.g., 'my-project')
+    
+    Examples:
+        tmux-orc pm create my-project          # Create PM for 'my-project' session
+        tmux-orc pm create frontend-team       # Create PM for frontend team
+        tmux-orc pm create testing-suite --project-dir /path/to/project
+    
+    PM Creation Process:
+        1. 🏧 Creates session if it doesn't exist
+        2. 🗺️ Sets up PM window in specified project directory
+        3. 🤖 Starts Claude agent with PM specialization
+        4. 📜 Provides comprehensive PM briefing and responsibilities
+        5. 🔗 Establishes team communication protocols
+        6. 🔍 Analyzes project structure and creates initial plan
+    
+    PM Capabilities:
+        • Team coordination and communication
+        • Quality standards enforcement
+        • Progress tracking and milestone management
+        • Risk identification and mitigation
+        • Resource allocation optimization
+        • Stakeholder communication
+        • Code review coordination
+        • Testing and deployment oversight
+    
+    PM Briefing Includes:
+        • Team leadership and coordination principles
+        • Quality assurance methodologies
+        • Project management best practices
+        • Communication protocols and escalation paths
+        • Tool usage for project tracking
+        • Reporting and status update procedures
+    
+    The PM will immediately begin analyzing the project structure,
+    identifying team members, and establishing coordination workflows.
+    
+    Note: Only one PM should be created per project session to
+    maintain clear chain of command and avoid coordination conflicts.
     """
     from pathlib import Path
 

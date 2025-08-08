@@ -53,7 +53,7 @@ def cli(ctx: click.Context, config_file: Optional[str], json: bool, verbose: boo
 
     # Initialize configuration
     try:
-        ctx.obj['config'] = Config.load(config_file) if config_file else Config.load()
+        ctx.obj['config'] = Config.load(Path(config_file) if config_file else None)
     except Exception as e:
         if verbose:
             console.print(f"[red]Configuration error: {e}[/red]")
@@ -71,14 +71,38 @@ def cli(ctx: click.Context, config_file: Optional[str], json: bool, verbose: boo
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def list(ctx: click.Context, json: bool) -> None:
-    """List all active agents across sessions.
-
-    Displays a comprehensive overview of all Claude agents currently running
-    in tmux sessions, including their status and session information.
-
+    """List all active agents across sessions with comprehensive status.
+    
+    Provides a system-wide overview of all Claude agents currently running
+    in tmux sessions, including their specializations, health status, and
+    recent activity patterns.
+    
     Examples:
-        tmux-orc list                    # Show agent table
-        tmux-orc list --json            # JSON output for scripts
+        tmux-orc list                    # Show formatted agent overview
+        tmux-orc list --json            # JSON output for scripts/monitoring
+    
+    Agent Information Displayed:
+        • Session name and window location
+        • Agent type and specialization
+        • Current status (Active, Idle, Busy, Error)
+        • Last activity timestamp
+        • Response time and health metrics
+    
+    Status Indicators:
+        🟢 Active:  Agent is responsive and working
+        🟡 Idle:    Agent is waiting for tasks
+        🔵 Busy:    Agent is processing complex work
+        🔴 Error:   Agent encountered issues
+        ⚫ Unknown: Status cannot be determined
+    
+    Use Cases:
+        • System health monitoring
+        • Resource utilization assessment
+        • Identifying unresponsive agents
+        • Planning team deployments
+        • Integration with monitoring tools (JSON)
+    
+    If no agents are found, provides guidance on deploying teams.
     """
     tmux: TMUXManager = ctx.obj['tmux']
     use_json: bool = json or ctx.obj.get('json_mode', False)
@@ -117,14 +141,38 @@ def list(ctx: click.Context, json: bool) -> None:
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def status(ctx: click.Context, json: bool) -> None:
-    """Show comprehensive system status dashboard.
-
-    Displays detailed information about all tmux sessions, agents, and
-    the overall health of the orchestrator system.
-
+    """Display comprehensive system status dashboard and health overview.
+    
+    Provides a high-level view of the entire TMUX Orchestrator ecosystem,
+    including all sessions, agents, system health metrics, and operational status.
+    
     Examples:
-        tmux-orc status                  # Show status dashboard
-        tmux-orc status --json          # JSON output for monitoring
+        tmux-orc status                  # Show interactive status dashboard
+        tmux-orc status --json          # JSON output for monitoring systems
+    
+    Dashboard Information:
+        • Total sessions and attachment status
+        • Agent counts by type and status
+        • System resource utilization
+        • Recent activity patterns
+        • Health alerts and warnings
+        • Performance metrics
+    
+    System Health Indicators:
+        🟢 Healthy:   All systems operational
+        🟡 Warning:   Minor issues detected
+        🔴 Critical:  Major problems requiring attention
+        ⚫ Offline:   System not responding
+    
+    Monitoring Categories:
+        • Session Management: Active sessions and stability
+        • Agent Health: Response times and error rates
+        • Resource Usage: Memory, CPU, and network utilization
+        • Communication: Message delivery and latency
+        • Quality Metrics: Task completion and success rates
+    
+    Use for regular system health checks, performance monitoring,
+    and integration with external monitoring and alerting systems.
     """
     tmux: TMUXManager = ctx.obj['tmux']
     use_json: bool = json or ctx.obj.get('json_mode', False)
@@ -184,15 +232,52 @@ def status(ctx: click.Context, json: bool) -> None:
 @click.option("--project-name", help="Project name (defaults to current directory)")
 @click.pass_context
 def quick_deploy(ctx: click.Context, team_type: str, size: int, project_name: Optional[str]) -> None:
-    """Quickly deploy a standard team configuration.
-
-    Deploys a predefined team with the specified type and size.
-    This is a convenience command for common team configurations.
-
+    """Rapidly deploy optimized team configurations for immediate productivity.
+    
+    Creates a complete, ready-to-work team using battle-tested configurations
+    and role distributions. Perfect for getting projects started quickly.
+    
+    TEAM_TYPE: Team specialization (frontend, backend, fullstack, testing)
+    SIZE: Number of agents (recommended: 2-6)
+    
     Examples:
         tmux-orc quick-deploy frontend 3        # 3-agent frontend team
+        tmux-orc quick-deploy backend 4         # 4-agent backend team  
         tmux-orc quick-deploy fullstack 5       # 5-agent fullstack team
         tmux-orc quick-deploy testing 2         # 2-agent testing team
+        tmux-orc quick-deploy frontend 4 --project-name my-app
+    
+    Optimized Team Configurations:
+    
+    Frontend (2-6 agents):
+        2 agents: Developer + PM
+        3 agents: Developer + UI/UX + PM
+        4+ agents: + Performance Expert + CSS Specialist
+    
+    Backend (2-6 agents):
+        2 agents: API Developer + PM
+        3 agents: + Database Engineer
+        4+ agents: + DevOps Engineer + Security Specialist
+    
+    Fullstack (3-8 agents):
+        3 agents: Lead + Frontend + Backend
+        4 agents: + Project Manager
+        5+ agents: + QA + DevOps + Specialists
+    
+    Testing (2-4 agents):
+        2 agents: Manual + Automation Tester
+        3 agents: + QA Lead
+        4+ agents: + Performance + Security Tester
+    
+    Quick Deploy Benefits:
+        • Instant team setup with optimized roles
+        • Pre-configured communication protocols
+        • Battle-tested role distributions
+        • Immediate project context and briefings
+        • No configuration complexity
+    
+    Perfect for hackathons, quick prototypes, urgent projects,
+    or when you need a team running in under 2 minutes.
     """
     from tmux_orchestrator.core.team_operations.deploy_team import deploy_standard_team
 

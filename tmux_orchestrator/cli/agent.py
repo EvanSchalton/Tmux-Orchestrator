@@ -14,7 +14,22 @@ console: Console = Console()
 
 @click.group()
 def agent() -> None:
-    """Manage individual agents."""
+    """Manage individual agents across tmux sessions.
+    
+    The agent command group provides comprehensive management of Claude agents,
+    including deployment, messaging, monitoring, and lifecycle operations.
+    
+    Examples:
+        tmux-orc agent status                    # Show all agent statuses
+        tmux-orc agent restart my-project:0     # Restart specific agent
+        tmux-orc agent message frontend:1 "Please update the UI"
+        tmux-orc agent info backend:2 --json    # Get detailed agent info
+        tmux-orc agent kill stuck-session:3     # Terminate unresponsive agent
+        tmux-orc agent attach my-app:0          # Attach to agent terminal
+    
+    Target Format:
+        Most commands accept targets in 'session:window' format (e.g., 'my-project:0')
+    """
     pass
 
 
@@ -26,7 +41,23 @@ def agent() -> None:
 @click.argument('role', type=click.Choice(['developer', 'pm', 'qa', 'reviewer']))
 @click.pass_context
 def deploy(ctx: click.Context, agent_type: str, role: str) -> None:
-    """Deploy an individual agent."""
+    """Deploy an individual specialized agent.
+    
+    Creates a new tmux session with a single Claude agent configured for
+    the specified type and role combination.
+    
+    AGENT_TYPE: Specialization area (frontend, backend, testing, database, docs, devops)
+    ROLE: Agent role (developer, pm, qa, reviewer)
+    
+    Examples:
+        tmux-orc agent deploy frontend developer   # Frontend development agent
+        tmux-orc agent deploy backend pm          # Backend project manager
+        tmux-orc agent deploy testing qa          # QA testing agent
+        tmux-orc agent deploy database devops     # Database operations agent
+        tmux-orc agent deploy docs reviewer       # Documentation reviewer
+    
+    The agent will be briefed with role-specific instructions and tools.
+    """
     from tmux_orchestrator.core.agent_manager import AgentManager
 
     manager: AgentManager = AgentManager(ctx.obj['tmux'])
@@ -42,10 +73,26 @@ def deploy(ctx: click.Context, agent_type: str, role: str) -> None:
 @click.argument('message')
 @click.pass_context
 def message(ctx: click.Context, target: str, message: str) -> None:
-    """Send a message to an agent.
-
-    TARGET: Target in format session:window
-    MESSAGE: The message to send
+    """Send a message directly to a specific agent.
+    
+    Delivers a message to the Claude agent running in the specified tmux window.
+    The message appears as user input to the agent, allowing for real-time
+    communication and task delegation.
+    
+    TARGET: Target agent in format session:window (e.g., 'my-project:0')
+    MESSAGE: The message text to send to the agent
+    
+    Examples:
+        tmux-orc agent message frontend:0 "Please fix the login form validation"
+        tmux-orc agent message backend:1 "STATUS UPDATE: What's your current progress?"
+        tmux-orc agent message testing:2 "Run the integration tests for the API"
+        tmux-orc agent message docs:0 "Update the deployment guide with new steps"
+    
+    Usage Tips:
+        - Use quotes for multi-word messages
+        - Messages appear instantly to the agent
+        - Agents respond in their tmux window
+        - Use 'tmux-orc agent attach TARGET' to see the response
     """
     tmux: TMUXManager = ctx.obj['tmux']
 
@@ -59,9 +106,26 @@ def message(ctx: click.Context, target: str, message: str) -> None:
 @click.argument('target')
 @click.pass_context
 def attach(ctx: click.Context, target: str) -> None:
-    """Attach to an agent's terminal.
-
-    TARGET: Target in format session:window
+    """Attach to an agent's terminal for direct interaction.
+    
+    Opens a direct terminal connection to the specified agent's tmux window,
+    allowing you to see the agent's output and interact directly.
+    
+    TARGET: Target agent in format session:window (e.g., 'my-project:0')
+    
+    Examples:
+        tmux-orc agent attach frontend:0      # Attach to frontend agent
+        tmux-orc agent attach backend:2       # Attach to backend agent
+        tmux-orc agent attach testing:1       # Attach to testing agent
+    
+    Usage Tips:
+        - Press Ctrl+B then D to detach without stopping the agent
+        - Use this to monitor agent progress in real-time
+        - Type directly to interact with the agent
+        - The agent continues running after you detach
+    
+    Note: This opens a new tmux attachment. Use proper tmux detach commands
+    to avoid disrupting the agent's operation.
     """
     try:
         subprocess.run(['tmux', 'attach', '-t', target], check=True)
@@ -73,9 +137,30 @@ def attach(ctx: click.Context, target: str) -> None:
 @click.argument('target')
 @click.pass_context
 def restart(ctx: click.Context, target: str) -> None:
-    """Restart a specific agent.
-
-    TARGET: Target agent in format session:window
+    """Restart a specific agent that has become unresponsive.
+    
+    Terminates the current Claude process in the specified window and starts
+    a fresh instance with the same configuration and briefing.
+    
+    TARGET: Target agent in format session:window (e.g., 'my-project:0')
+    
+    Examples:
+        tmux-orc agent restart frontend:0     # Restart unresponsive frontend agent
+        tmux-orc agent restart backend:1      # Restart crashed backend agent  
+        tmux-orc agent restart testing:2      # Restart stuck testing agent
+    
+    When to Use:
+        - Agent is not responding to messages
+        - Agent output shows errors or crashes
+        - Agent appears frozen or stuck
+        - After system updates that affect Claude
+    
+    The restart process:
+        1. Captures current agent state and context
+        2. Terminates the existing Claude process
+        3. Starts a new Claude instance
+        4. Restores the agent's role and briefing
+        5. Provides context about the restart reason
     """
     tmux: TMUXManager = ctx.obj['tmux']
 
@@ -93,7 +178,32 @@ def restart(ctx: click.Context, target: str) -> None:
 @agent.command()
 @click.pass_context
 def status(ctx: click.Context) -> None:
-    """Show status of all agents."""
+    """Show comprehensive status of all active agents.
+    
+    Displays a summary of all Claude agents currently running across
+    all tmux sessions, including their current state, activity, and tasks.
+    
+    Examples:
+        tmux-orc agent status                 # Show all agent statuses
+    
+    Status Information Includes:
+        - Agent ID and session:window location
+        - Current state (Active, Idle, Error, etc.)
+        - Last activity timestamp
+        - Current task or operation
+        - Response time and health metrics
+    
+    Status States:
+        • Active:   Agent is responding and working
+        • Idle:     Agent is waiting for tasks
+        • Busy:     Agent is processing a complex task
+        • Error:    Agent encountered an issue
+        • Stuck:    Agent may need restart
+        • Unknown:  Unable to determine status
+    
+    Use this command regularly to monitor agent health and identify
+    agents that may need attention or restart.
+    """
     from tmux_orchestrator.core.agent_manager import AgentManager
 
     manager: AgentManager = AgentManager(ctx.obj['tmux'])
@@ -111,9 +221,33 @@ def status(ctx: click.Context) -> None:
 @click.argument('target')
 @click.pass_context
 def kill(ctx: click.Context, target: str) -> None:
-    """Kill a specific agent.
-
-    TARGET: Target agent in format session:window
+    """Terminate a specific agent permanently.
+    
+    Forcefully terminates the Claude agent at the specified location.
+    This is more aggressive than restart and should be used when an
+    agent is completely unresponsive or causing system issues.
+    
+    TARGET: Target agent in format session:window (e.g., 'my-project:0')
+    
+    Examples:
+        tmux-orc agent kill frontend:0        # Kill unresponsive frontend agent
+        tmux-orc agent kill stuck-session:1   # Kill problematic agent
+        tmux-orc agent kill testing:2         # Remove completed testing agent
+    
+    ⚠️  WARNING: This permanently terminates the agent
+    
+    When to Use:
+        - Agent is completely frozen and restart failed
+        - Agent is consuming excessive resources
+        - Agent is causing system instability
+        - Project is complete and agents no longer needed
+    
+    Difference from Restart:
+        - Kill: Permanently removes the agent
+        - Restart: Terminates and immediately recreates the agent
+    
+    The kill operation removes the agent's tmux window or session,
+    losing all context and conversation history.
     """
     tmux: TMUXManager = ctx.obj['tmux']
 
@@ -149,9 +283,35 @@ def kill(ctx: click.Context, target: str) -> None:
 @click.option('--json', is_flag=True, help='Output in JSON format')
 @click.pass_context
 def info(ctx: click.Context, target: str, json: bool) -> None:
-    """Get detailed information about a specific agent.
-
-    TARGET: Target agent in format session:window
+    """Get detailed diagnostic information about a specific agent.
+    
+    Provides comprehensive details about an agent's current state,
+    including activity history, resource usage, and system health.
+    
+    TARGET: Target agent in format session:window (e.g., 'my-project:0')
+    
+    Examples:
+        tmux-orc agent info frontend:0        # Show detailed frontend agent info
+        tmux-orc agent info backend:1 --json  # Get machine-readable info
+        tmux-orc agent info testing:2         # Diagnostic info for testing agent
+    
+    Information Provided:
+        - Agent existence and accessibility
+        - Current status and health state
+        - Recent terminal activity (last 20 lines)
+        - Resource usage and performance metrics
+        - Session and window configuration
+        - Last response time and communication status
+    
+    Output Formats:
+        - Default: Human-readable formatted output
+        - --json: Machine-readable JSON for automation
+    
+    Use Cases:
+        - Debugging unresponsive agents
+        - Monitoring agent performance
+        - Gathering data for system optimization
+        - Integration with monitoring tools (JSON mode)
     """
     tmux: TMUXManager = ctx.obj['tmux']
 
