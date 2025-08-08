@@ -2,14 +2,45 @@
 
 **Run AI agents 24/7 while you sleep** - The Tmux Orchestrator enables Claude agents to work autonomously, schedule their own check-ins, and coordinate across multiple projects without human intervention.
 
-## 🚀 NEW: Version 2.0 - Enhanced Agent Communication & VS Code Integration
+## 🚀 NEW: Version 2.0 - AI-Powered Team Management
 
-✅ **VS Code Integration** - Open all agents with one command in separate terminals  
-✅ **Agent Communication** - PM and Orchestrator can message all team members  
-✅ **PM Check-ins** - Off-cycle status checks when agents appear idle  
-✅ **Auto-Submit Messages** - No manual Enter required for agent communication  
-✅ **Enhanced Stability** - Fixed window indexing and tmux server crashes  
-✅ **18 VS Code Tasks** - Complete orchestrator control through Command Palette  
+### 🎯 Dynamic Team Composition (NEW!)
+No more one-size-fits-all teams! The orchestrator now analyzes your project requirements and assembles the perfect team:
+- **Automatic role selection** based on PRD analysis
+- **Specialized agents** from 20+ templates (CLI devs, API designers, security engineers)
+- **Team documentation** with interaction diagrams for recovery
+- **Resource efficiency** - only deploy the agents you need
+
+```bash
+# Execute PRD with custom team composition
+tmux-orc execute ./prd.md
+
+# Or manually compose your team
+tmux-orc team compose my-project --interactive
+```
+
+### 📋 Task Management System (NEW!)
+Complete PRD-driven workflow with centralized task tracking:
+- **PRD → Task List → Team → Execution** pipeline
+- **Task distribution** to appropriate agents
+- **Progress tracking** and status monitoring
+- **Archive system** for completed projects
+
+### 🔧 Advanced CLI (NEW!)
+Professional CLI replacing all shell scripts:
+```bash
+tmux-orc setup            # One-time setup
+tmux-orc execute prd.md   # Full PRD execution  
+tmux-orc tasks create     # Task management
+tmux-orc team compose     # Custom teams
+tmux-orc agent status     # Monitor agents
+```
+
+### 🔌 MCP Server & VS Code Integration
+- **REST API** via Model Context Protocol  
+- **VS Code tasks** for quick agent access
+- **Claude Code slash commands** for orchestration
+- **Monitoring dashboards** in your editor  
 
 ## 🤖 Key Capabilities & Autonomous Features
 
@@ -166,12 +197,12 @@ Agents now know how to message each other:
 
 ```bash
 # PM can coordinate the team
-tmux-message orchestrator:1 "Priority update: Focus on auth issues"
-tmux-message corporate-coach-frontend:2 "UI fixes needed for login flow"
+scripts/send-claude-message.sh orchestrator:1 "Priority update: Focus on auth issues"
+scripts/send-claude-message.sh corporate-coach-frontend:2 "UI fixes needed for login flow"
 
-# Check team status  
-.tmux-orchestrator/commands/agent-status.sh
-.tmux-orchestrator/commands/list-agents.sh
+# Check team status using CLI  
+tmux-orc agent status
+tmux-orc list sessions
 ```
 
 ## 📸 Examples in Action
@@ -194,37 +225,34 @@ tmux-message corporate-coach-frontend:2 "UI fixes needed for login flow"
 
 ## 🎯 Quick Start (Any Project Type)
 
-### Option 1: Generic Team Deployment
+### Option 1: PRD-Driven Execution (Recommended)
 ```bash
-# Auto-detects needed roles from task content
-./bin/generic-team-deploy.sh tasks.md my-project /workspaces
+# Create PRD, then execute with dynamic team
+tmux-orc execute ./prd.md
+
+# Or create project structure first
+tmux-orc tasks create my-project
+# Edit .tmux_orchestrator/projects/my-project/prd.md
+tmux-orc execute my-project
 ```
 
-### Option 2: Traditional Setup
+### Option 2: Manual Team Composition
 ```bash
-# 1. Create a project spec
-cat > project_spec.md << 'EOF'
-PROJECT: My Web App
-GOAL: Add user authentication system
+# 1. Create and compose team
+tmux-orc team compose my-project --interactive
 
-CONSTRAINTS:
-- Use existing database schema
-- Follow current code patterns  
-- Commit every 30 minutes
-- Write tests for new features
+# 2. Deploy the custom team
+tmux-orc team deploy my-project --custom
 
-DELIVERABLES:
-1. Login/logout endpoints
-2. User session management
-3. Protected route middleware
-EOF
+# 3. Distribute tasks
+tmux-orc tasks distribute my-project
+```
 
-# 2. Start orchestrator
-tmux new-session -s orchestrator
-claude
-
-# 3. Deploy team
-"You are the Orchestrator. Deploy a team for the authentication project using project_spec.md"
+### Option 3: Traditional Orchestrator
+```bash
+# Start orchestrator and let it handle everything
+tmux-orc orchestrator start
+# Then: "Deploy a team for the authentication project using project_spec.md"
 ```
 
 ## ✨ Enhanced Features
@@ -237,9 +265,9 @@ claude
 
 ```bash
 # PM management commands
-./pm-schedule-tracker.sh dashboard
-./pm-auto-monitor.sh 
-./pm-coordination-tools.sh
+tmux-orc pm check-in my-project
+tmux-orc recovery check --auto-restart
+tmux-orc team coordinate my-project
 ```
 
 ### 👥 Auto-Detecting Team Deployment
@@ -258,19 +286,32 @@ The orchestrator analyzes your task file and automatically deploys appropriate a
 
 ### 📊 Real-Time Monitoring
 ```bash
-# Multiple monitoring options
-.tmux-orchestrator/commands/agent-status.sh
-./monitor-project-team.sh  
-./pm-schedule-tracker.sh dashboard
+# Monitor agent status
+tmux-orc agent status
+
+# Check team health
+tmux-orc team status my-project
+
+# View task progress  
+tmux-orc tasks status my-project
 ```
 
 ## 📚 Comprehensive Documentation
 
-- **[SETUP.md](SETUP.md)** - Complete setup guide for any project
-- **[RUNNING.md](RUNNING.md)** - Day-to-day operations and troubleshooting  
+### Getting Started
+- **[Installation Guide](docs/setup/installation.md)** - Complete setup instructions
+- **[Quick Start](docs/setup/quickstart.md)** - Get running in 5 minutes  
+- **[CLI Quick Start](docs/setup/cli-quickstart.md)** - Using the tmux-orc command
+
+### Core Concepts
 - **[CLAUDE.md](CLAUDE.md)** - Agent behavior instructions and best practices
-- **[devcontainer-integration.md](devcontainer-integration.md)** - DevContainer integration guide
-- **[INTEGRATION-COMPLETE.md](INTEGRATION-COMPLETE.md)** - Summary of all enhancements
+- **[Architecture](docs/development/architecture.md)** - System design and components
+- **[Task Management](docs/workflows/task-management.md)** - PRD-driven development
+
+### Features
+- **[Dynamic Teams](docs/features/team-composition.md)** - Custom team composition
+- **[DevContainer Integration](docs/features/devcontainer.md)** - Container setup
+- **[Coordination](docs/features/coordination.md)** - Agent communication patterns
 
 ## 🛠️ Project Templates
 
@@ -356,15 +397,23 @@ echo "npm run lint && npm run test" > .tmux-orchestrator/qa/quality-gates.sh
 echo "curl -X POST $SLACK_WEBHOOK ..." > .tmux-orchestrator/integrations/slack.sh
 ```
 
-## 📄 Core Files
+## 📄 Core Components
 
-- **`setup-devcontainer.sh`** - One-click devcontainer integration
-- **`bin/generic-team-deploy.sh`** - Universal team deployment
-- **`install-template.sh`** - Customizable installation template
-- **`send-claude-message.sh`** - Simplified agent communication
+### CLI Commands
+- **`tmux-orc`** - Main orchestrator CLI with all functionality
+- **`tmux-orc execute`** - Execute PRDs with dynamic teams
+- **`tmux-orc tasks`** - Complete task management system
+- **`tmux-orc team`** - Team composition and deployment
+
+### Essential Scripts (in scripts/)
+- **`send-claude-message.sh`** - Direct agent communication
 - **`schedule_with_note.sh`** - Self-scheduling functionality
-- **PM Suite** - Advanced project management tools
-- **Monitoring Tools** - Real-time team monitoring
+- **`idle-monitor-daemon.sh`** - Idle detection daemon
+
+### Configuration
+- **`.tmux_orchestrator/`** - Task management directory
+- **`CLAUDE.md`** - Agent behavior guidelines
+- **`agent-templates/`** - 20+ specialized agent types
 
 ## 🤝 Contributing & Evolution
 
