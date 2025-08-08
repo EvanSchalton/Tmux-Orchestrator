@@ -8,7 +8,27 @@
   The Tmux Orchestrator enables Claude agents to work autonomously, schedule their own check-ins, and coordinate across multiple projects without human intervention.
 </div>
 
+---
+
+> **📌 Attribution**: This project is a fork and major refactor of the original [Tmux-Orchestrator by Jedward23](https://github.com/Jedward23/Tmux-Orchestrator). While inspired by the original concept, this version has been extensively redesigned with new architecture, CLI system, and enterprise features. Many examples and workflows from the original may no longer apply to this implementation.
+
+---
+
 ## 🚀 NEW: Version 2.0 - AI-Powered Team Management
+
+### 🔄 Major Changes from Original
+
+This fork introduces fundamental architectural changes:
+
+| Original | Version 2.0 |
+|----------|------------|
+| Shell script based | Full Python CLI (`tmux-orc`) |
+| Fixed team templates | Dynamic team composition |
+| Manual task distribution | PRD-driven automation |
+| Basic monitoring | Advanced idle detection & recovery |
+| Scattered scripts | Centralized task management |
+| Limited agent types | 20+ specialized agent templates |
+| No API | MCP Server with REST API |
 
 ### 🎯 Dynamic Team Composition (NEW!)
 No more one-size-fits-all teams! The orchestrator now analyzes your project requirements and assembles the perfect team:
@@ -212,6 +232,8 @@ tmux-orc list sessions
 ```
 
 ## 📸 Examples in Action
+
+> **Note**: These screenshots are from the original implementation. The v2.0 interface and workflows have been significantly enhanced.
 
 ### Project Manager Coordination
 ![Initiate Project Manager](examples/screenshots/Initiate%20Project%20Manager.png)
