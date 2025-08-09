@@ -9,6 +9,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+from tmux_orchestrator.core.error_handler import (
+    ErrorSeverity,
+    handle_errors,
+    retry_on_error,
+)
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
@@ -354,6 +359,7 @@ def _get_task_status_file_path(task_id: str) -> Path:
     return tasks_dir / f"{task_id}.json"
 
 
+@retry_on_error(max_attempts=3, initial_delay=0.1, exceptions=(IOError, OSError))
 def _load_task_status(task_id: str) -> Optional[TaskStatusUpdate]:
     """Load task status from persistent storage."""
     try:
@@ -376,6 +382,8 @@ def _load_task_status(task_id: str) -> Optional[TaskStatusUpdate]:
         return None
 
 
+@retry_on_error(max_attempts=3, initial_delay=0.1, exceptions=(IOError, OSError))
+@handle_errors(severity=ErrorSeverity.HIGH, operation="save_task_status", attempt_recovery=True)
 def _save_task_status(task_status: TaskStatusUpdate) -> bool:
     """Save task status to persistent storage."""
     try:
@@ -399,7 +407,7 @@ def _save_task_status(task_status: TaskStatusUpdate) -> bool:
             "previous_status": task_status.previous_status,
         }
 
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             json.dump(data, f, indent=2)
 
         return True

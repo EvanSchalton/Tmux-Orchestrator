@@ -365,6 +365,14 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # execute.py module for PRD execution
 
+        # Add error management commands
+        try:
+            from tmux_orchestrator.cli import errors
+
+            cli.add_command(errors.errors)
+        except ImportError:
+            pass  # errors.py module for error management
+
     except ImportError as e:
         # Handle missing modules gracefully during development
         console.print(f"[yellow]Warning: Some CLI modules not available: {e}[/yellow]")

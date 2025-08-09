@@ -680,8 +680,9 @@ def performance(ctx: click.Context, agent_count: Optional[int], analyze: bool, o
         metrics_table.add_row("Agent Count", str(metrics.agent_count))
         metrics_table.add_row("Avg Response Time", f"{metrics.response_time_avg:.3f}s")
         metrics_table.add_row("P95 Response Time", f"{metrics.response_time_p95:.3f}s")
-        metrics_table.add_row("Cache Hit Rate",
-            f"{metrics.cache_hits / max(1, metrics.cache_hits + metrics.cache_misses) * 100:.1f}%")
+        metrics_table.add_row(
+            "Cache Hit Rate", f"{metrics.cache_hits / max(1, metrics.cache_hits + metrics.cache_misses) * 100:.1f}%"
+        )
         metrics_table.add_row("Error Rate", f"{metrics.error_rate:.1f}%")
         metrics_table.add_row("Batch Operations", str(metrics.batch_operations_count))
 
@@ -697,18 +698,18 @@ def performance(ctx: click.Context, agent_count: Optional[int], analyze: bool, o
         opt_table.add_column("Recommendation", style="green")
 
         opt_table.add_row("Batch Size", str(recommendations["recommended_batch_size"]))
-        opt_table.add_row("Parallel Deployment",
-            "✓ Enabled" if recommendations["use_parallel_deployment"] else "✗ Disabled")
+        opt_table.add_row(
+            "Parallel Deployment", "✓ Enabled" if recommendations["use_parallel_deployment"] else "✗ Disabled"
+        )
         opt_table.add_row("Startup Stagger", f"{recommendations['stagger_startup_ms']}ms")
         opt_table.add_row("Sessions", str(recommendations["session_distribution"]["sessions"]))
-        opt_table.add_row("Agents per Session",
-            str(recommendations["session_distribution"]["agents_per_session"]))
+        opt_table.add_row("Agents per Session", str(recommendations["session_distribution"]["agents_per_session"]))
 
         # Resource limits
         limits = recommendations["resource_limits"]
         opt_table.add_row("Recommended Memory", f"{limits['recommended_memory_mb']} MB")
-        opt_table.add_row("Recommended CPU Cores", str(limits['recommended_cpu_cores']))
-        opt_table.add_row("Connection Pool Size", str(limits['connection_pool_size']))
+        opt_table.add_row("Recommended CPU Cores", str(limits["recommended_cpu_cores"]))
+        opt_table.add_row("Connection Pool Size", str(limits["connection_pool_size"]))
 
         console.print(opt_table)
 
@@ -729,8 +730,7 @@ def performance(ctx: click.Context, agent_count: Optional[int], analyze: bool, o
         config_table.add_row("Cache TTL", f"{config.cache_ttl_seconds}s")
         config_table.add_row("Connection Pool", str(config.connection_pool_size))
         config_table.add_row("Max Concurrent Ops", str(config.max_concurrent_operations))
-        config_table.add_row("Async Operations",
-            "✓ Enabled" if config.enable_async_operations else "✗ Disabled")
+        config_table.add_row("Async Operations", "✓ Enabled" if config.enable_async_operations else "✗ Disabled")
 
         console.print(config_table)
 

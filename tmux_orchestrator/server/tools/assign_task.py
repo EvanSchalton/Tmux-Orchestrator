@@ -8,6 +8,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from tmux_orchestrator.core.error_handler import (
+    ErrorSeverity,
+    handle_errors,
+)
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
@@ -74,6 +78,7 @@ class AvailableAgentsResult:
     error_message: Optional[str] = None
 
 
+@handle_errors(severity=ErrorSeverity.HIGH, operation="assign_task", attempt_recovery=True)
 def assign_task(tmux: TMUXManager, request: AssignTaskRequest) -> AssignTaskResult:
     """
     Assign tasks dynamically to agents with load balancing.
@@ -494,16 +499,20 @@ def _create_assignment_message(request: AssignTaskRequest) -> str:
         message_parts.append(f"Title: {request.task_title}")
 
     if request.task_description:
-        message_parts.extend([
-            "",
-            "DESCRIPTION:",
-            request.task_description,
-        ])
+        message_parts.extend(
+            [
+                "",
+                "DESCRIPTION:",
+                request.task_description,
+            ]
+        )
 
-    message_parts.extend([
-        "",
-        f"Priority: {request.priority}",
-    ])
+    message_parts.extend(
+        [
+            "",
+            f"Priority: {request.priority}",
+        ]
+    )
 
     if request.estimated_hours:
         message_parts.append(f"Estimated Hours: {request.estimated_hours}")
@@ -512,24 +521,30 @@ def _create_assignment_message(request: AssignTaskRequest) -> str:
         message_parts.append(f"Due Date: {request.due_date}")
 
     if request.dependencies:
-        message_parts.extend([
-            "",
-            "DEPENDENCIES:",
-            ", ".join(request.dependencies),
-        ])
+        message_parts.extend(
+            [
+                "",
+                "DEPENDENCIES:",
+                ", ".join(request.dependencies),
+            ]
+        )
 
     if request.completion_criteria:
-        message_parts.extend([
-            "",
-            "COMPLETION CRITERIA:",
-            *[f"- {criterion}" for criterion in request.completion_criteria],
-        ])
+        message_parts.extend(
+            [
+                "",
+                "COMPLETION CRITERIA:",
+                *[f"- {criterion}" for criterion in request.completion_criteria],
+            ]
+        )
 
-    message_parts.extend([
-        "",
-        "Please acknowledge this assignment and update task status as you progress.",
-        "===== END ASSIGNMENT =====",
-    ])
+    message_parts.extend(
+        [
+            "",
+            "Please acknowledge this assignment and update task status as you progress.",
+            "===== END ASSIGNMENT =====",
+        ]
+    )
 
     return "\n".join(message_parts)
 
