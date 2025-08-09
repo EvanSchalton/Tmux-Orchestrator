@@ -325,6 +325,14 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # setup_claude.py module for environment setup
 
+        # Add VS Code setup commands
+        try:
+            from tmux_orchestrator.cli import setup
+
+            cli.add_command(setup.vscode_setup)
+        except ImportError:
+            pass  # setup.py module for VS Code integration
+
         # Add recovery commands
         try:
             from tmux_orchestrator.cli import recovery

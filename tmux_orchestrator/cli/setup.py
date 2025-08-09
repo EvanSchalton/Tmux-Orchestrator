@@ -13,13 +13,13 @@ from rich.prompt import Confirm, Prompt
 console: Console = Console()
 
 
-@click.group()
-def setup() -> None:
+@click.group(name="vscode-setup")
+def vscode_setup() -> None:
     """VS Code integration and project setup."""
     pass
 
 
-@setup.command("vscode")
+@vscode_setup.command("vscode")
 @click.option("--project-dir", help="Project directory (defaults to current)")
 @click.option("--force", is_flag=True, help="Overwrite existing tasks.json")
 @click.option("--minimal", is_flag=True, help="Generate minimal task set")
@@ -79,7 +79,7 @@ def vscode(ctx: click.Context, project_dir: Optional[str], force: bool, minimal:
     _show_usage_instructions()
 
 
-@setup.command("workspace")
+@vscode_setup.command("workspace")
 @click.option("--project-dir", help="Project directory (defaults to current)")
 @click.option("--name", help="Workspace name (defaults to directory name)")
 @click.pass_context
@@ -110,7 +110,7 @@ def workspace(ctx: click.Context, project_dir: Optional[str], name: Optional[str
     console.print(f"  Open with: [bold]code {workspace_file}[/bold]")
 
 
-@setup.command("extensions")
+@vscode_setup.command("extensions")
 @click.pass_context
 def extensions(ctx: click.Context) -> None:
     """List recommended VS Code extensions for TMUX Orchestrator development."""
@@ -161,7 +161,7 @@ def extensions(ctx: click.Context) -> None:
     console.print(f"[dim]{install_cmd}[/dim]")
 
 
-@setup.command("config")
+@vscode_setup.command("config")
 @click.option("--project-dir", help="Project directory (defaults to current)")
 @click.option("--interactive", is_flag=True, help="Interactive configuration setup")
 @click.pass_context
