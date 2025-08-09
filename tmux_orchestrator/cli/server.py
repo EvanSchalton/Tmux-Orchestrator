@@ -43,13 +43,23 @@ def start(host: str, port: int, background: bool) -> None:
     console.print(f"[blue]Starting MCP server on {host}:{port}...[/blue]")
 
     if background:
-        # Run in background using subprocess with current Python
-        process = subprocess.Popen(
-            [sys.executable, "-m", "tmux_orchestrator.server"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            env={**os.environ, "TMUX_ORC_SERVER_HOST": host, "TMUX_ORC_SERVER_PORT": str(port)},
-        )
+        # Run in background using subprocess
+        # Try the console script first, fall back to module if not found
+        try:
+            process = subprocess.Popen(
+                ["tmux-orc-server"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                env={**os.environ, "TMUX_ORC_SERVER_HOST": host, "TMUX_ORC_SERVER_PORT": str(port)},
+            )
+        except FileNotFoundError:
+            # Fall back to running as module
+            process = subprocess.Popen(
+                [sys.executable, "-m", "tmux_orchestrator.server"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                env={**os.environ, "TMUX_ORC_SERVER_HOST": host, "TMUX_ORC_SERVER_PORT": str(port)},
+            )
 
         # Wait a moment to check if it started
         time.sleep(2)
@@ -71,10 +81,18 @@ def start(host: str, port: int, background: bool) -> None:
         console.print("[yellow]Press Ctrl+C to stop the server[/yellow]\n")
 
         try:
-            subprocess.run(
-                [sys.executable, "-m", "tmux_orchestrator.server"],
-                env={**os.environ, "TMUX_ORC_SERVER_HOST": host, "TMUX_ORC_SERVER_PORT": str(port)},
-            )
+            # Try console script first
+            try:
+                subprocess.run(
+                    ["tmux-orc-server"],
+                    env={**os.environ, "TMUX_ORC_SERVER_HOST": host, "TMUX_ORC_SERVER_PORT": str(port)},
+                )
+            except FileNotFoundError:
+                # Fall back to module
+                subprocess.run(
+                    [sys.executable, "-m", "tmux_orchestrator.server"],
+                    env={**os.environ, "TMUX_ORC_SERVER_HOST": host, "TMUX_ORC_SERVER_PORT": str(port)},
+                )
         except KeyboardInterrupt:
             console.print("\n[yellow]Server stopped[/yellow]")
 
@@ -169,11 +187,22 @@ def setup() -> None:
         # Step 2: Add MCP server configuration
         progress.update(task, description="Adding MCP server to Claude config...")
 
-        claude_config["mcpServers"]["tmux-orchestrator"] = {
-            "command": sys.executable,
-            "args": ["-m", "tmux_orchestrator.server"],
-            "env": {"TMUX_ORC_SERVER_HOST": "127.0.0.1", "TMUX_ORC_SERVER_PORT": "8000"},
-        }
+        # Use tmux-orc-server command if available in PATH
+        import shutil
+
+        if shutil.which("tmux-orc-server"):
+            claude_config["mcpServers"]["tmux-orchestrator"] = {
+                "command": "tmux-orc-server",
+                "args": [],
+                "env": {"TMUX_ORC_SERVER_HOST": "127.0.0.1", "TMUX_ORC_SERVER_PORT": "8000"},
+            }
+        else:
+            # Fall back to Python module
+            claude_config["mcpServers"]["tmux-orchestrator"] = {
+                "command": sys.executable,
+                "args": ["-m", "tmux_orchestrator.server"],
+                "env": {"TMUX_ORC_SERVER_HOST": "127.0.0.1", "TMUX_ORC_SERVER_PORT": "8000"},
+            }
 
         # Save updated config
         import json
@@ -194,12 +223,21 @@ def setup() -> None:
             else:
                 raise requests.exceptions.RequestException()
         except requests.exceptions.RequestException:
-            # Start server in background with current Python
-            subprocess.Popen(
-                [sys.executable, "-m", "tmux_orchestrator.server"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            # Start server in background
+            # Try console script first
+            try:
+                subprocess.Popen(
+                    ["tmux-orc-server"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except FileNotFoundError:
+                # Fall back to module
+                subprocess.Popen(
+                    [sys.executable, "-m", "tmux_orchestrator.server"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             console.print("[dim]Starting MCP server in background...[/dim]")
             time.sleep(5)  # Give more time for server to start
 
@@ -226,6 +264,7 @@ def setup() -> None:
         if not server_started:
             console.print("[red]✗ Setup failed: Could not start or connect to MCP server[/red]")
             console.print("[yellow]Try running 'tmux-orc server start' manually to see any error messages[/yellow]")
+            console.print("[dim]If using Poetry, run: poetry run tmux-orc server start[/dim]")
             return
 
     # Success message
