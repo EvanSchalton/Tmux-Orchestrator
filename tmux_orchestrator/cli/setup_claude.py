@@ -130,7 +130,8 @@ def check_requirements() -> None:
     default=None,
 )
 @click.option("--force", is_flag=True, help="Overwrite existing configuration")
-def setup_claude_code(root_dir: str | None, force: bool) -> None:
+@click.option("--non-interactive", is_flag=True, help="Use defaults without prompting")
+def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) -> None:
     """Install slash commands and MCP server for Claude Code.
 
     Sets up complete Claude Code integration including:
@@ -145,32 +146,57 @@ def setup_claude_code(root_dir: str | None, force: bool) -> None:
     """
     # Determine Claude directory location
     if root_dir is None:
-        # Auto-detect: Check for devcontainer/project-specific .claude directory first
+        # Check for existing directories
         project_claude = Path.cwd() / ".claude"
         home_claude = Path.home() / ".claude"
 
+        # Determine default based on what exists
+        default_choice = 1  # Default to project directory
+        existing_locations = []
+
         if project_claude.exists():
-            claude_path = project_claude
-            console.print(f"[green]Auto-detected project Claude directory: {claude_path}[/green]")
-        elif home_claude.exists():
-            claude_path = home_claude
-            console.print(f"[green]Auto-detected home Claude directory: {claude_path}[/green]")
+            existing_locations.append(f"Project: {project_claude}")
+            default_choice = 1
+        if home_claude.exists():
+            existing_locations.append(f"Home: {home_claude}")
+            if not project_claude.exists():
+                default_choice = 2
+
+        # Show current state
+        if existing_locations:
+            console.print("[yellow]Found existing Claude directories:[/yellow]")
+            for loc in existing_locations:
+                console.print(f"  • {loc}")
         else:
-            # Neither exists, ask user for preference
-            console.print("[yellow]No existing Claude directory found.[/yellow]")
-            console.print("\nWhere would you like to create the Claude configuration?")
+            console.print("[yellow]No existing Claude directories found.[/yellow]")
+
+        # Ask for user preference unless non-interactive
+        if non_interactive:
+            # Use default choice without prompting
+            if default_choice == 2:
+                claude_path = home_claude
+            else:
+                claude_path = project_claude
+            console.print(f"[green]Using default Claude directory: {claude_path}[/green]")
+        else:
+            console.print("\nSelect Claude configuration location:")
             console.print(
                 "1. Project directory (recommended for devcontainers): [cyan]" + str(project_claude) + "[/cyan]"
             )
             console.print("2. Home directory (for system-wide use): [cyan]" + str(home_claude) + "[/cyan]")
+            console.print("3. Cancel setup")
 
-            choice = click.prompt("Enter choice (1 or 2)", type=int, default=1)
-            if choice == 2:
+            choice = click.prompt("Enter choice", type=int, default=default_choice, show_default=True)
+
+            if choice == 3:
+                console.print("[yellow]Setup cancelled.[/yellow]")
+                return
+            elif choice == 2:
                 claude_path = home_claude
             else:
                 claude_path = project_claude
 
-            console.print(f"\n[yellow]Creating new Claude directory at: {claude_path}[/yellow]")
+            console.print(f"\n[green]Using Claude directory: {claude_path}[/green]")
     else:
         # Use provided root directory
         claude_path = Path(root_dir) / ".claude"
@@ -400,7 +426,7 @@ def setup_all(force: bool) -> None:
     # Setup Claude Code
     console.print("[cyan]1. Setting up Claude Code...[/cyan]")
     ctx = click.get_current_context()
-    ctx.invoke(setup_claude_code, root_dir=None, force=force)
+    ctx.invoke(setup_claude_code, root_dir=None, force=force, non_interactive=False)
 
     # Setup VS Code
     console.print("\n[cyan]2. Setting up VS Code...[/cyan]")
