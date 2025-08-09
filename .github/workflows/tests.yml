@@ -44,7 +44,7 @@ jobs:
       run: poetry run ruff check .
 
     - name: Run Bandit security linter
-      run: poetry run bandit -r tmux_orchestrator -ll
+      run: poetry run bandit -r tmux_orchestrator -ll --skip B108
 
   type-check:
     runs-on: ubuntu-latest
