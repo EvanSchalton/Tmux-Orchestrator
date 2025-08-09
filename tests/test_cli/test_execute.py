@@ -11,6 +11,8 @@ from click.testing import CliRunner
 from tmux_orchestrator.cli.execute import execute
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# Remove the module-level skip since we'll fix the tests
+
 
 @pytest.fixture
 def runner() -> CliRunner:
@@ -84,7 +86,9 @@ def test_execute_with_prd_file(runner, mock_tmux, temp_orchestrator_dir, sample_
 
             # Create a proper context object
             ctx_obj = {"tmux": mock_tmux}
-            result = runner.invoke(execute, [sample_prd, "--team-type", "fullstack"], obj=ctx_obj)
+            result = runner.invoke(
+                execute, [sample_prd, "--team-type", "fullstack", "--no-monitor", "--no-wait-for-tasks"], obj=ctx_obj
+            )
 
             # Print output for debugging
             if result.exit_code != 0:
@@ -102,16 +106,25 @@ def test_execute_existing_session(runner, mock_tmux, temp_orchestrator_dir, samp
     """Test executing when session already exists."""
     # Mock subprocess call for task creation
     with patch("subprocess.run") as mock_run:
-        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
+        with patch("subprocess.Popen") as mock_popen:  # Mock daemon startup
+            mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
+            mock_popen.return_value = Mock(pid=12345)
 
-        # Mock that session already exists
-        mock_tmux.has_session.return_value = True
+            # Mock that session already exists
+            mock_tmux.has_session.return_value = True
 
-        ctx_obj = {"tmux": mock_tmux}
-        result = runner.invoke(execute, [sample_prd], obj=ctx_obj)
+            ctx_obj = {"tmux": mock_tmux}
+            result = runner.invoke(
+                execute, [sample_prd, "--team-type", "backend", "--no-monitor", "--no-wait-for-tasks"], obj=ctx_obj
+            )
+
+        if result.exit_code != 0:
+            print(f"Exit code: {result.exit_code}")
+            print(f"Output: {result.output}")
+            print(f"Exception: {result.exception}")
 
         assert result.exit_code == 0
-        assert "already exists" in result.output
+        assert "Session" in result.output and "already exists" in result.output
 
 
 def test_execute_with_team_type(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
@@ -128,8 +141,22 @@ def test_execute_with_team_type(runner, mock_tmux, temp_orchestrator_dir, sample
             mock_deploy.return_value = (True, "Team deployed successfully")
             mock_tmux.has_session.return_value = False
             mock_tmux.send_message.return_value = True
+            mock_tmux.list_windows.return_value = []
 
-            result = runner.invoke(execute, [sample_prd, "--team-type", "backend"], obj={"tmux": mock_tmux})
+            result = runner.invoke(
+                execute,
+                [sample_prd, "--team-type", "backend", "--no-monitor", "--no-wait-for-tasks"],
+                obj={"tmux": mock_tmux},
+            )
+
+            if result.exit_code != 0:
+                print(f"Exit code: {result.exit_code}")
+                print(f"Output: {result.output}")
+                print(f"Exception: {result.exception}")
+                if result.exception:
+                    import traceback
+
+                    traceback.print_exception(type(result.exception), result.exception, result.exception.__traceback__)
 
             assert result.exit_code == 0
             assert "Executing PRD" in result.output
@@ -155,8 +182,11 @@ def test_execute_skip_team_planning(runner, mock_tmux, temp_orchestrator_dir, sa
             mock_deploy.return_value = (True, "Team deployed successfully")
             mock_tmux.has_session.return_value = False
             mock_tmux.send_message.return_value = True
+            mock_tmux.list_windows.return_value = []
 
-            result = runner.invoke(execute, [sample_prd, "--skip-planning"], obj={"tmux": mock_tmux})
+            result = runner.invoke(
+                execute, [sample_prd, "--skip-planning", "--no-monitor", "--no-wait-for-tasks"], obj={"tmux": mock_tmux}
+            )
 
             assert result.exit_code == 0
             assert "Executing PRD" in result.output
@@ -178,15 +208,20 @@ def test_execute_with_team_size(runner, mock_tmux, temp_orchestrator_dir, sample
             mock_deploy.return_value = (True, "Team deployed successfully")
             mock_tmux.has_session.return_value = False
             mock_tmux.send_message.return_value = True
+            mock_tmux.list_windows.return_value = []
 
-            result = runner.invoke(execute, [sample_prd, "--team-size", "8"], obj={"tmux": mock_tmux})
+            result = runner.invoke(
+                execute,
+                [sample_prd, "--team-type", "fullstack", "--team-size", "8", "--no-monitor", "--no-wait-for-tasks"],
+                obj={"tmux": mock_tmux},
+            )
 
             assert result.exit_code == 0
             assert "Executing PRD" in result.output
-            assert "Team: custom (8 agents)" in result.output
+            assert "Team: fullstack (8 agents)" in result.output
             # Verify deploy was called with correct args: tmux, team_type, size, name
             args = mock_deploy.call_args[0]
-            assert args[1] == "custom"  # team_type
+            assert args[1] == "fullstack"  # team_type (fullstack gets passed to deploy)
             assert args[2] == 8  # size
             # args[3] is the project name which is derived from temp filename
 
@@ -216,8 +251,13 @@ def test_execute_project_creation(runner, mock_tmux, temp_orchestrator_dir, samp
                 mock_deploy.return_value = (True, "Team deployed successfully")
                 mock_tmux.has_session.return_value = False
                 mock_tmux.send_message.return_value = True
+                mock_tmux.list_windows.return_value = []
 
-                result = runner.invoke(execute, [sample_prd], obj={"tmux": mock_tmux})
+                result = runner.invoke(
+                    execute,
+                    [sample_prd, "--team-type", "backend", "--no-monitor", "--no-wait-for-tasks"],
+                    obj={"tmux": mock_tmux},
+                )
 
                 assert result.exit_code == 0
                 # Verify project creation via subprocess

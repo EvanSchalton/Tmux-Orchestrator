@@ -301,7 +301,7 @@ class RecoveryDaemon:
         for target, health in self.agent_health.items():
             if not health.is_healthy:
                 self.logger.warning(
-                    f"Unhealthy agent {target}: {health.failure_reason} " f"(failures: {health.consecutive_failures})"
+                    f"Unhealthy agent {target}: {health.failure_reason} (failures: {health.consecutive_failures})"
                 )
 
     def get_status(self) -> dict[str, Any]:

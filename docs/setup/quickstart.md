@@ -58,18 +58,18 @@ For a complete devcontainer setup with Tmux Orchestrator:
 {
   "name": "My Project with AI Orchestrator",
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
-  
+
   "postCreateCommand": [
     "apt-get update && apt-get install -y tmux",
     "pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
     "tmux-orc setup all",
     "tmux-orc orchestrator start"
   ],
-  
+
   "remoteEnv": {
     "TMUX_ORCHESTRATOR_HOME": "${localEnv:HOME}/.tmux_orchestrator"
   },
-  
+
   "customizations": {
     "vscode": {
       "extensions": [

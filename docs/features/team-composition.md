@@ -106,7 +106,7 @@ graph TD
     PM --> CLI1[CLI Developer 1]
     PM --> CLI2[CLI Developer 2]
     PM --> TW[Technical Writer]
-    
+
     CLI1 <--> CLI2
     CLI1 --> TW
     CLI2 --> TW

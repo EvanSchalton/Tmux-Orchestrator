@@ -216,7 +216,7 @@ app.include_router(custom.router, prefix="/custom", tags=["custom"])
    ```bash
    # Check TMUX server
    tmux list-sessions
-   
+
    # Debug TMUX commands
    export TMUX_DEBUG=1
    ```

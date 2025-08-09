@@ -80,7 +80,8 @@ class TestCreateTeam:
         """Test create_team with too many agents returns error."""
         tmux = Mock(spec=TMUXManager)
         request = CreateTeamRequest(
-            team_name="test-team", team_members=[TeamMemberSpec(role="developer", count=21)]  # Exceeds max of 20
+            team_name="test-team",
+            team_members=[TeamMemberSpec(role="developer", count=21)],  # Exceeds max of 20
         )
 
         result = create_team(tmux, request)
@@ -348,7 +349,8 @@ class TestCreateTeam:
         tmux.send_keys.return_value = True
 
         request = CreateTeamRequest(
-            team_name="max-team", team_members=[TeamMemberSpec(role="developer", count=20)]  # Max allowed
+            team_name="max-team",
+            team_members=[TeamMemberSpec(role="developer", count=20)],  # Max allowed
         )
 
         result = create_team(tmux, request)

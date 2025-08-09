@@ -135,9 +135,10 @@ class TestCreatePullRequest:
             quality_check_types=["tests", "linting"],
         )
 
-        with patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.create_pull_request._run_quality_checks"
-        ) as mock_quality:
+        with (
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.create_pull_request._run_quality_checks") as mock_quality,
+        ):
             # Mock successful commands
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
@@ -170,9 +171,10 @@ class TestCreatePullRequest:
             block_on_quality_failure=True,
         )
 
-        with patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.create_pull_request._run_quality_checks"
-        ) as mock_quality:
+        with (
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.create_pull_request._run_quality_checks") as mock_quality,
+        ):
             # Mock commands
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
@@ -316,9 +318,10 @@ class TestCreatePullRequest:
             pr_number=123, quality_check_types=["tests", "linting"], project_path="/test/project"
         )
 
-        with patch("tmux_orchestrator.server.tools.create_pull_request._get_pr_branch") as mock_branch, patch(
-            "subprocess.run"
-        ) as mock_run:
+        with (
+            patch("tmux_orchestrator.server.tools.create_pull_request._get_pr_branch") as mock_branch,
+            patch("subprocess.run") as mock_run,
+        ):
             mock_branch.return_value = "feature/test"
 
             # Mock checkout and quality checks

@@ -13,7 +13,7 @@ Deploys a new Claude agent for a specific component or task in the Corporate Coa
   - `backend` - FastAPI/Python backend
   - `database` - Neo4j/PostgreSQL
   - `docs` - Documentation
-  
+
 - **role** (optional): The agent's role (default: `developer`)
   - `developer` - Implements features and fixes bugs
   - `pm` - Project manager for quality and coordination

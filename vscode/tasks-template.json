@@ -3,7 +3,7 @@
   "tasks": [
     {
       "label": "🚀 Deploy Team",
-      "type": "shell", 
+      "type": "shell",
       "command": "${workspaceFolder}/scripts/deploy.sh",
       "args": ["${input:taskFile}"],
       "group": {
@@ -141,7 +141,7 @@
     },
     {
       "label": "Open PM Agent",
-      "type": "shell", 
+      "type": "shell",
       "command": "tmux attach -t '${workspaceFolderBasename}-${workspaceFolderBasename}:Claude-pm'",
       "presentation": {
         "reveal": "always",
@@ -155,19 +155,19 @@
       "type": "shell",
       "command": "tmux attach -t '${workspaceFolderBasename}-frontend:Claude-developer'",
       "presentation": {
-        "reveal": "always", 
+        "reveal": "always",
         "panel": "new",
         "group": "workers"
       },
       "problemMatcher": []
     },
     {
-      "label": "Open Backend Agent", 
+      "label": "Open Backend Agent",
       "type": "shell",
       "command": "tmux attach -t '${workspaceFolderBasename}-backend:Claude-developer'",
       "presentation": {
         "reveal": "always",
-        "panel": "new", 
+        "panel": "new",
         "group": "workers"
       },
       "problemMatcher": []
@@ -175,7 +175,7 @@
     {
       "label": "Open QA Agent",
       "type": "shell",
-      "command": "tmux attach -t '${workspaceFolderBasename}-testing:Claude-qa'", 
+      "command": "tmux attach -t '${workspaceFolderBasename}-testing:Claude-qa'",
       "presentation": {
         "reveal": "always",
         "panel": "new",
@@ -203,7 +203,7 @@
       "label": "🔧 Emergency Reset",
       "type": "shell",
       "command": "tmux kill-server && pkill -f claude",
-      "group": "build", 
+      "group": "build",
       "presentation": {
         "reveal": "always",
         "panel": "shared"
@@ -224,13 +224,13 @@
       "type": "promptString"
     },
     {
-      "id": "agentTarget", 
+      "id": "agentTarget",
       "description": "Agent target (session:window)",
       "type": "pickString",
       "options": [
         "orchestrator:0",
         "${workspaceFolderBasename}-${workspaceFolderBasename}:Claude-pm",
-        "${workspaceFolderBasename}-frontend:Claude-developer", 
+        "${workspaceFolderBasename}-frontend:Claude-developer",
         "${workspaceFolderBasename}-backend:Claude-developer",
         "${workspaceFolderBasename}-testing:Claude-qa"
       ]

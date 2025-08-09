@@ -169,7 +169,7 @@ team:
       role: developer
       window: 2
     - type: backend
-      role: developer  
+      role: developer
       window: 2
 
 monitoring:

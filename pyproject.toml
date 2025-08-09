@@ -45,8 +45,10 @@ target-version = ['py39']
 
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501"]  # Ignore line too long
+ignore = ["E501", "UP035", "UP006"]  # Ignore line too long and typing updates
 
 [tool.isort]
 profile = "black"

@@ -163,7 +163,21 @@ def test_tasks_distribute(runner, temp_orchestrator_dir):
 """
     (project_dir / "tasks.md").write_text(tasks_content)
 
-    result = runner.invoke(tasks, ["distribute", "test-project"])
+    from unittest.mock import Mock
+
+    mock_tmux = Mock()
+    mock_tmux.list_sessions.return_value = []
+    mock_tmux.list_windows.return_value = []
+    result = runner.invoke(tasks, ["distribute", "test-project"], obj={"tmux": mock_tmux})
+
+    if result.exit_code != 0:
+        print(f"Exit code: {result.exit_code}")
+        print(f"Output: {result.output}")
+        print(f"Exception: {result.exception}")
+        if result.exception:
+            import traceback
+
+            traceback.print_exception(type(result.exception), result.exception, result.exception.__traceback__)
 
     assert result.exit_code == 0
     assert "Task distribution complete" in result.output or "Distributing" in result.output

@@ -154,10 +154,10 @@ Begin by reading the PRD document and understanding the full scope.""",
         "developer": f"""You are a Developer on the {project_name} team.
 
 ## Project Context
-{sections.get('overview', 'See PRD for project overview')}
+{sections.get("overview", "See PRD for project overview")}
 
 ## Technical Requirements
-{sections.get('technical', 'See PRD for technical details')}
+{sections.get("technical", "See PRD for technical details")}
 
 ## Your Responsibilities
 1. Implement assigned features according to PRD specifications
@@ -176,10 +176,10 @@ Wait for the PM to assign you specific tasks from {project_dir}/agents/""",
         "qa": f"""You are a QA Engineer on the {project_name} team.
 
 ## Project Context
-{sections.get('overview', 'See PRD for project overview')}
+{sections.get("overview", "See PRD for project overview")}
 
 ## Requirements to Validate
-{sections.get('requirements', 'See PRD for full requirements')}
+{sections.get("requirements", "See PRD for full requirements")}
 
 ## Your Responsibilities
 1. Create comprehensive test plans based on PRD
@@ -298,7 +298,7 @@ def monitor_task_distribution(project_name: str) -> bool:
 @click.option("--no-monitor", is_flag=True, help="Skip starting the monitoring daemon")
 @click.option("--skip-planning", is_flag=True, help="Skip team planning phase")
 @click.option("--auto", is_flag=True, help="Automatically determine team from PRD analysis")
-@click.option("--wait-for-tasks", is_flag=True, default=True, help="Wait for PM to generate tasks")
+@click.option("--wait-for-tasks/--no-wait-for-tasks", default=True, help="Wait for PM to generate tasks")
 @click.pass_context
 def execute(
     ctx: click.Context,
@@ -609,7 +609,7 @@ Remember to:
 • PRD: {prd_path.name}
 • Team: {team_type} ({team_size} agents)
 • Session: {project_name}
-• Monitoring: {'Active' if not no_monitor else 'Disabled'}
+• Monitoring: {"Active" if not no_monitor else "Disabled"}
 
 [bold]Project Location:[/bold]
 {project_dir}
@@ -619,8 +619,8 @@ Remember to:
 • Team deployment: ✓ {team_size} agents deployed
 • PRD analysis: ✓ Team optimized for project needs
 • Agent briefings: ✓ Customized based on PRD
-• Task generation: {'⏳ Waiting for PM' if wait_for_tasks else '⏸ Manual mode'}
-• Monitoring: {'✓ Active' if not no_monitor else '✗ Disabled'}
+• Task generation: {"⏳ Waiting for PM" if wait_for_tasks else "⏸ Manual mode"}
+• Monitoring: {"✓ Active" if not no_monitor else "✗ Disabled"}
 
 [bold]Next Steps:[/bold]
 1. Monitor PM progress: tmux-orc agent send {project_name}:0 "status update"

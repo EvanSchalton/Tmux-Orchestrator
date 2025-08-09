@@ -115,7 +115,7 @@ class TestErrorHandling:
 
     def test_invalid_json_handling(self, client):
         """Test routes handle invalid JSON properly."""
-        response = client.post("/messages/send", data="invalid json", headers={"Content-Type": "application/json"})
+        response = client.post("/messages/send", content="invalid json", headers={"Content-Type": "application/json"})
 
         # Should return 422 (validation error) not 500 (server error)
         assert response.status_code == 422

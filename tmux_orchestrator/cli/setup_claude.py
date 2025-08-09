@@ -279,7 +279,7 @@ All tasks are organized in `.tmux_orchestrator/projects/`:
 [bold]Installed Components:[/bold]
 • Slash commands in: {commands_dir}
 • MCP server config: {mcp_config_path}
-• Workspace instructions: {workspace_claude if workspace_claude.exists() else 'Not created'}
+• Workspace instructions: {workspace_claude if workspace_claude.exists() else "Not created"}
 
 [bold]Next Steps:[/bold]
 1. Restart Claude Code to load slash commands

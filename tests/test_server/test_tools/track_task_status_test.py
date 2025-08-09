@@ -96,9 +96,10 @@ class TestTrackTaskStatus:
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(task_id="task_001", agent_id="dev:0", status="completed")
 
-        with patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load, patch(
-            "tmux_orchestrator.server.tools.track_task_status._save_task_status"
-        ) as mock_save:
+        with (
+            patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load,
+            patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save,
+        ):
             # Mock existing task
             existing_task = TaskStatusUpdate(
                 task_id="task_001",
@@ -207,9 +208,10 @@ class TestTrackTaskStatus:
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(task_id="task_001", agent_id="dev:0", status="completed", actual_hours=10)
 
-        with patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load, patch(
-            "tmux_orchestrator.server.tools.track_task_status._save_task_status"
-        ) as mock_save:
+        with (
+            patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load,
+            patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save,
+        ):
             existing_task = TaskStatusUpdate(
                 task_id="task_001",
                 agent_id="dev:0",
@@ -327,7 +329,10 @@ class TestTrackTaskStatus:
         """Test task status tracking with invalid progress percentage."""
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(
-            task_id="task_001", agent_id="dev:0", status="in_progress", progress_percentage=150  # Invalid - over 100
+            task_id="task_001",
+            agent_id="dev:0",
+            status="in_progress",
+            progress_percentage=150,  # Invalid - over 100
         )
 
         result = track_task_status(tmux, request)

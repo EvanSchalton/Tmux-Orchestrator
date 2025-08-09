@@ -165,7 +165,7 @@ def _interactive_team_composition(templates: dict, project_name: str, prd: Optio
     window = 1
 
     for i in range(team_size):
-        console.print(f"\n[yellow]Agent {i+1} of {team_size}:[/yellow]")
+        console.print(f"\n[yellow]Agent {i + 1} of {team_size}:[/yellow]")
 
         template_name = Prompt.ask("Template name (or 'list' to see options again)")
 
@@ -330,13 +330,13 @@ def _generate_team_composition(project_name: str, agents: list[dict], output_pat
         )
         deployment_commands.append(deploy_cmd)
 
-        member = f"""### {i + 1}. {agent['role']}
-- **Session:Window**: {project_name}:{agent['window']}
-- **Template**: {agent['template']}.yaml
-- **Primary Focus**: {agent['focus']}
+        member = f"""### {i + 1}. {agent["role"]}
+- **Session:Window**: {project_name}:{agent["window"]}
+- **Template**: {agent["template"]}.yaml
+- **Primary Focus**: {agent["focus"]}
 - **Key Responsibilities**:
   - See template for full responsibilities
-  - Project-specific focus on {agent['focus']}
+  - Project-specific focus on {agent["focus"]}
 
 **System Prompt**:
 ```
@@ -795,7 +795,7 @@ def list_templates() -> None:
                 skills = data.get("skills", [])
                 skills_str = ", ".join(skills[:3])
                 if len(skills) > 3:
-                    skills_str += f" (+{len(skills)-3} more)"
+                    skills_str += f" (+{len(skills) - 3} more)"
 
                 table.add_row(
                     template_file.stem,

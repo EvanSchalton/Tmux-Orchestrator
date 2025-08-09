@@ -1,5 +1,6 @@
 """Tests for error handler."""
 
+import os
 import time
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -216,7 +217,7 @@ class TestErrorHandler:
 
         # Make file appear old
         old_time = time.time() - (8 * 86400)  # 8 days old
-        old_file.utime(old_time, old_time)
+        os.utime(old_file, (old_time, old_time))
 
         # Create recent file
         recent_file = temp_log_dir / "errors_20231201.log"

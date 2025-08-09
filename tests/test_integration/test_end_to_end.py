@@ -71,9 +71,19 @@ Build a test application.
                 mock_tmux.create_session.return_value = True
                 mock_tmux.send_keys.return_value = True
                 mock_tmux.send_message.return_value = True
+                mock_tmux.list_windows.return_value = []
 
                 # Execute PRD
-                result = runner.invoke(cli, ["execute", prd_path], obj={"tmux": mock_tmux})
+                result = runner.invoke(
+                    cli,
+                    ["execute", prd_path, "--team-type", "backend", "--no-monitor", "--no-wait-for-tasks"],
+                    obj={"tmux": mock_tmux},
+                )
+
+                if result.exit_code != 0:
+                    print(f"Exit code: {result.exit_code}")
+                    print(f"Output: {result.output}")
+                    print(f"Exception: {result.exception}")
 
                 assert result.exit_code == 0
 

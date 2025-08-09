@@ -4,7 +4,7 @@
 
 This workflow scales the successful single-agent PRD → Task List → Execution pattern to a multi-agent orchestrated system with flexible team composition and horizontal scaling across the stack with automated quality assurance.
 
-**Key Principles**: 
+**Key Principles**:
 - Human remains in the loop for PRD creation and survey to ensure proper context curation
 - Team composition is dynamically determined based on project requirements
 - PM executes autonomously with occasional human feedback/guidance
@@ -117,7 +117,7 @@ tmux capture-pane -t session:window -p | tail -50
 You are the Project Manager for [PROJECT NAME]. You will follow our PRD-driven development workflow:
 
 1. **PRD Creation**: Use /workspaces/Tmux-Orchestrator/.claude/commands/create-prd.md
-2. **Task Generation**: Use /workspaces/Tmux-Orchestrator/.claude/commands/generate-tasks.md  
+2. **Task Generation**: Use /workspaces/Tmux-Orchestrator/.claude/commands/generate-tasks.md
 3. **Task Distribution**: Break the master list into chunks for dev agents
 4. **Quality Enforcement**: Ensure all tests/linting/formatting pass before marking complete
 5. **QA Coordination**: Create test plans from completed features

@@ -149,7 +149,7 @@ def create(project_name: str, prd: Optional[str], template: bool) -> None:
             f"""# Tasks - {project_name}
 
 Generated from: prd.md
-Date: {datetime.now().strftime('%Y-%m-%d')}
+Date: {datetime.now().strftime("%Y-%m-%d")}
 
 ## Task Summary
 - Total: 0
@@ -170,7 +170,7 @@ _To be generated from PRD_
         summary_path.write_text(
             f"""# Project Status Summary - {project_name}
 
-Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+Last Updated: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
 ## Overall Progress
 - Phase: Planning
@@ -626,28 +626,28 @@ def export(project_name: str, format: str, output: Optional[str]) -> None:
 </head>
 <body>
     <h1>Task Report - {project_name}</h1>
-    <p>Exported: {data['exported']}</p>
+    <p>Exported: {data["exported"]}</p>
 
     <h2>Master Tasks</h2>
-    <pre>{data['tasks'].get('master', 'No tasks found')}</pre>
+    <pre>{data["tasks"].get("master", "No tasks found")}</pre>
 
     <h2>Status Summary</h2>
-    <pre>{data['status'].get('summary', 'No status found')}</pre>
+    <pre>{data["status"].get("summary", "No status found")}</pre>
 </body>
 </html>"""
         extension = ".html"
     else:  # markdown
         output_content = f"""# Task Export - {project_name}
 
-Exported: {data['exported']}
+Exported: {data["exported"]}
 
 ## Master Task List
 
-{data['tasks'].get('master', '_No tasks found_')}
+{data["tasks"].get("master", "_No tasks found_")}
 
 ## Status Summary
 
-{data['status'].get('summary', '_No status found_')}
+{data["status"].get("summary", "_No status found_")}
 
 ## Agent Tasks
 
@@ -712,12 +712,12 @@ def archive(project_name: str, force: bool) -> None:
         # Create summary
         summary = f"""# Archive Summary - {project_name}
 
-Archived: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Archived: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 Original Name: {project_name}
 Archive Location: {archive_name}
 
 ## Final Status
-{content if 'content' in locals() else 'Status unknown'}
+{content if "content" in locals() else "Status unknown"}
 """
 
         (archive_path / "ARCHIVE_SUMMARY.md").write_text(summary)

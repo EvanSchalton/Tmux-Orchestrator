@@ -168,7 +168,7 @@ def auto_restart_agent(
 
     # Final success message
     success_message: str = (
-        f"Agent {target} auto-restarted successfully " f"(attempt {context_data['retry_attempts']}/{max_retries})"
+        f"Agent {target} auto-restarted successfully (attempt {context_data['retry_attempts']}/{max_retries})"
     )
 
     if context_data["context_preserved"]:

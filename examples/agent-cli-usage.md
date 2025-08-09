@@ -46,7 +46,7 @@ tmux-orc list
 ```bash
 # Proactive status update
 tmux-orc publish --session pm:0 "
-**STATUS UPDATE Frontend-Dev**: 
+**STATUS UPDATE Frontend-Dev**:
 ✅ Completed: Login form component with validation
 🔄 Currently: Working on registration form
 🚧 Next: Password reset flow
@@ -149,7 +149,7 @@ When CLI/MCP unavailable:
 # Send message (old way)
 /workspaces/Tmux-Orchestrator/send-claude-message.sh "pm:0" "Status update"
 
-# Read output (old way)  
+# Read output (old way)
 tmux capture-pane -t frontend:0 -p | tail -50
 ```
 

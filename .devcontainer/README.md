@@ -39,10 +39,10 @@ This development container provides a complete Python development environment fo
    ```bash
    # CLI is automatically available
    tmux-orc --help
-   
+
    # Start development server
    poetry run tmux-orc-server
-   
+
    # Run tests
    poetry run pytest
    ```

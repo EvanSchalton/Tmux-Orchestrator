@@ -8,7 +8,7 @@ Master Task List: ../{project}/tasks.md
 
 1. **Update Status**: Mark tasks as you work
    - `[ ]` - Not started
-   - `[-]` - In progress  
+   - `[-]` - In progress
    - `[x]` - Completed
 
 2. **Quality Gates**: Before marking complete

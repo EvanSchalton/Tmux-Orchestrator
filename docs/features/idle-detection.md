@@ -21,7 +21,7 @@ is_agent_idle() {
     local session=$1
     local window=$2
     local agent_name=$3
-    
+
     # Take 4 snapshots of the last line at 300ms intervals
     local last_line1=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
     sleep 0.3
@@ -30,12 +30,12 @@ is_agent_idle() {
     local last_line3=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
     sleep 0.3
     local last_line4=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | tail -1 || echo "")
-    
+
     # If all last lines are identical, no new output = idle
     if [ "$last_line1" = "$last_line2" ] && [ "$last_line2" = "$last_line3" ] && [ "$last_line3" = "$last_line4" ]; then
         return 0  # IDLE
     fi
-    
+
     return 1  # ACTIVE
 }
 ```
@@ -76,7 +76,7 @@ This is **working as designed** to prevent PM notification spam.
 ## Benefits
 
 1. **Reliable**: If agent is truly active, new terminal lines will appear
-2. **Simple**: No complex content filtering or pattern matching needed  
+2. **Simple**: No complex content filtering or pattern matching needed
 3. **Fast**: Quick 900ms detection window
 4. **Robust**: Works regardless of agent output format or content
 5. **Debuggable**: Easy to trace and understand behavior

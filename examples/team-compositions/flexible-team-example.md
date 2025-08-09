@@ -36,7 +36,7 @@ agents:
     template: "project-manager"
     window: 0
     focus: "CLI project coordination and quality"
-    
+
   - role: "CLI Developer"
     template: "cli-developer"
     window: 1
@@ -46,9 +46,9 @@ agents:
       - Implement interactive prompts
       - Create progress indicators
       - Ensure cross-platform compatibility
-    
+
   - role: "Backend Developer"
-    template: "backend-developer"  
+    template: "backend-developer"
     window: 2
     focus: "Database operations and migration logic"
     customization: "Specialized in database migrations"
@@ -57,7 +57,7 @@ agents:
       - Database adapter pattern
       - Transaction management
       - Schema versioning
-    
+
   - role: "Technical Writer"
     template: "technical-writer"
     window: 3
@@ -67,7 +67,7 @@ agents:
       - Create migration tutorials
       - Document database-specific features
       - Maintain changelog
-    
+
   - role: "QA Engineer"
     template: "qa-engineer"
     window: 4
@@ -89,24 +89,24 @@ graph TD
     BE[Backend Developer]
     TW[Technical Writer]
     QA[QA Engineer]
-    
+
     Orchestrator --> |strategic guidance| PM
     PM --> |reports progress| Orchestrator
-    
+
     PM --> |assigns CLI tasks| CLI1
     PM --> |assigns DB tasks| BE
     PM --> |documentation needs| TW
     PM --> |test requirements| QA
-    
+
     CLI1 --> |status updates| PM
     BE --> |status updates| PM
     TW --> |status updates| PM
     QA --> |status updates| PM
-    
+
     CLI1 <--> |API design| BE
     CLI1 --> |feature docs| TW
     BE --> |technical specs| TW
-    
+
     CLI1 --> |test scenarios| QA
     BE --> |test data| QA
     QA --> |bug reports| CLI1

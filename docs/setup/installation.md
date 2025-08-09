@@ -73,7 +73,7 @@ tmux-schedule --help
    ```bash
    # Ubuntu/Debian
    sudo apt-get update && sudo apt-get install -y tmux bc
-   
+
    # macOS
    brew install tmux
    ```
@@ -82,7 +82,7 @@ tmux-schedule --help
    ```bash
    # Option 1: Clone the repo
    git clone https://github.com/your-username/tmux-orchestrator.git references/Tmux-Orchestrator
-   
+
    # Option 2: Copy from existing project
    cp -r /path/to/Tmux-Orchestrator references/
    ```
@@ -91,10 +91,10 @@ tmux-schedule --help
    ```bash
    # Customize the install script first
    cp references/Tmux-Orchestrator/install-template.sh scripts/install-tmux-orchestrator.sh
-   
+
    # Edit PROJECT_NAME and paths
    nano scripts/install-tmux-orchestrator.sh
-   
+
    # Run installation
    bash scripts/install-tmux-orchestrator.sh
    ```
@@ -167,7 +167,7 @@ Your specific tasks:
 - Orchestrator
 - Project Manager
 - Frontend Developer
-- Backend Developer  
+- Backend Developer
 - QA Engineer
 
 ### API-Only Team
@@ -243,7 +243,7 @@ npm run lint && npm run test && npm run build
    ```bash
    # Check active sessions
    tmux list-sessions
-   
+
    # Kill stuck sessions
    tmux kill-session -t stuck-session-name
    ```
@@ -259,7 +259,7 @@ npm run lint && npm run test && npm run build
    ```bash
    # Check tmux configuration
    tmux list-sessions
-   
+
    # Verify paths
    echo $TMUX_ORCHESTRATOR_HOME
    ls -la $TMUX_ORCHESTRATOR_HOME
@@ -313,5 +313,5 @@ After setup:
 ## Support
 
 - Check `LEARNINGS.md` for accumulated knowledge
-- Review `FAQ.md` for common questions  
+- Review `FAQ.md` for common questions
 - See project examples in corporate-coach implementation

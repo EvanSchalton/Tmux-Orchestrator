@@ -11,13 +11,13 @@ A: Currently users must use shell scripts directly or tmux commands manually. Th
 
 ### 2. Target Users
 **Q: Who are the primary users of the completed CLI and MCP server?**
-A: 
+A:
 - **CLI Users**: Developers who want to manage AI agent teams for their projects
 - **MCP Server Users**: Claude agents that need to spawn other agents, communicate between teams, and manage their own lifecycle
 
 ### 3. Core Functionality
 **Q: What are the key actions users should be able to perform?**
-A: 
+A:
 - **CLI**: Deploy agents/teams, monitor status, send messages, view dashboards, restart failed agents, manage project sessions
 - **MCP Server**: Agents can spawn new agents, send inter-agent messages, check session status, restart failed agents, create teams
 - **Terminal**: User should be able to open a tmux window and toggle between agents
@@ -74,7 +74,7 @@ A:
 **Q: What edge cases should we handle?**
 A:
 - Agent crashes during critical operations
-- Multiple agents sending messages simultaneously  
+- Multiple agents sending messages simultaneously
 - Tmux session doesn't exist when trying to attach
 - Network issues preventing MCP server access
 - Circular agent spawning (agents creating agents infinitely)

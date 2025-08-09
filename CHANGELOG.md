@@ -12,7 +12,7 @@
 
 #### VS Code Integration
 - **Individual Agent Tasks**: Open any agent in a new VS Code terminal
-- **Open All Agents**: Single command opens all 5 agents simultaneously  
+- **Open All Agents**: Single command opens all 5 agents simultaneously
 - **PM Check-in Tasks**: Standard and custom check-in commands
 - **Complete Task Suite**: 18 integrated VS Code tasks for full orchestrator control
 
@@ -29,7 +29,7 @@
 - `pm-custom-checkin.sh` - Custom message check-ins for specific situations
 - Enhanced agent briefings with communication commands
 
-#### Agent Coordination  
+#### Agent Coordination
 - Enhanced `start-orchestrator.sh` with full coordination capabilities
 - Updated `deploy-agent.sh` with proper environment setup
 - Improved `list-agents.sh` with crash-safe operation
@@ -37,7 +37,7 @@
 #### VS Code Tasks
 - 🎯 Open Orchestrator Agent
 - 👔 Open Project Manager Agent
-- 🎨 Open Frontend Agent  
+- 🎨 Open Frontend Agent
 - ⚙️ Open Backend Agent
 - 🧪 Open QA Agent
 - 🎭 Open ALL Agent Terminals (simultaneous)
@@ -57,7 +57,7 @@
 - `NODE_NO_WARNINGS=1` and `FORCE_COLOR=1` flags
 - Sequential startup with proper delays
 
-#### Window Management  
+#### Window Management
 - Consistent `:1` window indexing across all scripts
 - Fixed VS Code task window references
 - Proper session and window targeting
@@ -75,7 +75,7 @@ Tasks: Run Task → "🎭 Open ALL Agent Terminals"
 # Standard comprehensive check-in
 Tasks: Run Task → "👔 PM Check-in with All Agents"
 
-# Custom check-in for specific situations  
+# Custom check-in for specific situations
 Tasks: Run Task → "💬 PM Custom Check-in with All Agents"
 ```
 
@@ -99,7 +99,7 @@ tmux-message corporate-coach-frontend:2 "UI fixes needed for login flow"
 
 ### 🎯 Migration Guide
 For existing deployments:
-1. Update tmux.conf with `set -g base-index 1`  
+1. Update tmux.conf with `set -g base-index 1`
 2. Replace all scripts with new versions
 3. Update VS Code tasks.json with new task definitions
 4. Test agent communication with new auto-submit tmux-message

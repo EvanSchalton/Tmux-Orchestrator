@@ -49,7 +49,7 @@
    ```
    "Execute the PRD at ./prd-user-auth.md"
    ```
-   
+
    **Option B: Via CLI (Recommended)**
    ```bash
    tmux-orc execute ./prd-user-auth.md
@@ -59,18 +59,18 @@
    - Plan custom team composition based on PRD
    - Deploy the optimized team
    - Brief PM with workflow
-   
+
    **Option C: Manual orchestration**
    ```bash
    # Create project structure
    tmux-orc tasks create project-name --prd ./prd.md
-   
+
    # Plan team composition
    tmux-orc team compose project-name --prd ./prd.md
-   
+
    # Deploy custom team
    tmux-orc team deploy project-name --custom
-   
+
    # Brief PM manually
    ```
 

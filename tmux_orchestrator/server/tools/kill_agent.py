@@ -136,7 +136,7 @@ def _log_termination(target: str, reason: str, timestamp: datetime) -> None:
     import logging
 
     logger = logging.getLogger("agent_termination")
-    logger.info(f"Agent termination: target={target}, reason={reason}, " f"timestamp={timestamp.isoformat()}")
+    logger.info(f"Agent termination: target={target}, reason={reason}, timestamp={timestamp.isoformat()}")
 
 
 def _attempt_graceful_shutdown(tmux: TMUXManager, target: str) -> bool:

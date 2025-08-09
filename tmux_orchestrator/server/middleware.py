@@ -38,5 +38,5 @@ class TimingMiddleware(BaseHTTPMiddleware):
 
         except Exception as e:
             process_time = time.time() - start_time
-            logging.error(f"Error in {request.method} {request.url.path} " f"after {process_time:.4f}s: {str(e)}")
+            logging.error(f"Error in {request.method} {request.url.path} after {process_time:.4f}s: {str(e)}")
             raise

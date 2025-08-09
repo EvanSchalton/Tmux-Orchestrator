@@ -481,7 +481,7 @@ asyncio.run(run_recovery_daemon(
     max_concurrent_recoveries={max_concurrent},
     failure_threshold={failure_threshold},
     recovery_cooldown={cooldown},
-    log_level={'logging.DEBUG' if verbose else 'logging.INFO'}
+    log_level={"logging.DEBUG" if verbose else "logging.INFO"}
 ))
 """,
     ]

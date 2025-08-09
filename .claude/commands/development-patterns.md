@@ -42,7 +42,7 @@
   - **Service LSP**: Different implementations of a service interface should be interchangeable
   - **Service ISP**: Services should expose focused APIs tailored to specific client needs
   - **Service DIP**: Services should depend on abstract contracts, not concrete service implementations
-- **Interface Segregation Between Services**: 
+- **Interface Segregation Between Services**:
   - Design focused service contracts rather than monolithic APIs
   - Separate read and write operations into different interfaces when appropriate
   - Create client-specific service facades that expose only needed operations
@@ -118,7 +118,7 @@
 
 ### TDD Implementation
 - Write failing tests first (Red)
-- Implement minimal code to pass (Green) 
+- Implement minimal code to pass (Green)
 - Refactor while keeping tests green
 - Complete one sub-task at a time with user permission
 
@@ -137,4 +137,3 @@
 - Use PostgreSQL ARRAY type for list fields: `sa_column=Column(ARRAY(String))`
 - Store SQL queries in *.sql files within a 'sql' directory structure (e.g., `api/hr/sql/job_description/find_by_skills.sql`)
 - Load SQL queries using pathlib: `(Path(__file__).parent / "../sql/job_description/find_by_skills.sql").read_text()`
-

@@ -392,7 +392,7 @@ Each recovery event includes comprehensive metadata:
 ```json
 {
   "timestamp": "2024-01-15T10:30:45.123456",
-  "event_type": "recovery_success", 
+  "event_type": "recovery_success",
   "target": "tmux-orc-dev:4",
   "session": "tmux-orc-dev",
   "window": "4",
@@ -724,16 +724,16 @@ The bulletproof idle detection algorithm:
 def _check_idle_status_v2(tmux: TMUXManager, target: str) -> Dict[str, Any]:
     """4-snapshot idle detection with 100% accuracy."""
     snapshots: List[str] = []
-    
+
     # Take 4 snapshots at 300ms intervals
     for i in range(4):
         content: str = tmux.capture_pane(target, lines=1)
         last_line: str = content.strip().split('\n')[-1] if content else ""
         snapshots.append(last_line)
-        
+
         if i < 3:
             time.sleep(0.3)
-    
+
     # Agent is idle if all snapshots are identical
     return {
         'is_idle': all(s == snapshots[0] for s in snapshots),
@@ -775,7 +775,7 @@ def _check_idle_status_v2(tmux: TMUXManager, target: str) -> Dict[str, Any]:
 {
     "tmux-orc-dev:4:recovery_started": {
         "target": "tmux-orc-dev:4",
-        "type": "recovery_started", 
+        "type": "recovery_started",
         "timestamp": "2024-01-15T10:30:45.123456",
         "cooldown_minutes": 5
     }
@@ -884,8 +884,8 @@ def pre_recovery_hook(target: str, context: Dict[str, Any]) -> None:
     pass
 
 def post_recovery_hook(
-    target: str, 
-    success: bool, 
+    target: str,
+    success: bool,
     context: Dict[str, Any]
 ) -> None:
     """Called after recovery completes."""
@@ -927,6 +927,6 @@ The system's modular design and comprehensive API make it suitable for integrati
 
 For support or feature requests, please refer to the project repository or contact the development team.
 
-**Version**: 2.0.0  
-**Last Updated**: January 2024  
+**Version**: 2.0.0
+**Last Updated**: January 2024
 **Documentation Status**: Complete

@@ -152,13 +152,13 @@ class ErrorHandler:
         if any(word in error_msg for word in ["memory", "cpu", "resource", "limit"]):
             return ErrorCategory.RESOURCE
 
-        # Configuration errors
-        if any(word in error_msg for word in ["config", "setting", "invalid"]):
-            return ErrorCategory.CONFIGURATION
-
-        # Validation errors
+        # Validation errors (check type first)
         if error_type in ["ValueError", "ValidationError", "TypeError"]:
             return ErrorCategory.VALIDATION
+
+        # Configuration errors
+        if any(word in error_msg for word in ["config", "setting"]):
+            return ErrorCategory.CONFIGURATION
 
         return ErrorCategory.UNKNOWN
 
@@ -211,7 +211,8 @@ class ErrorHandler:
         with open(log_file, "a") as f:
             f.write(
                 f"{record.timestamp.isoformat()} | {record.severity.value.upper()} | "
-                f"{record.category.value} | {record.error_type}: {record.message}\n"
+                f"{record.category.value} | {record.error_type}: {record.message} | "
+                f"Operation: {record.context.operation}\n"
             )
             if record.traceback:
                 f.write(f"Traceback:\n{record.traceback}\n")
@@ -227,7 +228,7 @@ class ErrorHandler:
 
         logger.log(
             log_level,
-            f"{record.error_type}: {record.message} " f"[{record.category.value}] in {record.context.operation}",
+            f"{record.error_type}: {record.message} [{record.category.value}] in {record.context.operation}",
         )
 
     def _display_critical_error(self, record: ErrorRecord) -> None:
@@ -336,7 +337,7 @@ def retry_on_error(
                 except exceptions as e:
                     last_exception = e
                     if attempt < max_attempts - 1:
-                        logger.warning(f"Attempt {attempt + 1} failed: {e}. " f"Retrying in {delay} seconds...")
+                        logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay} seconds...")
                         time.sleep(delay)
                         delay *= backoff_factor
                     else:

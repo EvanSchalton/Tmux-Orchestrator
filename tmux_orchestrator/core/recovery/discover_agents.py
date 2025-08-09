@@ -121,7 +121,7 @@ def _is_claude_agent(tmux: TMUXManager, target: str, logger: logging.Logger) -> 
             logger.debug(f"Strong Claude indicators found in {target}: {strong_matches}")
             return True
         elif medium_matches >= 3:  # Multiple medium indicators
-            logger.debug(f"Multiple medium Claude indicators found in {target}: " f"{medium_matches}")
+            logger.debug(f"Multiple medium Claude indicators found in {target}: {medium_matches}")
             return True
         elif "claude" in content_lower and medium_matches >= 1:
             logger.debug(f"Claude name + medium indicators found in {target}")

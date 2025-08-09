@@ -287,7 +287,7 @@ class TestReportActivity:
             record_ids = []
             for i, agent in enumerate(agents):
                 request = ReportActivityRequest(
-                    agent_id=agent, activity_type=ActivityType.WORKING, description=f"Working on task {i+1}"
+                    agent_id=agent, activity_type=ActivityType.WORKING, description=f"Working on task {i + 1}"
                 )
                 result = report_activity(mock_tmux, request)
                 assert result.success

@@ -82,7 +82,7 @@ import sys
 try:
     with open('$DEVCONTAINER_FILE', 'r') as f:
         config = json.load(f)
-    
+
     # Add postCreateCommand
     if 'postCreateCommand' in config:
         # Append to existing command
@@ -91,20 +91,20 @@ try:
             config['postCreateCommand'] = existing + ' && bash scripts/install-tmux-orchestrator.sh'
     else:
         config['postCreateCommand'] = 'bash scripts/install-tmux-orchestrator.sh'
-    
+
     # Add environment variables
     if 'remoteEnv' not in config:
         config['remoteEnv'] = {}
-    
+
     config['remoteEnv']['TMUX_ORCHESTRATOR_HOME'] = '$PROJECT_PATH/.tmux-orchestrator'
     config['remoteEnv']['TMUX_ORCHESTRATOR_REGISTRY'] = '$PROJECT_PATH/.tmux-orchestrator/registry'
-    
+
     # Write updated configuration
     with open('$DEVCONTAINER_FILE', 'w') as f:
         json.dump(config, f, indent=2)
-    
+
     print("✓ devcontainer.json updated successfully")
-    
+
 except Exception as e:
     print(f"❌ Error updating devcontainer.json: {e}")
     sys.exit(1)
@@ -221,7 +221,7 @@ if [ -f "references/Tmux-Orchestrator/vscode/tasks-template.json" ]; then
     echo "   ✓ VS Code tasks configured for $PROJECT_NAME"
     echo "     - Deploy/restart team commands"
     echo "     - Agent listing and status"
-    echo "     - PM check-in and monitoring" 
+    echo "     - PM check-in and monitoring"
     echo "     - Quick agent access"
     echo "     - Emergency controls"
 else
@@ -266,7 +266,7 @@ Describe the overall goal of this development cycle.
 - [ ] Add accessibility features
 - [ ] Write component tests
 
-## Backend Tasks  
+## Backend Tasks
 - [ ] Create API endpoints
 - [ ] Implement business logic
 - [ ] Database schema updates
@@ -347,7 +347,7 @@ tmux-message $PROJECT_NAME-backend:0 "Run tests and report results"
 
 See \`references/Tmux-Orchestrator/\` for complete documentation:
 - \`SETUP.md\` - Setup and configuration
-- \`RUNNING.md\` - Day-to-day operations  
+- \`RUNNING.md\` - Day-to-day operations
 - \`CLAUDE.md\` - Agent behavior guide
 - \`Examples/\` - Screenshots and examples
 

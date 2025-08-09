@@ -131,7 +131,7 @@ def should_send_recovery_notification(
 
         if time_since_last >= cooldown_period:
             # Cooldown period has passed, allow notification
-            reason = f"Cooldown period passed for {target} ({time_since_last.total_seconds()/60:.1f}min >= {cooldown_minutes}min)"
+            reason = f"Cooldown period passed for {target} ({time_since_last.total_seconds() / 60:.1f}min >= {cooldown_minutes}min)"
             logger.info(reason)
 
             # Update state with current notification

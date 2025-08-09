@@ -170,9 +170,7 @@ def coordinate_agent_recovery(
         # Step 3: Agent needs recovery - check timeout before proceeding
         elapsed_time: float = (datetime.now() - recovery_start_time).total_seconds()
         if elapsed_time >= recovery_timeout:
-            timeout_message: str = (
-                f"Recovery timeout reached for {target} " f"({elapsed_time:.1f}s >= {recovery_timeout}s)"
-            )
+            timeout_message: str = f"Recovery timeout reached for {target} ({elapsed_time:.1f}s >= {recovery_timeout}s)"
             logger.error(timeout_message)
 
             recovery_data["recovery_successful"] = False
@@ -212,8 +210,7 @@ def coordinate_agent_recovery(
         # Step 5: Execute auto-restart if enabled
         if not enable_auto_restart:
             no_restart_message: str = (
-                f"Agent {target} needs recovery but auto-restart is disabled. "
-                f"Reason: {health_status.failure_reason}"
+                f"Agent {target} needs recovery but auto-restart is disabled. Reason: {health_status.failure_reason}"
             )
             logger.warning(no_restart_message)
 
@@ -301,7 +298,7 @@ def coordinate_agent_recovery(
 
         # Generate final status message and send final notification
         if restart_success and recovery_data.get("recovery_verified", True):
-            final_message: str = f"Recovery successful for {target} " f"in {total_duration:.1f}s: {restart_message}"
+            final_message: str = f"Recovery successful for {target} in {total_duration:.1f}s: {restart_message}"
             logger.info(final_message)
 
             # Send success notification
@@ -329,7 +326,7 @@ def coordinate_agent_recovery(
 
             return True, final_message, recovery_data
         else:
-            final_error: str = f"Recovery failed for {target} " f"after {total_duration:.1f}s: {restart_message}"
+            final_error: str = f"Recovery failed for {target} after {total_duration:.1f}s: {restart_message}"
             logger.error(final_error)
 
             # Send failure notification
@@ -364,7 +361,7 @@ def coordinate_agent_recovery(
         recovery_data["recovery_successful"] = False
         recovery_data["recovery_error"] = str(e)
 
-        exception_message: str = f"Recovery coordination failed for {target} " f"after {error_duration:.1f}s: {str(e)}"
+        exception_message: str = f"Recovery coordination failed for {target} after {error_duration:.1f}s: {str(e)}"
         logger.error(exception_message)
 
         return False, exception_message, recovery_data

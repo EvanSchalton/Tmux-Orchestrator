@@ -11,9 +11,9 @@ Always include this reinforcement:
 ```
 "Remember to proactively report your status after completing this step using the standard format:
 
-**STATUS UPDATE [Your-Name]**: 
+**STATUS UPDATE [Your-Name]**:
 ✅ Completed: [what you just finished]
-🔄 Currently: [what you're working on now] 
+🔄 Currently: [what you're working on now]
 🚧 Next: [what you'll do next]
 ⏱️ ETA: [expected completion time]
 ❌ Blockers: [any issues or dependencies]"
@@ -30,7 +30,7 @@ Always include this reinforcement:
 ```
 "You appear to be idle. Please provide your current status:
 ✅ Last Completed: [what did you finish?]
-🔄 Currently: [what are you working on?] 
+🔄 Currently: [what are you working on?]
 ❌ Blockers: [any issues stopping progress?]
 
 Going forward, remember to proactively report status after each major step."
@@ -71,7 +71,7 @@ Going forward, remember to proactively report status after each major step."
 
 **TASK**: [clear description]
 **PRIORITY**: [High/Med/Low]
-**SUCCESS CRITERIA**: 
+**SUCCESS CRITERIA**:
 - [measurable outcome 1]
 - [measurable outcome 2]
 
@@ -142,7 +142,7 @@ Take a moment to get back online - no rush."
 "Welcome back! Here's your current context:
 
 **Project**: [project name and purpose]
-**Your Role**: [agent type and responsibilities]  
+**Your Role**: [agent type and responsibilities]
 **Last Completed**: [what they finished before timeout]
 **Current Task**: [what they should work on]
 **Priority**: [task priority level]

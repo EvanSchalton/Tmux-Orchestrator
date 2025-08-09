@@ -96,9 +96,7 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
     # Display session header
     session_info: dict[str, str] = team_status["session_info"]
     attached: str = "Yes" if session_info.get("attached") == "1" else "No"
-    header_text: str = (
-        f"Session: {session} | " f"Created: {session_info.get('created', 'Unknown')} | " f"Attached: {attached}"
-    )
+    header_text: str = f"Session: {session} | Created: {session_info.get('created', 'Unknown')} | Attached: {attached}"
     console.print(Panel(header_text, style="bold blue"))
 
     # Create team status table
@@ -124,7 +122,7 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
 
     # Show summary
     summary: dict[str, int] = team_status["summary"]
-    summary_text: str = f"Total Windows: {summary['total_windows']} | " f"Active Agents: {summary['active_agents']}"
+    summary_text: str = f"Total Windows: {summary['total_windows']} | Active Agents: {summary['active_agents']}"
     console.print(f"\n[bold green]{summary_text}[/bold green]")
 
 
@@ -254,9 +252,9 @@ def broadcast(ctx: click.Context, session: str, message: str, json: bool) -> Non
     # Display detailed results
     for result in results:
         if result["success"]:
-            console.print(f"[green]✓ Message sent to {result['window_name']} " f"({result['target']})[/green]")
+            console.print(f"[green]✓ Message sent to {result['window_name']} ({result['target']})[/green]")
         else:
-            console.print(f"[red]✗ Failed to send message to {result['window_name']} " f"({result['target']})[/red]")
+            console.print(f"[red]✗ Failed to send message to {result['window_name']} ({result['target']})[/red]")
 
     console.print(f"\n[bold]{summary_message}[/bold]")
 

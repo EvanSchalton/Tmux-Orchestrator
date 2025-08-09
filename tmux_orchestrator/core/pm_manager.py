@@ -146,7 +146,7 @@ Please read the task file and create an implementation plan."""
 
     def _build_status_report(self, agents: list[dict]) -> str:
         """Build a status report for PM."""
-        report = f"""📊 TEAM STATUS REPORT - {datetime.now().strftime('%Y-%m-%d %H:%M')}
+        report = f"""📊 TEAM STATUS REPORT - {datetime.now().strftime("%Y-%m-%d %H:%M")}
 ========================================
 
 AGENT STATUS:"""
@@ -164,7 +164,7 @@ AGENT STATUS:"""
 
             report += f"""
 
-{agent['type']} Agent ({target}):
+{agent["type"]} Agent ({target}):
 - Status: {status}
 - Last Activity: {last_output}"""
 

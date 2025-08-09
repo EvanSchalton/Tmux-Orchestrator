@@ -72,7 +72,7 @@ def _deploy_frontend_team(tmux: TMUXManager, session_name: str, size: int, proje
     # Deploy frontend developers
     remaining_slots = size - 1  # Subtract PM
     for i in range(min(remaining_slots, 3)):  # Max 3 frontend devs
-        window_name = f"Frontend-Dev-{i+1}" if remaining_slots > 1 else "Frontend-Dev"
+        window_name = f"Frontend-Dev-{i + 1}" if remaining_slots > 1 else "Frontend-Dev"
         if tmux.create_window(session_name, window_name, project_dir):
             _start_claude_agent(tmux, f"{session_name}:{window_name}", "frontend-developer")
             agents_deployed += 1
@@ -98,7 +98,7 @@ def _deploy_backend_team(tmux: TMUXManager, session_name: str, size: int, projec
     # Deploy backend developers
     remaining_slots = size - 1
     for i in range(min(remaining_slots, 3)):
-        window_name = f"Backend-Dev-{i+1}" if remaining_slots > 1 else "Backend-Dev"
+        window_name = f"Backend-Dev-{i + 1}" if remaining_slots > 1 else "Backend-Dev"
         if tmux.create_window(session_name, window_name, project_dir):
             _start_claude_agent(tmux, f"{session_name}:{window_name}", "backend-developer")
             agents_deployed += 1
@@ -128,7 +128,7 @@ def _deploy_fullstack_team(tmux: TMUXManager, session_name: str, size: int, proj
     for i in range(remaining_slots):
         role = roles[i % len(roles)]
         window_name = (
-            f"{role.replace('-', '-').title()}-{(i//len(roles))+1}"
+            f"{role.replace('-', '-').title()}-{(i // len(roles)) + 1}"
             if remaining_slots > len(roles)
             else role.replace("-", "-").title()
         )
@@ -152,7 +152,7 @@ def _deploy_testing_team(tmux: TMUXManager, session_name: str, size: int, projec
     # Deploy QA engineers
     remaining_slots = size - 1
     for i in range(remaining_slots):
-        window_name = f"QA-Engineer-{i+1}" if remaining_slots > 1 else "QA-Engineer"
+        window_name = f"QA-Engineer-{i + 1}" if remaining_slots > 1 else "QA-Engineer"
         if tmux.create_window(session_name, window_name, project_dir):
             _start_claude_agent(tmux, f"{session_name}:{window_name}", "qa")
             agents_deployed += 1

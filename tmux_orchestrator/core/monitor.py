@@ -305,8 +305,7 @@ class IdleMonitor:
             # Check for Claude crash
             if failure_reason == "Claude interface not found":
                 logger.error(
-                    f"CRASH DETECTED: Claude Code appears to have crashed for {target} | "
-                    f"Recovery needed immediately"
+                    f"CRASH DETECTED: Claude Code appears to have crashed for {target} | Recovery needed immediately"
                 )
                 # Send crash notification to PM
                 self._notify_crash(tmux, target, logger)
@@ -322,7 +321,7 @@ class IdleMonitor:
                     f"Interface: {status_details['interface_status']}"
                 )
             elif status_details["is_idle"]:
-                logger.info(f"Agent {target} is idle | " f"Interface: {status_details['interface_status']}")
+                logger.info(f"Agent {target} is idle | Interface: {status_details['interface_status']}")
                 # Check if PM should be notified about idle agent
                 self._check_idle_notification(tmux, target, logger)
             else:

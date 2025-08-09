@@ -7,7 +7,7 @@
 ### CLI Implementation
 - `tmux_orchestrator/cli/__init__.py` - Main CLI entry point with Click commands
 - `tmux_orchestrator/cli/team.py` - Team management commands (deploy, status, recover)
-- `tmux_orchestrator/cli/orchestrator.py` - Orchestrator operations (schedule, list)  
+- `tmux_orchestrator/cli/orchestrator.py` - Orchestrator operations (schedule, list)
 - `tmux_orchestrator/cli/setup.py` - VS Code setup command implementation
 - `tests/cli/test_cli_init.py` - Unit tests for main CLI
 - `tests/cli/test_team.py` - Unit tests for team commands
@@ -16,7 +16,7 @@
 
 ### MCP Server Implementation
 - `tmux_orchestrator/server/routes/agent_management.py` - Agent spawn/restart/kill routes
-- `tmux_orchestrator/server/routes/communication.py` - Message and broadcast routes  
+- `tmux_orchestrator/server/routes/communication.py` - Message and broadcast routes
 - `tmux_orchestrator/server/routes/monitoring.py` - Status and activity reporting routes
 - `tmux_orchestrator/server/routes/coordination.py` - Team creation and handoff routes
 - `tmux_orchestrator/server/models/` - Pydantic request/response models
@@ -96,7 +96,7 @@
   - [ ] 3.9 Follow one-function-per-file pattern strictly for business logic
   - [ ] 3.10 Implement proper error handling with clear error messages
 
-- [ ] 4.0 MCP Server Routes Implementation  
+- [ ] 4.0 MCP Server Routes Implementation
   - [ ] 4.1 Complete `tmux_orchestrator/server/__init__.py` FastAPI app setup
   - [ ] 4.2 Create `tmux_orchestrator/server/routes/agent_management.py` with spawn/restart/kill
   - [ ] 4.3 Create `tmux_orchestrator/server/routes/communication.py` with messaging tools
@@ -124,7 +124,7 @@
 - [ ] 6.0 VS Code Integration and Templates
   - [ ] 6.1 Create `tmux_orchestrator/templates/vscode_tasks.json` template
   - [ ] 6.2 Implement `tmux-orc setup-vscode` command with project directory support
-  - [ ] 6.3 Generate tasks.json with all CLI commands and proper labels  
+  - [ ] 6.3 Generate tasks.json with all CLI commands and proper labels
   - [ ] 6.4 Add interactive inputs for common parameters (component, role, session)
   - [ ] 6.5 Include task categories and keyboard shortcuts in generated file
   - [ ] 6.6 Test generated tasks work in VS Code with different terminals
@@ -169,7 +169,7 @@
 
 - [ ] 10.0 Deployment and Integration Testing
   - [ ] 10.1 Test installation via Poetry in fresh environment
-  - [ ] 10.2 Verify CLI works in multiple terminal environments  
+  - [ ] 10.2 Verify CLI works in multiple terminal environments
   - [ ] 10.3 Test MCP server startup and tool discovery
   - [ ] 10.4 Run end-to-end test: deploy team, monitor, recover failed agent
   - [ ] 10.5 Validate agent autonomy through MCP tools
@@ -181,6 +181,6 @@
 
 ---
 
-*Target Implementation Time: 4-6 weeks for junior developer*  
-*Prerequisites: Familiarity with Python, Click, FastAPI, tmux*  
+*Target Implementation Time: 4-6 weeks for junior developer*
+*Prerequisites: Familiarity with Python, Click, FastAPI, tmux*
 *Success Criteria: All 34 functional requirements implemented with 100% test coverage*

@@ -210,7 +210,9 @@ class TestHandoffWork:
         """Test handoff_work validates work description length."""
         tmux = Mock(spec=TMUXManager)
         request = HandoffWorkRequest(
-            from_agent="dev:0", to_agent="dev:1", work_description="x" * 2001  # Exceeds 2000 char limit
+            from_agent="dev:0",
+            to_agent="dev:1",
+            work_description="x" * 2001,  # Exceeds 2000 char limit
         )
 
         result = handoff_work(tmux, request)

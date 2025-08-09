@@ -16,7 +16,7 @@ def mock_tmux():
 @pytest.fixture
 def mock_logger():
     """Create a mock logger for testing."""
-    with patch("tmux_orchestrator.server.tools.kill_agent.logging.getLogger") as mock_get_logger:
+    with patch("logging.getLogger") as mock_get_logger:
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
         yield mock_logger

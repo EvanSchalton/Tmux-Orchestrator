@@ -327,7 +327,7 @@ Responsibilities:
             spoke_message = f"""COORDINATION SETUP:
 You are a SPOKE in a hub-and-spoke coordination pattern.
 
-Your hub agent: {hub_agent['type']} ({hub_target})
+Your hub agent: {hub_agent["type"]} ({hub_target})
 
 Responsibilities:
 - Report status updates to your hub

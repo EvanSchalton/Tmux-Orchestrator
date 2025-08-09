@@ -4,9 +4,9 @@ Guidelines for managing task lists in markdown files to track progress on comple
 
 ## Task Implementation
 Use subagents whenever possible
-- **Completion protocol:**  
+- **Completion protocol:**
   1. When you begin working on a task, immediately mark it as in progress by changing `[ ]` to `[-]`
-  2. When you finish a **sub‑task**, immediately mark it as completed by changing `[-]` to `[x]`.  
+  2. When you finish a **sub‑task**, immediately mark it as completed by changing `[-]` to `[x]`.
   3. If **all** subtasks underneath a parent task are now `[x]`, also mark the **parent task** as completed.
 
 ## Task List Maintenance

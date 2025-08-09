@@ -113,7 +113,7 @@ team:
       role: developer
       window: 2
     - type: backend
-      role: developer  
+      role: developer
       window: 2
     - type: testing
       role: qa
@@ -122,7 +122,7 @@ team:
 monitoring:
   idle_check_interval: 10
   notification_cooldown: 300
-  
+
 orchestrator:
   auto_commit_interval: 1800  # 30 minutes
   health_check_interval: 60

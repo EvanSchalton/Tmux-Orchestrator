@@ -139,7 +139,7 @@ Modify the briefings in `scripts/tmux-deploy-team.sh` to match your project:
 # Frontend briefing for React project
 "You are the Frontend Developer for $PROJECT_NAME. Focus on React components..."
 
-# Backend briefing for FastAPI project  
+# Backend briefing for FastAPI project
 "You are the Backend Developer for $PROJECT_NAME. Focus on FastAPI endpoints..."
 ```
 

@@ -14,7 +14,7 @@ tmux-orc publish --session frontend:0 "Run tests please"
 tmux-orc publish --group development "Code freeze at 3pm"
 tmux-orc publish --session qa:0 --priority high --tag bug "P0 bug found"
 
-# Read agent output  
+# Read agent output
 tmux-orc read --session backend:0 --tail 100
 tmux-orc read --session frontend:0 --since "2024-01-01T10:00:00"
 

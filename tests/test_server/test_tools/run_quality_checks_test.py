@@ -58,9 +58,11 @@ class TestRunQualityChecks:
             project_path="/test/project", check_types=["tests", "linting", "formatting"], task_id="task_001"
         )
 
-        with patch("pathlib.Path.exists", return_value=True), patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.run_quality_checks._save_check_results"
-        ) as mock_save:
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._save_check_results") as mock_save,
+        ):
             # Mock successful subprocess runs
             mock_run.return_value = MagicMock(returncode=0, stdout="All tests passed", stderr="")
             mock_save.return_value = True
@@ -78,9 +80,11 @@ class TestRunQualityChecks:
         tmux = Mock(spec=TMUXManager)
         request = QualityCheckRequest(project_path="/test/project", check_types=["tests", "linting"], fail_fast=False)
 
-        with patch("pathlib.Path.exists", return_value=True), patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.run_quality_checks._save_check_results"
-        ) as mock_save:
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._save_check_results") as mock_save,
+        ):
             # Mock mixed results
             def mock_subprocess_run(cmd, *args, **kwargs):
                 if "pytest" in cmd:
@@ -105,9 +109,11 @@ class TestRunQualityChecks:
             project_path="/test/project", check_types=["tests", "linting", "formatting"], fail_fast=True
         )
 
-        with patch("pathlib.Path.exists", return_value=True), patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.run_quality_checks._save_check_results"
-        ) as mock_save:
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._save_check_results") as mock_save,
+        ):
             # First check fails
             mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Test failed")
             mock_save.return_value = True
@@ -127,9 +133,11 @@ class TestRunQualityChecks:
 
         request = QualityCheckRequest(project_path="/test/project", check_types=["tests"], report_to_agent="pm:0")
 
-        with patch("pathlib.Path.exists", return_value=True), patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.run_quality_checks._save_check_results"
-        ) as mock_save:
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._save_check_results") as mock_save,
+        ):
             mock_run.return_value = MagicMock(returncode=0, stdout="All passed", stderr="")
             mock_save.return_value = True
 
@@ -260,9 +268,12 @@ class TestRunQualityChecks:
             project_path="/test/project", check_types=["tests", "linting"], task_id="task_001", block_on_failure=True
         )
 
-        with patch("pathlib.Path.exists", return_value=True), patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.run_quality_checks._save_check_results"
-        ) as mock_save, patch("tmux_orchestrator.server.tools.run_quality_checks._update_task_status") as mock_update:
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._save_check_results") as mock_save,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._update_task_status") as mock_update,
+        ):
             mock_run.return_value = MagicMock(returncode=0, stdout="All good", stderr="")
             mock_save.return_value = True
             mock_update.return_value = True
@@ -282,9 +293,12 @@ class TestRunQualityChecks:
             project_path="/test/project", check_types=["tests"], task_id="task_001", block_on_failure=True
         )
 
-        with patch("pathlib.Path.exists", return_value=True), patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.run_quality_checks._save_check_results"
-        ) as mock_save, patch("tmux_orchestrator.server.tools.run_quality_checks._update_task_status") as mock_update:
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._save_check_results") as mock_save,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._update_task_status") as mock_update,
+        ):
             mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Tests failed")
             mock_save.return_value = True
             mock_update.return_value = True
@@ -306,9 +320,11 @@ class TestRunQualityChecks:
         tmux = Mock(spec=TMUXManager)
         request = QualityCheckRequest(project_path="/test/project", check_types=[check_type])
 
-        with patch("pathlib.Path.exists", return_value=True), patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.run_quality_checks._save_check_results"
-        ) as mock_save:
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._save_check_results") as mock_save,
+        ):
             mock_run.return_value = MagicMock(returncode=0, stdout="Pass", stderr="")
             mock_save.return_value = True
 
@@ -337,9 +353,11 @@ class TestRunQualityChecks:
             project_path="/test/project", check_types=["tests"], custom_commands={"tests": "make test"}
         )
 
-        with patch("pathlib.Path.exists", return_value=True), patch("subprocess.run") as mock_run, patch(
-            "tmux_orchestrator.server.tools.run_quality_checks._save_check_results"
-        ) as mock_save:
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("subprocess.run") as mock_run,
+            patch("tmux_orchestrator.server.tools.run_quality_checks._save_check_results") as mock_save,
+        ):
             mock_run.return_value = MagicMock(returncode=0, stdout="Custom test passed", stderr="")
             mock_save.return_value = True
 

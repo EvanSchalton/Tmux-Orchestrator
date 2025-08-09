@@ -49,14 +49,14 @@ graph TD
     PM[Project Manager] --> |assigns tasks| Agent1[Agent 1]
     PM --> |assigns tasks| Agent2[Agent 2]
     PM --> |coordinates| Agent3[Agent 3]
-    
+
     Agent1 --> |status updates| PM
     Agent2 --> |status updates| PM
     Agent3 --> |status updates| PM
-    
+
     Agent1 <--> |API contracts| Agent2
     Agent2 <--> |test scenarios| Agent3
-    
+
     PM --> |reports to| Orchestrator[Orchestrator]
     Orchestrator --> |strategic guidance| PM
 ```
