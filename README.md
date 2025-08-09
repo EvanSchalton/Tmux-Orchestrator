@@ -6,7 +6,6 @@
   **Run AI agents 24/7 while you sleep**
 
   [![CI/CD Pipeline](https://github.com/EvanSchalton/Tmux-Orchestrator/actions/workflows/tests.yml/badge.svg)](https://github.com/EvanSchalton/Tmux-Orchestrator/actions/workflows/tests.yml)
-  [![codecov](https://codecov.io/gh/EvanSchalton/Tmux-Orchestrator/branch/main/graph/badge.svg)](https://codecov.io/gh/EvanSchalton/Tmux-Orchestrator)
   [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
   The Tmux Orchestrator enables Claude agents to work autonomously, schedule their own check-ins, and coordinate across multiple projects without human intervention.
