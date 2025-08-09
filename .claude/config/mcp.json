@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "tmux-orchestrator": {
+      "command": "tmux-orc",
+      "args": [
+        "server",
+        "mcp-serve"
+      ],
+      "env": {
+        "TMUX_ORC_MODE": "mcp"
+      }
+    }
+  }
+}

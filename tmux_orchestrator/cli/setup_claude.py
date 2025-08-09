@@ -231,17 +231,49 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
         commands_dir = claude_path / "commands"
         commands_dir.mkdir(exist_ok=True)
 
-        # Install slash commands from embedded data
-        from tmux_orchestrator.claude_commands import SLASH_COMMANDS
+        # Install slash commands from package data
+        import importlib.resources
 
         commands_installed = 0
-        console.print(f"[dim]Installing {len(SLASH_COMMANDS)} slash commands[/dim]")
+        try:
+            # For Python 3.11+, use files() API
+            if hasattr(importlib.resources, "files"):
+                command_files = importlib.resources.files("tmux_orchestrator.claude_commands")
+                # Get all .md files in the package
+                command_list = [f for f in command_files.iterdir() if f.name.endswith(".md")]
+                console.print(f"[dim]Installing {len(command_list)} slash commands[/dim]")
 
-        for filename, content in SLASH_COMMANDS.items():
-            dest_file = commands_dir / filename
-            if force or not dest_file.exists():
-                dest_file.write_text(content)
-                commands_installed += 1
+                # Copy each command file
+                for cmd_file in command_list:
+                    dest_file = commands_dir / cmd_file.name
+                    if force or not dest_file.exists():
+                        content = cmd_file.read_text()
+                        dest_file.write_text(content)
+                        commands_installed += 1
+            else:
+                # Fallback for older Python versions
+                import pkg_resources
+
+                command_names = []
+                for resource in pkg_resources.resource_listdir("tmux_orchestrator", "claude_commands"):
+                    if resource.endswith(".md"):
+                        command_names.append(resource)
+
+                console.print(f"[dim]Installing {len(command_names)} slash commands[/dim]")
+
+                # Copy each command file
+                for cmd_name in command_names:
+                    dest_file = commands_dir / cmd_name
+                    if force or not dest_file.exists():
+                        content = pkg_resources.resource_string("tmux_orchestrator.claude_commands", cmd_name).decode(
+                            "utf-8"
+                        )
+                        dest_file.write_text(content)
+                        commands_installed += 1
+
+        except Exception as e:
+            console.print(f"[red]Error installing slash commands: {e}[/red]")
+            console.print("[yellow]Commands may not be available[/yellow]")
 
         console.print(f"[green]✓ Installed {commands_installed} slash commands[/green]")
 

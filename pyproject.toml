@@ -5,6 +5,9 @@ description = "AI-powered tmux session orchestrator with CLI and MCP server"
 authors = ["TMUX Orchestrator Team"]
 readme = "README.md"
 packages = [{include = "tmux_orchestrator"}]
+include = [
+    "tmux_orchestrator/claude_commands/*.md"
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
