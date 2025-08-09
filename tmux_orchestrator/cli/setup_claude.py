@@ -179,23 +179,32 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
                 claude_path = project_claude
             console.print(f"[green]Using default Claude directory: {claude_path}[/green]")
         else:
-            console.print("\nSelect Claude configuration location:")
-            console.print(
-                "1. Project directory (recommended for devcontainers): [cyan]" + str(project_claude) + "[/cyan]"
+            # Determine the default path based on what exists
+            if default_choice == 2:
+                default_path = str(home_claude)
+            else:
+                default_path = str(project_claude)
+
+            console.print("\n[yellow]Enter Claude configuration directory:[/yellow]")
+            console.print(f"[dim](Press Enter to use: {default_path})[/dim]")
+
+            user_input = click.prompt(
+                "Path",
+                default=default_path,
+                show_default=False,  # We're showing it above in a nicer format
+                type=click.Path(resolve_path=True),
             )
-            console.print("2. Home directory (for system-wide use): [cyan]" + str(home_claude) + "[/cyan]")
-            console.print("3. Cancel setup")
 
-            choice = click.prompt("Enter choice", type=int, default=default_choice, show_default=True)
-
-            if choice == 3:
+            if user_input.lower() in ["cancel", "quit", "exit", "q"]:
                 console.print("[yellow]Setup cancelled.[/yellow]")
                 return
-            elif choice == 2:
-                claude_path = home_claude
-            else:
-                claude_path = project_claude
 
+            # Handle the path - if user already included .claude, don't add it again
+            user_path = Path(user_input)
+            if user_path.name == ".claude":
+                claude_path = user_path
+            else:
+                claude_path = user_path / ".claude"
             console.print(f"\n[green]Using Claude directory: {claude_path}[/green]")
     else:
         # Use provided root directory
