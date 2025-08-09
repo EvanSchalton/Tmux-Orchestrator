@@ -145,14 +145,30 @@ def status() -> None:
         console.print("[red]✗ Cannot connect to MCP server on port 8000[/red]")
 
 
+@server.command(name="mcp-serve")
+def mcp_serve() -> None:
+    """Run the MCP server in stdio mode for Claude Code.
+
+    This command starts the MCP server using stdio transport,
+    which Claude Code can use directly via the 'tmux-orc server mcp-serve' command.
+
+    This is the preferred way to use tmux-orchestrator with Claude Code.
+    """
+    import asyncio
+
+    from tmux_orchestrator.mcp_server import main
+
+    # Run the MCP server
+    asyncio.run(main())
+
+
 @server.command()
 def setup() -> None:
     """Setup MCP server configuration for Claude Code.
 
     This command will:
-    1. Start the MCP server if not running
-    2. Add it to Claude Code using 'claude mcp add'
-    3. Verify the configuration
+    1. Configure Claude Code to use the stdio MCP server
+    2. Verify the configuration
     """
     console.print("[blue]Setting up MCP server for Claude Code...[/blue]")
 
@@ -161,63 +177,25 @@ def setup() -> None:
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        # Step 1: Start server if not running
-        task = progress.add_task("Starting MCP server...", total=3)
+        # Step 1: Check if tmux-orc command is available
+        task = progress.add_task("Checking tmux-orc installation...", total=3)
 
-        server_started = False
         try:
-            import requests  # type: ignore[import-untyped]
-
-            response = requests.get("http://127.0.0.1:8000/health", timeout=2)
-            if response.status_code == 200:
-                console.print("[green]✓ MCP server already running[/green]")
-                server_started = True
-            else:
-                raise requests.exceptions.RequestException()
-        except requests.exceptions.RequestException:
-            # Start server in background
-            # Try console script first
-            try:
-                process = subprocess.Popen(
-                    ["tmux-orc-server"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            except FileNotFoundError:
-                # Fall back to module
-                process = subprocess.Popen(
-                    [sys.executable, "-m", "tmux_orchestrator.server"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-
-            console.print("[dim]Starting MCP server in background...[/dim]")
-
-            # Wait for server to start with retries
-            for attempt in range(10):  # Try 10 times
-                time.sleep(1)
-                try:
-                    response = requests.get("http://127.0.0.1:8000/health", timeout=2)
-                    if response.status_code == 200:
-                        server_started = True
-
-                        # Save PID for later
-                        pid_file = Path.home() / ".tmux_orchestrator" / "mcp_server.pid"
-                        pid_file.parent.mkdir(exist_ok=True)
-                        pid_file.write_text(str(process.pid))
-                        break
-                except requests.exceptions.RequestException:
-                    continue
-
-        if not server_started:
-            console.print("[red]✗ Setup failed: Could not start MCP server[/red]")
-            console.print("[yellow]Try running 'tmux-orc server start' manually to see any error messages[/yellow]")
+            result = subprocess.run(["tmux-orc", "--version"], capture_output=True, text=True)
+            if result.returncode != 0:
+                console.print("[red]✗ tmux-orc command not found[/red]")
+                console.print("[yellow]Make sure tmux-orchestrator is installed correctly[/yellow]")
+                return
+            console.print("[green]✓ tmux-orc command is available[/green]")
+        except FileNotFoundError:
+            console.print("[red]✗ tmux-orc command not found[/red]")
+            console.print("[yellow]Make sure tmux-orchestrator is installed correctly[/yellow]")
             return
 
         progress.update(task, advance=1)
 
         # Step 2: Add MCP server to Claude Code
-        progress.update(task, description="Adding MCP server to Claude Code...")
+        progress.update(task, description="Configuring Claude Code...")
 
         # Check if already added
         try:
@@ -229,10 +207,10 @@ def setup() -> None:
         except (subprocess.CalledProcessError, FileNotFoundError):
             pass  # Claude CLI might not be installed or no servers configured
 
-        # Add the MCP server using HTTP transport
+        # Add the MCP server using stdio transport
         try:
             result = subprocess.run(
-                ["claude", "mcp", "add", "tmux-orchestrator", "http://127.0.0.1:8000", "-t", "http"],
+                ["claude", "mcp", "add", "tmux-orchestrator", "tmux-orc", "server", "mcp-serve"],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -255,15 +233,6 @@ def setup() -> None:
         progress.update(task, description="Verifying setup...")
 
         try:
-            # Verify server is responding
-            import requests  # type: ignore[import-untyped]
-
-            response = requests.get("http://127.0.0.1:8000/", timeout=2)
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("protocol") == "MCP":
-                    console.print("[green]✓ MCP server is responding correctly[/green]")
-
             # Verify Claude Code configuration
             result = subprocess.run(["claude", "mcp", "list"], capture_output=True, text=True, check=True)
             if "tmux-orchestrator" in result.stdout:
@@ -279,21 +248,21 @@ def setup() -> None:
     console.print(
         Panel(
             "[green]✓ MCP server setup complete![/green]\n\n"
-            "The server is now available to Claude Code.\n"
+            "The tmux-orchestrator MCP server is now available to Claude Code.\n"
             "You may need to restart Claude Code or run /mcp to see the tools.\n\n"
-            "[bold]Server endpoints:[/bold]\n"
-            "• Health: http://127.0.0.1:8000/health\n"
-            "• API Docs: http://127.0.0.1:8000/docs\n"
-            "• OpenAPI: http://127.0.0.1:8000/openapi.json\n\n"
             "[bold]Available MCP tools:[/bold]\n"
-            "• spawn_agent, restart_agent, kill_agent\n"
-            "• send_message, broadcast_message\n"
-            "• deploy_team, coordinate_standup\n"
-            "• create_task, track_task_status\n"
-            "• And many more...\n\n"
+            "• list_agents - List all active tmux sessions\n"
+            "• spawn_agent - Create new Claude agents\n"
+            "• send_message - Send messages to agents\n"
+            "• restart_agent - Restart agents\n"
+            "• deploy_team - Deploy agent teams\n"
+            "• get_agent_status - Check agent status\n\n"
             "[bold]Usage in Claude Code:[/bold]\n"
             "• Run /mcp to see available tools\n"
-            "• Tools will appear with 'tmux-orchestrator' prefix",
+            "• Tools will appear with 'tmux-orchestrator' prefix\n\n"
+            "[bold]Manual testing:[/bold]\n"
+            "You can test the MCP server directly:\n"
+            "tmux-orc server mcp-serve",
             title="MCP Server Setup Complete",
             style="green",
         )

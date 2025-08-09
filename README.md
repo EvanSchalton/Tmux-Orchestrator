@@ -94,25 +94,44 @@ tmux-orc orchestrator start
 
 ### 🌐 MCP Server Setup
 
-The Model Context Protocol (MCP) server provides a REST API for programmatic agent control. This enables Claude Code and other MCP-compatible tools to manage agents directly.
+The Model Context Protocol (MCP) server enables Claude Code and other MCP-compatible tools to manage agents directly using a stdio-based interface.
 
 #### Quick Setup (Recommended)
 ```bash
-# Run complete setup including MCP server
-tmux-orc setup all
-
-# Or setup just the MCP server
+# Configure tmux-orchestrator for Claude Code
 tmux-orc server setup
 ```
 
 This will:
-1. Start the MCP server on `http://127.0.0.1:8000`
-2. Configure it for Claude Code using `claude mcp add`
-3. Make all orchestration tools available via MCP
+1. Verify tmux-orc is installed correctly
+2. Configure Claude Code to use `tmux-orc server mcp-serve`
+3. Make all orchestration tools available in Claude Code
 
-#### Manual Server Management
+#### Available MCP Tools
+- **list_agents** - List all active tmux sessions and agents
+- **spawn_agent** - Create new Claude agents (developer, pm, qa, etc.)
+- **send_message** - Send messages to specific agents
+- **restart_agent** - Restart agents in their sessions
+- **deploy_team** - Deploy specialized agent teams
+- **get_agent_status** - Get detailed agent status information
+
+#### Claude Code Integration
+After setup, in Claude Code:
+- Run `/mcp` to see available tools
+- Tools appear with 'tmux-orchestrator' prefix
+- You may need to restart Claude Code after setup
+
+#### Manual Testing
+You can test the MCP server directly:
 ```bash
-# Start MCP server
+# Run MCP server in stdio mode (for debugging)
+tmux-orc server mcp-serve
+```
+
+#### HTTP Server (Alternative)
+For programmatic access via REST API:
+```bash
+# Start HTTP server
 tmux-orc server start
 
 # Start in background
@@ -125,24 +144,10 @@ tmux-orc server status
 tmux-orc server stop
 ```
 
-#### API Access
 Once running, you can access:
 - **API Documentation**: http://127.0.0.1:8000/docs
 - **OpenAPI Schema**: http://127.0.0.1:8000/openapi.json
 - **Health Check**: http://127.0.0.1:8000/health
-
-Available API endpoints include:
-- `/agents/*` - Agent lifecycle management
-- `/messages/*` - Inter-agent communication
-- `/tasks/*` - Task assignment and tracking
-- `/coordination/*` - Team deployment
-- `/monitor/*` - System monitoring
-
-#### Claude Code Integration
-The MCP server is automatically configured for Claude Code during setup. In Claude Code:
-- Run `/mcp` to see available tools
-- Tools appear with 'tmux-orchestrator' prefix
-- You may need to restart Claude Code after setup
 
 ### 🔧 Integrating into Your Project
 
