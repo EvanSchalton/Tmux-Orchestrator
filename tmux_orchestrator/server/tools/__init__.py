@@ -1,5 +1,11 @@
 """Business logic tools for MCP server operations."""
 
+from tmux_orchestrator.server.tools.assign_task import (
+    assign_task,
+    get_agent_workload,
+    list_available_agents,
+    reassign_task,
+)
 from tmux_orchestrator.server.tools.broadcast_message import broadcast_message
 from tmux_orchestrator.server.tools.create_team import create_team
 from tmux_orchestrator.server.tools.get_agent_status import get_agent_status
@@ -20,15 +26,19 @@ from tmux_orchestrator.server.tools.track_task_status import (
 )
 
 __all__ = [
+    "assign_task",
     "broadcast_message",
     "create_team",
     "get_agent_status",
+    "get_agent_workload",
     "get_messages",
     "get_session_status",
     "get_task_status",
     "handoff_work",
     "kill_agent",
+    "list_available_agents",
     "list_tasks_by_status",
+    "reassign_task",
     "report_activity",
     "restart_agent",
     "schedule_checkin",
