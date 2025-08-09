@@ -6,7 +6,6 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -27,9 +26,9 @@ class ScheduleCheckinRequest:
     message: str
     schedule_time: datetime
     schedule_type: ScheduleType = ScheduleType.ONE_TIME
-    recurring_interval: Optional[float] = None  # Hours between recurring check-ins
-    recurring_days: Optional[list[str]] = None  # Days of week for weekly schedules
-    schedule_id: Optional[str] = None  # For updating existing schedules
+    recurring_interval: float | None = None  # Hours between recurring check-ins
+    recurring_days: list[str] | None = None  # Days of week for weekly schedules
+    schedule_id: str | None = None  # For updating existing schedules
 
 
 @dataclass
@@ -41,10 +40,10 @@ class CheckinSchedule:
     message: str
     schedule_time: datetime
     schedule_type: ScheduleType
-    recurring_interval: Optional[float] = None
-    recurring_days: Optional[list[str]] = None
-    created_at: datetime = None
-    last_executed: Optional[datetime] = None
+    recurring_interval: float | None = None
+    recurring_days: list[str] | None = None
+    created_at: datetime | None = None
+    last_executed: datetime | None = None
     is_active: bool = True
 
     def __post_init__(self) -> None:
@@ -52,7 +51,7 @@ class CheckinSchedule:
         if self.created_at is None:
             self.created_at = datetime.now()
 
-    def is_due(self, current_time: Optional[datetime] = None) -> bool:
+    def is_due(self, current_time: datetime | None = None) -> bool:
         """Check if this schedule is due for execution."""
         if not self.is_active:
             return False
@@ -109,10 +108,10 @@ class ScheduleCheckinResult:
     message: str
     schedule_time: datetime
     schedule_type: ScheduleType
-    schedule_id: Optional[str] = None
-    recurring_interval: Optional[float] = None
-    recurring_days: Optional[list[str]] = None
-    error_message: Optional[str] = None
+    schedule_id: str | None = None
+    recurring_interval: float | None = None
+    recurring_days: list[str] | None = None
+    error_message: str | None = None
 
 
 def schedule_checkin(tmux: TMUXManager, request: ScheduleCheckinRequest) -> ScheduleCheckinResult:
@@ -222,7 +221,7 @@ def schedule_checkin(tmux: TMUXManager, request: ScheduleCheckinRequest) -> Sche
         )
 
 
-def _validate_request(request: ScheduleCheckinRequest) -> Optional[str]:
+def _validate_request(request: ScheduleCheckinRequest) -> str | None:
     """Validate schedule request parameters."""
     # Validate agent_id
     if not request.agent_id or not request.agent_id.strip():
@@ -254,7 +253,7 @@ def _validate_request(request: ScheduleCheckinRequest) -> Optional[str]:
     return None
 
 
-def _check_scheduling_conflicts(schedules: list[CheckinSchedule], request: ScheduleCheckinRequest) -> Optional[str]:
+def _check_scheduling_conflicts(schedules: list[CheckinSchedule], request: ScheduleCheckinRequest) -> str | None:
     """Check for scheduling conflicts with existing active schedules."""
     conflict_window = timedelta(minutes=5)  # Consider schedules within 5 minutes as conflicts
 
@@ -287,7 +286,7 @@ def _create_new_schedule(request: ScheduleCheckinRequest) -> CheckinSchedule:
 
 def _update_existing_schedule(
     schedules: list[CheckinSchedule], request: ScheduleCheckinRequest
-) -> Optional[CheckinSchedule]:
+) -> CheckinSchedule | None:
     """Update an existing schedule with new parameters."""
     for i, schedule in enumerate(schedules):
         if schedule.schedule_id == request.schedule_id:

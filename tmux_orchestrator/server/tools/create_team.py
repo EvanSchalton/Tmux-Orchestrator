@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -14,9 +14,9 @@ class TeamMemberSpec:
 
     role: str
     count: int = 1
-    briefing: Optional[str] = None
+    briefing: str | None = None
     skills: list[str] = field(default_factory=list)
-    custom_session: Optional[str] = None
+    custom_session: str | None = None
 
 
 @dataclass
@@ -25,7 +25,7 @@ class CreateTeamRequest:
 
     team_name: str
     team_members: list[TeamMemberSpec]
-    project_path: Optional[str] = None
+    project_path: str | None = None
     coordination_strategy: str = "hub_and_spoke"
 
 
@@ -36,8 +36,8 @@ class CreateTeamResult:
     success: bool
     team_name: str
     created_agents: list[dict[str, str]] = field(default_factory=list)
-    team_metadata: Optional[dict] = None
-    error_message: Optional[str] = None
+    team_metadata: dict[str, Any] | None = None
+    error_message: str | None = None
 
 
 def create_team(tmux: TMUXManager, request: CreateTeamRequest) -> CreateTeamResult:
@@ -78,8 +78,8 @@ def create_team(tmux: TMUXManager, request: CreateTeamRequest) -> CreateTeamResu
                 error_message=f"Team '{request.team_name}' already exists",
             )
 
-        created_agents = []
-        agent_role_counts = {}
+        created_agents: list[dict[str, Any]] = []
+        agent_role_counts: dict[str, int] = {}
         created_sessions = set()
 
         # Create agents based on team member specifications
@@ -143,7 +143,7 @@ def create_team(tmux: TMUXManager, request: CreateTeamRequest) -> CreateTeamResu
         )
 
 
-def _validate_request(request: CreateTeamRequest) -> Optional[str]:
+def _validate_request(request: CreateTeamRequest) -> str | None:
     """Validate team creation request parameters."""
     # Validate team name
     if not request.team_name.strip():
@@ -205,10 +205,10 @@ def _create_agent(
     session_name: str,
     window_name: str,
     agent_role: str,
-    project_path: Optional[str],
-    briefing: Optional[str],
+    project_path: str | None,
+    briefing: str | None,
     is_first_agent: bool,
-) -> dict:
+) -> dict[str, Any]:
     """
     Create a single agent in the specified session and window.
 
@@ -263,11 +263,11 @@ def _create_agent(
 
 def _generate_team_metadata(
     team_name: str,
-    project_path: Optional[str],
+    project_path: str | None,
     coordination_strategy: str,
-    created_agents: list[dict],
+    created_agents: list[dict[str, Any]],
     agent_role_counts: dict[str, int],
-) -> dict:
+) -> dict[str, Any]:
     """Generate comprehensive team metadata for tracking and coordination."""
     now = datetime.now(timezone.utc)
 

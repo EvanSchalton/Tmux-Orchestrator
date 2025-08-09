@@ -262,20 +262,20 @@ def _generate_event_summary(event_type: str, target: str, event_data: dict[str, 
         return f"Recovery completed for {session} in {duration:.1f}s"
 
     elif event_type == "recovery_failed":
-        reason: str = event_data.get("failure_reason", "unknown error")
-        return f"Recovery failed for {session}: {reason}"
+        failure_reason: str = event_data.get("failure_reason", "unknown error")
+        return f"Recovery failed for {session}: {failure_reason}"
 
     elif event_type == "auto_restart":
         attempts: int = event_data.get("retry_attempts", 1)
-        success: bool = event_data.get("restart_successful", False)
-        status: str = "succeeded" if success else "failed"
-        return f"Auto-restart {status} for {session} (attempt {attempts})"
+        restart_success: bool = event_data.get("restart_successful", False)
+        restart_status: str = "succeeded" if restart_success else "failed"
+        return f"Auto-restart {restart_status} for {session} (attempt {attempts})"
 
     elif event_type == "briefing_restored":
         role: str = event_data.get("agent_role", "unknown")
-        success: bool = event_data.get("briefing_restored", False)
-        status: str = "succeeded" if success else "failed"
-        return f"Briefing restoration {status} for {role} in {session}"
+        briefing_success: bool = event_data.get("briefing_restored", False)
+        briefing_status: str = "succeeded" if briefing_success else "failed"
+        return f"Briefing restoration {briefing_status} for {role} in {session}"
 
     elif event_type == "notification_sent":
         notification_type: str = event_data.get("notification_type", "unknown")
@@ -283,8 +283,8 @@ def _generate_event_summary(event_type: str, target: str, event_data: dict[str, 
 
     elif event_type == "health_check":
         healthy: bool = event_data.get("is_healthy", False)
-        status: str = "healthy" if healthy else "unhealthy"
-        return f"Health check: {session} is {status}"
+        health_status: str = "healthy" if healthy else "unhealthy"
+        return f"Health check: {session} is {health_status}"
 
     elif event_type == "context_preserved":
         lines: int = len(event_data.get("conversation_history", []))
@@ -292,8 +292,8 @@ def _generate_event_summary(event_type: str, target: str, event_data: dict[str, 
 
     elif event_type == "agent_verified":
         verified: bool = event_data.get("recovery_verified", False)
-        status: str = "verified" if verified else "failed verification"
-        return f"Agent verification: {session} {status}"
+        verification_status: str = "verified" if verified else "failed verification"
+        return f"Agent verification: {session} {verification_status}"
 
     else:
         return f"Event {event_type} for {session}"

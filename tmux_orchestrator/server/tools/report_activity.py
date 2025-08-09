@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -27,10 +27,10 @@ class ReportActivityRequest:
     agent_id: str
     activity_type: ActivityType
     description: str
-    session_id: Optional[str] = None
-    team_id: Optional[str] = None
-    tags: list[str] = None
-    metadata: dict = None
+    session_id: str | None = None
+    team_id: str | None = None
+    tags: list[str] | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         """Initialize default values for mutable fields."""
@@ -47,12 +47,12 @@ class ActivityRecord:
     agent_id: str
     activity_type: ActivityType
     description: str
-    session_id: Optional[str] = None
-    team_id: Optional[str] = None
-    tags: list[str] = None
-    metadata: dict = None
-    timestamp: Optional[datetime] = None
-    record_id: Optional[str] = None
+    session_id: str | None = None
+    team_id: str | None = None
+    tags: list[str] | None = None
+    metadata: dict[str, Any] | None = None
+    timestamp: datetime | None = None
+    record_id: str | None = None
 
     def __post_init__(self) -> None:
         """Initialize default values and auto-generate fields."""
@@ -75,12 +75,12 @@ class ReportActivityResult:
     activity_type: ActivityType
     description: str
     timestamp: datetime
-    record_id: Optional[str] = None
-    session_id: Optional[str] = None
-    team_id: Optional[str] = None
-    tags: list[str] = None
-    metadata: dict = None
-    error_message: Optional[str] = None
+    record_id: str | None = None
+    session_id: str | None = None
+    team_id: str | None = None
+    tags: list[str] | None = None
+    metadata: dict[str, Any] | None = None
+    error_message: str | None = None
 
     def __post_init__(self) -> None:
         """Initialize default values for mutable fields."""
@@ -94,13 +94,13 @@ class ReportActivityResult:
 class ActivityHistoryRequest:
     """Request parameters for retrieving activity history."""
 
-    agent_id: Optional[str] = None
-    team_id: Optional[str] = None
-    session_id: Optional[str] = None
-    activity_types: list[ActivityType] = None
-    since_timestamp: Optional[datetime] = None
+    agent_id: str | None = None
+    team_id: str | None = None
+    session_id: str | None = None
+    activity_types: list[ActivityType] | None = None
+    since_timestamp: datetime | None = None
     limit: int = 100
-    tags: list[str] = None
+    tags: list[str] | None = None
 
     def __post_init__(self) -> None:
         """Initialize default values for mutable fields."""
@@ -117,7 +117,7 @@ class ActivityHistoryResult:
     success: bool
     records: list[ActivityRecord]
     total_records: int
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 def report_activity(tmux: TMUXManager, request: ReportActivityRequest) -> ReportActivityResult:
@@ -176,7 +176,7 @@ def report_activity(tmux: TMUXManager, request: ReportActivityRequest) -> Report
             agent_id=record.agent_id,
             activity_type=record.activity_type,
             description=record.description,
-            timestamp=record.timestamp,
+            timestamp=record.timestamp or datetime.now(),
             record_id=record.record_id,
             session_id=record.session_id,
             team_id=record.team_id,
@@ -239,7 +239,7 @@ def get_activity_history(tmux: TMUXManager, request: ActivityHistoryRequest) -> 
         filtered_activities = _apply_filters(activities, request)
 
         # Sort by timestamp descending (most recent first)
-        filtered_activities.sort(key=lambda x: x.timestamp, reverse=True)
+        filtered_activities.sort(key=lambda x: x.timestamp or datetime.min, reverse=True)
 
         # Apply limit
         total_records = len(filtered_activities)
@@ -275,7 +275,7 @@ def get_activity_history(tmux: TMUXManager, request: ActivityHistoryRequest) -> 
         )
 
 
-def _validate_report_request(request: ReportActivityRequest) -> Optional[str]:
+def _validate_report_request(request: ReportActivityRequest) -> str | None:
     """Validate activity report request parameters."""
     # Validate agent_id
     if not request.agent_id or not request.agent_id.strip():

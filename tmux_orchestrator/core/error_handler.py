@@ -300,10 +300,10 @@ def handle_errors(
 
                 # Get or create error handler
                 if not hasattr(wrapper, "_error_handler"):
-                    wrapper._error_handler = ErrorHandler()
+                    wrapper._error_handler = ErrorHandler()  # type: ignore[attr-defined]
 
                 # Handle error
-                wrapper._error_handler.handle_error(e, context, severity, attempt_recovery)
+                wrapper._error_handler.handle_error(e, context, severity, attempt_recovery)  # type: ignore[attr-defined]
 
                 # Re-raise if critical
                 if severity == ErrorSeverity.CRITICAL:

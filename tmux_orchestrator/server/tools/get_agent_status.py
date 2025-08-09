@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
+from typing import Any
 
 from tmux_orchestrator.server.tools.report_activity import (
     ActivityRecord,
@@ -33,14 +33,14 @@ class AgentHealthMetrics:
     agent_id: str
     health_status: HealthStatus
     session_active: bool
-    last_activity_time: Optional[datetime] = None
-    last_activity_type: Optional[ActivityType] = None
-    last_activity_description: Optional[str] = None
-    responsiveness_score: Optional[float] = None
-    session_info: dict = None
-    team_id: Optional[str] = None
-    activity_tags: list[str] = None
-    activity_history: list[ActivityRecord] = None
+    last_activity_time: datetime | None = None
+    last_activity_type: ActivityType | None = None
+    last_activity_description: str | None = None
+    responsiveness_score: float | None = None
+    session_info: dict[str, Any] | None = None
+    team_id: str | None = None
+    activity_tags: list[str] | None = None
+    activity_history: list[ActivityRecord] | None = None
 
     def __post_init__(self) -> None:
         """Initialize default values for mutable fields."""
@@ -56,9 +56,9 @@ class AgentHealthMetrics:
 class AgentStatusRequest:
     """Request parameters for retrieving agent status."""
 
-    agent_id: Optional[str] = None
-    target: Optional[str] = None  # session:window format
-    team_id: Optional[str] = None
+    agent_id: str | None = None
+    target: str | None = None  # session:window format
+    team_id: str | None = None
     include_activity_history: bool = False
     activity_limit: int = 10
 
@@ -74,7 +74,7 @@ class AgentStatusResult:
     success: bool
     agent_metrics: list[AgentHealthMetrics]
     total_agents: int = 0
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 def get_agent_status(tmux: TMUXManager, request: AgentStatusRequest) -> AgentStatusResult:
@@ -156,7 +156,7 @@ def get_agent_status(tmux: TMUXManager, request: AgentStatusRequest) -> AgentSta
         )
 
 
-def _validate_request(request: AgentStatusRequest) -> Optional[str]:
+def _validate_request(request: AgentStatusRequest) -> str | None:
     """Validate agent status request parameters."""
     # Must specify exactly one search criteria
     criteria_count = sum(1 for x in [request.agent_id, request.target, request.team_id] if x is not None)
@@ -322,7 +322,7 @@ def _analyze_agent_health(
 
 def _calculate_health_status(
     agent_info: dict,
-    latest_activity: Optional[ActivityRecord],
+    latest_activity: ActivityRecord | None,
     is_active: bool,
     agent_activities: list[ActivityRecord],
 ) -> HealthStatus:
@@ -344,9 +344,10 @@ def _calculate_health_status(
         return HealthStatus.BLOCKED
 
     # Check if agent is unresponsive based on activity age
-    time_since_activity = datetime.now() - latest_activity.timestamp
-    if time_since_activity > timedelta(hours=4):
-        return HealthStatus.UNRESPONSIVE
+    if latest_activity.timestamp:
+        time_since_activity = datetime.now() - latest_activity.timestamp
+        if time_since_activity > timedelta(hours=4):
+            return HealthStatus.UNRESPONSIVE
 
     # Check if latest activity indicates idle state
     if latest_activity.activity_type == ActivityType.IDLE:
