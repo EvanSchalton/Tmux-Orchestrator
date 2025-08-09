@@ -8,6 +8,10 @@ from typing import Optional
 import click
 from rich.console import Console
 
+from tmux_orchestrator.core.performance_optimizer import (
+    PerformanceOptimizer,
+    create_optimized_config,
+)
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 console: Console = Console()
@@ -614,3 +618,123 @@ def dashboard(ctx: click.Context, session: Optional[str], refresh: int, json: bo
         # Static dashboard
         result = create_dashboard()
         console.print(result)
+
+
+@monitor.command("performance")
+@click.option("--agent-count", type=int, help="Number of agents (auto-detect if not provided)")
+@click.option("--analyze", is_flag=True, help="Run performance analysis")
+@click.option("--optimize", is_flag=True, help="Show optimization recommendations")
+@click.pass_context
+def performance(ctx: click.Context, agent_count: Optional[int], analyze: bool, optimize: bool) -> None:
+    """Monitor and optimize performance for large-scale deployments.
+
+    Provides performance metrics, analysis, and optimization recommendations
+    for deployments with 50+ agents. Includes caching, batching, and
+    connection pooling optimizations.
+
+    Examples:
+        tmux-orc monitor performance                    # Show current metrics
+        tmux-orc monitor performance --analyze          # Run performance analysis
+        tmux-orc monitor performance --optimize         # Get optimization tips
+        tmux-orc monitor performance --agent-count 75   # Optimize for 75 agents
+    """
+    from rich.table import Table
+
+    tmux: TMUXManager = ctx.obj["tmux"]
+
+    # Auto-detect agent count if not provided
+    if not agent_count:
+        sessions = tmux.list_sessions() or []
+        agent_count = sum(len(tmux.list_windows(s["name"]) or []) for s in sessions)
+
+    console.print(f"[blue]Performance Monitor - {agent_count} agents detected[/blue]\n")
+
+    # Create optimizer with appropriate config
+    config = create_optimized_config(agent_count)
+    optimizer = PerformanceOptimizer(tmux, config)
+
+    if analyze:
+        console.print("[yellow]Running performance analysis...[/yellow]")
+
+        # Run some operations to gather metrics
+        optimizer.optimize_list_operations()
+
+        # Get bulk status for sample agents
+        sessions = tmux.list_sessions() or []
+        sample_agents = []
+        for session in sessions[:5]:  # Sample first 5 sessions
+            windows = tmux.list_windows(session["name"]) or []
+            for window in windows[:3]:  # Sample first 3 windows
+                sample_agents.append(f"{session['name']}:{window['index']}")
+
+        if sample_agents:
+            optimizer.get_agent_status_bulk(sample_agents)
+
+        # Display metrics
+        metrics = optimizer.get_performance_metrics()
+
+        metrics_table = Table(title="Performance Metrics", show_header=True)
+        metrics_table.add_column("Metric", style="cyan")
+        metrics_table.add_column("Value", style="green")
+
+        metrics_table.add_row("Agent Count", str(metrics.agent_count))
+        metrics_table.add_row("Avg Response Time", f"{metrics.response_time_avg:.3f}s")
+        metrics_table.add_row("P95 Response Time", f"{metrics.response_time_p95:.3f}s")
+        metrics_table.add_row("Cache Hit Rate",
+            f"{metrics.cache_hits / max(1, metrics.cache_hits + metrics.cache_misses) * 100:.1f}%")
+        metrics_table.add_row("Error Rate", f"{metrics.error_rate:.1f}%")
+        metrics_table.add_row("Batch Operations", str(metrics.batch_operations_count))
+
+        console.print(metrics_table)
+
+    if optimize:
+        console.print("\n[yellow]Optimization Recommendations:[/yellow]")
+
+        recommendations = optimizer.optimize_team_deployment(agent_count)
+
+        opt_table = Table(title="Deployment Optimization", show_header=True)
+        opt_table.add_column("Setting", style="cyan")
+        opt_table.add_column("Recommendation", style="green")
+
+        opt_table.add_row("Batch Size", str(recommendations["recommended_batch_size"]))
+        opt_table.add_row("Parallel Deployment",
+            "✓ Enabled" if recommendations["use_parallel_deployment"] else "✗ Disabled")
+        opt_table.add_row("Startup Stagger", f"{recommendations['stagger_startup_ms']}ms")
+        opt_table.add_row("Sessions", str(recommendations["session_distribution"]["sessions"]))
+        opt_table.add_row("Agents per Session",
+            str(recommendations["session_distribution"]["agents_per_session"]))
+
+        # Resource limits
+        limits = recommendations["resource_limits"]
+        opt_table.add_row("Recommended Memory", f"{limits['recommended_memory_mb']} MB")
+        opt_table.add_row("Recommended CPU Cores", str(limits['recommended_cpu_cores']))
+        opt_table.add_row("Connection Pool Size", str(limits['connection_pool_size']))
+
+        console.print(opt_table)
+
+        if "warnings" in recommendations:
+            console.print("\n[red]⚠ Warnings:[/red]")
+            for warning in recommendations["warnings"]:
+                console.print(f"  • {warning}")
+
+    if not analyze and not optimize:
+        # Show current configuration
+        config_table = Table(title="Current Performance Configuration", show_header=True)
+        config_table.add_column("Setting", style="cyan")
+        config_table.add_column("Value", style="green")
+
+        config_table.add_row("Batching", "✓ Enabled" if config.enable_batching else "✗ Disabled")
+        config_table.add_row("Batch Size", str(config.batch_size))
+        config_table.add_row("Caching", "✓ Enabled" if config.enable_caching else "✗ Disabled")
+        config_table.add_row("Cache TTL", f"{config.cache_ttl_seconds}s")
+        config_table.add_row("Connection Pool", str(config.connection_pool_size))
+        config_table.add_row("Max Concurrent Ops", str(config.max_concurrent_operations))
+        config_table.add_row("Async Operations",
+            "✓ Enabled" if config.enable_async_operations else "✗ Disabled")
+
+        console.print(config_table)
+
+        console.print("\n[dim]Use --analyze or --optimize for detailed insights[/dim]")
+
+    # Cleanup
+    optimizer.shutdown()
