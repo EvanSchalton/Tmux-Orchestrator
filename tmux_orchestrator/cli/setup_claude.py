@@ -125,11 +125,11 @@ def check_requirements() -> None:
 @setup.command(name="claude-code")
 @click.option(
     "--claude-dir",
-    help="Claude Code data directory",
-    default=str(Path.home() / ".claude"),
+    help="Claude Code data directory (auto-detected if not specified)",
+    default=None,
 )
 @click.option("--force", is_flag=True, help="Overwrite existing configuration")
-def setup_claude_code(claude_dir: str, force: bool) -> None:
+def setup_claude_code(claude_dir: str | None, force: bool) -> None:
     """Install slash commands and MCP server for Claude Code.
 
     Sets up complete Claude Code integration including:
@@ -142,20 +142,38 @@ def setup_claude_code(claude_dir: str, force: bool) -> None:
         tmux-orc setup claude-code --force
         tmux-orc setup claude-code --claude-dir /custom/path
     """
-    claude_path = Path(claude_dir)
+    # Auto-detect Claude directory
+    if claude_dir is None:
+        # Check for devcontainer/project-specific .claude directory first
+        project_claude = Path.cwd() / ".claude"
+        home_claude = Path.home() / ".claude"
+
+        if project_claude.exists():
+            claude_path = project_claude
+            console.print(f"[green]Using project-specific Claude directory: {claude_path}[/green]")
+        elif home_claude.exists():
+            claude_path = home_claude
+            console.print(f"[green]Using home Claude directory: {claude_path}[/green]")
+        else:
+            # Neither exists, create project-specific one for devcontainers
+            claude_path = project_claude
+            console.print(f"[yellow]Creating new Claude directory at: {claude_path}[/yellow]")
+            claude_path.mkdir(parents=True, exist_ok=True)
+    else:
+        claude_path = Path(claude_dir)
 
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        # Task 1: Check Claude Code directory
-        task = progress.add_task("Checking Claude Code installation...", total=5)
+        # Task 1: Check/Create Claude Code directory
+        task = progress.add_task("Setting up Claude Code directory...", total=5)
 
+        # Ensure directory exists (especially for devcontainers)
         if not claude_path.exists():
-            console.print(f"[red]Claude Code directory not found: {claude_path}[/red]")
-            console.print("\nPlease ensure Claude Code is installed and has been run at least once.")
-            return
+            claude_path.mkdir(parents=True, exist_ok=True)
+            console.print(f"[green]✓ Created Claude directory: {claude_path}[/green]")
 
         progress.update(task, advance=1)
 
@@ -202,7 +220,7 @@ def setup_claude_code(claude_dir: str, force: bool) -> None:
         # Add tmux-orchestrator server
         mcp_config["servers"]["tmux-orchestrator"] = {
             "command": "tmux-orc",
-            "args": ["mcp-server"],
+            "args": ["server", "mcp-serve"],
             "env": {"TMUX_ORC_MODE": "mcp"},
         }
 
@@ -422,9 +440,18 @@ def check_setup() -> None:
         "Task Management Dir": False,
     }
 
-    # Check Claude Code
-    claude_dir = Path.home() / ".claude"
-    if claude_dir.exists():
+    # Check Claude Code - auto-detect location
+    project_claude = Path.cwd() / ".claude"
+    home_claude = Path.home() / ".claude"
+
+    if project_claude.exists():
+        claude_dir = project_claude
+    elif home_claude.exists():
+        claude_dir = home_claude
+    else:
+        claude_dir = None
+
+    if claude_dir and claude_dir.exists():
         checks["Claude Code Directory"] = True
 
         # Check slash commands
