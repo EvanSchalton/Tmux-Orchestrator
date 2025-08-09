@@ -12,6 +12,12 @@ from tmux_orchestrator.server.tools.restart_agent import restart_agent
 from tmux_orchestrator.server.tools.schedule_checkin import schedule_checkin
 from tmux_orchestrator.server.tools.send_message import send_message
 from tmux_orchestrator.server.tools.spawn_agent import spawn_agent
+from tmux_orchestrator.server.tools.track_task_status import (
+    get_task_status,
+    list_tasks_by_status,
+    track_task_status,
+    update_task_status,
+)
 
 __all__ = [
     "broadcast_message",
@@ -19,11 +25,15 @@ __all__ = [
     "get_agent_status",
     "get_messages",
     "get_session_status",
+    "get_task_status",
     "handoff_work",
     "kill_agent",
+    "list_tasks_by_status",
     "report_activity",
     "restart_agent",
     "schedule_checkin",
     "send_message",
     "spawn_agent",
+    "track_task_status",
+    "update_task_status",
 ]
