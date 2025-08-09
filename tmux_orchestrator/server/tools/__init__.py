@@ -7,6 +7,12 @@ from tmux_orchestrator.server.tools.assign_task import (
     reassign_task,
 )
 from tmux_orchestrator.server.tools.broadcast_message import broadcast_message
+from tmux_orchestrator.server.tools.create_pull_request import (
+    create_pull_request,
+    get_pr_status,
+    link_pr_to_tasks,
+    run_quality_checks_for_pr,
+)
 from tmux_orchestrator.server.tools.create_team import create_team
 from tmux_orchestrator.server.tools.get_agent_status import get_agent_status
 from tmux_orchestrator.server.tools.get_messages import get_messages
@@ -34,22 +40,26 @@ from tmux_orchestrator.server.tools.track_task_status import (
 __all__ = [
     "assign_task",
     "broadcast_message",
+    "create_pull_request",
     "create_team",
     "enforce_quality_gates",
     "get_agent_status",
     "get_agent_workload",
     "get_check_results",
     "get_messages",
+    "get_pr_status",
     "get_session_status",
     "get_task_status",
     "handoff_work",
     "kill_agent",
+    "link_pr_to_tasks",
     "list_available_agents",
     "list_tasks_by_status",
     "reassign_task",
     "report_activity",
     "restart_agent",
     "run_quality_checks",
+    "run_quality_checks_for_pr",
     "run_single_check",
     "schedule_checkin",
     "send_message",
