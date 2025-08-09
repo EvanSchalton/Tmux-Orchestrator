@@ -232,16 +232,25 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
         commands_dir = claude_path / "commands"
         commands_dir.mkdir(exist_ok=True)
 
-        # Source directory for slash commands
-        source_commands = Path(__file__).parent.parent.parent / ".claude" / "commands"
+        # Source directory for slash commands - try multiple locations
+        possible_sources = [
+            Path(__file__).parent.parent.parent / ".claude" / "commands",
+            Path("/workspaces/Tmux-Orchestrator/.claude/commands"),
+            Path.home() / "Tmux-Orchestrator" / ".claude" / "commands",
+        ]
 
-        if not source_commands.exists():
-            # Fallback to workspace location
-            source_commands = Path("/workspaces/Tmux-Orchestrator/.claude/commands")
+        source_commands = None
+        for source in possible_sources:
+            if source.exists():
+                source_commands = source
+                break
 
-        if source_commands.exists():
+        if source_commands and source_commands.exists():
             commands_installed = 0
-            for cmd_file in source_commands.glob("*.md"):
+            cmd_files = list(source_commands.glob("*.md"))
+            console.print(f"[dim]Found {len(cmd_files)} command files in {source_commands}[/dim]")
+
+            for cmd_file in cmd_files:
                 dest_file = commands_dir / cmd_file.name
                 if force or not dest_file.exists():
                     shutil.copy2(cmd_file, dest_file)
@@ -249,7 +258,10 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
 
             console.print(f"[green]✓ Installed {commands_installed} slash commands[/green]")
         else:
-            console.print("[yellow]⚠ Slash commands directory not found[/yellow]")
+            console.print("[yellow]⚠ Slash commands source directory not found[/yellow]")
+            console.print("[dim]Searched in:[/dim]")
+            for source in possible_sources:
+                console.print(f"[dim]  • {source}[/dim]")
 
         progress.update(task, advance=1)
 
@@ -280,11 +292,11 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
         console.print("[green]✓ Configured MCP server[/green]")
         progress.update(task, advance=1)
 
-        # Task 4: Create CLAUDE.md in workspace
-        progress.update(task, description="Creating workspace instructions...")
+        # Task 4: Create CLAUDE.md in .claude directory
+        progress.update(task, description="Creating Claude instructions...")
 
-        workspace_claude = Path.cwd() / "CLAUDE.md"
-        if not workspace_claude.exists() or force:
+        claude_md_path = claude_path / "CLAUDE.md"
+        if not claude_md_path.exists() or force:
             claude_content = """# Claude Code Instructions for This Project
 
 ## Tmux Orchestrator Integration
@@ -330,8 +342,8 @@ All tasks are organized in `.tmux_orchestrator/projects/`:
 
 [Add your project-specific Claude instructions here]
 """
-            workspace_claude.write_text(claude_content)
-            console.print("[green]✓ Created CLAUDE.md in workspace[/green]")
+            claude_md_path.write_text(claude_content)
+            console.print(f"[green]✓ Created CLAUDE.md in {claude_path}[/green]")
         else:
             console.print("[yellow]⚠ CLAUDE.md already exists (use --force to overwrite)[/yellow]")
 
@@ -346,7 +358,7 @@ All tasks are organized in `.tmux_orchestrator/projects/`:
 [bold]Installed Components:[/bold]
 • Slash commands in: {commands_dir}
 • MCP server config: {mcp_config_path}
-• Workspace instructions: {workspace_claude if workspace_claude.exists() else "Not created"}
+• Claude instructions: {claude_md_path if claude_md_path.exists() else "Not created"}
 
 [bold]Next Steps:[/bold]
 1. Restart Claude Code to load slash commands
@@ -485,7 +497,7 @@ def check_setup() -> None:
         "MCP Configuration": False,
         "MCP Server Running": False,
         "VS Code Tasks": False,
-        "Workspace CLAUDE.md": False,
+        "Claude Instructions": False,
         "Task Management Dir": False,
     }
 
@@ -521,9 +533,11 @@ def check_setup() -> None:
     if vscode_tasks.exists():
         checks["VS Code Tasks"] = True
 
-    # Check workspace
-    if (Path.cwd() / "CLAUDE.md").exists():
-        checks["Workspace CLAUDE.md"] = True
+    # Check Claude instructions
+    if claude_dir:
+        claude_md = claude_dir / "CLAUDE.md"
+        if claude_md.exists():
+            checks["Claude Instructions"] = True
 
     # Check task management
     task_dir = Path.home() / "workspaces" / "Tmux-Orchestrator" / ".tmux_orchestrator"
@@ -561,8 +575,8 @@ def check_setup() -> None:
             location = str(mcp_config) if "mcp_config" in locals() else "Not found"
         elif component == "VS Code Tasks":
             location = str(vscode_tasks)
-        elif component == "Workspace CLAUDE.md":
-            location = str(Path.cwd() / "CLAUDE.md")
+        elif component == "Claude Instructions":
+            location = str(claude_dir / "CLAUDE.md") if claude_dir else "Not found"
         elif component == "Task Management Dir":
             location = str(task_dir)
 
@@ -580,7 +594,7 @@ def check_setup() -> None:
             console.print("• Run: tmux-orc setup claude-code")
         if "VS Code Tasks" in missing:
             console.print("• Run: tmux-orc setup vscode")
-        if "Workspace CLAUDE.md" in missing:
+        if "Claude Instructions" in missing:
             console.print("• Run: tmux-orc setup claude-code --force")
     else:
         console.print("\n[green]✓ All components properly configured![/green]")
