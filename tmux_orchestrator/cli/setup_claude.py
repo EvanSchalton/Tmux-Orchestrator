@@ -377,9 +377,15 @@ def setup_all(force: bool) -> None:
     # Setup MCP Server
     console.print("\n[cyan]3. Setting up MCP server...[/cyan]")
     try:
-        from tmux_orchestrator.cli.server import setup as setup_mcp_server
+        # Import the server command group to get the setup command
+        from tmux_orchestrator.cli.server import server
 
-        ctx.invoke(setup_mcp_server)
+        # Get the setup command from the server group
+        setup_mcp_server = server.commands.get("setup")
+        if setup_mcp_server:
+            ctx.invoke(setup_mcp_server)
+        else:
+            console.print("[yellow]⚠ MCP server setup command not found[/yellow]")
     except Exception as e:
         console.print(f"[yellow]⚠ MCP server setup failed: {e}[/yellow]")
 

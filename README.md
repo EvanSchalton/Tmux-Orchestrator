@@ -94,7 +94,7 @@ tmux-orc orchestrator start
 
 ### 🌐 MCP Server Setup
 
-The Model Context Protocol (MCP) server provides a REST API for programmatic agent control. This enables Claude Desktop and other tools to manage agents directly.
+The Model Context Protocol (MCP) server provides a REST API for programmatic agent control. This enables Claude Code and other MCP-compatible tools to manage agents directly.
 
 #### Quick Setup (Recommended)
 ```bash
@@ -106,9 +106,9 @@ tmux-orc server setup
 ```
 
 This will:
-1. Configure the MCP server for Claude Desktop
-2. Start the server on `http://127.0.0.1:8000`
-3. Make all orchestration tools available via API
+1. Start the MCP server on `http://127.0.0.1:8000`
+2. Configure it for Claude Code using `claude mcp add`
+3. Make all orchestration tools available via MCP
 
 #### Manual Server Management
 ```bash
@@ -138,8 +138,11 @@ Available API endpoints include:
 - `/coordination/*` - Team deployment
 - `/monitor/*` - System monitoring
 
-#### Claude Desktop Integration
-The MCP server is automatically configured for Claude Desktop during setup. You may need to restart Claude Desktop after running `tmux-orc setup all` for the changes to take effect.
+#### Claude Code Integration
+The MCP server is automatically configured for Claude Code during setup. In Claude Code:
+- Run `/mcp` to see available tools
+- Tools appear with 'tmux-orchestrator' prefix
+- You may need to restart Claude Code after setup
 
 ### 🔧 Integrating into Your Project
 
