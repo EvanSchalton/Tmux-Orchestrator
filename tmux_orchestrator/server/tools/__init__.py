@@ -5,6 +5,7 @@ from tmux_orchestrator.server.tools.get_messages import get_messages
 from tmux_orchestrator.server.tools.get_session_status import get_session_status
 from tmux_orchestrator.server.tools.kill_agent import kill_agent
 from tmux_orchestrator.server.tools.restart_agent import restart_agent
+from tmux_orchestrator.server.tools.schedule_checkin import schedule_checkin
 from tmux_orchestrator.server.tools.send_message import send_message
 from tmux_orchestrator.server.tools.spawn_agent import spawn_agent
 
@@ -14,6 +15,7 @@ __all__ = [
     "get_session_status",
     "kill_agent",
     "restart_agent",
+    "schedule_checkin",
     "send_message",
     "spawn_agent",
 ]

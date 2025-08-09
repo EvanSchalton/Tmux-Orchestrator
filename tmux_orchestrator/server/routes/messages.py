@@ -8,7 +8,9 @@ from pydantic import BaseModel
 from tmux_orchestrator.server.tools.send_message import (
     SendMessageRequest as ToolSendMessageRequest,
 )
-from tmux_orchestrator.server.tools.send_message import send_message
+from tmux_orchestrator.server.tools.send_message import (
+    send_message,
+)
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 router = APIRouter()

@@ -16,19 +16,27 @@ from tmux_orchestrator.server.models.agent_models import (
 from tmux_orchestrator.server.tools.get_session_status import (
     AgentStatusRequest as ToolAgentStatusRequest,
 )
-from tmux_orchestrator.server.tools.get_session_status import get_agent_status
+from tmux_orchestrator.server.tools.get_session_status import (
+    get_agent_status,
+)
 from tmux_orchestrator.server.tools.kill_agent import (
     KillAgentRequest as ToolKillRequest,
 )
-from tmux_orchestrator.server.tools.kill_agent import kill_agent
+from tmux_orchestrator.server.tools.kill_agent import (
+    kill_agent,
+)
 from tmux_orchestrator.server.tools.restart_agent import (
     RestartAgentRequest as ToolRestartRequest,
 )
-from tmux_orchestrator.server.tools.restart_agent import restart_agent
+from tmux_orchestrator.server.tools.restart_agent import (
+    restart_agent,
+)
 from tmux_orchestrator.server.tools.spawn_agent import (
     SpawnAgentRequest as ToolSpawnRequest,
 )
-from tmux_orchestrator.server.tools.spawn_agent import spawn_agent
+from tmux_orchestrator.server.tools.spawn_agent import (
+    spawn_agent,
+)
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 router = APIRouter()
