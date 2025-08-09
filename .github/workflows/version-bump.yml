@@ -1,0 +1,75 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'pyproject.toml'
+      - 'tmux_orchestrator/__init__.py'
+      - '.github/workflows/version-bump.yml'
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    # Only run on direct pushes to main, not on PR merges from the bot
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+
+    - name: Get current version
+      id: get_version
+      run: |
+        CURRENT_VERSION=$(poetry version -s)
+        echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $CURRENT_VERSION"
+
+    - name: Bump patch version
+      id: bump_version
+      run: |
+        # Bump patch version using poetry
+        poetry version patch
+        NEW_VERSION=$(poetry version -s)
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "New version: $NEW_VERSION"
+
+        # Update __init__.py
+        sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" tmux_orchestrator/__init__.py
+
+    - name: Commit version bump
+      run: |
+        git add pyproject.toml tmux_orchestrator/__init__.py
+        git commit -m "chore: Auto-bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]
+
+        Automated version bump from ${{ steps.get_version.outputs.current_version }} to ${{ steps.bump_version.outputs.new_version }}
+
+        Triggered by: ${{ github.event.head_commit.message }}"
+
+    - name: Push changes
+      run: |
+        git push origin main
+
+    - name: Create version tag
+      run: |
+        git tag v${{ steps.bump_version.outputs.new_version }}
+        git push origin v${{ steps.bump_version.outputs.new_version }}

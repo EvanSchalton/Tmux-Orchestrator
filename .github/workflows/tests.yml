@@ -9,6 +9,7 @@ on:
 jobs:
   lint-and-format:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
     - uses: actions/checkout@v3
 
@@ -48,6 +49,7 @@ jobs:
 
   type-check:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
     - uses: actions/checkout@v3
 
@@ -81,6 +83,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
