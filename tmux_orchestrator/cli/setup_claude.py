@@ -354,6 +354,7 @@ def setup_all(force: bool) -> None:
 
     Configures:
     - Claude Code integration (slash commands + MCP)
+    - MCP server for agent coordination
     - VS Code tasks and settings
     - Git hooks for quality checks
     - Shell completions
@@ -373,11 +374,21 @@ def setup_all(force: bool) -> None:
     console.print("\n[cyan]2. Setting up VS Code...[/cyan]")
     ctx.invoke(setup_vscode, project_dir=".", force=force)
 
+    # Setup MCP Server
+    console.print("\n[cyan]3. Setting up MCP server...[/cyan]")
+    try:
+        from tmux_orchestrator.cli.server import setup as setup_mcp_server
+
+        ctx.invoke(setup_mcp_server)
+    except Exception as e:
+        console.print(f"[yellow]⚠ MCP server setup failed: {e}[/yellow]")
+
     console.print("\n[bold green]✓ All setup tasks complete![/bold green]")
     console.print("\nYou can now:")
     console.print("1. Use slash commands in Claude Code")
     console.print("2. Run VS Code tasks for agent management")
     console.print("3. Execute PRDs with: tmux-orc execute <prd-file>")
+    console.print("4. Access MCP server API at: http://127.0.0.1:8000/docs")
 
 
 @setup.command(name="check")
@@ -399,6 +410,7 @@ def check_setup() -> None:
         "Claude Code Directory": False,
         "Slash Commands": False,
         "MCP Configuration": False,
+        "MCP Server Running": False,
         "VS Code Tasks": False,
         "Workspace CLAUDE.md": False,
         "Task Management Dir": False,
@@ -435,6 +447,16 @@ def check_setup() -> None:
     task_dir = Path.home() / "workspaces" / "Tmux-Orchestrator" / ".tmux_orchestrator"
     if task_dir.exists():
         checks["Task Management Dir"] = True
+
+    # Check MCP server
+    try:
+        import requests  # type: ignore[import-untyped]
+
+        response = requests.get("http://127.0.0.1:8000/health", timeout=1)
+        if response.status_code == 200:
+            checks["MCP Server Running"] = True
+    except Exception:
+        pass
 
     # Display results
     from rich.table import Table

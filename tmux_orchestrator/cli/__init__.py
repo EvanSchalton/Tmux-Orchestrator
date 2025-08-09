@@ -372,6 +372,14 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # errors.py module for error management
 
+        # Add MCP server commands
+        try:
+            from tmux_orchestrator.cli import server
+
+            cli.add_command(server.server)
+        except ImportError:
+            pass  # server.py module for MCP server management
+
     except ImportError as e:
         # Handle missing modules gracefully during development
         console.print(f"[yellow]Warning: Some CLI modules not available: {e}[/yellow]")

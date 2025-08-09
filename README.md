@@ -92,6 +92,55 @@ tmux-orc --version
 tmux-orc orchestrator start
 ```
 
+### 🌐 MCP Server Setup
+
+The Model Context Protocol (MCP) server provides a REST API for programmatic agent control. This enables Claude Desktop and other tools to manage agents directly.
+
+#### Quick Setup (Recommended)
+```bash
+# Run complete setup including MCP server
+tmux-orc setup all
+
+# Or setup just the MCP server
+tmux-orc server setup
+```
+
+This will:
+1. Configure the MCP server for Claude Desktop
+2. Start the server on `http://127.0.0.1:8000`
+3. Make all orchestration tools available via API
+
+#### Manual Server Management
+```bash
+# Start MCP server
+tmux-orc server start
+
+# Start in background
+tmux-orc server start --background
+
+# Check server status
+tmux-orc server status
+
+# Stop background server
+tmux-orc server stop
+```
+
+#### API Access
+Once running, you can access:
+- **API Documentation**: http://127.0.0.1:8000/docs
+- **OpenAPI Schema**: http://127.0.0.1:8000/openapi.json
+- **Health Check**: http://127.0.0.1:8000/health
+
+Available API endpoints include:
+- `/agents/*` - Agent lifecycle management
+- `/messages/*` - Inter-agent communication
+- `/tasks/*` - Task assignment and tracking
+- `/coordination/*` - Team deployment
+- `/monitor/*` - System monitoring
+
+#### Claude Desktop Integration
+The MCP server is automatically configured for Claude Desktop during setup. You may need to restart Claude Desktop after running `tmux-orc setup all` for the changes to take effect.
+
 ### 🔧 Integrating into Your Project
 
 For existing projects, add Tmux Orchestrator to your development environment:
