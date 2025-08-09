@@ -59,7 +59,7 @@ This is a **human-in-the-loop** system where Claude acts as the intelligent orch
   - Critical for PM coordination
   - File: `tmux_orchestrator/server/tools/broadcast_message.py`
 
-- [ ] **TASK-1.2.2**: Implement `tmux_get_messages` MCP tool
+- [x] **TASK-1.2.2**: Implement `tmux_get_messages` MCP tool
   - Retrieve message history for agents
   - Support filtering by time/sender
   - File: `tmux_orchestrator/server/tools/get_messages.py`
@@ -78,7 +78,7 @@ This is a **human-in-the-loop** system where Claude acts as the intelligent orch
   - No type validation - Claude decides all agent characteristics
   - File: `tmux_orchestrator/cli/agent.py`
 
-- [ ] **TASK-1.3.2**: Create agent examples reference document
+- [x] **TASK-1.3.2**: Create agent examples reference document
   - Document 20+ example agent patterns for inspiration
   - Include example system prompts showing different approaches
   - Emphasize these are ONLY examples, not constraints
@@ -111,23 +111,23 @@ This is a **human-in-the-loop** system where Claude acts as the intelligent orch
 ## 🎯 Priority 2: Agent Autonomy Features
 
 ### 2.1 Self-Management MCP Tools
-- [ ] **TASK-2.1.1**: Implement `tmux_schedule_checkin` MCP tool
+- [x] **TASK-2.1.1**: Implement `tmux_schedule_checkin` MCP tool
   - Agents schedule their own check-ins
   - Support recurring and one-time schedules
   - File: `tmux_orchestrator/server/tools/schedule_checkin.py`
 
-- [ ] **TASK-2.1.2**: Implement `tmux_report_activity` MCP tool
+- [x] **TASK-2.1.2**: Implement `tmux_report_activity` MCP tool
   - Agents report work status
   - Activity types: working, idle, blocked, completed
   - File: `tmux_orchestrator/server/tools/report_activity.py`
 
-- [ ] **TASK-2.1.3**: Implement `tmux_get_agent_status` MCP tool
+- [x] **TASK-2.1.3**: Implement `tmux_get_agent_status` MCP tool
   - Agents check teammate health
   - Enable peer monitoring
   - File: `tmux_orchestrator/server/tools/get_agent_status.py`
 
 ### 2.2 Team Coordination Tools
-- [ ] **TASK-2.2.1**: Implement `tmux_create_team` MCP tool
+- [x] **TASK-2.2.1**: Implement `tmux_create_team` MCP tool
   - Dynamic team creation from requirements
   - Support custom compositions
   - File: `tmux_orchestrator/server/tools/create_team.py`
