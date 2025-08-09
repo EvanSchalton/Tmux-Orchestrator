@@ -124,12 +124,13 @@ def check_requirements() -> None:
 
 @setup.command(name="claude-code")
 @click.option(
-    "--claude-dir",
-    help="Claude Code data directory (auto-detected if not specified)",
+    "--root-dir",
+    help="Root directory for Claude Code config (defaults to auto-detection)",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, resolve_path=True),
     default=None,
 )
 @click.option("--force", is_flag=True, help="Overwrite existing configuration")
-def setup_claude_code(claude_dir: str | None, force: bool) -> None:
+def setup_claude_code(root_dir: str | None, force: bool) -> None:
     """Install slash commands and MCP server for Claude Code.
 
     Sets up complete Claude Code integration including:
@@ -140,27 +141,40 @@ def setup_claude_code(claude_dir: str | None, force: bool) -> None:
     Examples:
         tmux-orc setup claude-code
         tmux-orc setup claude-code --force
-        tmux-orc setup claude-code --claude-dir /custom/path
+        tmux-orc setup claude-code --root-dir /workspaces/myproject
     """
-    # Auto-detect Claude directory
-    if claude_dir is None:
-        # Check for devcontainer/project-specific .claude directory first
+    # Determine Claude directory location
+    if root_dir is None:
+        # Auto-detect: Check for devcontainer/project-specific .claude directory first
         project_claude = Path.cwd() / ".claude"
         home_claude = Path.home() / ".claude"
 
         if project_claude.exists():
             claude_path = project_claude
-            console.print(f"[green]Using project-specific Claude directory: {claude_path}[/green]")
+            console.print(f"[green]Auto-detected project Claude directory: {claude_path}[/green]")
         elif home_claude.exists():
             claude_path = home_claude
-            console.print(f"[green]Using home Claude directory: {claude_path}[/green]")
+            console.print(f"[green]Auto-detected home Claude directory: {claude_path}[/green]")
         else:
-            # Neither exists, create project-specific one for devcontainers
-            claude_path = project_claude
-            console.print(f"[yellow]Creating new Claude directory at: {claude_path}[/yellow]")
-            claude_path.mkdir(parents=True, exist_ok=True)
+            # Neither exists, ask user for preference
+            console.print("[yellow]No existing Claude directory found.[/yellow]")
+            console.print("\nWhere would you like to create the Claude configuration?")
+            console.print(
+                "1. Project directory (recommended for devcontainers): [cyan]" + str(project_claude) + "[/cyan]"
+            )
+            console.print("2. Home directory (for system-wide use): [cyan]" + str(home_claude) + "[/cyan]")
+
+            choice = click.prompt("Enter choice (1 or 2)", type=int, default=1)
+            if choice == 2:
+                claude_path = home_claude
+            else:
+                claude_path = project_claude
+
+            console.print(f"\n[yellow]Creating new Claude directory at: {claude_path}[/yellow]")
     else:
-        claude_path = Path(claude_dir)
+        # Use provided root directory
+        claude_path = Path(root_dir) / ".claude"
+        console.print(f"[green]Using specified root directory: {claude_path}[/green]")
 
     with Progress(
         SpinnerColumn(),
@@ -386,7 +400,7 @@ def setup_all(force: bool) -> None:
     # Setup Claude Code
     console.print("[cyan]1. Setting up Claude Code...[/cyan]")
     ctx = click.get_current_context()
-    ctx.invoke(setup_claude_code, force=force)
+    ctx.invoke(setup_claude_code, root_dir=None, force=force)
 
     # Setup VS Code
     console.print("\n[cyan]2. Setting up VS Code...[/cyan]")
