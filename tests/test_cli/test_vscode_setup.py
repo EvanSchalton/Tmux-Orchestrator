@@ -170,11 +170,7 @@ class TestVSCodeSetup:
         """Test config command in interactive mode."""
         with runner.isolated_filesystem():
             # Provide input for interactive prompts
-            result = runner.invoke(
-                vscode_setup,
-                ["config", "--interactive"],
-                input="./custom/venv/bin/python\ny\ny\n"
-            )
+            result = runner.invoke(vscode_setup, ["config", "--interactive"], input="./custom/venv/bin/python\ny\ny\n")
 
             assert result.exit_code == 0
 

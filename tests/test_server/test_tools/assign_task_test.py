@@ -78,11 +78,12 @@ class TestAssignTask:
             task_description="Add JWT authentication to API endpoints",
             priority="high",
             estimated_hours=8,
-            due_date="2025-08-15"
+            due_date="2025-08-15",
         )
 
-        with patch('tmux_orchestrator.server.tools.assign_task._save_assignment') as mock_save, \
-             patch('tmux_orchestrator.server.tools.assign_task._update_task_status') as mock_update:
+        with patch("tmux_orchestrator.server.tools.assign_task._save_assignment") as mock_save, patch(
+            "tmux_orchestrator.server.tools.assign_task._update_task_status"
+        ) as mock_update:
             mock_save.return_value = True
             mock_update.return_value = True
 
@@ -109,14 +110,12 @@ class TestAssignTask:
         tmux.send_keys.return_value = True
 
         request = AssignTaskRequest(
-            task_id="task_002",
-            agent_id="dev:1",
-            task_title="Add unit tests",
-            dependencies=["task_001", "task_003"]
+            task_id="task_002", agent_id="dev:1", task_title="Add unit tests", dependencies=["task_001", "task_003"]
         )
 
-        with patch('tmux_orchestrator.server.tools.assign_task._save_assignment') as mock_save, \
-             patch('tmux_orchestrator.server.tools.assign_task._update_task_status') as mock_update:
+        with patch("tmux_orchestrator.server.tools.assign_task._save_assignment") as mock_save, patch(
+            "tmux_orchestrator.server.tools.assign_task._update_task_status"
+        ) as mock_update:
             mock_save.return_value = True
             mock_update.return_value = True
 
@@ -140,7 +139,7 @@ class TestAssignTask:
 
         request = AssignTaskRequest(task_id="task_001", agent_id="dev:0")
 
-        with patch('tmux_orchestrator.server.tools.assign_task._save_assignment') as mock_save:
+        with patch("tmux_orchestrator.server.tools.assign_task._save_assignment") as mock_save:
             mock_save.return_value = False
 
             result = assign_task(tmux, request)
@@ -167,22 +166,22 @@ class TestAssignTask:
         """Test successful agent workload retrieval."""
         request = AssignTaskRequest(agent_id="dev:0")
 
-        with patch('tmux_orchestrator.server.tools.assign_task._load_agent_assignments') as mock_load:
+        with patch("tmux_orchestrator.server.tools.assign_task._load_agent_assignments") as mock_load:
             mock_assignments = [
                 {
                     "task_id": "task_001",
                     "status": "in_progress",
                     "priority": "high",
                     "estimated_hours": 8,
-                    "assigned_at": datetime.now().isoformat()
+                    "assigned_at": datetime.now().isoformat(),
                 },
                 {
                     "task_id": "task_002",
                     "status": "pending",
                     "priority": "medium",
                     "estimated_hours": 4,
-                    "assigned_at": datetime.now().isoformat()
-                }
+                    "assigned_at": datetime.now().isoformat(),
+                },
             ]
             mock_load.return_value = mock_assignments
 
@@ -200,7 +199,7 @@ class TestAssignTask:
         """Test get_agent_workload when agent has no assignments."""
         request = AssignTaskRequest(agent_id="new:0")
 
-        with patch('tmux_orchestrator.server.tools.assign_task._load_agent_assignments') as mock_load:
+        with patch("tmux_orchestrator.server.tools.assign_task._load_agent_assignments") as mock_load:
             mock_load.return_value = []
 
             result = get_agent_workload(request)
@@ -239,7 +238,8 @@ class TestAssignTask:
 
         request = AssignTaskRequest()
 
-        with patch('tmux_orchestrator.server.tools.assign_task._load_agent_assignments') as mock_load:
+        with patch("tmux_orchestrator.server.tools.assign_task._load_agent_assignments") as mock_load:
+
             def mock_load_assignments(agent_id):
                 if agent_id == "dev:0":
                     return [{"task_id": "task_001", "status": "in_progress"}]
@@ -270,8 +270,9 @@ class TestAssignTask:
 
         request = AssignTaskRequest(required_skills=["python", "api"])
 
-        with patch('tmux_orchestrator.server.tools.assign_task._load_agent_assignments') as mock_load, \
-             patch('tmux_orchestrator.server.tools.assign_task._get_agent_skills') as mock_skills:
+        with patch("tmux_orchestrator.server.tools.assign_task._load_agent_assignments") as mock_load, patch(
+            "tmux_orchestrator.server.tools.assign_task._get_agent_skills"
+        ) as mock_skills:
             mock_load.return_value = []
             mock_skills.side_effect = lambda agent_id: ["python", "api"] if "dev" in agent_id else ["testing"]
 
@@ -289,21 +290,18 @@ class TestAssignTask:
         tmux.send_keys.return_value = True
 
         request = AssignTaskRequest(
-            task_id="task_001",
-            agent_id="dev:1",
-            reason="Load balancing - original agent overloaded"
+            task_id="task_001", agent_id="dev:1", reason="Load balancing - original agent overloaded"
         )
 
-        with patch('tmux_orchestrator.server.tools.assign_task._load_assignment') as mock_load, \
-             patch('tmux_orchestrator.server.tools.assign_task._save_assignment') as mock_save, \
-             patch('tmux_orchestrator.server.tools.assign_task._update_task_status') as mock_update:
-
+        with patch("tmux_orchestrator.server.tools.assign_task._load_assignment") as mock_load, patch(
+            "tmux_orchestrator.server.tools.assign_task._save_assignment"
+        ) as mock_save, patch("tmux_orchestrator.server.tools.assign_task._update_task_status") as mock_update:
             # Mock existing assignment
             existing_assignment = {
                 "task_id": "task_001",
                 "agent_id": "dev:0",
                 "assigned_at": datetime.now().isoformat(),
-                "status": "in_progress"
+                "status": "in_progress",
             }
             mock_load.return_value = existing_assignment
             mock_save.return_value = True
@@ -322,7 +320,7 @@ class TestAssignTask:
         tmux = Mock(spec=TMUXManager)
         request = AssignTaskRequest(task_id="nonexistent", agent_id="dev:1")
 
-        with patch('tmux_orchestrator.server.tools.assign_task._load_assignment') as mock_load:
+        with patch("tmux_orchestrator.server.tools.assign_task._load_assignment") as mock_load:
             mock_load.return_value = None
 
             result = reassign_task(tmux, request)
@@ -334,11 +332,7 @@ class TestAssignTask:
     def test_assign_task_invalid_priority(self) -> None:
         """Test assign_task with invalid priority."""
         tmux = Mock(spec=TMUXManager)
-        request = AssignTaskRequest(
-            task_id="task_001",
-            agent_id="dev:0",
-            priority="invalid"
-        )
+        request = AssignTaskRequest(task_id="task_001", agent_id="dev:0", priority="invalid")
 
         result = assign_task(tmux, request)
 
@@ -356,14 +350,11 @@ class TestAssignTask:
         tmux.capture_pane.return_value = "Agent is active"
         tmux.send_keys.return_value = True
 
-        request = AssignTaskRequest(
-            task_id="task_001",
-            agent_id="dev:0",
-            priority=priority
-        )
+        request = AssignTaskRequest(task_id="task_001", agent_id="dev:0", priority=priority)
 
-        with patch('tmux_orchestrator.server.tools.assign_task._save_assignment') as mock_save, \
-             patch('tmux_orchestrator.server.tools.assign_task._update_task_status') as mock_update:
+        with patch("tmux_orchestrator.server.tools.assign_task._save_assignment") as mock_save, patch(
+            "tmux_orchestrator.server.tools.assign_task._update_task_status"
+        ) as mock_update:
             mock_save.return_value = True
             mock_update.return_value = True
 
@@ -381,15 +372,12 @@ class TestAssignTask:
         request = AssignTaskRequest(
             task_id="task_001",
             agent_id="dev:0",
-            completion_criteria=[
-                "All unit tests pass",
-                "Code review approved",
-                "Documentation updated"
-            ]
+            completion_criteria=["All unit tests pass", "Code review approved", "Documentation updated"],
         )
 
-        with patch('tmux_orchestrator.server.tools.assign_task._save_assignment') as mock_save, \
-             patch('tmux_orchestrator.server.tools.assign_task._update_task_status') as mock_update:
+        with patch("tmux_orchestrator.server.tools.assign_task._save_assignment") as mock_save, patch(
+            "tmux_orchestrator.server.tools.assign_task._update_task_status"
+        ) as mock_update:
             mock_save.return_value = True
             mock_update.return_value = True
 
@@ -399,7 +387,7 @@ class TestAssignTask:
             assert result.completion_criteria == [
                 "All unit tests pass",
                 "Code review approved",
-                "Documentation updated"
+                "Documentation updated",
             ]
 
             # Verify criteria are included in assignment message
@@ -427,15 +415,11 @@ class TestAssignTask:
         tmux.capture_pane.return_value = "Agent is active"
         tmux.send_keys.return_value = True
 
-        request = AssignTaskRequest(
-            task_id="task_001",
-            agent_id="dev:0",
-            load_balance=True
-        )
+        request = AssignTaskRequest(task_id="task_001", agent_id="dev:0", load_balance=True)
 
-        with patch('tmux_orchestrator.server.tools.assign_task._save_assignment') as mock_save, \
-             patch('tmux_orchestrator.server.tools.assign_task._update_task_status') as mock_update, \
-             patch('tmux_orchestrator.server.tools.assign_task._calculate_load_score') as mock_load_score:
+        with patch("tmux_orchestrator.server.tools.assign_task._save_assignment") as mock_save, patch(
+            "tmux_orchestrator.server.tools.assign_task._update_task_status"
+        ) as mock_update, patch("tmux_orchestrator.server.tools.assign_task._calculate_load_score") as mock_load_score:
             mock_save.return_value = True
             mock_update.return_value = True
             mock_load_score.return_value = 0.3

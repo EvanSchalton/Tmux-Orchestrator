@@ -73,10 +73,10 @@ class TestTrackTaskStatus:
             status="in_progress",
             description="Implement authentication module",
             priority="high",
-            estimated_hours=8
+            estimated_hours=8,
         )
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
+        with patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save:
             mock_save.return_value = True
 
             result = track_task_status(tmux, request)
@@ -96,16 +96,16 @@ class TestTrackTaskStatus:
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(task_id="task_001", agent_id="dev:0", status="completed")
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._load_task_status') as mock_load, \
-             patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
-
+        with patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load, patch(
+            "tmux_orchestrator.server.tools.track_task_status._save_task_status"
+        ) as mock_save:
             # Mock existing task
             existing_task = TaskStatusUpdate(
                 task_id="task_001",
                 agent_id="dev:0",
                 status="in_progress",
                 created_at=datetime.now(),
-                updated_at=datetime.now()
+                updated_at=datetime.now(),
             )
             mock_load.return_value = existing_task
             mock_save.return_value = True
@@ -124,10 +124,10 @@ class TestTrackTaskStatus:
             task_id="task_001",
             agent_id="dev:0",
             status="completed",
-            completion_notes="All tests passing, feature fully implemented"
+            completion_notes="All tests passing, feature fully implemented",
         )
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
+        with patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save:
             mock_save.return_value = True
 
             result = track_task_status(tmux, request)
@@ -142,10 +142,10 @@ class TestTrackTaskStatus:
             task_id="task_001",
             agent_id="dev:0",
             status="blocked",
-            blockers=["Missing API documentation", "Awaiting design approval"]
+            blockers=["Missing API documentation", "Awaiting design approval"],
         )
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
+        with patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save:
             mock_save.return_value = True
 
             result = track_task_status(tmux, request)
@@ -159,7 +159,7 @@ class TestTrackTaskStatus:
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(task_id="task_001", agent_id="dev:0", status="in_progress")
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
+        with patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save:
             mock_save.return_value = False
 
             result = track_task_status(tmux, request)
@@ -172,14 +172,14 @@ class TestTrackTaskStatus:
         """Test successful task status retrieval."""
         request = TaskStatusRequest(task_id="task_001")
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._load_task_status') as mock_load:
+        with patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load:
             task_status = TaskStatusUpdate(
                 task_id="task_001",
                 agent_id="dev:0",
                 status="in_progress",
                 description="Working on authentication",
                 created_at=datetime.now(),
-                updated_at=datetime.now()
+                updated_at=datetime.now(),
             )
             mock_load.return_value = task_status
 
@@ -193,7 +193,7 @@ class TestTrackTaskStatus:
         """Test get_task_status when task not found."""
         request = TaskStatusRequest(task_id="nonexistent")
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._load_task_status') as mock_load:
+        with patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load:
             mock_load.return_value = None
 
             result = get_task_status(request)
@@ -205,22 +205,17 @@ class TestTrackTaskStatus:
     def test_update_task_status_successful(self) -> None:
         """Test successful task status update."""
         tmux = Mock(spec=TMUXManager)
-        request = TaskStatusRequest(
-            task_id="task_001",
-            agent_id="dev:0",
-            status="completed",
-            actual_hours=10
-        )
+        request = TaskStatusRequest(task_id="task_001", agent_id="dev:0", status="completed", actual_hours=10)
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._load_task_status') as mock_load, \
-             patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
-
+        with patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load, patch(
+            "tmux_orchestrator.server.tools.track_task_status._save_task_status"
+        ) as mock_save:
             existing_task = TaskStatusUpdate(
                 task_id="task_001",
                 agent_id="dev:0",
                 status="in_progress",
                 created_at=datetime.now() - timedelta(hours=2),
-                updated_at=datetime.now() - timedelta(hours=2)
+                updated_at=datetime.now() - timedelta(hours=2),
             )
             mock_load.return_value = existing_task
             mock_save.return_value = True
@@ -237,7 +232,7 @@ class TestTrackTaskStatus:
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(task_id="nonexistent", agent_id="dev:0", status="completed")
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._load_task_status') as mock_load:
+        with patch("tmux_orchestrator.server.tools.track_task_status._load_task_status") as mock_load:
             mock_load.return_value = None
 
             result = update_task_status(tmux, request)
@@ -250,26 +245,11 @@ class TestTrackTaskStatus:
         """Test successful task listing by status."""
         request = TaskStatusRequest(status="in_progress")
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._load_all_task_statuses') as mock_load:
+        with patch("tmux_orchestrator.server.tools.track_task_status._load_all_task_statuses") as mock_load:
             tasks = [
-                TaskStatusUpdate(
-                    task_id="task_001",
-                    agent_id="dev:0",
-                    status="in_progress",
-                    created_at=datetime.now()
-                ),
-                TaskStatusUpdate(
-                    task_id="task_002",
-                    agent_id="qa:0",
-                    status="completed",
-                    created_at=datetime.now()
-                ),
-                TaskStatusUpdate(
-                    task_id="task_003",
-                    agent_id="dev:1",
-                    status="in_progress",
-                    created_at=datetime.now()
-                )
+                TaskStatusUpdate(task_id="task_001", agent_id="dev:0", status="in_progress", created_at=datetime.now()),
+                TaskStatusUpdate(task_id="task_002", agent_id="qa:0", status="completed", created_at=datetime.now()),
+                TaskStatusUpdate(task_id="task_003", agent_id="dev:1", status="in_progress", created_at=datetime.now()),
             ]
             mock_load.return_value = tasks
 
@@ -283,7 +263,7 @@ class TestTrackTaskStatus:
         """Test listing all tasks when no status filter provided."""
         request = TaskStatusRequest()
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._load_all_task_statuses') as mock_load:
+        with patch("tmux_orchestrator.server.tools.track_task_status._load_all_task_statuses") as mock_load:
             tasks = [
                 TaskStatusUpdate(task_id="task_001", status="in_progress", created_at=datetime.now()),
                 TaskStatusUpdate(task_id="task_002", status="completed", created_at=datetime.now()),
@@ -299,7 +279,7 @@ class TestTrackTaskStatus:
         """Test listing tasks filtered by agent."""
         request = TaskStatusRequest(agent_id="dev:0")
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._load_all_task_statuses') as mock_load:
+        with patch("tmux_orchestrator.server.tools.track_task_status._load_all_task_statuses") as mock_load:
             tasks = [
                 TaskStatusUpdate(task_id="task_001", agent_id="dev:0", status="in_progress", created_at=datetime.now()),
                 TaskStatusUpdate(task_id="task_002", agent_id="qa:0", status="completed", created_at=datetime.now()),
@@ -322,7 +302,7 @@ class TestTrackTaskStatus:
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(task_id="task_001", agent_id="dev:0", status=status)
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
+        with patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save:
             mock_save.return_value = True
 
             result = track_task_status(tmux, request)
@@ -333,14 +313,9 @@ class TestTrackTaskStatus:
     def test_track_task_status_with_progress_percentage(self) -> None:
         """Test task status tracking with progress percentage."""
         tmux = Mock(spec=TMUXManager)
-        request = TaskStatusRequest(
-            task_id="task_001",
-            agent_id="dev:0",
-            status="in_progress",
-            progress_percentage=75
-        )
+        request = TaskStatusRequest(task_id="task_001", agent_id="dev:0", status="in_progress", progress_percentage=75)
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
+        with patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save:
             mock_save.return_value = True
 
             result = track_task_status(tmux, request)
@@ -352,10 +327,7 @@ class TestTrackTaskStatus:
         """Test task status tracking with invalid progress percentage."""
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(
-            task_id="task_001",
-            agent_id="dev:0",
-            status="in_progress",
-            progress_percentage=150  # Invalid - over 100
+            task_id="task_001", agent_id="dev:0", status="in_progress", progress_percentage=150  # Invalid - over 100
         )
 
         result = track_task_status(tmux, request)
@@ -369,7 +341,7 @@ class TestTrackTaskStatus:
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(task_id="task_001", agent_id="dev:0", status="in_progress")
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
+        with patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save:
             mock_save.side_effect = Exception("Disk full")
 
             result = track_task_status(tmux, request)
@@ -382,13 +354,10 @@ class TestTrackTaskStatus:
         """Test task status tracking includes comprehensive metadata."""
         tmux = Mock(spec=TMUXManager)
         request = TaskStatusRequest(
-            task_id="task_001",
-            agent_id="dev:0",
-            status="in_progress",
-            tags=["authentication", "security", "backend"]
+            task_id="task_001", agent_id="dev:0", status="in_progress", tags=["authentication", "security", "backend"]
         )
 
-        with patch('tmux_orchestrator.server.tools.track_task_status._save_task_status') as mock_save:
+        with patch("tmux_orchestrator.server.tools.track_task_status._save_task_status") as mock_save:
             mock_save.return_value = True
 
             result = track_task_status(tmux, request)

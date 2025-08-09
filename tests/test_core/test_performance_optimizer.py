@@ -2,15 +2,14 @@
 
 import asyncio
 import time
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock
 
 import pytest
 
 from tmux_orchestrator.core.performance_optimizer import (
-    PerformanceOptimizer,
-    OptimizationConfig,
-    PerformanceMetrics,
     MCPConnectionPool,
+    OptimizationConfig,
+    PerformanceOptimizer,
     create_optimized_config,
 )
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -53,7 +52,7 @@ class TestPerformanceOptimizer:
         result2 = optimizer.optimize_list_operations()
         assert optimizer._metrics.cache_hits == 1
         assert result1 == result2
-        
+
         # Verify tmux was only called once
         assert tmux.list_sessions.call_count == 1
 
@@ -68,21 +67,18 @@ class TestPerformanceOptimizer:
         tmux.list_windows.return_value = [{"index": "0", "name": "main"}]
 
         result = optimizer.optimize_list_operations()
-        
+
         assert len(result) == 10
         assert optimizer._metrics.agent_count == 10
 
     def test_batch_send_messages(self, optimizer: PerformanceOptimizer, tmux: Mock) -> None:
         """Test batch message sending."""
         tmux.send_keys.return_value = True
-        
-        messages = [
-            {"target": f"session{i}:0", "content": f"Message {i}"}
-            for i in range(25)
-        ]
+
+        messages = [{"target": f"session{i}:0", "content": f"Message {i}"} for i in range(25)]
 
         results = optimizer.batch_send_messages(messages)
-        
+
         assert len(results) == 25
         assert all(results)
         assert optimizer._metrics.batch_operations_count == 3  # 25 messages / 10 batch size
@@ -93,13 +89,10 @@ class TestPerformanceOptimizer:
         optimizer = PerformanceOptimizer(tmux, config)
         tmux.send_keys.return_value = True
 
-        messages = [
-            {"target": f"session{i}:0", "content": f"Message {i}"}
-            for i in range(5)
-        ]
+        messages = [{"target": f"session{i}:0", "content": f"Message {i}"} for i in range(5)]
 
         results = optimizer.batch_send_messages(messages)
-        
+
         assert len(results) == 5
         assert tmux.send_keys.call_count == 5
         assert optimizer._metrics.batch_operations_count == 0
@@ -107,10 +100,10 @@ class TestPerformanceOptimizer:
     def test_get_agent_status_bulk(self, optimizer: PerformanceOptimizer, tmux: Mock) -> None:
         """Test bulk agent status retrieval."""
         tmux.capture_pane.side_effect = lambda agent_id: f"Content for {agent_id}"
-        
+
         agent_ids = [f"session{i}:0" for i in range(5)]
         results = optimizer.get_agent_status_bulk(agent_ids)
-        
+
         assert len(results) == 5
         for agent_id in agent_ids:
             assert agent_id in results
@@ -119,16 +112,17 @@ class TestPerformanceOptimizer:
 
     def test_get_agent_status_bulk_with_errors(self, optimizer: PerformanceOptimizer, tmux: Mock) -> None:
         """Test bulk status retrieval with some errors."""
+
         def mock_capture(agent_id):
             if "2" in agent_id:
                 raise Exception("Connection failed")
             return f"Content for {agent_id}"
-        
+
         tmux.capture_pane.side_effect = mock_capture
-        
+
         agent_ids = [f"session{i}:0" for i in range(5)]
         results = optimizer.get_agent_status_bulk(agent_ids)
-        
+
         assert len(results) == 5
         assert "error" in results["session2:0"]
         assert results["session2:0"]["status"] == "error"
@@ -137,7 +131,7 @@ class TestPerformanceOptimizer:
     def test_optimize_team_deployment_small(self, optimizer: PerformanceOptimizer) -> None:
         """Test team deployment optimization for small teams."""
         result = optimizer.optimize_team_deployment(5)
-        
+
         assert result["recommended_batch_size"] == 1
         assert not result["use_parallel_deployment"]
         assert result["stagger_startup_ms"] == 0
@@ -147,7 +141,7 @@ class TestPerformanceOptimizer:
     def test_optimize_team_deployment_medium(self, optimizer: PerformanceOptimizer) -> None:
         """Test team deployment optimization for medium teams."""
         result = optimizer.optimize_team_deployment(25)
-        
+
         assert result["recommended_batch_size"] == 5
         assert result["use_parallel_deployment"]
         assert result["stagger_startup_ms"] == 100
@@ -157,7 +151,7 @@ class TestPerformanceOptimizer:
     def test_optimize_team_deployment_large(self, optimizer: PerformanceOptimizer) -> None:
         """Test team deployment optimization for large teams."""
         result = optimizer.optimize_team_deployment(75)
-        
+
         assert result["recommended_batch_size"] == 15
         assert result["use_parallel_deployment"]
         assert result["stagger_startup_ms"] == 100
@@ -170,7 +164,7 @@ class TestPerformanceOptimizer:
         """Test cache expiration."""
         config = OptimizationConfig(cache_ttl_seconds=1)
         optimizer = PerformanceOptimizer(tmux, config)
-        
+
         tmux.list_sessions.return_value = [{"name": "test", "created": "123"}]
         tmux.list_windows.return_value = []
 
@@ -207,7 +201,7 @@ class TestPerformanceOptimizer:
         optimizer._update_response_metrics(0.3)
 
         metrics = optimizer.get_performance_metrics()
-        
+
         assert metrics.error_rate == 20.0  # 2/10 * 100
         assert metrics.response_time_avg > 0
         assert metrics.response_time_p95 >= 0.5
@@ -216,10 +210,10 @@ class TestPerformanceOptimizer:
         """Test optimizer shutdown."""
         # Add some data
         optimizer._set_cached("test", "value")
-        
+
         # Shutdown
         optimizer.shutdown()
-        
+
         # Verify cleanup
         assert len(optimizer._cache) == 0
         assert optimizer._executor._shutdown
@@ -227,7 +221,7 @@ class TestPerformanceOptimizer:
     def test_create_optimized_config_small(self) -> None:
         """Test config creation for small deployments."""
         config = create_optimized_config(10)
-        
+
         assert config.batch_size == 10
         assert config.connection_pool_size == 10
         assert config.max_concurrent_operations == 20
@@ -235,7 +229,7 @@ class TestPerformanceOptimizer:
     def test_create_optimized_config_medium(self) -> None:
         """Test config creation for medium deployments."""
         config = create_optimized_config(30)
-        
+
         assert config.batch_size == 15
         assert config.connection_pool_size == 20
         assert config.max_concurrent_operations == 30
@@ -243,7 +237,7 @@ class TestPerformanceOptimizer:
     def test_create_optimized_config_large(self) -> None:
         """Test config creation for large deployments."""
         config = create_optimized_config(100)
-        
+
         assert config.batch_size == 20
         assert config.connection_pool_size == 30
         assert config.max_concurrent_operations == 50
@@ -257,7 +251,7 @@ class TestMCPConnectionPool:
         """Test connection pool initialization."""
         pool = MCPConnectionPool(pool_size=5)
         await pool.initialize()
-        
+
         assert len(pool._connections) == 5
         assert pool._available.qsize() == 5
 
@@ -266,20 +260,21 @@ class TestMCPConnectionPool:
         """Test acquiring and releasing connections."""
         pool = MCPConnectionPool(pool_size=3)
         await pool.initialize()
-        
+
         # Acquire connection
         conn1 = await pool.acquire()
         assert conn1 is not None
         assert pool._available.qsize() == 2
-        
+
         # Acquire another
         conn2 = await pool.acquire()
+        assert conn2 is not None
         assert pool._available.qsize() == 1
-        
+
         # Release first connection
         await pool.release(conn1)
         assert pool._available.qsize() == 2
-        
+
         # Release second connection
         await pool.release(conn2)
         assert pool._available.qsize() == 3
@@ -289,21 +284,23 @@ class TestMCPConnectionPool:
         """Test behavior when pool is exhausted."""
         pool = MCPConnectionPool(pool_size=2)
         await pool.initialize()
-        
+
         # Acquire all connections
         conn1 = await pool.acquire()
         conn2 = await pool.acquire()
-        
+        assert conn1 is not None
+        assert conn2 is not None
+
         # Try to acquire another (should block)
         acquire_task = asyncio.create_task(pool.acquire())
-        
+
         # Give it time to block
         await asyncio.sleep(0.1)
         assert not acquire_task.done()
-        
+
         # Release a connection
         await pool.release(conn1)
-        
+
         # Now acquire should complete
         conn3 = await acquire_task
         assert conn3 is not None
@@ -313,9 +310,9 @@ class TestMCPConnectionPool:
         """Test closing connection pool."""
         pool = MCPConnectionPool(pool_size=3)
         await pool.initialize()
-        
+
         # Close pool
         await pool.close()
-        
+
         assert len(pool._connections) == 0
         assert pool._available.empty()

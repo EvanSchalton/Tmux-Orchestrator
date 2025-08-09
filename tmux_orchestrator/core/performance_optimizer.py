@@ -70,10 +70,7 @@ class PerformanceOptimizer:
         if self.config.enable_async_operations:
             # Parallel window fetching
             with ThreadPoolExecutor(max_workers=min(len(sessions), self.config.connection_pool_size)) as executor:
-                futures = {
-                    executor.submit(self._get_session_windows, session["name"]): session
-                    for session in sessions
-                }
+                futures = {executor.submit(self._get_session_windows, session["name"]): session for session in sessions}
 
                 all_agents = {}
                 for future in futures:
@@ -103,22 +100,18 @@ class PerformanceOptimizer:
 
         # Process in batches
         for i in range(0, len(messages), self.config.batch_size):
-            batch = messages[i:i + self.config.batch_size]
+            batch = messages[i : i + self.config.batch_size]
 
             if self.config.enable_async_operations:
                 # Parallel batch processing
                 with ThreadPoolExecutor(max_workers=self.config.batch_size) as executor:
                     batch_futures = [
-                        executor.submit(self.tmux.send_keys, msg["target"], msg["content"])
-                        for msg in batch
+                        executor.submit(self.tmux.send_keys, msg["target"], msg["content"]) for msg in batch
                     ]
                     batch_results = [f.result() for f in batch_futures]
             else:
                 # Sequential batch processing
-                batch_results = [
-                    self.tmux.send_keys(msg["target"], msg["content"])
-                    for msg in batch
-                ]
+                batch_results = [self.tmux.send_keys(msg["target"], msg["content"]) for msg in batch]
 
             results.extend(batch_results)
             self._metrics.batch_operations_count += 1
@@ -132,10 +125,7 @@ class PerformanceOptimizer:
         if self.config.enable_async_operations:
             # Parallel status fetching
             with ThreadPoolExecutor(max_workers=self.config.max_concurrent_operations) as executor:
-                futures = {
-                    executor.submit(self._get_single_agent_status, agent_id): agent_id
-                    for agent_id in agent_ids
-                }
+                futures = {executor.submit(self._get_single_agent_status, agent_id): agent_id for agent_id in agent_ids}
 
                 results = {}
                 for future in futures:

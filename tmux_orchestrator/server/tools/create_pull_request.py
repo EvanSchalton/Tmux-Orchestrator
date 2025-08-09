@@ -358,10 +358,15 @@ def _push_branch(branch: str) -> bool:
 def _create_pr_with_gh(request: CreatePullRequestRequest) -> str:
     """Create PR using GitHub CLI."""
     cmd = [
-        "gh", "pr", "create",
-        "--title", request.title,
-        "--base", request.base_branch,
-        "--head", request.head_branch,
+        "gh",
+        "pr",
+        "create",
+        "--title",
+        request.title,
+        "--base",
+        request.base_branch,
+        "--head",
+        request.head_branch,
     ]
 
     # Add optional flags
@@ -392,7 +397,7 @@ def _create_pr_with_gh(request: CreatePullRequestRequest) -> str:
 
 def _extract_pr_number(pr_url: str) -> int:
     """Extract PR number from GitHub URL."""
-    match = re.search(r'/pull/(\d+)', pr_url)
+    match = re.search(r"/pull/(\d+)", pr_url)
     if match:
         return int(match.group(1))
     return 0

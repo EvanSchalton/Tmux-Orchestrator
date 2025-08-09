@@ -55,7 +55,7 @@ class TestCreatePullRequest:
         tmux = Mock(spec=TMUXManager)
         request = CreatePullRequestRequest(title="Test PR", base_branch="main", head_branch="feature/test")
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Mock current branch check
             mock_run.return_value.returncode = 0
             mock_run.return_value.stdout = "different-branch"
@@ -71,7 +71,7 @@ class TestCreatePullRequest:
         tmux = Mock(spec=TMUXManager)
         request = CreatePullRequestRequest(title="Test PR", base_branch="main", head_branch="feature/test")
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Mock git status with uncommitted changes
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
@@ -97,10 +97,10 @@ class TestCreatePullRequest:
             head_branch="feature/test",
             body="This PR adds a new feature",
             draft=False,
-            task_ids=["task_001", "task_002"]
+            task_ids=["task_001", "task_002"],
         )
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Mock all git/gh commands
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
@@ -132,11 +132,12 @@ class TestCreatePullRequest:
             base_branch="main",
             head_branch="feature/test",
             run_quality_checks=True,
-            quality_check_types=["tests", "linting"]
+            quality_check_types=["tests", "linting"],
         )
 
-        with patch('subprocess.run') as mock_run, \
-             patch('tmux_orchestrator.server.tools.create_pull_request._run_quality_checks') as mock_quality:
+        with patch("subprocess.run") as mock_run, patch(
+            "tmux_orchestrator.server.tools.create_pull_request._run_quality_checks"
+        ) as mock_quality:
             # Mock successful commands
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
@@ -166,11 +167,12 @@ class TestCreatePullRequest:
             base_branch="main",
             head_branch="feature/test",
             run_quality_checks=True,
-            block_on_quality_failure=True
+            block_on_quality_failure=True,
         )
 
-        with patch('subprocess.run') as mock_run, \
-             patch('tmux_orchestrator.server.tools.create_pull_request._run_quality_checks') as mock_quality:
+        with patch("subprocess.run") as mock_run, patch(
+            "tmux_orchestrator.server.tools.create_pull_request._run_quality_checks"
+        ) as mock_quality:
             # Mock commands
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
@@ -192,13 +194,11 @@ class TestCreatePullRequest:
         """Test creating a draft pull request."""
         tmux = Mock(spec=TMUXManager)
         request = CreatePullRequestRequest(
-            title="WIP: Add new feature",
-            base_branch="main",
-            head_branch="feature/test",
-            draft=True
+            title="WIP: Add new feature", base_branch="main", head_branch="feature/test", draft=True
         )
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
+
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
                     return Mock(returncode=0, stdout="feature/test")
@@ -226,10 +226,11 @@ class TestCreatePullRequest:
             title="Add new feature",
             base_branch="main",
             head_branch="feature/test",
-            labels=["enhancement", "needs-review"]
+            labels=["enhancement", "needs-review"],
         )
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
+
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
                     return Mock(returncode=0, stdout="feature/test")
@@ -255,10 +256,9 @@ class TestCreatePullRequest:
         """Test getting PR status successfully."""
         request = CreatePullRequestRequest(pr_number=123)
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             mock_run.return_value = Mock(
-                returncode=0,
-                stdout='{"state":"open","mergeable":true,"checks":{"conclusion":"success"}}'
+                returncode=0, stdout='{"state":"open","mergeable":true,"checks":{"conclusion":"success"}}'
             )
 
             result = get_pr_status(request)
@@ -273,12 +273,8 @@ class TestCreatePullRequest:
         """Test get_pr_status when PR not found."""
         request = CreatePullRequestRequest(pr_number=999)
 
-        with patch('subprocess.run') as mock_run:
-            mock_run.return_value = Mock(
-                returncode=1,
-                stdout="",
-                stderr="Pull request not found"
-            )
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = Mock(returncode=1, stdout="", stderr="Pull request not found")
 
             result = get_pr_status(request)
 
@@ -288,12 +284,9 @@ class TestCreatePullRequest:
 
     def test_link_pr_to_tasks_successful(self) -> None:
         """Test linking PR to tasks successfully."""
-        request = CreatePullRequestRequest(
-            pr_number=123,
-            task_ids=["task_001", "task_002", "task_003"]
-        )
+        request = CreatePullRequestRequest(pr_number=123, task_ids=["task_001", "task_002", "task_003"])
 
-        with patch('tmux_orchestrator.server.tools.create_pull_request._update_task_with_pr') as mock_update:
+        with patch("tmux_orchestrator.server.tools.create_pull_request._update_task_with_pr") as mock_update:
             mock_update.return_value = True
 
             result = link_pr_to_tasks(request)
@@ -304,12 +297,9 @@ class TestCreatePullRequest:
 
     def test_link_pr_to_tasks_partial_failure(self) -> None:
         """Test linking PR to tasks with partial failures."""
-        request = CreatePullRequestRequest(
-            pr_number=123,
-            task_ids=["task_001", "task_002", "task_003"]
-        )
+        request = CreatePullRequestRequest(pr_number=123, task_ids=["task_001", "task_002", "task_003"])
 
-        with patch('tmux_orchestrator.server.tools.create_pull_request._update_task_with_pr') as mock_update:
+        with patch("tmux_orchestrator.server.tools.create_pull_request._update_task_with_pr") as mock_update:
             # First two succeed, third fails
             mock_update.side_effect = [True, True, False]
 
@@ -323,15 +313,14 @@ class TestCreatePullRequest:
         """Test running quality checks for PR."""
         tmux = Mock(spec=TMUXManager)
         request = CreatePullRequestRequest(
-            pr_number=123,
-            quality_check_types=["tests", "linting"],
-            project_path="/test/project"
+            pr_number=123, quality_check_types=["tests", "linting"], project_path="/test/project"
         )
 
-        with patch('tmux_orchestrator.server.tools.create_pull_request._get_pr_branch') as mock_branch, \
-             patch('subprocess.run') as mock_run:
+        with patch("tmux_orchestrator.server.tools.create_pull_request._get_pr_branch") as mock_branch, patch(
+            "subprocess.run"
+        ) as mock_run:
             mock_branch.return_value = "feature/test"
-            
+
             # Mock checkout and quality checks
             def mock_subprocess(cmd, *args, **kwargs):
                 if "checkout" in cmd:
@@ -351,13 +340,10 @@ class TestCreatePullRequest:
     def test_create_pull_request_gh_not_installed(self) -> None:
         """Test create_pull_request when gh CLI is not installed."""
         tmux = Mock(spec=TMUXManager)
-        request = CreatePullRequestRequest(
-            title="Test PR",
-            base_branch="main",
-            head_branch="feature/test"
-        )
+        request = CreatePullRequestRequest(title="Test PR", base_branch="main", head_branch="feature/test")
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
+
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
                     return Mock(returncode=0, stdout="feature/test")
@@ -381,13 +367,11 @@ class TestCreatePullRequest:
         """Test creating pull request with assignees."""
         tmux = Mock(spec=TMUXManager)
         request = CreatePullRequestRequest(
-            title="Add new feature",
-            base_branch="main",
-            head_branch="feature/test",
-            assignees=["user1", "user2"]
+            title="Add new feature", base_branch="main", head_branch="feature/test", assignees=["user1", "user2"]
         )
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
+
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
                     return Mock(returncode=0, stdout="feature/test")
@@ -412,13 +396,9 @@ class TestCreatePullRequest:
     def test_create_pull_request_exception_handling(self) -> None:
         """Test create_pull_request handles unexpected exceptions."""
         tmux = Mock(spec=TMUXManager)
-        request = CreatePullRequestRequest(
-            title="Test PR",
-            base_branch="main",
-            head_branch="feature/test"
-        )
+        request = CreatePullRequestRequest(title="Test PR", base_branch="main", head_branch="feature/test")
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             mock_run.side_effect = Exception("Unexpected error")
 
             result = create_pull_request(tmux, request)
@@ -440,13 +420,11 @@ class TestCreatePullRequest:
         """Test creating PR with various body content formats."""
         tmux = Mock(spec=TMUXManager)
         request = CreatePullRequestRequest(
-            title="Test PR",
-            base_branch="main",
-            head_branch="feature/test",
-            body=body_content
+            title="Test PR", base_branch="main", head_branch="feature/test", body=body_content
         )
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
+
             def mock_subprocess(cmd, *args, **kwargs):
                 if "branch" in cmd and "--show-current" in cmd:
                     return Mock(returncode=0, stdout="feature/test")
