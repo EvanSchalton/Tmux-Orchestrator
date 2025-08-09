@@ -21,7 +21,7 @@ class TestRestoreContext:
         target: str = "test-session:0"
         logger_mock: Mock = Mock()
 
-        with patch('time.sleep'):  # Mock sleep to speed up tests
+        with patch("time.sleep"):  # Mock sleep to speed up tests
             # Act
             result: bool = restore_context(tmux_mock, target, logger_mock)
 
@@ -38,7 +38,7 @@ class TestRestoreContext:
         target: str = "test-session:0"
         logger_mock: Mock = Mock()
 
-        with patch('time.sleep'):
+        with patch("time.sleep"):
             # Act
             result: bool = restore_context(tmux_mock, target, logger_mock)
 
@@ -66,14 +66,12 @@ class TestRestoreContext:
         logger_mock: Mock = Mock()
         context_data: dict = {
             "last_task": "Implementing user authentication",
-            "progress": "50% complete"
+            "progress": "50% complete",
         }
 
-        with patch('time.sleep'):
+        with patch("time.sleep"):
             # Act
-            result: bool = restore_context(
-                tmux_mock, target, logger_mock, context_data
-            )
+            result: bool = restore_context(tmux_mock, target, logger_mock, context_data)
 
             # Assert
             assert result is True
@@ -91,7 +89,7 @@ class TestRestoreContext:
         target: str = "test-session:0"
         logger_mock: Mock = Mock()
 
-        with patch('time.sleep'):
+        with patch("time.sleep"):
             # Act & Assert
             with pytest.raises(RuntimeError, match="Failed to restore context"):
                 restore_context(tmux_mock, target, logger_mock)
@@ -120,7 +118,7 @@ class TestBuildContextMessage:
         target: str = "test-session:0"
         context_data: dict = {
             "project": "E-commerce API",
-            "current_branch": "feature/payment-integration"
+            "current_branch": "feature/payment-integration",
         }
 
         # Act
@@ -137,7 +135,7 @@ class TestBuildContextMessage:
         # Arrange
         target: str = "test-session:0"
 
-        with patch('tmux_orchestrator.core.recovery.restore_context.datetime') as dt_mock:
+        with patch("tmux_orchestrator.core.recovery.restore_context.datetime") as dt_mock:
             dt_mock.now.return_value.strftime.return_value = "2024-01-01 12:00:00"
 
             # Act

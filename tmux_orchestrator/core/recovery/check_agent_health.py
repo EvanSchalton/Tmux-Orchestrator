@@ -1,7 +1,7 @@
 """Check agent health status using enhanced monitoring."""
 
 from datetime import datetime
-from typing import Any, Dict, NamedTuple
+from typing import Any, NamedTuple
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -10,6 +10,7 @@ from .detect_failure import detect_failure
 
 class AgentHealthStatus(NamedTuple):
     """Agent health status data structure."""
+
     target: str
     is_healthy: bool
     is_idle: bool
@@ -24,7 +25,7 @@ def check_agent_health(
     last_response: datetime,
     consecutive_failures: int = 0,
     max_failures: int = 3,
-    response_timeout: int = 60
+    response_timeout: int = 60,
 ) -> AgentHealthStatus:
     """
     Check the health status of a specific agent.
@@ -48,14 +49,14 @@ def check_agent_health(
         RuntimeError: If health check operations fail
     """
     # Validate target format
-    if ':' not in target:
+    if ":" not in target:
         raise ValueError(f"Invalid target format: {target}. Expected 'session:window'")
 
     try:
         # Detect failure using comprehensive analysis
         is_failed: bool
         failure_reason: str
-        status_details: Dict[str, Any]
+        status_details: dict[str, Any]
 
         is_failed, failure_reason, status_details = detect_failure(
             tmux=tmux,
@@ -63,19 +64,16 @@ def check_agent_health(
             last_response=last_response,
             consecutive_failures=consecutive_failures,
             max_failures=max_failures,
-            response_timeout=response_timeout
+            response_timeout=response_timeout,
         )
-        
-        is_idle: bool = status_details.get('is_idle', False)
+
+        is_idle: bool = status_details.get("is_idle", False)
 
         # Determine health status
         is_healthy: bool = not is_failed
 
         # Update failure count
-        new_failure_count: int = (
-            consecutive_failures + 1 if is_failed
-            else 0
-        )
+        new_failure_count: int = consecutive_failures + 1 if is_failed else 0
 
         return AgentHealthStatus(
             target=target,
@@ -83,7 +81,7 @@ def check_agent_health(
             is_idle=is_idle,
             failure_reason=failure_reason,
             last_check=datetime.now(),
-            consecutive_failures=new_failure_count
+            consecutive_failures=new_failure_count,
         )
 
     except Exception as e:
@@ -94,5 +92,5 @@ def check_agent_health(
             is_idle=False,
             failure_reason=f"health_check_failed: {str(e)}",
             last_check=datetime.now(),
-            consecutive_failures=consecutive_failures + 1
+            consecutive_failures=consecutive_failures + 1,
         )

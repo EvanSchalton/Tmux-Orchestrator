@@ -1,7 +1,7 @@
 """Project Manager specific functionality."""
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -45,10 +45,10 @@ Please read the task file and create an implementation plan."""
         sessions = self.tmux.list_sessions()
 
         for session in sessions:
-            windows = self.tmux.list_windows(session['name'])
+            windows = self.tmux.list_windows(session["name"])
             for window in windows:
                 # Check for PM window patterns
-                if any(pattern in window['name'].lower() for pattern in ['pm', 'project-manager', 'claude-pm']):
+                if any(pattern in window["name"].lower() for pattern in ["pm", "project-manager", "claude-pm"]):
                     return f"{session['name']}:{window['index']}"
 
         return None
@@ -60,6 +60,7 @@ Please read the task file and create an implementation plan."""
         # Create session if needed
         if not self.tmux.has_session(session_name):
             from pathlib import Path
+
             project_path = Path.cwd()
             self.tmux.create_session(session_name, "Shell", str(project_path))
 
@@ -71,8 +72,8 @@ Please read the task file and create an implementation plan."""
         windows = self.tmux.list_windows(session_name)
         window_idx = None
         for window in windows:
-            if window['name'] == window_name:
-                window_idx = window['index']
+            if window["name"] == window_name:
+                window_idx = window["index"]
                 break
 
         if window_idx is None:
@@ -84,6 +85,7 @@ Please read the task file and create an implementation plan."""
 
         # Brief the PM
         import time
+
         time.sleep(5)
         briefing = self._get_pm_briefing(project_name, task_file)
         self.tmux.send_message(target, briefing)
@@ -93,20 +95,25 @@ Please read the task file and create an implementation plan."""
     def _start_claude_pm(self, target: str) -> None:
         """Start Claude for PM."""
         # Set up environment
-        self.tmux.send_keys(target, 'export TERM=xterm-256color')
-        self.tmux.send_keys(target, 'Enter')
+        self.tmux.send_keys(target, "export TERM=xterm-256color")
+        self.tmux.send_keys(target, "Enter")
 
         # Activate venv if exists
         from pathlib import Path
-        if Path('.venv').exists():
-            self.tmux.send_keys(target, 'source .venv/bin/activate')
-            self.tmux.send_keys(target, 'Enter')
+
+        if Path(".venv").exists():
+            self.tmux.send_keys(target, "source .venv/bin/activate")
+            self.tmux.send_keys(target, "Enter")
             import time
+
             time.sleep(2)
 
         # Start Claude
-        self.tmux.send_keys(target, 'FORCE_COLOR=1 NODE_NO_WARNINGS=1 claude --dangerously-skip-permissions')
-        self.tmux.send_keys(target, 'Enter')
+        self.tmux.send_keys(
+            target,
+            "FORCE_COLOR=1 NODE_NO_WARNINGS=1 claude --dangerously-skip-permissions",
+        )
+        self.tmux.send_keys(target, "Enter")
 
     def _get_pm_briefing(self, project_name: str, task_file: Optional[str]) -> str:
         """Get PM briefing with agent list."""
@@ -115,13 +122,13 @@ Please read the task file and create an implementation plan."""
         agent_list = []
 
         for agent in agents:
-            if agent['type'] != 'PM':  # Don't list self
+            if agent["type"] != "PM":  # Don't list self
                 agent_list.append(f"  • {agent['type']}: tmux-message {agent['session']}:{agent['window']} 'message'")
 
         return self.PM_BRIEFING.format(
             project=project_name,
             task_file=task_file or "Not specified",
-            agent_list='\n'.join(agent_list) if agent_list else "  • No agents deployed yet"
+            agent_list="\n".join(agent_list) if agent_list else "  • No agents deployed yet",
         )
 
     def trigger_status_review(self) -> None:
@@ -137,7 +144,7 @@ Please read the task file and create an implementation plan."""
         # Send to PM
         self.tmux.send_message(pm_target, status_report)
 
-    def _build_status_report(self, agents: List[Dict]) -> str:
+    def _build_status_report(self, agents: list[dict]) -> str:
         """Build a status report for PM."""
         report = f"""📊 TEAM STATUS REPORT - {datetime.now().strftime('%Y-%m-%d %H:%M')}
 ========================================
@@ -145,14 +152,14 @@ Please read the task file and create an implementation plan."""
 AGENT STATUS:"""
 
         for agent in agents:
-            if agent['type'] == 'PM':
+            if agent["type"] == "PM":
                 continue
 
             target = f"{agent['session']}:{agent['window']}"
             pane_content = self.tmux.capture_pane(target, lines=50)
 
             # Extract key info
-            status = "🟢 Active" if agent['status'] == 'Active' else "🔴 Idle"
+            status = "🟢 Active" if agent["status"] == "Active" else "🔴 Idle"
             last_output = self._get_last_meaningful_output(pane_content)
 
             report += f"""
@@ -181,23 +188,23 @@ Remember: Quality over speed. No shortcuts."""
 
     def _get_last_meaningful_output(self, pane_content: str) -> str:
         """Extract last meaningful output from pane."""
-        lines = pane_content.strip().split('\n')
+        lines = pane_content.strip().split("\n")
 
         # Skip empty lines and prompts
         for line in reversed(lines):
             line = line.strip()
-            if line and not line.startswith('│') and not line.startswith('>'):
+            if line and not line.startswith("│") and not line.startswith(">"):
                 return line[:100] + "..." if len(line) > 100 else line
 
         return "No recent output"
 
-    def broadcast_to_all_agents(self, message: str) -> Dict[str, bool]:
+    def broadcast_to_all_agents(self, message: str) -> dict[str, bool]:
         """Broadcast a message to all agents."""
         agents = self.tmux.list_agents()
         results = {}
 
         for agent in agents:
-            if agent['type'] == 'PM':
+            if agent["type"] == "PM":
                 continue
 
             target = f"{agent['session']}:{agent['window']}"
@@ -206,7 +213,7 @@ Remember: Quality over speed. No shortcuts."""
 
         return results
 
-    def custom_checkin(self, custom_message: str) -> Dict[str, bool]:
+    def custom_checkin(self, custom_message: str) -> dict[str, bool]:
         """Send custom check-in message to all agents."""
         full_message = f"""🔔 PM CHECK-IN REQUEST:
 

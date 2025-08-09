@@ -1,6 +1,6 @@
 """Tests for recovery CLI commands."""
 
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -21,196 +21,109 @@ def mock_tmux():
     return Mock(spec=TMUXManager)
 
 
-def test_recovery_check_all_healthy(runner, mock_tmux):
-    """Test recovery check when all agents are healthy."""
-    with patch('tmux_orchestrator.core.recovery.discover_agents') as mock_discover:
-        with patch('tmux_orchestrator.core.recovery.check_agent_health') as mock_health:
-            # Mock discovery
-            mock_discover.return_value = [
-                {'target': 'proj:0', 'session': 'proj', 'window': '0'},
-                {'target': 'proj:1', 'session': 'proj', 'window': '1'},
-                {'target': 'proj:2', 'session': 'proj', 'window': '2'}
-            ]
-            
-            # All healthy
-            mock_health.return_value = {'healthy': True, 'status': 'active'}
-            
-            result = runner.invoke(recovery, ['check'], obj={'tmux': mock_tmux})
-            
+def test_recovery_start_daemon(runner, mock_tmux):
+    """Test starting recovery daemon."""
+    with patch("tmux_orchestrator.core.recovery.recovery_daemon.run_recovery_daemon"):
+        # Run with daemon flag and mock the background process
+        with patch("subprocess.Popen") as mock_popen:
+            mock_process = Mock()
+            mock_process.pid = 12345
+            mock_popen.return_value = mock_process
+
+            result = runner.invoke(recovery, ["start", "--daemon"], obj={"tmux": mock_tmux})
+
             assert result.exit_code == 0
-            assert "3 agents" in result.output
-            assert "All healthy" in result.output or "0 unhealthy" in result.output
+            assert "Recovery daemon started" in result.output
 
 
-def test_recovery_check_with_unhealthy(runner, mock_tmux):
-    """Test recovery check with unhealthy agents."""
-    with patch('tmux_orchestrator.core.recovery.discover_agents') as mock_discover:
-        with patch('tmux_orchestrator.core.recovery.check_agent_health') as mock_health:
-            # Mock discovery
-            mock_discover.return_value = [
-                {'target': 'proj:0', 'session': 'proj', 'window': '0'},
-                {'target': 'proj:1', 'session': 'proj', 'window': '1'},
-                {'target': 'proj:2', 'session': 'proj', 'window': '2'}
-            ]
-            
-            # Mixed health
-            mock_health.side_effect = [
-                {'healthy': True, 'status': 'active'},
-                {'healthy': False, 'reason': 'No activity for 1h'},
-                {'healthy': True, 'status': 'active'}
-            ]
-            
-            result = runner.invoke(recovery, ['check'], obj={'tmux': mock_tmux})
-            
-            assert result.exit_code == 0
-            assert "1 unhealthy" in result.output
-            assert "proj:1" in result.output
+def test_recovery_stop_daemon(runner, mock_tmux):
+    """Test stopping recovery daemon."""
+    with patch("pathlib.Path.exists") as mock_exists:
+        with patch("builtins.open", create=True) as mock_open:
+            with patch("os.kill"):
+                mock_exists.return_value = True
+                mock_open.return_value.__enter__.return_value.read.return_value = "12345"
 
+                result = runner.invoke(recovery, ["stop"], obj={"tmux": mock_tmux})
 
-def test_recovery_check_auto_restart(runner, mock_tmux):
-    """Test recovery check with auto-restart enabled."""
-    with patch('tmux_orchestrator.core.recovery.discover_agents') as mock_discover:
-        with patch('tmux_orchestrator.core.recovery.check_agent_health') as mock_health:
-            with patch('tmux_orchestrator.core.agent_operations.restart_agent') as mock_restart:
-                # Mock discovery
-                mock_discover.return_value = [
-                    {'target': 'proj:0', 'session': 'proj', 'window': '0'},
-                    {'target': 'proj:1', 'session': 'proj', 'window': '1'}
-                ]
-                
-                # One unhealthy
-                mock_health.side_effect = [
-                    {'healthy': True, 'status': 'active'},
-                    {'healthy': False, 'reason': 'Crashed'}
-                ]
-                
-                # Mock restart
-                mock_restart.return_value = (True, "Restarted successfully")
-                
-                result = runner.invoke(recovery, ['check', '--auto-restart'], 
-                                     obj={'tmux': mock_tmux})
-                
                 assert result.exit_code == 0
-                assert "Restarting" in result.output
-                mock_restart.assert_called_once()
+                assert "Stopping recovery daemon" in result.output
 
 
-def test_recovery_discover(runner, mock_tmux):
-    """Test agent discovery command."""
-    with patch('tmux_orchestrator.core.recovery.discover_agents') as mock_discover:
-        mock_discover.return_value = [
-            {'target': 'frontend:0', 'session': 'frontend', 'window': '0', 'type': 'orchestrator'},
-            {'target': 'frontend:1', 'session': 'frontend', 'window': '1', 'type': 'pm'},
-            {'target': 'frontend:2', 'session': 'frontend', 'window': '2', 'type': 'developer'},
-            {'target': 'backend:0', 'session': 'backend', 'window': '0', 'type': 'orchestrator'},
-            {'target': 'backend:1', 'session': 'backend', 'window': '1', 'type': 'developer'}
-        ]
-        
-        result = runner.invoke(recovery, ['discover'], obj={'tmux': mock_tmux})
-        
+def test_recovery_status(runner, mock_tmux):
+    """Test recovery status command."""
+    with patch("pathlib.Path.exists") as mock_exists:
+        mock_exists.return_value = False
+        mock_tmux.list_sessions.return_value = [{"name": "session1", "windows": "3"}]
+        mock_tmux.list_agents.return_value = [{"target": "session1:0", "type": "orchestrator"}]
+
+        result = runner.invoke(recovery, ["status"], obj={"tmux": mock_tmux})
+
         assert result.exit_code == 0
-        assert "5 agents" in result.output
-        assert "frontend:0" in result.output
-        assert "backend:1" in result.output
+        assert "Recovery System Status" in result.output
 
 
-def test_recovery_restore_specific_agent(runner, mock_tmux):
-    """Test restoring specific agent."""
-    with patch('tmux_orchestrator.core.recovery.restore_context') as mock_restore:
-        mock_restore.return_value = {
-            'success': True,
-            'agent': 'project:2',
-            'context_restored': True,
-            'message': 'Agent restored with previous context'
-        }
-        
-        result = runner.invoke(recovery, ['restore', 'project:2'], obj={'tmux': mock_tmux})
-        
+def test_recovery_test_single_agent(runner, mock_tmux):
+    """Test recovery test command with single agent."""
+    with patch("tmux_orchestrator.core.recovery.coordinate_agent_recovery") as mock_coordinate:
+        mock_coordinate.return_value = (
+            True,
+            "Recovery test successful",
+            {"health_checks": [{"is_healthy": True}], "recovery_attempted": False},
+        )
+
+        result = runner.invoke(recovery, ["test", "project:0"], obj={"tmux": mock_tmux})
+
         assert result.exit_code == 0
-        assert "Restoring project:2" in result.output
-        assert "restored" in result.output.lower()
-        mock_restore.assert_called_once_with(mock_tmux, 'project:2')
+        assert "Testing recovery system" in result.output
+        assert "Recovery test successful" in result.output
 
 
-def test_recovery_restore_all_in_session(runner, mock_tmux):
-    """Test restoring all agents in a session."""
-    with patch('tmux_orchestrator.core.recovery.discover_agents') as mock_discover:
-        with patch('tmux_orchestrator.core.recovery.restore_context') as mock_restore:
-            # Mock discovery for session
-            mock_discover.return_value = [
-                {'target': 'myproject:0', 'session': 'myproject', 'window': '0'},
-                {'target': 'myproject:1', 'session': 'myproject', 'window': '1'},
-                {'target': 'myproject:2', 'session': 'myproject', 'window': '2'}
-            ]
-            
-            # Mock restore success
-            mock_restore.return_value = {
-                'success': True,
-                'context_restored': True
-            }
-            
-            result = runner.invoke(recovery, ['restore', '--session', 'myproject'], 
-                                 obj={'tmux': mock_tmux})
-            
-            assert result.exit_code == 0
-            assert "Restoring 3 agents" in result.output
-            assert mock_restore.call_count == 3
-
-
-def test_recovery_history(runner, mock_tmux):
-    """Test viewing recovery history."""
-    with patch('tmux_orchestrator.core.recovery.get_recovery_history') as mock_history:
-        mock_history.return_value = [
-            {
-                'timestamp': '2024-01-01 10:00:00',
-                'agent': 'project:1',
-                'action': 'restart',
-                'reason': 'No activity for 1h',
-                'success': True
+def test_recovery_test_comprehensive(runner, mock_tmux):
+    """Test comprehensive recovery test suite."""
+    with patch("tmux_orchestrator.core.recovery.recovery_test.run_recovery_system_test") as mock_test:
+        mock_test.return_value = {
+            "summary": {
+                "total_tests": 10,
+                "tests_passed": 8,
+                "tests_failed": 2,
+                "overall_success_rate": 80.0,
+                "test_breakdown": {
+                    "health_check": {"passed": 5, "failed": 1, "success_rate": 83.3},
+                    "recovery": {"passed": 3, "failed": 1, "success_rate": 75.0},
+                },
             },
-            {
-                'timestamp': '2024-01-01 11:30:00', 
-                'agent': 'project:2',
-                'action': 'restart',
-                'reason': 'Crashed',
-                'success': True
-            }
-        ]
-        
-        result = runner.invoke(recovery, ['history'], obj={'tmux': mock_tmux})
-        
+            "target_agents": ["project:0", "project:1"],
+            "total_duration": 45.2,
+            "test_session_id": "test-123",
+        }
+
+        result = runner.invoke(recovery, ["test", "--comprehensive"], obj={"tmux": mock_tmux})
+
         assert result.exit_code == 0
-        assert "Recovery History" in result.output
-        assert "project:1" in result.output
-        assert "No activity" in result.output
+        assert "Comprehensive Recovery Test Results" in result.output
+        assert "Tests Run: 10" in result.output
 
 
-def test_recovery_history_specific_session(runner, mock_tmux):
-    """Test viewing recovery history for specific session."""
-    with patch('tmux_orchestrator.core.recovery.get_recovery_history') as mock_history:
-        mock_history.return_value = [
-            {
-                'timestamp': '2024-01-01 10:00:00',
-                'agent': 'myproject:1',
-                'action': 'restart',
-                'reason': 'Idle',
-                'success': True
-            }
-        ]
-        
-        result = runner.invoke(recovery, ['history', '--session', 'myproject'], 
-                             obj={'tmux': mock_tmux})
-        
+def test_recovery_test_no_restart(runner, mock_tmux):
+    """Test recovery test with no-restart flag."""
+    with patch("tmux_orchestrator.core.recovery.coordinate_agent_recovery") as mock_coordinate:
+        mock_coordinate.return_value = (True, "Detection successful", {"recovery_attempted": False})
+
+        result = runner.invoke(recovery, ["test", "project:0", "--no-restart"], obj={"tmux": mock_tmux})
+
         assert result.exit_code == 0
-        assert "myproject:1" in result.output
-        mock_history.assert_called_once_with(session='myproject')
+        assert "detection-only mode" in result.output
+        # Verify enable_auto_restart is False
+        mock_coordinate.assert_called_once()
+        assert mock_coordinate.call_args[1]["enable_auto_restart"] is False
 
 
 def test_recovery_group_exists():
     """Test that recovery command group exists and has expected subcommands."""
     assert callable(recovery)
-    
+
     command_names = list(recovery.commands.keys())
-    expected_commands = {'check', 'discover', 'restore', 'history'}
-    
+    expected_commands = {"start", "stop", "status", "test"}
+
     assert expected_commands.issubset(set(command_names))

@@ -1,319 +1,169 @@
-"""Tests for MCP server functionality."""
+"""Tests for MCP server initialization and core functionality."""
 
-import json
-from unittest.mock import Mock, patch, MagicMock
-from typing import Any, Dict
+from unittest.mock import Mock, patch
 
-import pytest
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool, ToolCall
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
-from tmux_orchestrator.server.mcp import create_server
+from tmux_orchestrator.server import app, main
 
 
-@pytest.fixture
-def mock_tmux():
-    """Create mock TMUXManager."""
-    with patch('tmux_orchestrator.utils.tmux.TMUXManager') as mock:
-        instance = Mock()
-        mock.return_value = instance
-        yield instance
+class TestMCPServerInitialization:
+    """Test MCP server initialization and configuration."""
 
+    def test_app_configuration(self):
+        """Test FastAPI app configuration."""
+        assert isinstance(app, FastAPI)
+        assert app.title == "TMUX Orchestrator MCP Server"
+        assert app.version == "2.0.0"
 
-@pytest.fixture
-async def mcp_server(mock_tmux):
-    """Create MCP server instance."""
-    server = create_server()
-    # Initialize the server (normally done by stdio_server)
-    await server.__aenter__()
-    yield server
-    await server.__aexit__(None, None, None)
+        # Check that routers are included
+        routes = [route.path for route in app.routes]
+        assert any("/monitor" in route for route in routes)
+        assert any("/messages" in route for route in routes)
+        assert any("/coordination" in route for route in routes)
+        assert any("/tasks" in route for route in routes)
+        assert any("/agents" in route for route in routes)
 
+    def test_app_with_middleware(self):
+        """Test that middleware is properly configured."""
+        # Check middleware stack
+        middleware_types = [str(m.cls) for m in app.user_middleware]
+        assert any("CORSMiddleware" in m for m in middleware_types)
+        assert any("TimingMiddleware" in m for m in middleware_types)
 
-@pytest.mark.asyncio
-async def test_server_creation():
-    """Test that server can be created."""
-    server = create_server()
-    assert isinstance(server, Server)
-    assert server.name == "tmux-orchestrator"
+    def test_server_routes_registration(self):
+        """Test that all route modules are properly registered."""
+        client = TestClient(app)
 
+        # Test that main route groups are accessible
+        response = client.get("/")
+        assert response.status_code == 200
+        assert response.json()["status"] == "running"
 
-@pytest.mark.asyncio
-async def test_list_tools(mcp_server):
-    """Test listing available tools."""
-    tools = await mcp_server.list_tools()
-    
-    # Verify we have tools
-    assert len(tools) > 0
-    
-    # Check for expected tools
-    tool_names = [tool.name for tool in tools]
-    expected_tools = [
-        'list_sessions',
-        'list_agents', 
-        'spawn_agent',
-        'restart_agent',
-        'send_message',
-        'check_health',
-        'team_status',
-        'team_broadcast'
-    ]
-    
-    for expected in expected_tools:
-        assert expected in tool_names
-    
-    # Verify tool structure
-    for tool in tools:
-        assert hasattr(tool, 'name')
-        assert hasattr(tool, 'description')
-        assert hasattr(tool, 'inputSchema')
+        # Test health endpoint
+        response = client.get("/health")
+        assert response.status_code == 200
 
+    def test_server_error_handling(self):
+        """Test server error handling."""
+        client = TestClient(app)
 
-@pytest.mark.asyncio
-async def test_list_sessions_tool(mcp_server, mock_tmux):
-    """Test list_sessions tool."""
-    # Mock tmux response
-    mock_tmux.list_sessions.return_value = [
-        {'name': 'project1', 'windows': 3, 'created': '2024-01-01'},
-        {'name': 'project2', 'windows': 5, 'created': '2024-01-02'}
-    ]
-    
-    # Create tool call
-    tool_call = ToolCall(
-        name="list_sessions",
-        arguments={}
-    )
-    
-    # Execute tool
-    result = await mcp_server.call_tool(tool_call)
-    
-    # Verify result
-    assert len(result) == 1
-    assert isinstance(result[0], TextContent)
-    assert 'project1' in result[0].text
-    assert 'project2' in result[0].text
+        # Test 404 handling
+        response = client.get("/nonexistent")
+        assert response.status_code == 404
 
+    def test_main_function(self):
+        """Test main server startup function."""
+        with patch("uvicorn.run") as mock_run:
+            with patch("tmux_orchestrator.core.config.Config.load") as mock_config:
+                mock_config.return_value = Mock(get=lambda key, default: default)
 
-@pytest.mark.asyncio
-async def test_spawn_agent_tool(mcp_server, mock_tmux):
-    """Test spawn_agent tool."""
-    # Mock agent manager
-    with patch('tmux_orchestrator.core.agent_manager.AgentManager') as mock_mgr_class:
-        mock_mgr = Mock()
-        mock_mgr.deploy_agent.return_value = "project-123:2"
-        mock_mgr_class.return_value = mock_mgr
-        
-        # Create tool call
-        tool_call = ToolCall(
-            name="spawn_agent",
-            arguments={
-                "session_name": "project-123",
-                "role": "developer"
-            }
+                main()
+
+                mock_run.assert_called_once_with(
+                    "tmux_orchestrator.server:app", host="127.0.0.1", port=8000, reload=True, log_level="info"
+                )
+
+    def test_server_info_endpoint(self):
+        """Test server info endpoint."""
+        client = TestClient(app)
+
+        response = client.get("/")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["name"] == "TMUX Orchestrator MCP Server"
+        assert data["version"] == "2.0.0"
+        assert data["status"] == "running"
+        assert "available_tools" in data
+        assert isinstance(data["available_tools"], list)
+        assert len(data["available_tools"]) > 0
+
+    def test_health_endpoint(self):
+        """Test health check endpoint."""
+        client = TestClient(app)
+
+        response = client.get("/health")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["service"] == "tmux-orchestrator-mcp"
+
+    def test_cors_configuration(self):
+        """Test CORS is properly configured."""
+        client = TestClient(app)
+
+        # Make OPTIONS request
+        response = client.options(
+            "/", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"}
         )
-        
-        # Execute tool
-        result = await mcp_server.call_tool(tool_call)
-        
-        # Verify result
-        assert len(result) == 1
-        assert isinstance(result[0], TextContent)
-        assert "project-123:2" in result[0].text
-        mock_mgr.deploy_agent.assert_called_once_with("project-123", "developer")
+
+        # CORS should be enabled
+        assert response.status_code == 200
+        assert "access-control-allow-origin" in response.headers
 
 
-@pytest.mark.asyncio
-async def test_send_message_tool(mcp_server, mock_tmux):
-    """Test send_message tool."""
-    # Mock tmux send
-    mock_tmux.send_message.return_value = True
-    
-    # Create tool call
-    tool_call = ToolCall(
-        name="send_message",
-        arguments={
-            "target": "project:0",
-            "message": "Hello, agent!"
-        }
-    )
-    
-    # Execute tool
-    result = await mcp_server.call_tool(tool_call)
-    
-    # Verify result
-    assert len(result) == 1
-    assert isinstance(result[0], TextContent)
-    assert "success" in result[0].text.lower()
-    mock_tmux.send_message.assert_called_once_with("project:0", "Hello, agent!")
+class TestMCPServerIntegration:
+    """Integration tests for MCP server."""
 
+    def test_full_server_startup(self):
+        """Test that server starts up with all components."""
+        client = TestClient(app)
 
-@pytest.mark.asyncio
-async def test_check_health_tool(mcp_server, mock_tmux):
-    """Test check_health tool."""
-    with patch('tmux_orchestrator.core.recovery.check_agent_health') as mock_health:
-        mock_health.return_value = {
-            'healthy': True,
-            'last_activity': '5 minutes ago',
-            'status': 'active'
-        }
-        
-        # Create tool call
-        tool_call = ToolCall(
-            name="check_health",
-            arguments={
-                "target": "project:1"
-            }
-        )
-        
-        # Execute tool
-        result = await mcp_server.call_tool(tool_call)
-        
-        # Verify result
-        assert len(result) == 1
-        assert isinstance(result[0], TextContent)
-        assert "healthy" in result[0].text.lower()
-        assert "5 minutes ago" in result[0].text
-
-
-@pytest.mark.asyncio
-async def test_team_status_tool(mcp_server, mock_tmux):
-    """Test team_status tool."""
-    with patch('tmux_orchestrator.core.team_operations.get_team_status') as mock_status:
-        mock_status.return_value = {
-            'session': 'project1',
-            'total_agents': 5,
-            'active': 4,
-            'idle': 1,
-            'health': 'good'
-        }
-        
-        # Create tool call
-        tool_call = ToolCall(
-            name="team_status",
-            arguments={
-                "session_name": "project1"
-            }
-        )
-        
-        # Execute tool
-        result = await mcp_server.call_tool(tool_call)
-        
-        # Verify result
-        assert len(result) == 1
-        assert isinstance(result[0], TextContent)
-        data = json.loads(result[0].text)
-        assert data['total_agents'] == 5
-        assert data['health'] == 'good'
-
-
-@pytest.mark.asyncio
-async def test_team_broadcast_tool(mcp_server, mock_tmux):
-    """Test team_broadcast tool."""
-    with patch('tmux_orchestrator.core.team_operations.broadcast_to_team') as mock_broadcast:
-        mock_broadcast.return_value = {
-            'sent': 5,
-            'failed': 0,
-            'targets': ['project:0', 'project:1', 'project:2', 'project:3', 'project:4']
-        }
-        
-        # Create tool call
-        tool_call = ToolCall(
-            name="team_broadcast",
-            arguments={
-                "session_name": "project",
-                "message": "Team meeting at 3pm"
-            }
-        )
-        
-        # Execute tool
-        result = await mcp_server.call_tool(tool_call)
-        
-        # Verify result
-        assert len(result) == 1
-        assert isinstance(result[0], TextContent)
-        assert "sent: 5" in result[0].text.lower() or "5 agents" in result[0].text.lower()
-
-
-@pytest.mark.asyncio
-async def test_restart_agent_tool(mcp_server, mock_tmux):
-    """Test restart_agent tool."""
-    with patch('tmux_orchestrator.core.agent_operations.restart_agent') as mock_restart:
-        mock_restart.return_value = (True, "Agent restarted successfully")
-        
-        # Create tool call
-        tool_call = ToolCall(
-            name="restart_agent",
-            arguments={
-                "target": "project:2"
-            }
-        )
-        
-        # Execute tool
-        result = await mcp_server.call_tool(tool_call)
-        
-        # Verify result
-        assert len(result) == 1
-        assert isinstance(result[0], TextContent)
-        assert "success" in result[0].text.lower()
-        mock_restart.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_list_agents_tool(mcp_server, mock_tmux):
-    """Test list_agents tool."""
-    with patch('tmux_orchestrator.core.recovery.discover_agents') as mock_discover:
-        mock_discover.return_value = [
-            {'target': 'project:0', 'session': 'project', 'window': '0', 'role': 'orchestrator'},
-            {'target': 'project:1', 'session': 'project', 'window': '1', 'role': 'pm'},
-            {'target': 'project:2', 'session': 'project', 'window': '2', 'role': 'developer'}
+        # Test basic endpoints that don't require session state
+        basic_endpoints = [
+            "/",
+            "/health",
+            "/openapi.json",
+            "/docs",
         ]
-        
-        # Create tool call
-        tool_call = ToolCall(
-            name="list_agents",
-            arguments={}
-        )
-        
-        # Execute tool
-        result = await mcp_server.call_tool(tool_call)
-        
-        # Verify result
-        assert len(result) == 1
-        assert isinstance(result[0], TextContent)
-        agents = json.loads(result[0].text)
-        assert len(agents) == 3
-        assert agents[0]['role'] == 'orchestrator'
 
+        for endpoint in basic_endpoints:
+            response = client.get(endpoint)
+            assert response.status_code == 200, f"Basic endpoint {endpoint} failed"
 
-@pytest.mark.asyncio
-async def test_invalid_tool_call(mcp_server):
-    """Test calling non-existent tool."""
-    tool_call = ToolCall(
-        name="invalid_tool",
-        arguments={}
-    )
-    
-    with pytest.raises(Exception) as excinfo:
-        await mcp_server.call_tool(tool_call)
-    
-    assert "Unknown tool" in str(excinfo.value) or "not found" in str(excinfo.value)
+        # Test route groups exist (they may return errors due to missing tmux, but shouldn't 404)
+        route_group_endpoints = [
+            "/monitor/health",
+            "/coordination/list-teams",
+            "/tasks/list",
+        ]
 
+        for endpoint in route_group_endpoints:
+            response = client.get(endpoint)
+            # Should not return 404 (route exists), but may return 500 due to missing tmux
+            assert response.status_code != 404, f"Route group {endpoint} not found"
 
-@pytest.mark.asyncio
-async def test_tool_with_invalid_arguments(mcp_server, mock_tmux):
-    """Test tool with missing required arguments."""
-    # Missing 'message' argument
-    tool_call = ToolCall(
-        name="send_message",
-        arguments={
-            "target": "project:0"
-            # Missing 'message'
-        }
-    )
-    
-    with pytest.raises(Exception) as excinfo:
-        await mcp_server.call_tool(tool_call)
-    
-    # Should raise validation error
-    assert "message" in str(excinfo.value).lower() or "required" in str(excinfo.value).lower()
+    def test_error_response_format(self):
+        """Test that errors follow consistent format."""
+        client = TestClient(app)
+
+        # Test various error scenarios
+        response = client.get("/nonexistent")
+        assert response.status_code == 404
+
+        # If JSON error response
+        if response.headers.get("content-type", "").startswith("application/json"):
+            data = response.json()
+            assert "detail" in data or "error" in data
+
+    def test_openapi_documentation(self):
+        """Test that OpenAPI documentation is available."""
+        client = TestClient(app)
+
+        # Test OpenAPI JSON endpoint
+        response = client.get("/openapi.json")
+        assert response.status_code == 200
+
+        openapi_spec = response.json()
+        assert openapi_spec["info"]["title"] == "TMUX Orchestrator MCP Server"
+        assert openapi_spec["info"]["version"] == "2.0.0"
+
+        # Test documentation endpoints
+        response = client.get("/docs")
+        assert response.status_code == 200
+
+        response = client.get("/redoc")
+        assert response.status_code == 200

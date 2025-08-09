@@ -49,3 +49,8 @@ As the Orchestrator, you maintain high-level oversight without getting bogged do
 - **PM quick start guide**: See `/workspaces/Tmux-Orchestrator/PM-QUICKSTART.md`
 - **Workflow**: Feature Request → PRD → Task List → Distributed Execution → QA → Test Automation
 - **Key principle**: PMs enforce quality gates at every step (tests/linting/formatting must pass)
+
+## Continuous Improvement
+
+### Dogfooding and Issue Tracking
+- While dogfooding you might come across other issues, you should note those for future enhancement/bug fixing

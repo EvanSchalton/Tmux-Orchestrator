@@ -25,14 +25,13 @@ class TestDetectFailure:
         last_response: datetime = datetime.now() - timedelta(minutes=1)
 
         # Act
-        is_failed, failure_reason, is_idle = detect_failure(
-            tmux_mock, target, last_response, 0
-        )
+        is_failed, failure_reason, status_details = detect_failure(tmux_mock, target, last_response, 0)
 
         # Assert
         assert is_failed is True
-        assert failure_reason == "critical_error_detected"
-        assert isinstance(is_idle, bool)
+        assert failure_reason == "Critical errors detected in agent output"
+        assert isinstance(status_details, dict)
+        assert "is_idle" in status_details
 
     def test_detect_failure_with_max_failures(self) -> None:
         """Test failure detection when max consecutive failures reached."""
@@ -45,13 +44,14 @@ class TestDetectFailure:
         max_failures: int = 3
 
         # Act
-        is_failed, failure_reason, is_idle = detect_failure(
+        is_failed, failure_reason, status_details = detect_failure(
             tmux_mock, target, last_response, consecutive_failures, max_failures
         )
 
         # Assert
         assert is_failed is True
-        assert failure_reason == "max_consecutive_failures_reached"
+        assert failure_reason == f"Agent failed {consecutive_failures} consecutive health checks"
+        assert isinstance(status_details, dict)
 
     def test_detect_failure_with_extended_unresponsiveness(self) -> None:
         """Test failure detection with extended unresponsiveness."""
@@ -63,13 +63,15 @@ class TestDetectFailure:
         response_timeout: int = 60  # 1 minute
 
         # Act
-        is_failed, failure_reason, is_idle = detect_failure(
+        is_failed, failure_reason, status_details = detect_failure(
             tmux_mock, target, last_response, 0, 3, response_timeout
         )
 
         # Assert
         assert is_failed is True
-        assert failure_reason == "extended_unresponsiveness"
+        assert "Agent unresponsive for" in failure_reason
+        assert "timeout:" in failure_reason
+        assert isinstance(status_details, dict)
 
     def test_detect_failure_healthy_agent(self) -> None:
         """Test failure detection with healthy agent."""
@@ -80,13 +82,12 @@ class TestDetectFailure:
         last_response: datetime = datetime.now() - timedelta(seconds=30)
 
         # Act
-        is_failed, failure_reason, is_idle = detect_failure(
-            tmux_mock, target, last_response, 0
-        )
+        is_failed, failure_reason, status_details = detect_failure(tmux_mock, target, last_response, 0)
 
         # Assert
         assert is_failed is False
-        assert failure_reason == "healthy"
+        assert failure_reason == "Agent is healthy"
+        assert isinstance(status_details, dict)
 
     def test_detect_failure_invalid_target_format(self) -> None:
         """Test failure detection with invalid target format."""
@@ -112,7 +113,7 @@ class TestCheckIdleStatusV2:
 
         # Act
         idle_details = _check_idle_status_v2(tmux_mock, target)
-        is_idle: bool = idle_details['is_idle']
+        is_idle: bool = idle_details["is_idle"]
 
         # Assert
         assert is_idle is True
@@ -123,14 +124,12 @@ class TestCheckIdleStatusV2:
         # Arrange
         tmux_mock: Mock = Mock()
         # Simulate changing output
-        tmux_mock.capture_pane.side_effect = [
-            "line 1", "line 2", "line 3", "line 4"
-        ]
+        tmux_mock.capture_pane.side_effect = ["line 1", "line 2", "line 3", "line 4"]
         target: str = "test-session:0"
 
         # Act
         idle_details = _check_idle_status_v2(tmux_mock, target)
-        is_idle: bool = idle_details['is_idle']
+        is_idle: bool = idle_details["is_idle"]
 
         # Assert
         assert is_idle is False

@@ -18,7 +18,7 @@ def test_restart_agent_success() -> None:
     target: str = "test-session:0"
 
     # Act
-    with patch('time.sleep'):  # Mock time.sleep to speed up test
+    with patch("time.sleep"):  # Mock time.sleep to speed up test
         success, message = restart_agent(mock_tmux, target)
 
     # Assert
@@ -30,10 +30,10 @@ def test_restart_agent_success() -> None:
 
     # Verify the correct sequence of send_keys calls
     expected_calls = [
-        ('test-session:0', 'C-c'),
-        ('test-session:0', 'C-u'),
-        ('test-session:0', 'claude --dangerously-skip-permissions'),
-        ('test-session:0', 'Enter')
+        ("test-session:0", "C-c"),
+        ("test-session:0", "C-u"),
+        ("test-session:0", "claude --dangerously-skip-permissions"),
+        ("test-session:0", "Enter"),
     ]
 
     actual_calls = [call.args for call in mock_tmux.send_keys.call_args_list]
@@ -78,16 +78,15 @@ def test_restart_agent_session_not_found() -> None:
     mock_tmux.send_keys.assert_not_called()
 
 
-@pytest.mark.parametrize("target,expected_session,expected_window", [
-    ("frontend:0", "frontend", "0"),
-    ("backend-dev:1", "backend-dev", "1"),
-    ("project-manager:10", "project-manager", "10"),
-])
-def test_restart_agent_target_parsing(
-    target: str,
-    expected_session: str,
-    expected_window: str
-) -> None:
+@pytest.mark.parametrize(
+    "target,expected_session,expected_window",
+    [
+        ("frontend:0", "frontend", "0"),
+        ("backend-dev:1", "backend-dev", "1"),
+        ("project-manager:10", "project-manager", "10"),
+    ],
+)
+def test_restart_agent_target_parsing(target: str, expected_session: str, expected_window: str) -> None:
     """Test various target format parsing scenarios."""
     # Arrange
     mock_tmux: Mock = Mock(spec=TMUXManager)
@@ -95,7 +94,7 @@ def test_restart_agent_target_parsing(
     mock_tmux.send_keys.return_value = True
 
     # Act
-    with patch('time.sleep'):
+    with patch("time.sleep"):
         success, message = restart_agent(mock_tmux, target)
 
     # Assert

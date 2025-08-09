@@ -1,6 +1,5 @@
 """Tests for discover_agents module."""
 
-from typing import Set
 from unittest.mock import Mock
 
 import pytest
@@ -22,14 +21,14 @@ class TestDiscoverAgents:
 
         # Mock session data
         tmux_mock.list_sessions.return_value = [
-            {'name': 'ai-chat'},
-            {'name': 'development'}
+            {"name": "ai-chat"},
+            {"name": "development"},
         ]
 
         # Mock window data
         tmux_mock.list_windows.side_effect = [
-            [{'index': '0'}, {'index': '1'}],  # ai-chat windows
-            [{'index': '0'}]  # development windows
+            [{"index": "0"}, {"index": "1"}],  # ai-chat windows
+            [{"index": "0"}],  # development windows
         ]
 
         # Mock pane content for Claude detection
@@ -40,7 +39,7 @@ class TestDiscoverAgents:
         ]
 
         # Act
-        discovered: Set[str] = discover_agents(tmux_mock, logger_mock)
+        discovered: set[str] = discover_agents(tmux_mock, logger_mock)
 
         # Assert
         assert "ai-chat:0" in discovered
@@ -53,21 +52,19 @@ class TestDiscoverAgents:
         # Arrange
         tmux_mock: Mock = Mock()
         logger_mock: Mock = Mock()
-        exclude_sessions: Set[str] = {'orchestrator', 'monitoring'}
+        exclude_sessions: set[str] = {"orchestrator", "monitoring"}
 
         tmux_mock.list_sessions.return_value = [
-            {'name': 'orchestrator'},
-            {'name': 'ai-chat'},
-            {'name': 'monitoring-session'}
+            {"name": "orchestrator"},
+            {"name": "ai-chat"},
+            {"name": "monitoring-session"},
         ]
 
-        tmux_mock.list_windows.return_value = [{'index': '0'}]
+        tmux_mock.list_windows.return_value = [{"index": "0"}]
         tmux_mock.capture_pane.return_value = "│ > Claude interface"
 
         # Act
-        discovered: Set[str] = discover_agents(
-            tmux_mock, logger_mock, exclude_sessions
-        )
+        discovered: set[str] = discover_agents(tmux_mock, logger_mock, exclude_sessions)
 
         # Assert
         # Only ai-chat should be processed (orchestrator excluded, monitoring-session contains 'monitoring')
@@ -83,7 +80,7 @@ class TestDiscoverAgents:
         tmux_mock.list_sessions.return_value = []
 
         # Act
-        discovered: Set[str] = discover_agents(tmux_mock, logger_mock)
+        discovered: set[str] = discover_agents(tmux_mock, logger_mock)
 
         # Assert
         assert len(discovered) == 0
@@ -107,21 +104,21 @@ class TestDiscoverAgents:
         logger_mock: Mock = Mock()
 
         tmux_mock.list_sessions.return_value = [
-            {'name': 'orchestrator'},
-            {'name': 'tmux-orc'},
-            {'name': 'recovery'},
-            {'name': 'ai-chat'}
+            {"name": "orchestrator"},
+            {"name": "tmux-orc"},
+            {"name": "recovery"},
+            {"name": "ai-chat"},
         ]
 
-        tmux_mock.list_windows.return_value = [{'index': '0'}]
+        tmux_mock.list_windows.return_value = [{"index": "0"}]
         tmux_mock.capture_pane.return_value = "│ > Claude interface"
 
         # Act
-        discovered: Set[str] = discover_agents(tmux_mock, logger_mock)
+        _discovered: set[str] = discover_agents(tmux_mock, logger_mock)
 
         # Assert
         # Only ai-chat should be discovered (others are in default excludes)
-        tmux_mock.list_windows.assert_called_once_with('ai-chat')
+        tmux_mock.list_windows.assert_called_once_with("ai-chat")
 
 
 class TestIsClaudeAgent:
@@ -142,7 +139,7 @@ class TestIsClaudeAgent:
             "anthropic Claude model",
             "i'll help you with that task",
             "let me analyze this code",
-            "human: What should I do?"
+            "human: What should I do?",
         ]
 
         for content in strong_contents:
@@ -201,7 +198,7 @@ class TestIsClaudeAgent:
             "npm run dev",
             "just some random text",
             "i can help",  # Only one medium indicator
-            "analyze code"  # Only one medium indicator
+            "analyze code",  # Only one medium indicator
         ]
 
         for content in non_claude_contents:

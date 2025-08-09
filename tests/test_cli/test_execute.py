@@ -3,7 +3,7 @@
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -33,17 +33,18 @@ def temp_orchestrator_dir():
         (orc_dir / "projects").mkdir()
         (orc_dir / "templates").mkdir()
         (orc_dir / "agent-templates").mkdir()
-        
+
         # Set environment variable
-        with patch.dict(os.environ, {'TMUX_ORCHESTRATOR_HOME': str(orc_dir)}):
+        with patch.dict(os.environ, {"TMUX_ORCHESTRATOR_HOME": str(orc_dir)}):
             yield orc_dir
 
 
 @pytest.fixture
 def sample_prd():
     """Create a sample PRD file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
-        f.write("""# Task Management System
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        f.write(
+            """# Task Management System
 
 ## Overview
 Build a CLI-based task management system.
@@ -58,190 +59,186 @@ Build a CLI-based task management system.
 - Python-based CLI using Click
 - SQLite for storage
 - Rich for terminal UI
-""")
+"""
+        )
         yield f.name
     os.unlink(f.name)
 
 
 def test_execute_with_prd_file(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
     """Test executing a PRD file."""
-    # Mock the task generation
-    with patch('tmux_orchestrator.cli.execute.generate_tasks_from_prd') as mock_gen_tasks:
-        with patch('tmux_orchestrator.cli.execute.compose_team_from_prd') as mock_compose:
-            with patch('tmux_orchestrator.core.team_manager.TeamManager') as mock_team_mgr:
-                # Mock task generation
-                mock_gen_tasks.return_value = """## Tasks
-- [ ] Design CLI interface
-- [ ] Implement task CRUD operations
-- [ ] Setup SQLite database
-- [ ] Add filtering capabilities"""
-                
-                # Mock team composition
-                mock_compose.return_value = {
-                    'agents': [
-                        {'role': 'project-manager', 'name': 'PM'},
-                        {'role': 'cli-developer', 'name': 'CLI-Dev-1'},
-                        {'role': 'backend-developer', 'name': 'Backend-Dev'},
-                        {'role': 'qa-engineer', 'name': 'QA'}
-                    ]
-                }
-                
-                # Mock team deployment
-                mock_mgr = Mock()
-                mock_mgr.deploy_custom_team.return_value = {
-                    'session': 'task-mgmt-123',
-                    'agents': ['task-mgmt-123:0', 'task-mgmt-123:1', 'task-mgmt-123:2', 'task-mgmt-123:3']
-                }
-                mock_team_mgr.return_value = mock_mgr
-                
-                result = runner.invoke(execute, [sample_prd], obj={'tmux': mock_tmux})
-                
-                assert result.exit_code == 0
-                assert "Executing PRD" in result.output
-                assert "task-mgmt-123" in result.output
-                
-                # Verify project was created
-                project_name = "task-management-system"
-                project_dir = temp_orchestrator_dir / "projects" / project_name
-                assert project_dir.exists()
-                assert (project_dir / "prd.md").exists()
-                assert (project_dir / "tasks.md").exists()
+    # Mock subprocess calls for task creation and team composition
+    with patch("subprocess.run") as mock_run:
+        # Mock successful task creation
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout="", stderr=""),  # tasks create
+            Mock(returncode=0, stdout="", stderr=""),  # team compose
+        ]
+
+        # Mock deploy_standard_team
+        with patch("tmux_orchestrator.core.team_operations.deploy_team.deploy_standard_team") as mock_deploy:
+            mock_deploy.return_value = (True, "Team deployed successfully")
+            mock_tmux.has_session.return_value = False
+            mock_tmux.send_message.return_value = True
+            mock_tmux.list_windows.return_value = []
+
+            # Create a proper context object
+            ctx_obj = {"tmux": mock_tmux}
+            result = runner.invoke(execute, [sample_prd, "--team-type", "fullstack"], obj=ctx_obj)
+
+            # Print output for debugging
+            if result.exit_code != 0:
+                print("Exit code:", result.exit_code)
+                print("Output:", result.output)
+                print("Exception:", result.exception)
+
+            assert result.exit_code == 0
+            assert "Executing PRD" in result.output
+            assert "PRD execution initiated successfully" in result.output
+            assert "execution started!" in result.output.lower()
 
 
-def test_execute_existing_project(runner, mock_tmux, temp_orchestrator_dir):
-    """Test executing an existing project."""
-    # Create project structure
-    project_name = "my-project"
-    project_dir = temp_orchestrator_dir / "projects" / project_name
-    project_dir.mkdir(parents=True)
-    
-    # Create PRD and tasks
-    (project_dir / "prd.md").write_text("# My Project\n\nA test project.")
-    (project_dir / "tasks.md").write_text("- [ ] Task 1\n- [ ] Task 2")
-    
-    # Create team composition
-    (project_dir / "team-composition.md").write_text("""# Team Composition
+def test_execute_existing_session(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
+    """Test executing when session already exists."""
+    # Mock subprocess call for task creation
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 
-## Agents
-- project-manager
-- frontend-developer
-- backend-developer
-""")
-    
-    with patch('tmux_orchestrator.core.team_manager.TeamManager') as mock_team_mgr:
-        mock_mgr = Mock()
-        mock_mgr.deploy_custom_team.return_value = {
-            'session': 'my-project',
-            'agents': ['my-project:0', 'my-project:1', 'my-project:2']
-        }
-        mock_team_mgr.return_value = mock_mgr
-        
-        result = runner.invoke(execute, [project_name], obj={'tmux': mock_tmux})
-        
+        # Mock that session already exists
+        mock_tmux.has_session.return_value = True
+
+        ctx_obj = {"tmux": mock_tmux}
+        result = runner.invoke(execute, [sample_prd], obj=ctx_obj)
+
         assert result.exit_code == 0
-        assert "Found existing project" in result.output
+        assert "already exists" in result.output
 
 
 def test_execute_with_team_type(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
     """Test executing with specific team type."""
-    with patch('tmux_orchestrator.core.team_manager.TeamManager') as mock_team_mgr:
-        mock_mgr = Mock()
-        mock_mgr.deploy_team.return_value = {
-            'session': 'backend-project',
-            'agents': ['backend-project:0', 'backend-project:1', 'backend-project:2']
-        }
-        mock_team_mgr.return_value = mock_mgr
-        
-        result = runner.invoke(execute, [sample_prd, '--team-type', 'backend'], 
-                             obj={'tmux': mock_tmux})
-        
-        assert result.exit_code == 0
-        mock_mgr.deploy_team.assert_called_once_with('backend', 3)
+    # Mock subprocess calls
+    with patch("subprocess.run") as mock_run:
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout="", stderr=""),  # tasks create
+            Mock(returncode=0, stdout="", stderr=""),  # team compose (skipped for backend)
+        ]
+
+        # Mock deploy_standard_team
+        with patch("tmux_orchestrator.core.team_operations.deploy_team.deploy_standard_team") as mock_deploy:
+            mock_deploy.return_value = (True, "Team deployed successfully")
+            mock_tmux.has_session.return_value = False
+            mock_tmux.send_message.return_value = True
+
+            result = runner.invoke(execute, [sample_prd, "--team-type", "backend"], obj={"tmux": mock_tmux})
+
+            assert result.exit_code == 0
+            assert "Executing PRD" in result.output
+            # Verify deploy_standard_team was called with correct args
+            # The project name is derived from the temp filename (which is random)
+            args = mock_deploy.call_args[0]
+            assert args[1] == "backend"  # team_type
+            assert args[2] == 5  # size
+            # args[3] is the project name which is derived from temp filename
 
 
 def test_execute_skip_team_planning(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
     """Test executing with skip team planning."""
-    with patch('tmux_orchestrator.cli.execute.generate_tasks_from_prd') as mock_gen_tasks:
-        with patch('tmux_orchestrator.core.team_manager.TeamManager') as mock_team_mgr:
-            mock_gen_tasks.return_value = "- [ ] Task 1"
-            
-            mock_mgr = Mock()
-            mock_mgr.deploy_team.return_value = {
-                'session': 'project',
-                'agents': ['project:0', 'project:1']
-            }
-            mock_team_mgr.return_value = mock_mgr
-            
-            result = runner.invoke(execute, [sample_prd, '--skip-team-planning'], 
-                                 obj={'tmux': mock_tmux})
-            
+    # Mock subprocess calls
+    with patch("subprocess.run") as mock_run:
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout="", stderr=""),  # tasks create
+            # No team compose call when skip-planning is used
+        ]
+
+        # Mock deploy_standard_team
+        with patch("tmux_orchestrator.core.team_operations.deploy_team.deploy_standard_team") as mock_deploy:
+            mock_deploy.return_value = (True, "Team deployed successfully")
+            mock_tmux.has_session.return_value = False
+            mock_tmux.send_message.return_value = True
+
+            result = runner.invoke(execute, [sample_prd, "--skip-planning"], obj={"tmux": mock_tmux})
+
             assert result.exit_code == 0
-            # Should use default fullstack team
-            mock_mgr.deploy_team.assert_called_once_with('fullstack', 3)
+            assert "Executing PRD" in result.output
+            # Should use default custom team type
+            assert "Team: custom" in result.output
 
 
-def test_execute_with_agent_count(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
-    """Test executing with custom agent count."""
-    with patch('tmux_orchestrator.cli.execute.generate_tasks_from_prd'):
-        with patch('tmux_orchestrator.cli.execute.compose_team_from_prd'):
-            with patch('tmux_orchestrator.core.team_manager.TeamManager') as mock_team_mgr:
-                mock_mgr = Mock()
-                mock_mgr.deploy_custom_team.return_value = {
-                    'session': 'project',
-                    'agents': ['project:0', 'project:1', 'project:2', 'project:3', 'project:4']
-                }
-                mock_team_mgr.return_value = mock_mgr
-                
-                result = runner.invoke(execute, [sample_prd, '--agents', '5'], 
-                                     obj={'tmux': mock_tmux})
-                
-                assert result.exit_code == 0
-                # Verify it tries to deploy 5 agents
-                args = mock_mgr.deploy_custom_team.call_args
-                assert len(args[0][1]) <= 5  # Team composition should respect agent count
+def test_execute_with_team_size(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
+    """Test executing with custom team size."""
+    # Mock subprocess calls
+    with patch("subprocess.run") as mock_run:
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout="", stderr=""),  # tasks create
+            Mock(returncode=0, stdout="", stderr=""),  # team compose
+        ]
+
+        # Mock deploy_standard_team
+        with patch("tmux_orchestrator.core.team_operations.deploy_team.deploy_standard_team") as mock_deploy:
+            mock_deploy.return_value = (True, "Team deployed successfully")
+            mock_tmux.has_session.return_value = False
+            mock_tmux.send_message.return_value = True
+
+            result = runner.invoke(execute, [sample_prd, "--team-size", "8"], obj={"tmux": mock_tmux})
+
+            assert result.exit_code == 0
+            assert "Executing PRD" in result.output
+            assert "Team: custom (8 agents)" in result.output
+            # Verify deploy was called with correct args: tmux, team_type, size, name
+            args = mock_deploy.call_args[0]
+            assert args[1] == "custom"  # team_type
+            assert args[2] == 8  # size
+            # args[3] is the project name which is derived from temp filename
 
 
 def test_execute_nonexistent_file(runner, mock_tmux):
     """Test executing non-existent file."""
-    result = runner.invoke(execute, ['nonexistent.md'], obj={'tmux': mock_tmux})
-    
-    assert result.exit_code == 0
-    assert "not found" in result.output.lower() or "does not exist" in result.output.lower()
+    result = runner.invoke(execute, ["nonexistent.md"], obj={"tmux": mock_tmux})
+
+    # Should exit with code 2 because Click validates file existence
+    assert result.exit_code == 2
+    assert "does not exist" in result.output.lower()
 
 
-def test_execute_distribute_tasks(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
-    """Test that execute distributes tasks to agents."""
-    with patch('tmux_orchestrator.cli.execute.generate_tasks_from_prd') as mock_gen_tasks:
-        with patch('tmux_orchestrator.cli.execute.compose_team_from_prd') as mock_compose:
-            with patch('tmux_orchestrator.core.team_manager.TeamManager') as mock_team_mgr:
-                with patch('tmux_orchestrator.cli.tasks.distribute_tasks') as mock_distribute:
-                    # Setup mocks
-                    mock_gen_tasks.return_value = "- [ ] Task 1\n- [ ] Task 2"
-                    mock_compose.return_value = {'agents': [{'role': 'pm'}, {'role': 'dev'}]}
-                    
-                    mock_mgr = Mock()
-                    mock_mgr.deploy_custom_team.return_value = {
-                        'session': 'project',
-                        'agents': ['project:0', 'project:1']
-                    }
-                    mock_team_mgr.return_value = mock_mgr
-                    
-                    result = runner.invoke(execute, [sample_prd], obj={'tmux': mock_tmux})
-                    
-                    assert result.exit_code == 0
-                    # Verify tasks were distributed
-                    assert mock_distribute.called
+def test_execute_project_creation(runner, mock_tmux, temp_orchestrator_dir, sample_prd):
+    """Test that execute creates project structure."""
+    # Mock subprocess calls
+    with patch("subprocess.run") as mock_run:
+        with patch("subprocess.Popen"):  # For daemon startup
+            # Mock successful subprocess calls
+            mock_run.side_effect = [
+                Mock(returncode=0, stdout="Project created", stderr=""),  # tasks create
+                Mock(returncode=0, stdout="Team composed", stderr=""),  # team compose
+            ]
+
+            # Mock deploy_standard_team
+            with patch("tmux_orchestrator.core.team_operations.deploy_team.deploy_standard_team") as mock_deploy:
+                mock_deploy.return_value = (True, "Team deployed successfully")
+                mock_tmux.has_session.return_value = False
+                mock_tmux.send_message.return_value = True
+
+                result = runner.invoke(execute, [sample_prd], obj={"tmux": mock_tmux})
+
+                assert result.exit_code == 0
+                # Verify project creation via subprocess
+                calls = mock_run.call_args_list
+                assert len(calls) >= 1
+                # First call should be tasks create
+                assert "tasks" in calls[0][0][0]
+                assert "create" in calls[0][0][0]
 
 
 def test_execute_function_exists():
     """Test that execute function exists and is callable."""
     assert callable(execute)
-    
+
     # Check it's a Click command
-    assert hasattr(execute, 'params')
-    
-    # Check expected options
+    assert hasattr(execute, "params")
+
+    # Check expected options based on actual implementation
     param_names = [p.name for p in execute.params]
-    assert 'team_type' in param_names
-    assert 'agents' in param_names
-    assert 'skip_team_planning' in param_names
+    assert "team_type" in param_names
+    assert "team_size" in param_names  # Changed from agents
+    assert "skip_planning" in param_names  # Changed from skip_team_planning
+    assert "project_name" in param_names
+    assert "no_monitor" in param_names

@@ -1,28 +1,26 @@
 """Agent lifecycle management routes for MCP server."""
 
 import asyncio
-from typing import Dict, List, Optional, Union
+from typing import Union
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from pydantic import BaseModel
 
 # Import comprehensive Pydantic models
 from tmux_orchestrator.server.models.agent_models import (
+    AgentRestartRequest,
     AgentSpawnRequest,
     AgentSpawnResponse,
     AgentStatusRequest,
     AgentStatusResponse,
-    AgentRestartRequest,
-    AgentRestartResponse,
-    AgentKillRequest,
-    AgentKillResponse,
-    AgentListResponse
 )
-
 from tmux_orchestrator.server.tools.get_session_status import (
     AgentStatusRequest as ToolAgentStatusRequest,
 )
 from tmux_orchestrator.server.tools.get_session_status import get_agent_status
+from tmux_orchestrator.server.tools.kill_agent import (
+    KillAgentRequest as ToolKillRequest,
+)
+from tmux_orchestrator.server.tools.kill_agent import kill_agent
 from tmux_orchestrator.server.tools.restart_agent import (
     RestartAgentRequest as ToolRestartRequest,
 )
@@ -37,109 +35,8 @@ router = APIRouter()
 tmux = TMUXManager()
 
 
-class AgentSpawnRequest(BaseModel):
-    """MCP tool request for spawning an agent."""
-    session_name: str
-    agent_type: str = "developer"  # developer, pm, qa, devops, reviewer, researcher, docs
-    project_path: Optional[str] = None
-    briefing_message: Optional[str] = None
-
-    class Config:
-        """Pydantic config for request validation."""
-        json_schema_extra = {
-            "example": {
-                "session_name": "my-project",
-                "agent_type": "developer",
-                "project_path": "/path/to/project",
-                "briefing_message": "You are the developer for this React project..."
-            }
-        }
-
-
-class AgentSpawnResponse(BaseModel):
-    """MCP tool response for agent spawning."""
-    success: bool
-    session: str
-    window: str
-    target: str
-    message: Optional[str] = None
-
-    class Config:
-        """Pydantic config for response validation."""
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "session": "my-project",
-                "window": "Claude-developer",
-                "target": "my-project:Claude-developer",
-                "message": "Agent developer spawned successfully"
-            }
-        }
-
-
-class AgentRestartRequest(BaseModel):
-    """MCP tool request for restarting an agent."""
-    session: str
-    window: str
-    clear_terminal: bool = True
-    restart_delay_seconds: float = 2.0
-
-    class Config:
-        """Pydantic config for request validation."""
-        json_schema_extra = {
-            "example": {
-                "session": "my-project",
-                "window": "Claude-developer",
-                "clear_terminal": True,
-                "restart_delay_seconds": 2.0
-            }
-        }
-
-
-class AgentStatusRequest(BaseModel):
-    """MCP tool request for agent status."""
-    session: str
-    window: str
-    lines: int = 100
-
-    class Config:
-        """Pydantic config for request validation."""
-        json_schema_extra = {
-            "example": {
-                "session": "my-project",
-                "window": "Claude-developer",
-                "lines": 100
-            }
-        }
-
-
-class AgentStatusResponse(BaseModel):
-    """MCP tool response for agent status."""
-    session: str
-    window: str
-    target: str
-    status: str
-    recent_output: List[str]
-    output_length: int
-
-    class Config:
-        """Pydantic config for response validation."""
-        json_schema_extra = {
-            "example": {
-                "session": "my-project",
-                "window": "Claude-developer",
-                "target": "my-project:Claude-developer",
-                "status": "active",
-                "recent_output": ["Human: hello", "Assistant: Hi! How can I help?"],
-                "output_length": 50
-            }
-        }
-
-
 @router.post("/spawn", response_model=AgentSpawnResponse)
-async def spawn_agent_tool(
-    request: AgentSpawnRequest, background_tasks: BackgroundTasks
-) -> AgentSpawnResponse:
+async def spawn_agent_tool(request: AgentSpawnRequest, background_tasks: BackgroundTasks) -> AgentSpawnResponse:
     """MCP Tool: Spawn a new Claude agent in a tmux session.
 
     This is the primary MCP tool for creating new AI agents in the orchestration system.
@@ -150,7 +47,7 @@ async def spawn_agent_tool(
         session_name=request.session_name,
         agent_type=request.agent_type,
         project_path=request.project_path,
-        briefing_message=request.briefing_message
+        briefing_message=request.briefing_message,
     )
 
     # Execute business logic
@@ -161,23 +58,21 @@ async def spawn_agent_tool(
 
     # Schedule briefing if provided
     if request.briefing_message:
-        background_tasks.add_task(
-            _delayed_briefing,
-            result.target,
-            request.briefing_message
-        )
+        background_tasks.add_task(_delayed_briefing, result.target, request.briefing_message)
 
     return AgentSpawnResponse(
         success=result.success,
         session=result.session,
         window=result.window,
         target=result.target,
-        message=f"Agent {request.agent_type} spawned successfully"
+        message=f"Agent {request.agent_type} spawned successfully",
     )
 
 
 @router.post("/restart")
-async def restart_agent_tool(request: AgentRestartRequest) -> Dict[str, Union[str, bool]]:
+async def restart_agent_tool(
+    request: AgentRestartRequest,
+) -> dict[str, Union[str, bool]]:
     """MCP Tool: Restart a failed or stuck agent.
 
     This tool handles agent recovery by safely restarting Claude processes
@@ -187,7 +82,7 @@ async def restart_agent_tool(request: AgentRestartRequest) -> Dict[str, Union[st
         session=request.session,
         window=request.window,
         clear_terminal=request.clear_terminal,
-        restart_delay_seconds=request.restart_delay_seconds
+        restart_delay_seconds=request.restart_delay_seconds,
     )
 
     result = await restart_agent(tmux, tool_request)
@@ -198,7 +93,7 @@ async def restart_agent_tool(request: AgentRestartRequest) -> Dict[str, Union[st
     return {
         "success": True,
         "target": result.target,
-        "message": f"Agent {result.target} restarted successfully"
+        "message": f"Agent {result.target} restarted successfully",
     }
 
 
@@ -209,18 +104,14 @@ async def get_agent_status_tool(request: AgentStatusRequest) -> AgentStatusRespo
     This tool provides comprehensive status information about an agent
     including activity state and recent output.
     """
-    tool_request = ToolAgentStatusRequest(
-        session=request.session,
-        window=request.window,
-        lines=request.lines
-    )
+    tool_request = ToolAgentStatusRequest(session=request.session, window=request.window, lines=request.lines)
 
     result = get_agent_status(tmux, tool_request)
 
     if result.error_message:
         raise HTTPException(
             status_code=404 if result.status == "not_found" else 500,
-            detail=result.error_message
+            detail=result.error_message,
         )
 
     return AgentStatusResponse(
@@ -229,46 +120,44 @@ async def get_agent_status_tool(request: AgentStatusRequest) -> AgentStatusRespo
         target=result.target,
         status=result.status,
         recent_output=result.recent_output,
-        output_length=result.output_length
+        output_length=result.output_length,
     )
 
 
 @router.delete("/kill/{session}/{window}")
-async def kill_agent_tool(session: str, window: str) -> Dict[str, Union[str, bool]]:
-    """MCP Tool: Kill a specific agent.
+async def kill_agent_tool(
+    session: str, window: str, reason: str = "Manual termination requested", force: bool = False, notify_pm: bool = True
+) -> dict[str, Union[str, bool, str]]:
+    """MCP Tool: Kill a specific agent with proper cleanup.
 
-    This tool forcefully terminates an agent by killing its tmux window.
-    Use with caution as this will lose any unsaved context.
+    This tool terminates an agent with logging, optional graceful shutdown,
+    and PM notification. Provides better tracking and coordination.
     """
-    try:
-        target = f"{session}:{window}"
+    target = f"{session}:{window}"
 
-        if not tmux.has_session(session):
-            raise HTTPException(status_code=404, detail="Session not found")
+    # Use the business logic tool
+    tool_request = ToolKillRequest(target=target, reason=reason, force=force, notify_pm=notify_pm)
 
-        # Kill the specific window
-        success = tmux._run_tmux(['kill-window', '-t', target], check=False)
+    result = kill_agent(tmux, tool_request)
 
-        if success.returncode != 0:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to kill agent window: {success.stderr}"
-            )
+    if not result.success:
+        error_msg = result.error_message or "Unknown error"
+        status_code = 404 if "not found" in error_msg.lower() else 500
+        raise HTTPException(status_code=status_code, detail=error_msg)
 
-        return {
-            "success": True,
-            "target": target,
-            "message": f"Agent {target} killed successfully"
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "success": True,
+        "target": target,
+        "message": f"Agent {target} terminated successfully",
+        "reason": result.reason,
+        "graceful_shutdown": result.graceful_shutdown,
+        "pm_notified": result.pm_notified,
+        "termination_time": result.termination_time.isoformat(),
+    }
 
 
 @router.get("/list")
-async def list_all_agents() -> Dict[str, Union[List[Dict[str, str]], int]]:
+async def list_all_agents() -> dict[str, Union[list[dict[str, str]], int]]:
     """MCP Tool: List all active agents across all sessions.
 
     This tool provides a comprehensive view of all running agents
@@ -280,8 +169,8 @@ async def list_all_agents() -> Dict[str, Union[List[Dict[str, str]], int]]:
         return {
             "agents": agents,
             "count": len(agents),
-            "active": len([a for a in agents if a['status'] == 'Active']),
-            "idle": len([a for a in agents if a['status'] == 'Idle'])
+            "active": len([a for a in agents if a["status"] == "Active"]),
+            "idle": len([a for a in agents if a["status"] == "Idle"]),
         }
 
     except Exception as e:

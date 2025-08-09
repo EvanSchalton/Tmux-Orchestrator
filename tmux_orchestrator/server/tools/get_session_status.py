@@ -1,7 +1,6 @@
 """Business logic for retrieving comprehensive session status."""
 
 from dataclasses import dataclass
-from typing import Dict, List
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -9,12 +8,13 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 @dataclass
 class SessionStatusResult:
     """Result of session status operation."""
+
     total_sessions: int
     total_agents: int
     active_agents: int
     idle_agents: int
-    sessions: List[Dict[str, str]]
-    agents: List[Dict[str, str]]
+    sessions: list[dict[str, str]]
+    agents: list[dict[str, str]]
 
 
 def get_session_status(tmux: TMUXManager) -> SessionStatusResult:
@@ -38,8 +38,8 @@ def get_session_status(tmux: TMUXManager) -> SessionStatusResult:
         agents = tmux.list_agents()
 
         # Count agent statuses
-        active_agents = [agent for agent in agents if agent['status'] == 'Active']
-        idle_agents = [agent for agent in agents if agent['status'] == 'Idle']
+        active_agents = [agent for agent in agents if agent["status"] == "Active"]
+        idle_agents = [agent for agent in agents if agent["status"] == "Idle"]
 
         return SessionStatusResult(
             total_sessions=len(sessions),
@@ -47,7 +47,7 @@ def get_session_status(tmux: TMUXManager) -> SessionStatusResult:
             active_agents=len(active_agents),
             idle_agents=len(idle_agents),
             sessions=sessions,
-            agents=agents
+            agents=agents,
         )
 
     except Exception as e:
@@ -57,6 +57,7 @@ def get_session_status(tmux: TMUXManager) -> SessionStatusResult:
 @dataclass
 class AgentStatusRequest:
     """Request parameters for individual agent status."""
+
     session: str
     window: str
     lines: int = 100
@@ -65,11 +66,12 @@ class AgentStatusRequest:
 @dataclass
 class AgentStatusResult:
     """Result of individual agent status check."""
+
     session: str
     window: str
     target: str
     status: str
-    recent_output: List[str]
+    recent_output: list[str]
     output_length: int
     error_message: str = ""
 
@@ -96,7 +98,7 @@ def get_agent_status(tmux: TMUXManager, request: AgentStatusRequest) -> AgentSta
             status="error",
             recent_output=[],
             output_length=0,
-            error_message="Session name cannot be empty"
+            error_message="Session name cannot be empty",
         )
 
     if not request.window.strip():
@@ -107,7 +109,7 @@ def get_agent_status(tmux: TMUXManager, request: AgentStatusRequest) -> AgentSta
             status="error",
             recent_output=[],
             output_length=0,
-            error_message="Window name cannot be empty"
+            error_message="Window name cannot be empty",
         )
 
     target = f"{request.session}:{request.window}"
@@ -121,13 +123,13 @@ def get_agent_status(tmux: TMUXManager, request: AgentStatusRequest) -> AgentSta
             status="not_found",
             recent_output=[],
             output_length=0,
-            error_message=f"Session '{request.session}' not found"
+            error_message=f"Session '{request.session}' not found",
         )
 
     try:
         # Capture recent output
         output = tmux.capture_pane(target, lines=request.lines)
-        output_lines = output.split('\n') if output else []
+        output_lines = output.split("\n") if output else []
 
         # Determine if agent is idle
         is_idle = tmux._is_idle(output)
@@ -139,7 +141,7 @@ def get_agent_status(tmux: TMUXManager, request: AgentStatusRequest) -> AgentSta
             target=target,
             status=status,
             recent_output=output_lines[-10:],  # Last 10 lines
-            output_length=len(output_lines)
+            output_length=len(output_lines),
         )
 
     except Exception as e:
@@ -150,5 +152,5 @@ def get_agent_status(tmux: TMUXManager, request: AgentStatusRequest) -> AgentSta
             status="error",
             recent_output=[],
             output_length=0,
-            error_message=f"Error retrieving agent status: {str(e)}"
+            error_message=f"Error retrieving agent status: {str(e)}",
         )

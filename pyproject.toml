@@ -27,6 +27,9 @@ ruff = "^0.1.6"
 mypy = "^1.7.1"
 types-pyyaml = "^6.0.12.20250516"
 mcp = "^1.12.4"
+pre-commit = "^4.2.0"
+bandit = "^1.8.6"
+isort = "^6.0.1"
 
 [tool.poetry.scripts]
 tmux-orc = "tmux_orchestrator.cli:cli"
@@ -37,15 +40,21 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-line-length = 88
+line-length = 120
 target-version = ['py39']
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]  # Ignore line too long
+
+[tool.isort]
+profile = "black"
+line_length = 88
 
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

@@ -21,19 +21,18 @@ class TestCheckAgentHealth:
         target: str = "test-session:0"
         last_response: datetime = datetime.now() - timedelta(seconds=30)
 
-        with patch('tmux_orchestrator.core.recovery.check_agent_health.detect_failure') as detect_mock:
-            detect_mock.return_value = (False, "healthy", False)
+        with patch("tmux_orchestrator.core.recovery.check_agent_health.detect_failure") as detect_mock:
+            detect_mock.return_value = (False, "healthy", {"is_idle": False})
 
             # Act
-            health_status: AgentHealthStatus = check_agent_health(
-                tmux_mock, target, last_response
-            )
+            health_status: AgentHealthStatus = check_agent_health(tmux_mock, target, last_response)
 
             # Assert
             assert health_status.target == target
             assert health_status.is_healthy is True
             assert health_status.failure_reason == "healthy"
             assert health_status.consecutive_failures == 0
+            assert health_status.is_idle is False
 
     def test_check_agent_health_unhealthy_agent(self) -> None:
         """Test health check for unhealthy agent."""
@@ -43,8 +42,8 @@ class TestCheckAgentHealth:
         last_response: datetime = datetime.now() - timedelta(minutes=5)
         consecutive_failures: int = 2
 
-        with patch('tmux_orchestrator.core.recovery.check_agent_health.detect_failure') as detect_mock:
-            detect_mock.return_value = (True, "critical_error_detected", True)
+        with patch("tmux_orchestrator.core.recovery.check_agent_health.detect_failure") as detect_mock:
+            detect_mock.return_value = (True, "critical_error_detected", {"is_idle": True})
 
             # Act
             health_status: AgentHealthStatus = check_agent_health(
@@ -76,8 +75,8 @@ class TestCheckAgentHealth:
         last_response: datetime = datetime.now() - timedelta(seconds=30)
         consecutive_failures: int = 2
 
-        with patch('tmux_orchestrator.core.recovery.check_agent_health.detect_failure') as detect_mock:
-            detect_mock.return_value = (False, "healthy", False)
+        with patch("tmux_orchestrator.core.recovery.check_agent_health.detect_failure") as detect_mock:
+            detect_mock.return_value = (False, "healthy", {"is_idle": False})
 
             # Act
             health_status: AgentHealthStatus = check_agent_health(
@@ -94,13 +93,11 @@ class TestCheckAgentHealth:
         target: str = "test-session:0"
         last_response: datetime = datetime.now()
 
-        with patch('tmux_orchestrator.core.recovery.check_agent_health.detect_failure') as detect_mock:
+        with patch("tmux_orchestrator.core.recovery.check_agent_health.detect_failure") as detect_mock:
             detect_mock.side_effect = RuntimeError("Connection failed")
 
             # Act
-            health_status: AgentHealthStatus = check_agent_health(
-                tmux_mock, target, last_response
-            )
+            health_status: AgentHealthStatus = check_agent_health(tmux_mock, target, last_response)
 
             # Assert
             assert health_status.is_healthy is False
@@ -116,7 +113,7 @@ class TestCheckAgentHealth:
             is_idle=False,
             failure_reason="healthy",
             last_check=datetime.now(),
-            consecutive_failures=0
+            consecutive_failures=0,
         )
 
         # Assert

@@ -1,10 +1,10 @@
 <div align="center">
   <img src="docs/assets/tmux-orc-logo.png" alt="tmux-orc logo" width="400">
-  
+
   # Tmux Orchestrator
-  
+
   **Run AI agents 24/7 while you sleep**
-  
+
   The Tmux Orchestrator enables Claude agents to work autonomously, schedule their own check-ins, and coordinate across multiple projects without human intervention.
 </div>
 
@@ -186,22 +186,22 @@ Complete PRD-driven workflow with centralized task tracking:
 Professional CLI replacing all shell scripts:
 ```bash
 tmux-orc setup            # One-time setup
-tmux-orc execute prd.md   # Full PRD execution  
+tmux-orc execute prd.md   # Full PRD execution
 tmux-orc tasks create     # Task management
 tmux-orc team compose     # Custom teams
 tmux-orc agent status     # Monitor agents
 ```
 
 ### 🔌 MCP Server & VS Code Integration
-- **REST API** via Model Context Protocol  
+- **REST API** via Model Context Protocol
 - **VS Code tasks** for quick agent access
 - **Claude Code slash commands** for orchestration
-- **Monitoring dashboards** in your editor  
+- **Monitoring dashboards** in your editor
 
 ## 🤖 Key Capabilities & Autonomous Features
 
 - **Self-trigger** - Agents schedule their own check-ins and continue work autonomously
-- **Coordinate** - Project managers assign tasks to engineers across multiple codebases  
+- **Coordinate** - Project managers assign tasks to engineers across multiple codebases
 - **Persist** - Work continues even when you close your laptop
 - **Scale** - Run multiple teams working on different projects simultaneously
 
@@ -220,7 +220,7 @@ graph TB
     subgraph human_in_the_loop
         short_description --> claude_code
         claude_code --> clarification_conversation
-        
+
         short_description --> create_prd_cli
         create_prd_cli --> clarification_survey
 
@@ -229,7 +229,7 @@ graph TB
 
         prd --> task_list
     end
-    
+
     task_list -->|CLI or MCP| setup
 
     subgraph agentic_orchestration
@@ -291,18 +291,18 @@ For projects using Poetry:
 {
   "name": "My AI-Powered Project",
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
-  
+
   "postCreateCommand": [
     "apt-get update && apt-get install -y tmux",
     "pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git",
     "tmux-orc setup all",
     "tmux-orc orchestrator start"
   ],
-  
+
   "remoteEnv": {
     "TMUX_ORCHESTRATOR_HOME": "${containerWorkspaceFolder}/.tmux_orchestrator"
   },
-  
+
   "customizations": {
     "vscode": {
       "extensions": [
@@ -323,7 +323,7 @@ Open all your agents instantly through VS Code's Command Palette:
 Ctrl+Shift+P → Tasks: Run Task → Select:
 
 🎭 Open ALL Agent Terminals        ← Opens all 5 agents at once!
-🎯 Open Orchestrator Agent         ← Main coordinator  
+🎯 Open Orchestrator Agent         ← Main coordinator
 👔 Open Project Manager Agent      ← Planning & quality
 🎨 Open Frontend Agent            ← UI/UX development
 ⚙️ Open Backend Agent             ← API & server logic
@@ -343,10 +343,10 @@ Agents now know how to message each other:
 
 ```bash
 # PM can coordinate the team
-scripts/send-claude-message.sh orchestrator:1 "Priority update: Focus on auth issues"
-scripts/send-claude-message.sh corporate-coach-frontend:2 "UI fixes needed for login flow"
+tmux-orc agent send orchestrator:1 "Priority update: Focus on auth issues"
+tmux-orc agent send corporate-coach-frontend:2 "UI fixes needed for login flow"
 
-# Check team status using CLI  
+# Check team status using CLI
 tmux-orc agent status
 tmux-orc list sessions
 ```
@@ -422,7 +422,7 @@ tmux-orc team coordinate my-project
 The orchestrator analyzes your task file and automatically deploys appropriate agents:
 
 - **Frontend indicators**: react, vue, ui, component, html, css, javascript
-- **Backend indicators**: api, service, endpoint, python, node, fastapi  
+- **Backend indicators**: api, service, endpoint, python, node, fastapi
 - **Database indicators**: database, sql, postgres, migration, schema
 - **Always includes**: Orchestrator, PM, QA
 
@@ -440,7 +440,7 @@ tmux-orc agent status
 # Check team health
 tmux-orc team status my-project
 
-# View task progress  
+# View task progress
 tmux-orc tasks status my-project
 ```
 
@@ -448,7 +448,7 @@ tmux-orc tasks status my-project
 
 ### Getting Started
 - **[Installation Guide](docs/setup/installation.md)** - Complete setup instructions
-- **[Quick Start](docs/setup/quickstart.md)** - Get running in 5 minutes  
+- **[Quick Start](docs/setup/quickstart.md)** - Get running in 5 minutes
 - **[CLI Quick Start](docs/setup/cli-quickstart.md)** - Using the tmux-orc command
 
 ### Core Concepts
@@ -468,13 +468,13 @@ tmux-orc tasks status my-project
 - Auto-detects React, Vue, Angular frontends
 - Supports Node.js, Python, Java backends
 
-### API-Only Project  
+### API-Only Project
 - Orchestrator + PM + Backend + Database + QA
 - Focus on API development and testing
 - Database migration support
 
 ### Data Pipeline
-- Orchestrator + PM + Data Engineer + Backend + QA  
+- Orchestrator + PM + Data Engineer + Backend + QA
 - ETL/ELT workflow support
 - Data validation and quality checks
 
@@ -499,14 +499,14 @@ DELIVERABLES:
 
 SUCCESS CRITERIA:
 - All forms validate properly
-- Payment processes without errors  
+- Payment processes without errors
 - Order data persists to database
 - Emails send on completion
 ```
 
 ### Git Safety Rules
 1. **Feature branches** for all work
-2. **Commits every 30 minutes** with descriptive messages  
+2. **Commits every 30 minutes** with descriptive messages
 3. **Quality gates** before merging
 4. **Stable tags** for working versions
 
@@ -525,15 +525,15 @@ SUCCESS CRITERIA:
 ### Multi-Project Orchestration
 ```bash
 # Deploy multiple project teams
-./bin/generic-team-deploy.sh frontend-tasks.md frontend-app
-./bin/generic-team-deploy.sh backend-tasks.md api-service  
-./bin/generic-team-deploy.sh data-tasks.md analytics-pipeline
+tmux-orc execute frontend-tasks.md --project frontend-app
+tmux-orc execute backend-tasks.md --project api-service
+tmux-orc execute data-tasks.md --project analytics-pipeline
 ```
 
 ### Custom Agent Briefings
 ```bash
-# Customize the deployment script briefings
-# Edit bin/generic-team-deploy.sh to add project-specific instructions
+# Spawn agents with custom briefings
+tmux-orc agent spawn my-developer orchestrator:2 --briefing "Custom developer briefing..."
 ```
 
 ### Integration Hooks
@@ -553,10 +553,10 @@ echo "curl -X POST $SLACK_WEBHOOK ..." > .tmux-orchestrator/integrations/slack.s
 - **`tmux-orc tasks`** - Complete task management system
 - **`tmux-orc team`** - Team composition and deployment
 
-### Essential Scripts (in scripts/)
-- **`send-claude-message.sh`** - Direct agent communication
-- **`schedule_with_note.sh`** - Self-scheduling functionality
-- **`idle-monitor-daemon.sh`** - Idle detection daemon
+### Essential CLI Commands
+- **`tmux-orc agent send`** - Direct agent communication
+- **`tmux-orc orchestrator schedule`** - Self-scheduling functionality
+- **`tmux-orc monitor start`** - Idle detection daemon
 
 ### Configuration
 - **`.tmux_orchestrator/`** - Task management directory
@@ -568,7 +568,7 @@ echo "curl -X POST $SLACK_WEBHOOK ..." > .tmux-orchestrator/integrations/slack.s
 The orchestrator evolves through community use and feedback:
 
 1. **Test in your projects** and report what works
-2. **Submit improvements** for team deployment patterns  
+2. **Submit improvements** for team deployment patterns
 3. **Share novel use cases** and coordination strategies
 4. **Contribute project templates** for common stacks
 5. **Enhance monitoring** and quality gate systems

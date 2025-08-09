@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import click
 from rich.console import Console
@@ -19,10 +19,10 @@ def setup() -> None:
     pass
 
 
-@setup.command('vscode')
-@click.option('--project-dir', help='Project directory (defaults to current)')
-@click.option('--force', is_flag=True, help='Overwrite existing tasks.json')
-@click.option('--minimal', is_flag=True, help='Generate minimal task set')
+@setup.command("vscode")
+@click.option("--project-dir", help="Project directory (defaults to current)")
+@click.option("--force", is_flag=True, help="Overwrite existing tasks.json")
+@click.option("--minimal", is_flag=True, help="Generate minimal task set")
 @click.pass_context
 def vscode(ctx: click.Context, project_dir: Optional[str], force: bool, minimal: bool) -> None:
     """Generate VS Code tasks.json for TMUX Orchestrator commands.
@@ -34,8 +34,8 @@ def vscode(ctx: click.Context, project_dir: Optional[str], force: bool, minimal:
         project_dir = str(Path.cwd())
 
     project_path = Path(project_dir)
-    vscode_dir = project_path / '.vscode'
-    tasks_file = vscode_dir / 'tasks.json'
+    vscode_dir = project_path / ".vscode"
+    tasks_file = vscode_dir / "tasks.json"
 
     console.print(f"[blue]Setting up VS Code integration for: {project_path}[/blue]")
 
@@ -56,7 +56,7 @@ def vscode(ctx: click.Context, project_dir: Optional[str], force: bool, minimal:
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
-        console=console
+        console=console,
     ) as progress:
         task_progress = progress.add_task("Creating tasks...", total=None)
 
@@ -66,7 +66,7 @@ def vscode(ctx: click.Context, project_dir: Optional[str], force: bool, minimal:
         progress.update(task_progress, description="Writing tasks.json...")
 
         # Write tasks.json file
-        with open(tasks_file, 'w', encoding='utf-8') as f:
+        with open(tasks_file, "w", encoding="utf-8") as f:
             json.dump(tasks_config, f, indent=2, ensure_ascii=False)
 
         progress.update(task_progress, description="Complete!", completed=100)
@@ -79,9 +79,9 @@ def vscode(ctx: click.Context, project_dir: Optional[str], force: bool, minimal:
     _show_usage_instructions()
 
 
-@setup.command('workspace')
-@click.option('--project-dir', help='Project directory (defaults to current)')
-@click.option('--name', help='Workspace name (defaults to directory name)')
+@setup.command("workspace")
+@click.option("--project-dir", help="Project directory (defaults to current)")
+@click.option("--name", help="Workspace name (defaults to directory name)")
 @click.pass_context
 def workspace(ctx: click.Context, project_dir: Optional[str], name: Optional[str]) -> None:
     """Generate VS Code workspace file with TMUX Orchestrator settings.
@@ -103,49 +103,49 @@ def workspace(ctx: click.Context, project_dir: Optional[str], name: Optional[str
     workspace_config = _generate_workspace_config(project_dir, name)
 
     # Write workspace file
-    with open(workspace_file, 'w', encoding='utf-8') as f:
+    with open(workspace_file, "w", encoding="utf-8") as f:
         json.dump(workspace_config, f, indent=2, ensure_ascii=False)
 
     console.print(f"[green]✓ VS Code workspace created: {workspace_file}[/green]")
     console.print(f"  Open with: [bold]code {workspace_file}[/bold]")
 
 
-@setup.command('extensions')
+@setup.command("extensions")
 @click.pass_context
 def extensions(ctx: click.Context) -> None:
     """List recommended VS Code extensions for TMUX Orchestrator development."""
 
     extensions = [
         {
-            'id': 'ms-python.python',
-            'name': 'Python',
-            'description': 'Python language support with IntelliSense'
+            "id": "ms-python.python",
+            "name": "Python",
+            "description": "Python language support with IntelliSense",
         },
         {
-            'id': 'ms-python.mypy-type-checker',
-            'name': 'Mypy Type Checker',
-            'description': 'Type checking for Python code'
+            "id": "ms-python.mypy-type-checker",
+            "name": "Mypy Type Checker",
+            "description": "Type checking for Python code",
         },
         {
-            'id': 'charliermarsh.ruff',
-            'name': 'Ruff',
-            'description': 'Fast Python linter and formatter'
+            "id": "charliermarsh.ruff",
+            "name": "Ruff",
+            "description": "Fast Python linter and formatter",
         },
         {
-            'id': 'ms-vscode.terminal-tabs',
-            'name': 'Terminal Tabs',
-            'description': 'Enhanced terminal management'
+            "id": "ms-vscode.terminal-tabs",
+            "name": "Terminal Tabs",
+            "description": "Enhanced terminal management",
         },
         {
-            'id': 'alefragnani.project-manager',
-            'name': 'Project Manager',
-            'description': 'Manage multiple projects easily'
+            "id": "alefragnani.project-manager",
+            "name": "Project Manager",
+            "description": "Manage multiple projects easily",
         },
         {
-            'id': 'gruntfuggly.todo-tree',
-            'name': 'TODO Tree',
-            'description': 'Track TODO comments and tasks'
-        }
+            "id": "gruntfuggly.todo-tree",
+            "name": "TODO Tree",
+            "description": "Track TODO comments and tasks",
+        },
     ]
 
     console.print("[bold blue]🔌 Recommended VS Code Extensions[/bold blue]")
@@ -161,9 +161,9 @@ def extensions(ctx: click.Context) -> None:
     console.print(f"[dim]{install_cmd}[/dim]")
 
 
-@setup.command('config')
-@click.option('--project-dir', help='Project directory (defaults to current)')
-@click.option('--interactive', is_flag=True, help='Interactive configuration setup')
+@setup.command("config")
+@click.option("--project-dir", help="Project directory (defaults to current)")
+@click.option("--interactive", is_flag=True, help="Interactive configuration setup")
 @click.pass_context
 def config(ctx: click.Context, project_dir: Optional[str], interactive: bool) -> None:
     """Generate VS Code settings.json with TMUX Orchestrator optimizations.
@@ -174,8 +174,8 @@ def config(ctx: click.Context, project_dir: Optional[str], interactive: bool) ->
         project_dir = str(Path.cwd())
 
     project_path = Path(project_dir)
-    vscode_dir = project_path / '.vscode'
-    settings_file = vscode_dir / 'settings.json'
+    vscode_dir = project_path / ".vscode"
+    settings_file = vscode_dir / "settings.json"
 
     # Ensure .vscode directory exists
     vscode_dir.mkdir(parents=True, exist_ok=True)
@@ -195,9 +195,7 @@ def config(ctx: click.Context, project_dir: Optional[str], interactive: bool) ->
         "[python]": {
             "editor.defaultFormatter": "charliermarsh.ruff",
             "editor.formatOnSave": True,
-            "editor.codeActionsOnSave": {
-                "source.organizeImports": True
-            }
+            "editor.codeActionsOnSave": {"source.organizeImports": True},
         },
         "files.exclude": {
             "**/__pycache__": True,
@@ -205,24 +203,21 @@ def config(ctx: click.Context, project_dir: Optional[str], interactive: bool) ->
             "**/.mypy_cache": True,
             "**/.coverage": True,
             "**/htmlcov": True,
-            "**/.ruff_cache": True
+            "**/.ruff_cache": True,
         },
         "terminal.integrated.defaultProfile.linux": "bash",
         "terminal.integrated.defaultProfile.osx": "zsh",
         "workbench.colorTheme": "Default Dark+",
         "editor.rulers": [88],
         "editor.wordWrap": "bounded",
-        "editor.wordWrapColumn": 88
+        "editor.wordWrapColumn": 88,
     }
 
     if interactive:
         console.print("[yellow]Interactive configuration mode[/yellow]")
 
         # Ask for Python interpreter path
-        python_path = Prompt.ask(
-            "Python interpreter path",
-            default="./venv/bin/python"
-        )
+        python_path = Prompt.ask("Python interpreter path", default="./venv/bin/python")
         settings["python.defaultInterpreterPath"] = python_path
 
         # Ask for additional settings
@@ -233,13 +228,13 @@ def config(ctx: click.Context, project_dir: Optional[str], interactive: bool) ->
             settings["python.analysis.typeCheckingMode"] = "strict"
 
     # Write settings file
-    with open(settings_file, 'w', encoding='utf-8') as f:
+    with open(settings_file, "w", encoding="utf-8") as f:
         json.dump(settings, f, indent=2, ensure_ascii=False)
 
     console.print(f"[green]✓ VS Code settings configured: {settings_file}[/green]")
 
 
-def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str, Any]:
+def _generate_tasks_config(project_dir: str, minimal: bool = False) -> dict[str, Any]:
     """Generate VS Code tasks configuration."""
 
     tasks = []
@@ -252,9 +247,14 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["orchestrator", "start"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Start the main TMUX Orchestrator session"
+            "detail": "Start the main TMUX Orchestrator session",
         },
         {
             "label": "📊 System Status",
@@ -262,20 +262,35 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["orchestrator", "status"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Show comprehensive system status"
+            "detail": "Show comprehensive system status",
         },
         {
             "label": "⏰ Schedule Reminder",
             "type": "shell",
             "command": "tmux-orc",
-            "args": ["orchestrator", "schedule", "${input:minutes}", "${input:reminderNote}"],
+            "args": [
+                "orchestrator",
+                "schedule",
+                "${input:minutes}",
+                "${input:reminderNote}",
+            ],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Schedule a reminder message"
-        }
+            "detail": "Schedule a reminder message",
+        },
     ]
 
     # Team management tasks
@@ -286,9 +301,14 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["team", "deploy", "frontend", "${input:teamSize}"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Deploy a frontend development team"
+            "detail": "Deploy a frontend development team",
         },
         {
             "label": "🚀 Deploy Backend Team",
@@ -296,9 +316,14 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["team", "deploy", "backend", "${input:teamSize}"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Deploy a backend development team"
+            "detail": "Deploy a backend development team",
         },
         {
             "label": "🔄 Recover Team",
@@ -306,10 +331,15 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["team", "recover", "${input:sessionName}"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Recover failed agents in a team"
-        }
+            "detail": "Recover failed agents in a team",
+        },
     ]
 
     # Agent management tasks
@@ -320,9 +350,14 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["agent", "status"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Show all agent statuses"
+            "detail": "Show all agent statuses",
         },
         {
             "label": "🔄 Restart Agent",
@@ -330,9 +365,14 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["agent", "restart", "${input:agentTarget}"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Restart a specific agent"
+            "detail": "Restart a specific agent",
         },
         {
             "label": "💬 Message Agent",
@@ -340,10 +380,15 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["agent", "message", "${input:agentTarget}", "${input:message}"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Send message to specific agent"
-        }
+            "detail": "Send message to specific agent",
+        },
     ]
 
     # Monitoring tasks
@@ -354,9 +399,14 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["monitor", "dashboard"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Open monitoring dashboard"
+            "detail": "Open monitoring dashboard",
         },
         {
             "label": "🏁 Start Recovery Daemon",
@@ -364,10 +414,15 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["monitor", "recovery-start"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Start the agent recovery daemon"
-        }
+            "detail": "Start the agent recovery daemon",
+        },
     ]
 
     # Project Manager tasks
@@ -378,9 +433,14 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["pm", "create", "${input:sessionName}"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Create new Project Manager"
+            "detail": "Create new Project Manager",
         },
         {
             "label": "📋 PM Status Check",
@@ -388,10 +448,15 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "command": "tmux-orc",
             "args": ["pm", "status"],
             "group": "build",
-            "presentation": {"echo": True, "reveal": "always", "focus": False, "panel": "shared"},
+            "presentation": {
+                "echo": True,
+                "reveal": "always",
+                "focus": False,
+                "panel": "shared",
+            },
             "options": {"cwd": project_dir},
-            "detail": "Check Project Manager status"
-        }
+            "detail": "Check Project Manager status",
+        },
     ]
 
     # Build all tasks
@@ -409,56 +474,48 @@ def _generate_tasks_config(project_dir: str, minimal: bool = False) -> Dict[str,
             "id": "teamSize",
             "description": "Team size",
             "default": "3",
-            "type": "promptString"
+            "type": "promptString",
         },
         {
             "id": "sessionName",
             "description": "Session name",
             "default": "my-project",
-            "type": "promptString"
+            "type": "promptString",
         },
         {
             "id": "agentTarget",
             "description": "Agent target (session:window)",
             "default": "my-project:0",
-            "type": "promptString"
+            "type": "promptString",
         },
         {
             "id": "message",
             "description": "Message text",
             "default": "Status update request",
-            "type": "promptString"
+            "type": "promptString",
         },
         {
             "id": "minutes",
             "description": "Minutes from now",
             "default": "15",
-            "type": "promptString"
+            "type": "promptString",
         },
         {
             "id": "reminderNote",
             "description": "Reminder note",
             "default": "Check progress",
-            "type": "promptString"
-        }
+            "type": "promptString",
+        },
     ]
 
-    return {
-        "version": "2.0.0",
-        "tasks": tasks,
-        "inputs": inputs
-    }
+    return {"version": "2.0.0", "tasks": tasks, "inputs": inputs}
 
 
-def _generate_workspace_config(project_dir: str, name: str) -> Dict[str, Any]:
+def _generate_workspace_config(project_dir: str, name: str) -> dict[str, Any]:
     """Generate VS Code workspace configuration."""
 
     return {
-        "folders": [
-            {
-                "path": "."
-            }
-        ],
+        "folders": [{"path": "."}],
         "settings": {
             "python.defaultInterpreterPath": "./venv/bin/python",
             "python.terminal.activateEnvironment": True,
@@ -467,8 +524,8 @@ def _generate_workspace_config(project_dir: str, name: str) -> Dict[str, Any]:
             "files.exclude": {
                 "**/__pycache__": True,
                 "**/.pytest_cache": True,
-                "**/.mypy_cache": True
-            }
+                "**/.mypy_cache": True,
+            },
         },
         "extensions": {
             "recommendations": [
@@ -476,7 +533,7 @@ def _generate_workspace_config(project_dir: str, name: str) -> Dict[str, Any]:
                 "ms-python.mypy-type-checker",
                 "charliermarsh.ruff",
                 "ms-vscode.terminal-tabs",
-                "alefragnani.project-manager"
+                "alefragnani.project-manager",
             ]
         },
         "launch": {
@@ -489,10 +546,10 @@ def _generate_workspace_config(project_dir: str, name: str) -> Dict[str, Any]:
                     "module": "tmux_orchestrator.cli",
                     "args": ["--help"],
                     "console": "integratedTerminal",
-                    "cwd": "${workspaceFolder}"
+                    "cwd": "${workspaceFolder}",
                 }
-            ]
-        }
+            ],
+        },
     }
 
 
@@ -528,6 +585,6 @@ def _show_usage_instructions() -> None:
     panel = Panel(
         instructions.strip(),
         title="[bold green]VS Code Integration Guide[/bold green]",
-        border_style="green"
+        border_style="green",
     )
     console.print(panel)

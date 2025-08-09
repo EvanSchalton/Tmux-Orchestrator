@@ -12,9 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 class TimingMiddleware(BaseHTTPMiddleware):
     """Middleware to log request timing and basic info."""
 
-    async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         """Process request with timing."""
         start_time = time.time()
 
@@ -40,8 +38,5 @@ class TimingMiddleware(BaseHTTPMiddleware):
 
         except Exception as e:
             process_time = time.time() - start_time
-            logging.error(
-                f"Error in {request.method} {request.url.path} "
-                f"after {process_time:.4f}s: {str(e)}"
-            )
+            logging.error(f"Error in {request.method} {request.url.path} " f"after {process_time:.4f}s: {str(e)}")
             raise

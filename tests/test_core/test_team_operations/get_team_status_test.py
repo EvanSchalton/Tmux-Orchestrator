@@ -1,6 +1,6 @@
 """Tests for get_team_status business logic function."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from unittest.mock import Mock
 
 import pytest
@@ -20,15 +20,13 @@ def test_get_team_status_success() -> None:
     mock_tmux.has_session.return_value = True
 
     # Mock session info
-    mock_sessions: List[Dict[str, str]] = [
-        {'name': 'test-session', 'created': '1234567890', 'attached': '1'}
-    ]
+    mock_sessions: list[dict[str, str]] = [{"name": "test-session", "created": "1234567890", "attached": "1"}]
     mock_tmux.list_sessions.return_value = mock_sessions
 
     # Mock windows
-    mock_windows: List[Dict[str, str]] = [
-        {'index': '0', 'name': 'Claude-Frontend'},
-        {'index': '1', 'name': 'Dev-Server'}
+    mock_windows: list[dict[str, str]] = [
+        {"index": "0", "name": "Claude-Frontend"},
+        {"index": "1", "name": "Dev-Server"},
     ]
     mock_tmux.list_windows.return_value = mock_windows
 
@@ -39,20 +37,20 @@ def test_get_team_status_success() -> None:
     session: str = "test-session"
 
     # Act
-    result: Optional[Dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is not None
-    assert result['session_info'] == mock_sessions[0]
-    assert len(result['windows']) == 2
-    assert result['summary']['total_windows'] == 2
-    assert result['summary']['active_agents'] == 1  # Only Claude-Frontend counts as agent
+    assert result["session_info"] == mock_sessions[0]
+    assert len(result["windows"]) == 2
+    assert result["summary"]["total_windows"] == 2
+    assert result["summary"]["active_agents"] == 1  # Only Claude-Frontend counts as agent
 
     # Check window details
-    frontend_window = next(w for w in result['windows'] if w['name'] == 'Claude-Frontend')
-    assert frontend_window['type'] == "Frontend Dev"
-    assert frontend_window['status'] == "Active"
-    assert frontend_window['target'] == "test-session:0"
+    frontend_window = next(w for w in result["windows"] if w["name"] == "Claude-Frontend")
+    assert frontend_window["type"] == "Frontend Dev"
+    assert frontend_window["status"] == "Active"
+    assert frontend_window["target"] == "test-session:0"
 
 
 def test_get_team_status_session_not_found() -> None:
@@ -64,7 +62,7 @@ def test_get_team_status_session_not_found() -> None:
     session: str = "nonexistent-session"
 
     # Act
-    result: Optional[Dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is None
@@ -81,7 +79,7 @@ def test_get_team_status_session_info_not_found() -> None:
     session: str = "test-session"
 
     # Act
-    result: Optional[Dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is None
@@ -93,33 +91,34 @@ def test_get_team_status_no_windows() -> None:
     mock_tmux: Mock = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
 
-    mock_sessions: List[Dict[str, str]] = [
-        {'name': 'test-session', 'created': '1234567890'}
-    ]
+    mock_sessions: list[dict[str, str]] = [{"name": "test-session", "created": "1234567890"}]
     mock_tmux.list_sessions.return_value = mock_sessions
     mock_tmux.list_windows.return_value = []  # No windows
 
     session: str = "test-session"
 
     # Act
-    result: Optional[Dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is not None
-    assert result['windows'] == []
-    assert result['summary']['total_windows'] == 0
-    assert result['summary']['active_agents'] == 0
+    assert result["windows"] == []
+    assert result["summary"]["total_windows"] == 0
+    assert result["summary"]["active_agents"] == 0
 
 
-@pytest.mark.parametrize("window_name,expected_type", [
-    ("Claude-Frontend", "Frontend Dev"),
-    ("claude-backend", "Backend Dev"),
-    ("PM-Window", "Project Manager"),
-    ("qa-test", "QA Engineer"),
-    ("Dev-Server", "Dev Server"),
-    ("Shell-Window", "Shell"),
-    ("Random-Window", "Other"),
-])
+@pytest.mark.parametrize(
+    "window_name,expected_type",
+    [
+        ("Claude-Frontend", "Frontend Dev"),
+        ("claude-backend", "Backend Dev"),
+        ("PM-Window", "Project Manager"),
+        ("qa-test", "QA Engineer"),
+        ("Dev-Server", "Dev Server"),
+        ("Shell-Window", "Shell"),
+        ("Random-Window", "Other"),
+    ],
+)
 def test_determine_window_type(window_name: str, expected_type: str) -> None:
     """Test window type determination logic."""
     # Act
@@ -129,17 +128,17 @@ def test_determine_window_type(window_name: str, expected_type: str) -> None:
     assert result == expected_type
 
 
-@pytest.mark.parametrize("pane_content,is_idle,expected_status,expected_activity", [
-    ("Working on code...", False, "Active", "Working..."),
-    ("Waiting for input", True, "Idle", "Waiting for task"),
-    ("Error: failed to compile", False, "Error", "Has errors"),
-    ("Task completed successfully", False, "Complete", "Task completed"),
-])
+@pytest.mark.parametrize(
+    "pane_content,is_idle,expected_status,expected_activity",
+    [
+        ("Working on code...", False, "Active", "Working..."),
+        ("Waiting for input", True, "Idle", "Waiting for task"),
+        ("Error: failed to compile", False, "Error", "Has errors"),
+        ("Task completed successfully", False, "Complete", "Task completed"),
+    ],
+)
 def test_determine_window_status(
-    pane_content: str,
-    is_idle: bool,
-    expected_status: str,
-    expected_activity: str
+    pane_content: str, is_idle: bool, expected_status: str, expected_activity: str
 ) -> None:
     """Test window status determination logic."""
     # Arrange
@@ -160,18 +159,16 @@ def test_get_team_status_agent_counting() -> None:
     mock_tmux: Mock = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
 
-    mock_sessions: List[Dict[str, str]] = [
-        {'name': 'test-session', 'created': '1234567890'}
-    ]
+    mock_sessions: list[dict[str, str]] = [{"name": "test-session", "created": "1234567890"}]
     mock_tmux.list_sessions.return_value = mock_sessions
 
     # Mix of agent and non-agent windows
-    mock_windows: List[Dict[str, str]] = [
-        {'index': '0', 'name': 'claude-frontend'},    # Agent
-        {'index': '1', 'name': 'pm-manager'},         # Agent
-        {'index': '2', 'name': 'dev-server'},         # Not agent
-        {'index': '3', 'name': 'shell'},              # Not agent
-        {'index': '4', 'name': 'Claude-QA'},          # Agent
+    mock_windows: list[dict[str, str]] = [
+        {"index": "0", "name": "claude-frontend"},  # Agent
+        {"index": "1", "name": "pm-manager"},  # Agent
+        {"index": "2", "name": "dev-server"},  # Not agent
+        {"index": "3", "name": "shell"},  # Not agent
+        {"index": "4", "name": "Claude-QA"},  # Agent
     ]
     mock_tmux.list_windows.return_value = mock_windows
     mock_tmux.capture_pane.return_value = "test content"
@@ -180,9 +177,9 @@ def test_get_team_status_agent_counting() -> None:
     session: str = "test-session"
 
     # Act
-    result: Optional[Dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is not None
-    assert result['summary']['total_windows'] == 5
-    assert result['summary']['active_agents'] == 3  # claude-frontend, pm-manager, Claude-QA
+    assert result["summary"]["total_windows"] == 5
+    assert result["summary"]["active_agents"] == 3  # claude-frontend, pm-manager, Claude-QA

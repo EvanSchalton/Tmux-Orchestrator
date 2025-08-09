@@ -1,6 +1,6 @@
 """Inter-agent messaging routes for MCP server."""
 
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -17,6 +17,7 @@ tmux = TMUXManager()
 
 class MessageRequest(BaseModel):
     """API request model for sending messages."""
+
     target: str  # session:window or session:window.pane
     message: str
     urgent: bool = False
@@ -24,6 +25,7 @@ class MessageRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     """API response model for message sending."""
+
     success: bool
     target: str
     message_sent: str
@@ -32,9 +34,10 @@ class MessageResponse(BaseModel):
 
 class BroadcastRequest(BaseModel):
     """API request model for broadcasting to multiple agents."""
-    sessions: List[str]  # List of session names
+
+    sessions: list[str]  # List of session names
     message: str
-    exclude_windows: List[str] = []  # Windows to exclude
+    exclude_windows: list[str] = []  # Windows to exclude
 
 
 @router.post("/send", response_model=MessageResponse)
@@ -44,11 +47,7 @@ async def tmux_send_message(request: MessageRequest) -> MessageResponse:
     Primary MCP tool for inter-agent communication.
     """
     # Convert API request to business logic request
-    tool_request = ToolSendMessageRequest(
-        target=request.target,
-        message=request.message,
-        urgent=request.urgent
-    )
+    tool_request = ToolSendMessageRequest(target=request.target, message=request.message, urgent=request.urgent)
 
     # Execute business logic
     result = send_message(tmux, tool_request)
@@ -59,15 +58,13 @@ async def tmux_send_message(request: MessageRequest) -> MessageResponse:
         status_code = 404 if "not found" in error_msg.lower() else 500
         raise HTTPException(status_code=status_code, detail=result.error_message)
 
-    return MessageResponse(
-        success=result.success,
-        target=result.target,
-        message_sent=result.message_sent
-    )
+    return MessageResponse(success=result.success, target=result.target, message_sent=result.message_sent)
 
 
 @router.post("/broadcast")
-async def broadcast_message(request: BroadcastRequest) -> Dict[str, Union[List[Dict[str, object]], List[str], int]]:
+async def broadcast_message(
+    request: BroadcastRequest,
+) -> dict[str, Union[list[dict[str, object]], list[str], int]]:
     """Broadcast a message to multiple agents.
 
     MCP tool for coordinated communication.
@@ -85,28 +82,30 @@ async def broadcast_message(request: BroadcastRequest) -> Dict[str, Union[List[D
             windows = tmux.list_windows(session_name)
 
             for window in windows:
-                window_name = window['name']
+                window_name = window["name"]
 
                 # Skip excluded windows
                 if window_name in request.exclude_windows:
                     continue
 
                 # Only send to Claude agent windows
-                if any(keyword in window_name.lower() for keyword in ['claude', 'pm', 'developer', 'qa']):
+                if any(keyword in window_name.lower() for keyword in ["claude", "pm", "developer", "qa"]):
                     target = f"{session_name}:{window['index']}"
                     success = tmux.send_message(target, request.message)
 
-                    results.append({
-                        "target": target,
-                        "window_name": window_name,
-                        "success": success
-                    })
+                    results.append(
+                        {
+                            "target": target,
+                            "window_name": window_name,
+                            "success": success,
+                        }
+                    )
 
         return {
             "broadcast_results": results,
             "errors": errors,
-            "total_sent": len([r for r in results if r['success']]),
-            "total_failed": len([r for r in results if not r['success']]) + len(errors)
+            "total_sent": len([r for r in results if r["success"]]),
+            "total_failed": len([r for r in results if not r["success"]]) + len(errors),
         }
 
     except Exception as e:
@@ -114,7 +113,7 @@ async def broadcast_message(request: BroadcastRequest) -> Dict[str, Union[List[D
 
 
 @router.get("/history/{session}/{window}")
-async def get_message_history(session: str, window: str, lines: int = 100) -> Dict[str, Union[str, List[str], int]]:
+async def get_message_history(session: str, window: str, lines: int = 100) -> dict[str, Union[str, list[str], int]]:
     """Get recent message history for an agent.
 
     MCP tool for conversation monitoring.
@@ -131,8 +130,8 @@ async def get_message_history(session: str, window: str, lines: int = 100) -> Di
         return {
             "session": session,
             "window": window,
-            "history": output.split('\n') if output else [],
-            "lines_captured": len(output.split('\n')) if output else 0
+            "history": output.split("\n") if output else [],
+            "lines_captured": len(output.split("\n")) if output else 0,
         }
 
     except Exception as e:
@@ -140,7 +139,7 @@ async def get_message_history(session: str, window: str, lines: int = 100) -> Di
 
 
 @router.post("/interrupt/{session}/{window}")
-async def interrupt_agent(session: str, window: str) -> Dict[str, Union[str, bool]]:
+async def interrupt_agent(session: str, window: str) -> dict[str, Union[str, bool]]:
     """Send interrupt signal to an agent.
 
     MCP tool for stopping runaway agents.
@@ -157,11 +156,7 @@ async def interrupt_agent(session: str, window: str) -> Dict[str, Union[str, boo
         if not success:
             raise HTTPException(status_code=500, detail="Failed to send interrupt signal")
 
-        return {
-            "success": True,
-            "target": target,
-            "action": "interrupt_sent"
-        }
+        return {"success": True, "target": target, "action": "interrupt_sent"}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

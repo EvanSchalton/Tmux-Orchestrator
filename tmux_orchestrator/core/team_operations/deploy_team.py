@@ -1,17 +1,11 @@
 """Business logic for deploying teams of agents."""
 
 from pathlib import Path
-from typing import Tuple
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-def deploy_standard_team(
-    tmux: TMUXManager,
-    team_type: str,
-    size: int,
-    project_name: str
-) -> Tuple[bool, str]:
+def deploy_standard_team(tmux: TMUXManager, team_type: str, size: int, project_name: str) -> tuple[bool, str]:
     """Deploy a standard team configuration.
 
     Args:
@@ -55,7 +49,10 @@ def deploy_standard_team(
         if agents_deployed == 0:
             return False, f"Failed to deploy any agents for {team_type} team"
 
-        return True, f"Successfully deployed {team_type} team with {agents_deployed} agents in session '{session_name}'"
+        return (
+            True,
+            f"Successfully deployed {team_type} team with {agents_deployed} agents in session '{session_name}'",
+        )
 
     except Exception as e:
         # Clean up session if deployment failed
@@ -63,12 +60,7 @@ def deploy_standard_team(
         return False, f"Deployment failed: {str(e)}"
 
 
-def _deploy_frontend_team(
-    tmux: TMUXManager,
-    session_name: str,
-    size: int,
-    project_dir: str
-) -> int:
+def _deploy_frontend_team(tmux: TMUXManager, session_name: str, size: int, project_dir: str) -> int:
     """Deploy frontend-focused team."""
     agents_deployed = 0
 
@@ -94,12 +86,7 @@ def _deploy_frontend_team(
     return agents_deployed
 
 
-def _deploy_backend_team(
-    tmux: TMUXManager,
-    session_name: str,
-    size: int,
-    project_dir: str
-) -> int:
+def _deploy_backend_team(tmux: TMUXManager, session_name: str, size: int, project_dir: str) -> int:
     """Deploy backend-focused team."""
     agents_deployed = 0
 
@@ -125,12 +112,7 @@ def _deploy_backend_team(
     return agents_deployed
 
 
-def _deploy_fullstack_team(
-    tmux: TMUXManager,
-    session_name: str,
-    size: int,
-    project_dir: str
-) -> int:
+def _deploy_fullstack_team(tmux: TMUXManager, session_name: str, size: int, project_dir: str) -> int:
     """Deploy balanced fullstack team."""
     agents_deployed = 0
 
@@ -145,7 +127,11 @@ def _deploy_fullstack_team(
 
     for i in range(remaining_slots):
         role = roles[i % len(roles)]
-        window_name = f"{role.replace('-', '-').title()}-{(i//len(roles))+1}" if remaining_slots > len(roles) else role.replace('-', '-').title()
+        window_name = (
+            f"{role.replace('-', '-').title()}-{(i//len(roles))+1}"
+            if remaining_slots > len(roles)
+            else role.replace("-", "-").title()
+        )
 
         if tmux.create_window(session_name, window_name, project_dir):
             _start_claude_agent(tmux, f"{session_name}:{window_name}", role)
@@ -154,12 +140,7 @@ def _deploy_fullstack_team(
     return agents_deployed
 
 
-def _deploy_testing_team(
-    tmux: TMUXManager,
-    session_name: str,
-    size: int,
-    project_dir: str
-) -> int:
+def _deploy_testing_team(tmux: TMUXManager, session_name: str, size: int, project_dir: str) -> int:
     """Deploy testing-focused team."""
     agents_deployed = 0
 
@@ -184,11 +165,11 @@ def _start_claude_agent(tmux: TMUXManager, target: str, role: str) -> bool:
     import time
 
     # Start Claude
-    if not tmux.send_keys(target, 'claude --dangerously-skip-permissions'):
+    if not tmux.send_keys(target, "claude --dangerously-skip-permissions"):
         return False
 
     time.sleep(0.5)
-    if not tmux.send_keys(target, 'Enter'):
+    if not tmux.send_keys(target, "Enter"):
         return False
 
     # Wait for Claude to start
@@ -210,7 +191,6 @@ def _get_role_briefing(role: str) -> str:
 5. Report status updates to the orchestrator
 
 Begin by analyzing the project structure and creating an initial project plan.""",
-
         "frontend-developer": """You are a Frontend Developer on this team. Your responsibilities:
 1. Implement user interfaces and user experience components
 2. Work with modern frontend frameworks and tools
@@ -219,7 +199,6 @@ Begin by analyzing the project structure and creating an initial project plan.""
 5. Write and maintain frontend tests
 
 Start by examining the project structure and identifying frontend requirements.""",
-
         "backend-developer": """You are a Backend Developer on this team. Your responsibilities:
 1. Design and implement server-side logic and APIs
 2. Work with databases and data modeling
@@ -228,7 +207,6 @@ Start by examining the project structure and identifying frontend requirements."
 5. Write and maintain backend tests
 
 Begin by analyzing the project architecture and backend requirements.""",
-
         "qa": """You are a QA Engineer on this team. Your responsibilities:
 1. Design and execute comprehensive test plans
 2. Identify bugs and quality issues early in development
@@ -237,7 +215,6 @@ Begin by analyzing the project architecture and backend requirements.""",
 5. Validate that requirements are properly implemented
 
 Start by reviewing the project requirements and creating a testing strategy.""",
-
         "devops": """You are a DevOps Engineer on this team. Your responsibilities:
 1. Set up and maintain development and deployment pipelines
 2. Manage infrastructure and deployment processes
@@ -245,13 +222,16 @@ Start by reviewing the project requirements and creating a testing strategy.""",
 4. Implement security best practices
 5. Optimize development workflows
 
-Begin by assessing the current infrastructure and deployment needs."""
+Begin by assessing the current infrastructure and deployment needs.""",
     }
 
-    return briefings.get(role, f"You are a {role} on this development team. Please analyze the project and begin contributing to your assigned role.")
+    return briefings.get(
+        role,
+        f"You are a {role} on this development team. Please analyze the project and begin contributing to your assigned role.",
+    )
 
 
-def recover_team_agents(tmux: TMUXManager, session_name: str) -> Tuple[bool, str]:
+def recover_team_agents(tmux: TMUXManager, session_name: str) -> tuple[bool, str]:
     """Recover failed agents in a team session.
 
     Args:
@@ -274,10 +254,10 @@ def recover_team_agents(tmux: TMUXManager, session_name: str) -> Tuple[bool, str
 
     for window in windows:
         target = f"{session_name}:{window['index']}"
-        window_name = window['name'].lower()
+        window_name = window["name"].lower()
 
         # Skip non-agent windows
-        if not any(keyword in window_name for keyword in ['claude', 'pm', 'dev', 'qa', 'engineer']):
+        if not any(keyword in window_name for keyword in ["claude", "pm", "dev", "qa", "engineer"]):
             continue
 
         # Check if agent needs recovery
@@ -287,6 +267,7 @@ def recover_team_agents(tmux: TMUXManager, session_name: str) -> Tuple[bool, str
             from tmux_orchestrator.core.agent_operations.restart_agent import (
                 restart_agent,
             )
+
             success, _ = restart_agent(tmux, target)
 
             if success:
@@ -297,9 +278,15 @@ def recover_team_agents(tmux: TMUXManager, session_name: str) -> Tuple[bool, str
     if recovered_agents == 0 and failed_recoveries == 0:
         return True, f"All agents in session '{session_name}' are healthy"
     elif failed_recoveries == 0:
-        return True, f"Successfully recovered {recovered_agents} agents in session '{session_name}'"
+        return (
+            True,
+            f"Successfully recovered {recovered_agents} agents in session '{session_name}'",
+        )
     else:
-        return False, f"Recovered {recovered_agents} agents, but {failed_recoveries} recoveries failed"
+        return (
+            False,
+            f"Recovered {recovered_agents} agents, but {failed_recoveries} recoveries failed",
+        )
 
 
 def _agent_needs_recovery(pane_content: str) -> bool:
@@ -315,7 +302,7 @@ def _agent_needs_recovery(pane_content: str) -> bool:
         "terminated",
         "connection refused",
         "no such file",
-        "permission denied"
+        "permission denied",
     ]
 
     content_lower = pane_content.lower()

@@ -17,10 +17,10 @@ has_claude_crashed() {
     local session=$1
     local window=$2
     local agent_name=$3
-    
+
     # Get full pane content
     local pane_content=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null || echo "")
-    
+
     # Check for Claude input box - if missing when idle, Claude has likely crashed
     if ! echo "$pane_content" | grep -q "│ >" && ! echo "$pane_content" | grep -q "╭─.*─╮"; then
         # No Claude UI elements found - check if it's just a shell prompt
@@ -29,7 +29,7 @@ has_claude_crashed() {
             return 0  # Claude has crashed
         fi
     fi
-    
+
     return 1  # Claude is running
 }
 
@@ -38,13 +38,13 @@ is_agent_idle() {
     local session=$1
     local window=$2
     local agent_name=$3
-    
+
     # First check if Claude has crashed
     if has_claude_crashed "$session" "$window" "$agent_name"; then
         # Report crash instead of idle
         return 2  # Special return code for crash
     fi
-    
+
     # Take 4 snapshots of the last 5 lines (excluding input box) at 300ms intervals
     local content1=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | head -n -3 | tail -5 | tr '\n' ' ' || echo "")
     sleep 0.3
@@ -53,19 +53,19 @@ is_agent_idle() {
     local content3=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | head -n -3 | tail -5 | tr '\n' ' ' || echo "")
     sleep 0.3
     local content4=$(tmux capture-pane -t "$session:$window" -p 2>/dev/null | head -n -3 | tail -5 | tr '\n' ' ' || echo "")
-    
+
     # Debug logging (temporarily enabled)
     log_message "DEBUG $agent_name: content1='$content1' content2='$content2' content3='$content3' content4='$content4'"
-    
+
     # If all content snapshots are identical, no new output = idle
     if [ "$content1" = "$content2" ] && [ "$content2" = "$content3" ] && [ "$content3" = "$content4" ]; then
         # No new output in 900ms = idle
         log_message "DEBUG $agent_name: DETECTED AS IDLE"
         return 0
     fi
-    
+
     log_message "DEBUG $agent_name: DETECTED AS ACTIVE"
-    
+
     return 1  # New output detected, agent is active
 }
 
@@ -73,20 +73,20 @@ is_agent_idle() {
 has_unsubmitted_message() {
     local session="$1"
     local window="$2"
-    
+
     # Capture the last 20 lines from the agent's terminal
     local terminal_content=$(tmux capture-pane -t "$session:$window" -p -S -20 2>/dev/null || echo "")
-    
+
     # Check if there's text typed in Claude prompt that hasn't been submitted
     # Look for the Claude prompt box with content inside
     local prompt_line=$(echo "$terminal_content" | grep "│ >")
-    
+
     # Check if there's text inside the prompt box (not just the empty prompt "│ >")
     if echo "$prompt_line" | grep -q "│ > .*[A-Za-z0-9]"; then
         # There's text in the prompt that should be submitted
         return 0
     fi
-    
+
     # Also check for multiline messages in the prompt box
     # Look for lines that contain text after the prompt box started
     local in_prompt=false
@@ -105,7 +105,7 @@ has_unsubmitted_message() {
             in_prompt=false
         fi
     done <<< "$terminal_content"
-    
+
     # Legacy: Check for tmux-message commands
     local last_line=$(echo "$terminal_content" | grep -v "^$" | tail -1)
     if echo "$last_line" | grep -q "tmux-message"; then
@@ -114,7 +114,7 @@ has_unsubmitted_message() {
             return 0
         fi
     fi
-    
+
     return 1  # No unsubmitted message
 }
 
@@ -123,9 +123,9 @@ auto_submit_message() {
     local session="$1"
     local window="$2"
     local agent_type="$3"
-    
+
     log_message "Auto-submitting unsubmitted message for $agent_type ($session:$window)"
-    
+
     # For Claude prompts, focus on the text area and submit
     tmux send-keys -t "$session:$window" C-a  # Go to beginning of line
     sleep 0.2
@@ -135,7 +135,7 @@ auto_submit_message() {
     sleep 0.5
     tmux send-keys -t "$session:$window" Enter # Extra enter to ensure submission
     sleep 0.3
-    
+
     return 0
 }
 
@@ -149,10 +149,10 @@ find_pm_session() {
             return 0
         fi
     fi
-    
+
     # Fallback to searching other sessions
     local all_sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null)
-    
+
     while IFS= read -r session; do
         if [ -n "$session" ]; then
             # Check if this session has a PM window
@@ -163,7 +163,7 @@ find_pm_session() {
             fi
         fi
     done <<< "$all_sessions"
-    
+
     return 1  # No PM found
 }
 
@@ -171,7 +171,7 @@ find_pm_session() {
 notify_pm() {
     local idle_agents="$1"
     local pm_target="$2"
-    
+
     local message="🚨 IDLE AGENT ALERT:
 
 The following agents appear to be idle and need tasks:
@@ -180,16 +180,16 @@ $idle_agents
 Please check their status and assign work as needed.
 
 This is an automated notification from the idle monitor."
-    
+
     # Send notification to PM using the correct script
     # Try CLI first, fallback to direct message script
     if command -v tmux-orc >/dev/null 2>&1; then
         # Use CLI publish command
         tmux-orc publish --session "$pm_target" --priority high --tag idle "$message" 2>/dev/null || \
-            "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$pm_target" "$message"
+            tmux-orc agent send "$pm_target" "$message"
     else
-        # Fallback to direct message script
-        "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$pm_target" "$message"
+        # Fallback to direct message command
+        tmux-orc agent send "$pm_target" "$message"
     fi
     log_message "Notified PM about idle agents: $(echo "$idle_agents" | tr '\n' ', ')"
 }
@@ -197,14 +197,14 @@ This is an automated notification from the idle monitor."
 # Main monitoring loop
 main() {
     log_message "Starting Idle Agent Monitor Daemon (interval: ${MONITOR_INTERVAL}s)"
-    
+
     # Save PID for stop script
     echo $$ > "$PID_FILE"
-    
+
     # Track last notification time for each agent to avoid spam
     declare -A last_notified
     NOTIFICATION_COOLDOWN=300  # 5 minutes between notifications for same agent
-    
+
     while true; do
         # Check if tmux server is running
         if ! tmux list-sessions >/dev/null 2>&1; then
@@ -212,7 +212,7 @@ main() {
             sleep "$MONITOR_INTERVAL"
             continue
         fi
-        
+
         # Find PM session
         PM_TARGET=$(find_pm_session)
         if [ -z "$PM_TARGET" ]; then
@@ -220,7 +220,7 @@ main() {
             sleep "$MONITOR_INTERVAL"
             continue
         fi
-        
+
         # First pass: Check for unsubmitted messages and auto-submit them
         ALL_SESSIONS=$(tmux list-sessions -F "#{session_name}" 2>/dev/null)
         while IFS= read -r session; do
@@ -231,7 +231,7 @@ main() {
                     if [ -n "$window_info" ]; then
                         local window_idx=$(echo "$window_info" | cut -d: -f1)
                         local window_name=$(echo "$window_info" | cut -d: -f2)
-                        
+
                         # Check if it's a Claude window (agent or PM)
                         if echo "$window_name" | grep -q "Claude"; then
                             # Check for unsubmitted message
@@ -249,7 +249,7 @@ main() {
                                 elif [ "$session" = "orchestrator" ]; then
                                     agent_type="Orchestrator"
                                 fi
-                                
+
                                 # Auto-submit the message
                                 auto_submit_message "$session" "$window_idx" "$agent_type"
                             fi
@@ -258,29 +258,29 @@ main() {
                 done <<< "$windows"
             fi
         done <<< "$ALL_SESSIONS"
-        
+
         # Second pass: Check for idle agents
         IDLE_AGENTS=""
         IDLE_AGENTS_FOR_NOTIFICATION=""
         CRASHED_AGENTS=""
         CURRENT_TIME=$(date +%s)
-        
+
         # Check tmux-orc-dev session agents
         if tmux has-session -t "tmux-orc-dev" 2>/dev/null; then
             # Map of windows to agent types in tmux-orc-dev
             declare -A agent_windows=(
                 ["1"]="Orchestrator"
-                ["2"]="MCP-Developer" 
+                ["2"]="MCP-Developer"
                 ["3"]="CLI-Developer"
                 ["4"]="Agent-Recovery-Dev"
                 ["5"]="Project-Manager"
             )
-            
+
             for window in "${!agent_windows[@]}"; do
                 agent_type="${agent_windows[$window]}"
                 is_agent_idle "tmux-orc-dev" "$window" "$agent_type"
                 idle_status=$?
-                
+
                 if [ $idle_status -eq 2 ]; then
                     # Claude has crashed
                     CRASHED_AGENTS="${CRASHED_AGENTS}tmux-orc-dev:${window} (${agent_type})\n"
@@ -288,7 +288,7 @@ main() {
                 elif [ $idle_status -eq 0 ]; then
                     # Agent is idle
                     IDLE_AGENTS="${IDLE_AGENTS}tmux-orc-dev:${window} (${agent_type})\n"
-                    
+
                     # Check cooldown for notifications
                     LAST_TIME=${last_notified["tmux-orc-dev:$window"]:-0}
                     if [ $((CURRENT_TIME - LAST_TIME)) -gt $NOTIFICATION_COOLDOWN ]; then
@@ -298,7 +298,7 @@ main() {
                 fi
             done
         fi
-        
+
         # Check other project sessions (legacy support)
         ALL_SESSIONS=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | grep -v -E "orchestrator|tmux-orc-dev")
         while IFS= read -r session; do
@@ -338,13 +338,13 @@ main() {
                             break
                         fi
                     done <<< "$windows"
-                    
+
                     # If no Claude window found, skip
                     if [ -z "$WINDOW" ]; then
                         continue
                     fi
                 fi
-                
+
                 # Check if idle
                 if is_agent_idle "$session" "$WINDOW" "$AGENT_TYPE"; then
                     LAST_TIME=${last_notified["$session"]:-0}
@@ -355,13 +355,13 @@ main() {
                 fi
             fi
         done <<< "$ALL_SESSIONS"
-        
+
         # Handle crashed agents FIRST (highest priority)
         if [ -n "$CRASHED_AGENTS" ]; then
             # Remove trailing newline
             CRASHED_AGENTS=$(echo -e "$CRASHED_AGENTS" | sed '/^$/d')
             log_message "CRASHED AGENTS DETECTED: $(echo "$CRASHED_AGENTS" | tr '\n' ', ')"
-            
+
             # Notify PM immediately about crashes
             crash_message="🚨 AGENT CRASH ALERT:
 
@@ -381,33 +381,33 @@ $(echo "$CRASHED_AGENTS" | while read agent; do
         echo "• tmux send-keys -t $target 'claude --dangerously-skip-permissions' Enter"
     fi
 done)"
-            
+
             # Send crash notification with critical priority
             if command -v tmux-orc >/dev/null 2>&1; then
                 tmux-orc publish --session "$PM_TARGET" --priority critical --tag crash "$crash_message" 2>/dev/null || \
-                    "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$PM_TARGET" "$crash_message"
+                    tmux-orc agent send "$PM_TARGET" "$crash_message"
             else
-                "/workspaces/Tmux-Orchestrator/send-claude-message.sh" "$PM_TARGET" "$crash_message"
+                tmux-orc agent send "$PM_TARGET" "$crash_message"
             fi
         fi
-        
+
         # Report status based on actual idle detection
         if [ -n "$IDLE_AGENTS" ]; then
             # Remove trailing newline
             IDLE_AGENTS=$(echo -e "$IDLE_AGENTS" | sed '/^$/d')
-            
+
             # Log that agents are idle
             log_message "Found idle agents: $(echo "$IDLE_AGENTS" | tr '\n' ', ')"
-            
+
             # Only notify PM if there are agents that haven't been notified recently
             if [ -n "$IDLE_AGENTS_FOR_NOTIFICATION" ]; then
                 # Remove trailing newline
                 IDLE_AGENTS_FOR_NOTIFICATION=$(echo -e "$IDLE_AGENTS_FOR_NOTIFICATION" | sed '/^$/d')
-                
+
                 # Check if PM is busy before notifying
                 PM_WINDOW=$(echo "$PM_TARGET" | cut -d: -f2)
                 PM_SESSION=$(echo "$PM_TARGET" | cut -d: -f1)
-                
+
                 if is_agent_idle "$PM_SESSION" "$PM_WINDOW" "PM"; then
                     log_message "PM is idle, sending notification"
                     notify_pm "$IDLE_AGENTS_FOR_NOTIFICATION" "$PM_TARGET"
@@ -421,7 +421,7 @@ done)"
             # Log that no agents are idle
             log_message "All agents are active"
         fi
-        
+
         # Sleep before next check
         sleep "$MONITOR_INTERVAL"
     done

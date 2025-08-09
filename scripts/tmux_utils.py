@@ -4,7 +4,7 @@ import json
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 
 @dataclass
@@ -14,18 +14,20 @@ class TmuxWindow:
     window_name: str
     active: bool
 
+
 @dataclass
 class TmuxSession:
     name: str
-    windows: List[TmuxWindow]
+    windows: list[TmuxWindow]
     attached: bool
+
 
 class TmuxOrchestrator:
     def __init__(self) -> None:
         self.safety_mode = True
         self.max_lines_capture = 1000
 
-    def get_tmux_sessions(self) -> List[TmuxSession]:
+    def get_tmux_sessions(self) -> list[TmuxSession]:
         """Get all tmux sessions and their windows"""
         try:
             # Get sessions
@@ -33,32 +35,37 @@ class TmuxOrchestrator:
             sessions_result = subprocess.run(sessions_cmd, capture_output=True, text=True, check=True)
 
             sessions = []
-            for line in sessions_result.stdout.strip().split('\n'):
+            for line in sessions_result.stdout.strip().split("\n"):
                 if not line:
                     continue
-                session_name, attached = line.split(':')
+                session_name, attached = line.split(":")
 
                 # Get windows for this session
-                windows_cmd = ["tmux", "list-windows", "-t", session_name, "-F", "#{window_index}:#{window_name}:#{window_active}"]
+                windows_cmd = [
+                    "tmux",
+                    "list-windows",
+                    "-t",
+                    session_name,
+                    "-F",
+                    "#{window_index}:#{window_name}:#{window_active}",
+                ]
                 windows_result = subprocess.run(windows_cmd, capture_output=True, text=True, check=True)
 
                 windows = []
-                for window_line in windows_result.stdout.strip().split('\n'):
+                for window_line in windows_result.stdout.strip().split("\n"):
                     if not window_line:
                         continue
-                    window_index, window_name, window_active = window_line.split(':')
-                    windows.append(TmuxWindow(
-                        session_name=session_name,
-                        window_index=int(window_index),
-                        window_name=window_name,
-                        active=window_active == '1'
-                    ))
+                    window_index, window_name, window_active = window_line.split(":")
+                    windows.append(
+                        TmuxWindow(
+                            session_name=session_name,
+                            window_index=int(window_index),
+                            window_name=window_name,
+                            active=window_active == "1",
+                        )
+                    )
 
-                sessions.append(TmuxSession(
-                    name=session_name,
-                    windows=windows,
-                    attached=attached == '1'
-                ))
+                sessions.append(TmuxSession(name=session_name, windows=windows, attached=attached == "1"))
 
             return sessions
         except subprocess.CalledProcessError as e:
@@ -77,21 +84,27 @@ class TmuxOrchestrator:
         except subprocess.CalledProcessError as e:
             return f"Error capturing window content: {e}"
 
-    def get_window_info(self, session_name: str, window_index: int) -> Dict[str, Any]:
+    def get_window_info(self, session_name: str, window_index: int) -> dict[str, Any]:
         """Get detailed information about a specific window"""
         try:
-            cmd = ["tmux", "display-message", "-t", f"{session_name}:{window_index}", "-p",
-                   "#{window_name}:#{window_active}:#{window_panes}:#{window_layout}"]
+            cmd = [
+                "tmux",
+                "display-message",
+                "-t",
+                f"{session_name}:{window_index}",
+                "-p",
+                "#{window_name}:#{window_active}:#{window_panes}:#{window_layout}",
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
 
             if result.stdout.strip():
-                parts = result.stdout.strip().split(':')
+                parts = result.stdout.strip().split(":")
                 return {
                     "name": parts[0],
-                    "active": parts[1] == '1',
+                    "active": parts[1] == "1",
                     "panes": int(parts[2]),
                     "layout": parts[3],
-                    "content": self.capture_window_content(session_name, window_index)
+                    "content": self.capture_window_content(session_name, window_index),
                 }
             else:
                 return {"error": "No window information returned"}
@@ -103,7 +116,7 @@ class TmuxOrchestrator:
         if self.safety_mode and confirm:
             print(f"SAFETY CHECK: About to send '{keys}' to {session_name}:{window_index}")
             response = input("Confirm? (yes/no): ")
-            if response.lower() != 'yes':
+            if response.lower() != "yes":
                 print("Operation cancelled")
                 return False
 
@@ -129,20 +142,13 @@ class TmuxOrchestrator:
             print(f"Error sending Enter key: {e}")
             return False
 
-    def get_all_windows_status(self) -> Dict[str, Any]:
+    def get_all_windows_status(self) -> dict[str, Any]:
         """Get status of all windows across all sessions"""
         sessions = self.get_tmux_sessions()
-        status: Dict[str, Any] = {
-            "timestamp": datetime.now().isoformat(),
-            "sessions": []
-        }
+        status: dict[str, Any] = {"timestamp": datetime.now().isoformat(), "sessions": []}
 
         for session in sessions:
-            session_data: Dict[str, Any] = {
-                "name": session.name,
-                "attached": session.attached,
-                "windows": []
-            }
+            session_data: dict[str, Any] = {"name": session.name, "attached": session.attached, "windows": []}
 
             for window in session.windows:
                 window_info = self.get_window_info(session.name, window.window_index)
@@ -150,7 +156,7 @@ class TmuxOrchestrator:
                     "index": window.window_index,
                     "name": window.window_name,
                     "active": window.active,
-                    "info": window_info
+                    "info": window_info,
                 }
                 session_data["windows"].append(window_data)
 
@@ -158,7 +164,7 @@ class TmuxOrchestrator:
 
         return status
 
-    def find_window_by_name(self, window_name: str) -> List[Tuple[str, int]]:
+    def find_window_by_name(self, window_name: str) -> list[tuple[str, int]]:
         """Find windows by name across all sessions"""
         sessions = self.get_tmux_sessions()
         matches = []
@@ -178,19 +184,19 @@ class TmuxOrchestrator:
         snapshot = f"Tmux Monitoring Snapshot - {status['timestamp']}\n"
         snapshot += "=" * 50 + "\n\n"
 
-        for session in status['sessions']:
+        for session in status["sessions"]:
             snapshot += f"Session: {session['name']} ({'ATTACHED' if session['attached'] else 'DETACHED'})\n"
             snapshot += "-" * 30 + "\n"
 
-            for window in session['windows']:
+            for window in session["windows"]:
                 snapshot += f"  Window {window['index']}: {window['name']}"
-                if window['active']:
+                if window["active"]:
                     snapshot += " (ACTIVE)"
                 snapshot += "\n"
 
-                if 'content' in window['info']:
+                if "content" in window["info"]:
                     # Get last 10 lines for overview
-                    content_lines = window['info']['content'].split('\n')
+                    content_lines = window["info"]["content"].split("\n")
                     recent_lines = content_lines[-10:] if len(content_lines) > 10 else content_lines
                     snapshot += "    Recent output:\n"
                     for line in recent_lines:
@@ -199,6 +205,7 @@ class TmuxOrchestrator:
                 snapshot += "\n"
 
         return snapshot
+
 
 if __name__ == "__main__":
     orchestrator = TmuxOrchestrator()

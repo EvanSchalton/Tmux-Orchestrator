@@ -8,7 +8,7 @@ Implements Task 5.1-5.3 from the comprehensive task list:
 
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -19,8 +19,8 @@ def detect_failure(
     last_response: datetime,
     consecutive_failures: int,
     max_failures: int = 3,
-    response_timeout: int = 60
-) -> Tuple[bool, str, Dict[str, Any]]:
+    response_timeout: int = 60,
+) -> tuple[bool, str, dict[str, Any]]:
     """
     Detect if an agent has failed and needs recovery.
 
@@ -44,54 +44,59 @@ def detect_failure(
         RuntimeError: If tmux operations fail
     """
     # Validate target format first
-    if ':' not in target:
+    if ":" not in target:
         raise ValueError(f"Invalid target format: {target}. Expected 'session:window'")
 
     try:
         # Task 5.1: Use bulletproof 4-snapshot idle detection
-        idle_details: Dict[str, Any] = _check_idle_status_v2(tmux, target)
-        is_idle: bool = idle_details['is_idle']
+        idle_details: dict[str, Any] = _check_idle_status_v2(tmux, target)
+        is_idle: bool = idle_details["is_idle"]
 
         # Get current pane content for comprehensive analysis
         content: str = tmux.capture_pane(target, lines=50)
 
         # Task 5.3: Check for unsubmitted messages in Claude UI
-        unsubmitted_details: Dict[str, Any] = _detect_unsubmitted_messages(content)
+        unsubmitted_details: dict[str, Any] = _detect_unsubmitted_messages(content)
 
         # Enhanced status details
-        status_details: Dict[str, Any] = {
-            'is_idle': is_idle,
-            'idle_duration': idle_details['idle_duration'],
-            'has_unsubmitted': unsubmitted_details['has_unsubmitted'],
-            'unsubmitted_type': unsubmitted_details['type'],
-            'needs_auto_submit': unsubmitted_details['auto_submit_recommended'],
-            'last_activity_snapshot': idle_details['last_snapshot'],
-            'interface_status': 'normal' if _has_normal_claude_interface(content) else 'abnormal'
+        status_details: dict[str, Any] = {
+            "is_idle": is_idle,
+            "idle_duration": idle_details["idle_duration"],
+            "has_unsubmitted": unsubmitted_details["has_unsubmitted"],
+            "unsubmitted_type": unsubmitted_details["type"],
+            "needs_auto_submit": unsubmitted_details["auto_submit_recommended"],
+            "last_activity_snapshot": idle_details["last_snapshot"],
+            "interface_status": "normal" if _has_normal_claude_interface(content) else "abnormal",
         }
 
         # Task 5.2: Distinguish idle from failed states
         failure_analysis = _analyze_failure_state(
-            content, is_idle, consecutive_failures, last_response,
-            max_failures, response_timeout, unsubmitted_details
+            content,
+            is_idle,
+            consecutive_failures,
+            last_response,
+            max_failures,
+            response_timeout,
+            unsubmitted_details,
         )
 
-        return failure_analysis['is_failed'], failure_analysis['reason'], status_details
+        return failure_analysis["is_failed"], failure_analysis["reason"], status_details
 
     except Exception as e:
         # Return failure with diagnostic info
         status_details = {
-            'is_idle': False,
-            'idle_duration': 0,
-            'has_unsubmitted': False,
-            'unsubmitted_type': 'unknown',
-            'needs_auto_submit': False,
-            'error': str(e),
-            'interface_status': 'error'
+            "is_idle": False,
+            "idle_duration": 0,
+            "has_unsubmitted": False,
+            "unsubmitted_type": "unknown",
+            "needs_auto_submit": False,
+            "error": str(e),
+            "interface_status": "error",
         }
         raise RuntimeError(f"Failed to detect failure for {target}: {str(e)}")
 
 
-def _check_idle_status_v2(tmux: TMUXManager, target: str) -> Dict[str, Any]:
+def _check_idle_status_v2(tmux: TMUXManager, target: str) -> dict[str, Any]:
     """
     Check if agent is idle using bulletproof 4-snapshot method (Task 5.1).
 
@@ -110,13 +115,13 @@ def _check_idle_status_v2(tmux: TMUXManager, target: str) -> Dict[str, Any]:
         - last_snapshot: str (the last line captured)
         - all_snapshots: List[str] (for debugging)
     """
-    snapshots: List[str] = []
+    snapshots: list[str] = []
     start_time: float = time.time()
 
     # Take 4 snapshots at 300ms intervals (proven algorithm)
     for i in range(4):
         content: str = tmux.capture_pane(target, lines=1)
-        last_line: str = content.strip().split('\n')[-1] if content else ""
+        last_line: str = content.strip().split("\n")[-1] if content else ""
         snapshots.append(last_line)
 
         # Sleep between snapshots (except after the last one)
@@ -130,11 +135,11 @@ def _check_idle_status_v2(tmux: TMUXManager, target: str) -> Dict[str, Any]:
     is_idle: bool = all(line == snapshots[0] for line in snapshots)
 
     return {
-        'is_idle': is_idle,
-        'idle_duration': detection_time,
-        'last_snapshot': snapshots[-1] if snapshots else "",
-        'all_snapshots': snapshots,
-        'snapshot_count': len(snapshots)
+        "is_idle": is_idle,
+        "idle_duration": detection_time,
+        "last_snapshot": snapshots[-1] if snapshots else "",
+        "all_snapshots": snapshots,
+        "snapshot_count": len(snapshots),
     }
 
 
@@ -148,7 +153,7 @@ def _has_critical_errors(content: str) -> bool:
     Returns:
         True if critical errors detected
     """
-    critical_errors: List[str] = [
+    critical_errors: list[str] = [
         "connection lost",
         "network error",
         "timeout",
@@ -163,7 +168,7 @@ def _has_critical_errors(content: str) -> bool:
         "SyntaxError",
         "claude: command not found",
         "authentication failed",
-        "access denied"
+        "access denied",
     ]
 
     content_lower: str = content.lower()
@@ -180,20 +185,20 @@ def _has_normal_claude_interface(content: str) -> bool:
     Returns:
         True if normal Claude interface detected
     """
-    claude_indicators: List[str] = [
-        "│ >",           # Claude prompt box
-        "assistant:",    # Claude response marker
-        "I'll help",     # Common Claude response
-        "I can help",    # Common Claude response
-        "Let me",        # Common Claude response start
-        "Human:",        # Human input marker
-        "Claude:"        # Claude label
+    claude_indicators: list[str] = [
+        "│ >",  # Claude prompt box
+        "assistant:",  # Claude response marker
+        "I'll help",  # Common Claude response
+        "I can help",  # Common Claude response
+        "Let me",  # Common Claude response start
+        "Human:",  # Human input marker
+        "Claude:",  # Claude label
     ]
 
     return any(indicator in content for indicator in claude_indicators)
 
 
-def _detect_unsubmitted_messages(content: str) -> Dict[str, Any]:
+def _detect_unsubmitted_messages(content: str) -> dict[str, Any]:
     """
     Detect unsubmitted messages in Claude UI (Task 5.3).
 
@@ -205,18 +210,19 @@ def _detect_unsubmitted_messages(content: str) -> Dict[str, Any]:
     """
     # Look for common UI indicators of unsubmitted messages
     indicators = {
-        'draft_text': 'Type a message...' in content or '│ >' in content,
-        'typing_cursor': '│' in content,
-        'unsent_content': len(content.strip()) > 0 and not any(marker in content for marker in ['assistant:', 'Human:'])
+        "draft_text": "Type a message..." in content or "│ >" in content,
+        "typing_cursor": "│" in content,
+        "unsent_content": len(content.strip()) > 0
+        and not any(marker in content for marker in ["assistant:", "Human:"]),
     }
 
     has_unsubmitted = any(indicators.values())
 
     return {
-        'has_unsubmitted': has_unsubmitted,
-        'type': 'draft' if indicators['draft_text'] else 'typing' if indicators['typing_cursor'] else 'unknown',
-        'auto_submit_recommended': has_unsubmitted,
-        'indicators': indicators
+        "has_unsubmitted": has_unsubmitted,
+        "type": "draft" if indicators["draft_text"] else "typing" if indicators["typing_cursor"] else "unknown",
+        "auto_submit_recommended": has_unsubmitted,
+        "indicators": indicators,
     }
 
 
@@ -227,8 +233,8 @@ def _analyze_failure_state(
     last_response: datetime,
     max_failures: int,
     response_timeout: int,
-    unsubmitted_details: Dict[str, Any]
-) -> Dict[str, Any]:
+    unsubmitted_details: dict[str, Any],
+) -> dict[str, Any]:
     """
     Analyze failure state and determine if agent needs recovery.
 
@@ -263,13 +269,13 @@ def _analyze_failure_state(
     elif time_since_response > response_timeout * 2:  # 2x timeout = failure
         is_failed = True
         reason = f"Agent unresponsive for {int(time_since_response)}s (timeout: {response_timeout}s)"
-    elif unsubmitted_details['has_unsubmitted'] and time_since_response > response_timeout:
+    elif unsubmitted_details["has_unsubmitted"] and time_since_response > response_timeout:
         is_failed = True
         reason = "Agent has unsubmitted message and is unresponsive"
 
     return {
-        'is_failed': is_failed,
-        'reason': reason,
-        'has_critical_errors': has_critical_errors,
-        'time_since_response': time_since_response
+        "is_failed": is_failed,
+        "reason": reason,
+        "has_critical_errors": has_critical_errors,
+        "time_since_response": time_since_response,
     }

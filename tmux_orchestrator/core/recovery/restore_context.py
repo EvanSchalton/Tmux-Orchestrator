@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -11,7 +11,7 @@ def restore_context(
     tmux: TMUXManager,
     target: str,
     logger: logging.Logger,
-    context_data: Optional[Dict[str, Any]] = None
+    context_data: Optional[dict[str, Any]] = None,
 ) -> bool:
     """
     Restore context for a recovered agent.
@@ -33,7 +33,7 @@ def restore_context(
         RuntimeError: If context restoration fails
     """
     # Validate target format
-    if ':' not in target:
+    if ":" not in target:
         raise ValueError(f"Invalid target format: {target}. Expected 'session:window'")
 
     logger.info(f"Restoring context for recovered agent: {target}")
@@ -41,6 +41,7 @@ def restore_context(
     try:
         # Wait for agent to fully restart
         import time
+
         time.sleep(2)
 
         # Build context restoration message
@@ -62,10 +63,7 @@ def restore_context(
         raise RuntimeError(error_message)
 
 
-def _build_context_message(
-    target: str,
-    context_data: Optional[Dict[str, Any]] = None
-) -> str:
+def _build_context_message(target: str, context_data: Optional[dict[str, Any]] = None) -> str:
     """
     Build context restoration message for recovered agent.
 

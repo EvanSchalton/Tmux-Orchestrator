@@ -1,21 +1,25 @@
 """Advanced agent monitoring system with 100% accurate idle detection."""
 
 import logging
+import multiprocessing
 import os
+import signal
 import subprocess
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Optional
 
 from tmux_orchestrator.core.config import Config
+from tmux_orchestrator.core.recovery.detect_failure import detect_failure
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
 @dataclass
 class AgentHealthStatus:
     """Agent health status data."""
+
     target: str
     last_heartbeat: datetime
     last_response: datetime
@@ -28,12 +32,13 @@ class AgentHealthStatus:
 
 
 class IdleMonitor:
-    """Monitor with 100% accurate idle detection using last-line monitoring."""
+    """Monitor with 100% accurate idle detection using native Python daemon."""
 
     def __init__(self, tmux: TMUXManager):
         self.tmux = tmux
-        self.pid_file = Path('/tmp/tmux-orchestrator-idle-monitor.pid')
-        self.log_file = Path('/tmp/tmux-orchestrator-idle-monitor.log')
+        self.pid_file = Path("/tmp/tmux-orchestrator-idle-monitor.pid")
+        self.log_file = Path("/tmp/tmux-orchestrator-idle-monitor.log")
+        self.daemon_process: Optional[multiprocessing.Process] = None
 
     def is_running(self) -> bool:
         """Check if monitor daemon is running."""
@@ -51,23 +56,24 @@ class IdleMonitor:
             return False
 
     def start(self, interval: int = 10) -> int:
-        """Start the idle monitor daemon."""
-        script_path = "/workspaces/Tmux-Orchestrator/commands/idle-monitor-daemon.sh"
-        if not os.path.exists(script_path):
-            raise FileNotFoundError(f"Monitor script not found: {script_path}")
+        """Start the native Python monitor daemon."""
+        if self.is_running():
+            with open(self.pid_file) as f:
+                return int(f.read().strip())
 
-        result = subprocess.run([script_path, str(interval)], capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"Failed to start monitor: {result.stderr}")
+        # Create daemon process
+        self.daemon_process = multiprocessing.Process(target=self._run_monitoring_daemon, args=(interval,), daemon=True)
+
+        self.daemon_process.start()
 
         # Wait for PID file to be created
-        for _ in range(10):  # Wait up to 1 second
+        for _ in range(50):  # Wait up to 5 seconds
             if self.pid_file.exists():
                 with open(self.pid_file) as f:
                     return int(f.read().strip())
             time.sleep(0.1)
 
-        raise RuntimeError("Monitor started but PID file not found")
+        raise RuntimeError("Monitor daemon started but PID file not found")
 
     def stop(self) -> bool:
         """Stop the idle monitor daemon."""
@@ -77,8 +83,29 @@ class IdleMonitor:
         try:
             with open(self.pid_file) as f:
                 pid = int(f.read().strip())
-            os.kill(pid, 15)  # SIGTERM
-            self.pid_file.unlink()
+
+            # Send SIGTERM for graceful shutdown
+            os.kill(pid, signal.SIGTERM)
+
+            # Wait up to 5 seconds for graceful shutdown
+            for _ in range(50):
+                try:
+                    os.kill(pid, 0)  # Check if still running
+                    time.sleep(0.1)
+                except OSError:
+                    # Process has stopped
+                    break
+            else:
+                # Force kill if still running
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except OSError:
+                    pass
+
+            # Clean up PID file
+            if self.pid_file.exists():
+                self.pid_file.unlink()
+
             return True
         except (OSError, ValueError, FileNotFoundError):
             return False
@@ -86,25 +113,237 @@ class IdleMonitor:
     def status(self) -> None:
         """Display monitor status."""
         from rich.console import Console
+        from rich.panel import Panel
+
         console = Console()
 
         if self.is_running():
             with open(self.pid_file) as f:
                 pid = int(f.read().strip())
-            console.print(f"[green]✓ Monitor is running (PID: {pid})[/green]")
+
+            # Get log info if available
+            log_info = ""
+            if self.log_file.exists():
+                try:
+                    stat = self.log_file.stat()
+                    log_info = f"\nLog size: {stat.st_size} bytes\nLog file: {self.log_file}"
+                except OSError:
+                    log_info = f"\nLog file: {self.log_file}"
+
+            console.print(
+                Panel(
+                    f"✓ Monitor is running (PID: {pid})\nNative Python daemon with bulletproof detection{log_info}",
+                    title="Monitoring Status",
+                    style="green",
+                )
+            )
         else:
-            console.print("[red]✗ Monitor is not running[/red]")
+            console.print(
+                Panel(
+                    "✗ Monitor is not running\nUse 'tmux-orc monitor start' to begin monitoring",
+                    title="Monitoring Status",
+                    style="red",
+                )
+            )
+
+    def _run_monitoring_daemon(self, interval: int) -> None:
+        """Run the monitoring daemon in a separate process."""
+
+        # Set up signal handlers for graceful shutdown
+        def signal_handler(signum, frame):
+            self._cleanup_daemon()
+            exit(0)
+
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+
+        # Write PID file
+        with open(self.pid_file, "w") as f:
+            f.write(str(os.getpid()))
+
+        # Set up logging
+        logger = self._setup_daemon_logging()
+        logger.info(f"Native Python monitoring daemon started (PID: {os.getpid()}, interval: {interval}s)")
+
+        # Create TMUXManager instance for this process
+        tmux = TMUXManager()
+
+        # Main monitoring loop
+        try:
+            while True:
+                start_time = time.time()
+
+                # Discover and monitor agents
+                self._monitor_cycle(tmux, logger)
+
+                # Calculate sleep time to maintain interval
+                elapsed = time.time() - start_time
+                sleep_time = max(0, interval - elapsed)
+
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+
+        except KeyboardInterrupt:
+            logger.info("Monitoring daemon interrupted")
+        except Exception as e:
+            logger.error(f"Monitoring daemon error: {e}")
+        finally:
+            self._cleanup_daemon()
+
+    def _setup_daemon_logging(self) -> logging.Logger:
+        """Set up logging for the daemon process."""
+        logger = logging.getLogger("idle_monitor_daemon")
+        logger.setLevel(logging.INFO)
+
+        # Clear existing handlers
+        logger.handlers.clear()
+
+        # File handler
+        handler = logging.FileHandler(self.log_file)
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+        return logger
+
+    def _cleanup_daemon(self) -> None:
+        """Clean up daemon resources."""
+        if self.pid_file.exists():
+            try:
+                self.pid_file.unlink()
+            except OSError:
+                pass
+
+    def _monitor_cycle(self, tmux: TMUXManager, logger: logging.Logger) -> None:
+        """Perform one monitoring cycle."""
+        try:
+            # Discover active agents
+            agents = self._discover_agents(tmux)
+
+            if not agents:
+                logger.debug("No agents found to monitor")
+                return
+
+            logger.debug(f"Monitoring {len(agents)} agents")
+
+            # Monitor each agent
+            for target in agents:
+                try:
+                    self._check_agent_status(tmux, target, logger)
+                except Exception as e:
+                    logger.error(f"Error checking agent {target}: {e}")
+
+        except Exception as e:
+            logger.error(f"Error in monitoring cycle: {e}")
+
+    def _discover_agents(self, tmux: TMUXManager) -> list[str]:
+        """Discover active agents to monitor."""
+        agents = []
+
+        try:
+            # Get all tmux sessions
+            sessions = tmux.list_sessions()
+
+            for session_info in sessions:
+                session_name = session_info["name"]
+
+                # Get windows for this session
+                try:
+                    windows = tmux.list_windows(session_name)
+                    for window_info in windows:
+                        window_id = window_info["id"]
+                        target = f"{session_name}:{window_id}"
+
+                        # Check if window contains an active agent
+                        if self._is_agent_window(tmux, target):
+                            agents.append(target)
+
+                except Exception:
+                    # Skip this session if we can't list windows
+                    continue
+
+        except Exception:
+            # Return empty list if we can't discover agents
+            pass
+
+        return agents
+
+    def _is_agent_window(self, tmux: TMUXManager, target: str) -> bool:
+        """Check if a window contains an active Claude agent."""
+        try:
+            content = tmux.capture_pane(target, lines=10)
+
+            # Look for Claude interface indicators
+            claude_indicators = [
+                "│ >",
+                "assistant:",
+                "I'll help",
+                "I can help",
+                "Human:",
+                "Claude:",
+                "╭─.*─╮",
+            ]  # Claude prompt
+
+            return any(indicator in content for indicator in claude_indicators)
+
+        except Exception:
+            return False
+
+    def _check_agent_status(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
+        """Check the status of a specific agent using the recovery system."""
+        try:
+            # Use the bulletproof detection from recovery system
+            is_failed, failure_reason, status_details = detect_failure(
+                tmux=tmux,
+                target=target,
+                last_response=datetime.now() - timedelta(seconds=30),  # Default check window
+                consecutive_failures=0,
+                max_failures=3,
+                response_timeout=60,
+            )
+
+            # Check for Claude crash
+            if failure_reason == "Claude interface not found":
+                logger.error(
+                    f"CRASH DETECTED: Claude Code appears to have crashed for {target} | "
+                    f"Recovery needed immediately"
+                )
+                # Send crash notification to PM
+                self._notify_crash(tmux, target, logger)
+            # Check for unsubmitted messages
+            elif self._has_unsubmitted_message(tmux, target):
+                logger.warning(f"Agent {target} has unsubmitted message - auto-submitting")
+                self._auto_submit_message(tmux, target, logger)
+            # Log status
+            elif is_failed:
+                logger.warning(
+                    f"Agent {target} failed: {failure_reason} | "
+                    f"Idle: {status_details['is_idle']} | "
+                    f"Interface: {status_details['interface_status']}"
+                )
+            elif status_details["is_idle"]:
+                logger.info(f"Agent {target} is idle | " f"Interface: {status_details['interface_status']}")
+                # Check if PM should be notified about idle agent
+                self._check_idle_notification(tmux, target, logger)
+            else:
+                logger.debug(f"Agent {target} is active and healthy")
+                # Reset idle tracking when agent becomes active
+                if hasattr(self, "_idle_agents") and target in self._idle_agents:
+                    del self._idle_agents[target]
+
+        except Exception as e:
+            logger.error(f"Failed to check agent {target}: {e}")
 
     def is_agent_idle(self, target: str) -> bool:
         """Check if agent is idle using the improved 4-snapshot method."""
         try:
-            session, window = target.split(':')
+            session, window = target.split(":")
 
             # Take 4 snapshots of the last line at 300ms intervals
             snapshots = []
             for _ in range(4):
                 content = self.tmux.capture_pane(target, lines=1)
-                last_line = content.strip().split('\n')[-1] if content else ""
+                last_line = content.strip().split("\n")[-1] if content else ""
                 snapshots.append(last_line)
                 time.sleep(0.3)
 
@@ -113,6 +352,242 @@ class IdleMonitor:
 
         except Exception:
             return False  # If we can't check, assume active
+
+    def _has_unsubmitted_message(self, tmux: TMUXManager, target: str) -> bool:
+        """Check if agent has unsubmitted message in Claude prompt."""
+        try:
+            # Capture the last 20 lines from the agent's terminal
+            content = tmux.capture_pane(target, lines=20)
+            if not content:
+                return False
+
+            # Check if there's text typed in Claude prompt that hasn't been submitted
+            # Look for the Claude prompt box with content inside
+            lines = content.strip().split("\n")
+            for line in lines:
+                # Check for non-empty prompt line
+                if "│ >" in line:
+                    # Extract content after the prompt
+                    prompt_content = line.split("│ >", 1)[1] if "│ >" in line else ""
+                    # Check if there's actual content (not just whitespace)
+                    if prompt_content.strip():
+                        return True
+
+            # Also check for multiline messages in the prompt box
+            in_prompt = False
+            for line in lines:
+                if "│ >" in line:
+                    in_prompt = True
+                    # Check if there's content on the same line as the prompt
+                    prompt_content = line.split("│ >", 1)[1] if "│ >" in line else ""
+                    if prompt_content.strip():
+                        return True
+                elif in_prompt and "│" in line:
+                    # Extract content between the box borders
+                    content_match = line.strip()
+                    if content_match.startswith("│") and content_match.endswith("│"):
+                        inner_content = content_match[1:-1].strip()
+                        if inner_content:
+                            return True
+                elif "╰─" in line:
+                    # End of prompt box
+                    in_prompt = False
+
+            return False
+
+        except Exception:
+            return False
+
+    def _auto_submit_message(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
+        """Auto-submit unsubmitted message in Claude prompt."""
+        try:
+            logger.info(f"Auto-submitting unsubmitted message for {target}")
+
+            # Send key sequences to submit the message
+            tmux.send_keys(target, "C-a")  # Go to beginning of line
+            time.sleep(0.2)
+            tmux.send_keys(target, "C-e")  # Go to end of line
+            time.sleep(0.3)
+            tmux.send_keys(target, "Enter")  # Submit the message
+            time.sleep(0.5)
+            tmux.send_keys(target, "Enter")  # Extra enter to ensure submission
+
+            logger.info(f"Message submitted for {target}")
+
+        except Exception as e:
+            logger.error(f"Failed to auto-submit message for {target}: {e}")
+
+    def _notify_crash(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
+        """Notify PM about crashed Claude agent."""
+        try:
+            # Find PM target
+            pm_target = self._find_pm_target(tmux)
+            if not pm_target:
+                logger.warning("No PM found to notify about crash")
+                return
+
+            # Get current time for cooldown check
+            now = datetime.now()
+            crash_key = f"crash_{target}"
+
+            # Check cooldown (5 minutes between crash notifications)
+            if hasattr(self, "_crash_notifications"):
+                last_notified = self._crash_notifications.get(crash_key)
+                if last_notified and (now - last_notified) < timedelta(minutes=5):
+                    logger.debug(f"Crash notification for {target} in cooldown")
+                    return
+            else:
+                self._crash_notifications = {}
+
+            # Format crash message
+            message = (
+                f"🚨 AGENT CRASH ALERT:\n\n"
+                f"Claude Code has crashed for agent at {target}\n\n"
+                f"**RECOVERY ACTIONS NEEDED**:\n"
+                f"1. Restart Claude Code in the crashed window\n"
+                f"2. Provide system prompt from agent-prompts.yaml\n"
+                f"3. Re-assign current tasks\n"
+                f"4. Verify agent is responsive\n\n"
+                f"Use this command:\n"
+                f"• tmux send-keys -t {target} 'claude --dangerously-skip-permissions' Enter"
+            )
+
+            # Send notification using CLI
+            import subprocess
+
+            result = subprocess.run(
+                ["tmux-orc", "agent", "send", pm_target, message],
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode == 0:
+                logger.info(f"Notified PM at {pm_target} about crash at {target}")
+                self._crash_notifications[crash_key] = now
+            else:
+                logger.error(f"Failed to notify PM about crash: {result.stderr}")
+
+        except Exception as e:
+            logger.error(f"Failed to send crash notification: {e}")
+
+    def _check_idle_notification(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
+        """Check if PM should be notified about idle agent."""
+        try:
+            # Initialize idle tracking if needed
+            if not hasattr(self, "_idle_notifications"):
+                self._idle_notifications = {}
+            if not hasattr(self, "_idle_agents"):
+                self._idle_agents = {}
+
+            now = datetime.now()
+            idle_key = f"idle_{target}"
+
+            # Track idle state
+            if target not in self._idle_agents:
+                self._idle_agents[target] = now
+                logger.debug(f"Started tracking idle state for {target}")
+                return
+
+            # Check how long agent has been idle
+            idle_duration = now - self._idle_agents[target]
+            if idle_duration < timedelta(minutes=2):
+                # Not idle long enough to notify
+                return
+
+            # Check notification cooldown (5 minutes)
+            last_notified = self._idle_notifications.get(idle_key)
+            if last_notified and (now - last_notified) < timedelta(minutes=5):
+                logger.debug(f"Idle notification for {target} in cooldown")
+                return
+
+            # Find PM target
+            pm_target = self._find_pm_target(tmux)
+            if not pm_target:
+                logger.warning("No PM found to notify about idle agent")
+                return
+
+            # Check if PM is busy
+            pm_idle = self.is_agent_idle(pm_target)
+            if not pm_idle:
+                logger.debug("PM is busy, skipping idle notification")
+                return
+
+            # Send idle notification
+            session, window = target.split(":")
+            agent_type = self._determine_agent_type(session, window)
+
+            message = (
+                f"🚨 IDLE AGENT ALERT:\n\n"
+                f"The following agent appears to be idle and needs tasks:\n"
+                f"{target} ({agent_type})\n\n"
+                f"Please check their status and assign work as needed.\n\n"
+                f"This is an automated notification from the idle monitor."
+            )
+
+            # Send notification using CLI
+            import subprocess
+
+            result = subprocess.run(
+                ["tmux-orc", "agent", "send", pm_target, message],
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode == 0:
+                logger.info(f"Notified PM at {pm_target} about idle agent {target}")
+                self._idle_notifications[idle_key] = now
+            else:
+                logger.error(f"Failed to notify PM about idle agent: {result.stderr}")
+
+        except Exception as e:
+            logger.error(f"Failed to send idle notification: {e}")
+
+    def _find_pm_target(self, tmux: TMUXManager) -> Optional[str]:
+        """Find PM session dynamically."""
+        try:
+            # First check tmux-orc-dev session for Project-Manager window
+            if tmux.has_session("tmux-orc-dev"):
+                windows = tmux.list_windows("tmux-orc-dev")
+                for window in windows:
+                    if window.get("name", "").lower() == "project-manager" or window.get("id") == "5":
+                        return "tmux-orc-dev:5"
+
+            # Search other sessions for PM windows
+            sessions = tmux.list_sessions()
+            for session in sessions:
+                session_name = session.get("name", "")
+                if "pm" in session_name.lower() or "project-manager" in session_name.lower():
+                    return f"{session_name}:0"
+
+            return None
+
+        except Exception:
+            return None
+
+    def _determine_agent_type(self, session: str, window: str) -> str:
+        """Determine agent type from session and window."""
+        # Map of windows to agent types in tmux-orc-dev
+        if session == "tmux-orc-dev":
+            agent_map = {
+                "1": "Orchestrator",
+                "2": "MCP-Developer",
+                "3": "CLI-Developer",
+                "4": "Agent-Recovery-Dev",
+                "5": "Project-Manager",
+            }
+            return agent_map.get(window, "Agent")
+
+        # Determine from session name
+        if "frontend" in session.lower():
+            return "Frontend"
+        elif "backend" in session.lower():
+            return "Backend"
+        elif "qa" in session.lower() or "testing" in session.lower():
+            return "QA"
+        elif "devops" in session.lower():
+            return "DevOps"
+        else:
+            return "Agent"
 
 
 class AgentMonitor:
@@ -123,31 +598,29 @@ class AgentMonitor:
         self.tmux = tmux
         self.idle_monitor = IdleMonitor(tmux)
         self.logger = self._setup_logging()
-        self.agent_status: Dict[str, AgentHealthStatus] = {}
+        self.agent_status: dict[str, AgentHealthStatus] = {}
 
         # Health check configuration
-        self.heartbeat_interval = config.get('monitoring.heartbeat_interval', 30)
-        self.response_timeout = config.get('monitoring.response_timeout', 60)
-        self.max_failures = config.get('monitoring.max_failures', 3)
-        self.recovery_cooldown = config.get('monitoring.recovery_cooldown', 300)
+        self.heartbeat_interval = config.get("monitoring.heartbeat_interval", 30)
+        self.response_timeout = config.get("monitoring.response_timeout", 60)
+        self.max_failures = config.get("monitoring.max_failures", 3)
+        self.recovery_cooldown = config.get("monitoring.recovery_cooldown", 300)
 
         # Track recent recovery attempts
-        self.recent_recoveries: Dict[str, datetime] = {}
+        self.recent_recoveries: dict[str, datetime] = {}
 
     def _setup_logging(self) -> logging.Logger:
         """Set up logging for the monitor."""
-        logger = logging.getLogger('agent_monitor')
+        logger = logging.getLogger("agent_monitor")
         logger.setLevel(logging.INFO)
 
         # Clear existing handlers
         logger.handlers.clear()
 
         # Log to file
-        log_file = Path('/tmp/tmux-orchestrator-monitor.log')
+        log_file = Path("/tmp/tmux-orchestrator-monitor.log")
         handler = logging.FileHandler(log_file)
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -165,7 +638,7 @@ class AgentMonitor:
             last_content_hash="",
             status="healthy",
             is_idle=False,
-            activity_changes=0
+            activity_changes=0,
         )
         self.logger.info(f"Registered agent for monitoring: {target}")
 
@@ -252,13 +725,13 @@ class AgentMonitor:
     def _has_normal_claude_interface(self, content: str) -> bool:
         """Check if content shows normal Claude interface."""
         claude_indicators = [
-            "│ >",           # Claude prompt
-            "assistant:",    # Claude response marker
-            "I'll help",     # Common Claude response
-            "I can help",    # Common Claude response
-            "Let me",        # Common Claude response start
-            "Human:",        # Human input marker
-            "Claude:"        # Claude label
+            "│ >",  # Claude prompt
+            "assistant:",  # Claude response marker
+            "I'll help",  # Common Claude response
+            "I can help",  # Common Claude response
+            "Let me",  # Common Claude response start
+            "Human:",  # Human input marker
+            "Claude:",  # Claude label
         ]
 
         return any(indicator in content for indicator in claude_indicators)
@@ -278,7 +751,7 @@ class AgentMonitor:
             "ModuleNotFoundError",
             "ImportError",
             "SyntaxError",
-            "claude: command not found"
+            "claude: command not found",
         ]
 
         content_lower = content.lower()
@@ -309,9 +782,12 @@ class AgentMonitor:
 
         try:
             # Use the CLI restart command
-            result = subprocess.run([
-                'tmux-orchestrator', 'agent', 'restart', target
-            ], capture_output=True, text=True, check=True)
+            _result = subprocess.run(
+                ["tmux-orchestrator", "agent", "restart", target],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
             # Mark recovery attempt
             self.recent_recoveries[target] = datetime.now()
@@ -336,7 +812,7 @@ class AgentMonitor:
             self.logger.error(f"Unexpected error recovering agent {target}: {e}")
             return False
 
-    def monitor_all_agents(self) -> Dict[str, AgentHealthStatus]:
+    def monitor_all_agents(self) -> dict[str, AgentHealthStatus]:
         """Monitor all registered agents and return their status."""
         results = {}
 
@@ -358,7 +834,7 @@ class AgentMonitor:
 
         return results
 
-    def get_unhealthy_agents(self) -> List[Tuple[str, AgentHealthStatus]]:
+    def get_unhealthy_agents(self) -> list[tuple[str, AgentHealthStatus]]:
         """Get list of agents that are not healthy."""
         unhealthy = []
         for target, status in self.agent_status.items():
@@ -366,7 +842,7 @@ class AgentMonitor:
                 unhealthy.append((target, status))
         return unhealthy
 
-    def get_monitoring_summary(self) -> Dict:
+    def get_monitoring_summary(self) -> dict:
         """Get a summary of monitoring status."""
         total_agents = len(self.agent_status)
         healthy = sum(1 for s in self.agent_status.values() if s.status == "healthy")
@@ -376,11 +852,11 @@ class AgentMonitor:
         idle = sum(1 for s in self.agent_status.values() if s.is_idle)
 
         return {
-            'total_agents': total_agents,
-            'healthy': healthy,
-            'warning': warning,
-            'critical': critical,
-            'unresponsive': unresponsive,
-            'idle': idle,
-            'recent_recoveries': len(self.recent_recoveries)
+            "total_agents": total_agents,
+            "healthy": healthy,
+            "warning": warning,
+            "critical": critical,
+            "unresponsive": unresponsive,
+            "idle": idle,
+            "recent_recoveries": len(self.recent_recoveries),
         }

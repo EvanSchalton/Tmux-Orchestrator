@@ -2,10 +2,9 @@
 
 import logging
 import subprocess
-from typing import Tuple
 
 
-def restart_agent(target: str, logger: logging.Logger) -> Tuple[bool, str]:
+def restart_agent(target: str, logger: logging.Logger) -> tuple[bool, str]:
     """
     Restart a failed agent using the CLI restart command.
 
@@ -24,16 +23,19 @@ def restart_agent(target: str, logger: logging.Logger) -> Tuple[bool, str]:
         RuntimeError: If restart command execution fails
     """
     # Validate target format
-    if ':' not in target:
+    if ":" not in target:
         raise ValueError(f"Invalid target format: {target}. Expected 'session:window'")
 
     logger.warning(f"Attempting to restart agent: {target}")
 
     try:
         # Use the CLI restart command
-        subprocess.run([
-            'tmux-orchestrator', 'agent', 'restart', target
-        ], capture_output=True, text=True, check=True)
+        subprocess.run(
+            ["tmux-orchestrator", "agent", "restart", target],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
 
         success_message: str = f"Successfully restarted agent {target}"
         logger.info(success_message)
@@ -45,15 +47,11 @@ def restart_agent(target: str, logger: logging.Logger) -> Tuple[bool, str]:
         return False, error_message
 
     except FileNotFoundError:
-        cli_error_message: str = (
-            f"tmux-orchestrator CLI not found. Cannot restart {target}"
-        )
+        cli_error_message: str = f"tmux-orchestrator CLI not found. Cannot restart {target}"
         logger.error(cli_error_message)
         raise RuntimeError(cli_error_message)
 
     except Exception as e:
-        unexpected_error_message: str = (
-            f"Unexpected error restarting {target}: {str(e)}"
-        )
+        unexpected_error_message: str = f"Unexpected error restarting {target}: {str(e)}"
         logger.error(unexpected_error_message)
         raise RuntimeError(unexpected_error_message)

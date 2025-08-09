@@ -10,6 +10,7 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 @dataclass
 class RestartAgentRequest:
     """Request parameters for restarting an agent."""
+
     session: str
     window: str
     clear_terminal: bool = True
@@ -19,6 +20,7 @@ class RestartAgentRequest:
 @dataclass
 class RestartAgentResult:
     """Result of restarting an agent operation."""
+
     success: bool
     target: str
     error_message: Optional[str] = None
@@ -39,17 +41,13 @@ async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> Rest
         ValueError: If session or window names are empty
     """
     if not request.session.strip():
-        return RestartAgentResult(
-            success=False,
-            target="",
-            error_message="Session name cannot be empty"
-        )
+        return RestartAgentResult(success=False, target="", error_message="Session name cannot be empty")
 
     if not request.window.strip():
         return RestartAgentResult(
             success=False,
             target=f"{request.session}:",
-            error_message="Window name cannot be empty"
+            error_message="Window name cannot be empty",
         )
 
     target = f"{request.session}:{request.window}"
@@ -59,7 +57,7 @@ async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> Rest
         return RestartAgentResult(
             success=False,
             target=target,
-            error_message=f"Session '{request.session}' not found"
+            error_message=f"Session '{request.session}' not found",
         )
 
     try:
@@ -69,7 +67,7 @@ async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> Rest
             return RestartAgentResult(
                 success=False,
                 target=target,
-                error_message="Failed to send first interrupt signal"
+                error_message="Failed to send first interrupt signal",
             )
 
         await asyncio.sleep(1)
@@ -79,7 +77,7 @@ async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> Rest
             return RestartAgentResult(
                 success=False,
                 target=target,
-                error_message="Failed to send second interrupt signal"
+                error_message="Failed to send second interrupt signal",
             )
 
         await asyncio.sleep(1)
@@ -91,7 +89,7 @@ async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> Rest
                 return RestartAgentResult(
                     success=False,
                     target=target,
-                    error_message="Failed to clear terminal"
+                    error_message="Failed to clear terminal",
                 )
 
             enter_success = tmux.send_keys(target, "Enter")
@@ -99,7 +97,7 @@ async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> Rest
                 return RestartAgentResult(
                     success=False,
                     target=target,
-                    error_message="Failed to send Enter after clear"
+                    error_message="Failed to send Enter after clear",
                 )
 
         # Wait before restarting
@@ -111,7 +109,7 @@ async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> Rest
             return RestartAgentResult(
                 success=False,
                 target=target,
-                error_message="Failed to start Claude command"
+                error_message="Failed to start Claude command",
             )
 
         final_enter_success = tmux.send_keys(target, "Enter")
@@ -119,17 +117,14 @@ async def restart_agent(tmux: TMUXManager, request: RestartAgentRequest) -> Rest
             return RestartAgentResult(
                 success=False,
                 target=target,
-                error_message="Failed to send Enter to start Claude"
+                error_message="Failed to send Enter to start Claude",
             )
 
-        return RestartAgentResult(
-            success=True,
-            target=target
-        )
+        return RestartAgentResult(success=True, target=target)
 
     except Exception as e:
         return RestartAgentResult(
             success=False,
             target=target,
-            error_message=f"Unexpected error during agent restart: {str(e)}"
+            error_message=f"Unexpected error during agent restart: {str(e)}",
         )

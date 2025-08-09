@@ -1,12 +1,11 @@
 """Business logic for restarting individual agents."""
 
 import time
-from typing import Tuple
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-def restart_agent(tmux: TMUXManager, target: str) -> Tuple[bool, str]:
+def restart_agent(tmux: TMUXManager, target: str) -> tuple[bool, str]:
     """Restart a specific Claude agent.
 
     Args:
@@ -18,7 +17,7 @@ def restart_agent(tmux: TMUXManager, target: str) -> Tuple[bool, str]:
     """
     # Parse target
     try:
-        session, window = target.split(':')
+        session, window = target.split(":")
         if not session or not window:
             return False, f"Invalid target format '{target}'. Use session:window"
     except ValueError:
@@ -29,16 +28,16 @@ def restart_agent(tmux: TMUXManager, target: str) -> Tuple[bool, str]:
         return False, f"Session '{session}' not found"
 
     # Kill the current Claude process
-    tmux.send_keys(target, 'C-c')
+    tmux.send_keys(target, "C-c")
     time.sleep(1)
 
     # Clear any remaining input
-    tmux.send_keys(target, 'C-u')
+    tmux.send_keys(target, "C-u")
     time.sleep(0.5)
 
     # Start new Claude instance
-    tmux.send_keys(target, 'claude --dangerously-skip-permissions')
+    tmux.send_keys(target, "claude --dangerously-skip-permissions")
     time.sleep(0.5)
-    tmux.send_keys(target, 'Enter')
+    tmux.send_keys(target, "Enter")
 
     return True, f"Agent at {target} restarted successfully"

@@ -9,6 +9,7 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 @dataclass
 class SpawnAgentRequest:
     """Request parameters for spawning an agent."""
+
     session_name: str
     agent_type: str
     project_path: Optional[str] = None
@@ -18,6 +19,7 @@ class SpawnAgentRequest:
 @dataclass
 class SpawnAgentResult:
     """Result of spawning an agent operation."""
+
     success: bool
     session: str
     window: str
@@ -46,17 +48,25 @@ def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResu
             session=request.session_name,
             window="",
             target="",
-            error_message="Session name cannot be empty"
+            error_message="Session name cannot be empty",
         )
 
-    valid_agent_types = ["developer", "pm", "qa", "devops", "reviewer", "researcher", "docs"]
+    valid_agent_types = [
+        "developer",
+        "pm",
+        "qa",
+        "devops",
+        "reviewer",
+        "researcher",
+        "docs",
+    ]
     if request.agent_type not in valid_agent_types:
         return SpawnAgentResult(
             success=False,
             session=request.session_name,
             window="",
             target="",
-            error_message=f"Invalid agent type. Must be one of: {', '.join(valid_agent_types)}"
+            error_message=f"Invalid agent type. Must be one of: {', '.join(valid_agent_types)}",
         )
 
     try:
@@ -64,32 +74,24 @@ def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResu
 
         # Create session or window
         if tmux.has_session(request.session_name):
-            success = tmux.create_window(
-                request.session_name,
-                window_name,
-                request.project_path
-            )
+            success = tmux.create_window(request.session_name, window_name, request.project_path)
             if not success:
                 return SpawnAgentResult(
                     success=False,
                     session=request.session_name,
                     window=window_name,
                     target="",
-                    error_message="Failed to create window in existing session"
+                    error_message="Failed to create window in existing session",
                 )
         else:
-            success = tmux.create_session(
-                request.session_name,
-                window_name,
-                request.project_path
-            )
+            success = tmux.create_session(request.session_name, window_name, request.project_path)
             if not success:
                 return SpawnAgentResult(
                     success=False,
                     session=request.session_name,
                     window=window_name,
                     target="",
-                    error_message="Failed to create new session"
+                    error_message="Failed to create new session",
                 )
 
         # Start Claude in the new window
@@ -102,7 +104,7 @@ def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResu
                 session=request.session_name,
                 window=window_name,
                 target=target,
-                error_message="Failed to start Claude command"
+                error_message="Failed to start Claude command",
             )
 
         enter_success = tmux.send_keys(target, "Enter")
@@ -112,14 +114,14 @@ def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResu
                 session=request.session_name,
                 window=window_name,
                 target=target,
-                error_message="Failed to send Enter key"
+                error_message="Failed to send Enter key",
             )
 
         return SpawnAgentResult(
             success=True,
             session=request.session_name,
             window=window_name,
-            target=target
+            target=target,
         )
 
     except Exception as e:
@@ -128,5 +130,5 @@ def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResu
             session=request.session_name,
             window="",
             target="",
-            error_message=f"Unexpected error during agent spawn: {str(e)}"
+            error_message=f"Unexpected error during agent spawn: {str(e)}",
         )

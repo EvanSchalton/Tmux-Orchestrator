@@ -1,7 +1,7 @@
 """Task management routes for MCP server."""
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -14,6 +14,7 @@ tmux = TMUXManager()
 
 class Task(BaseModel):
     """API model for task definition."""
+
     id: str
     title: str
     description: str
@@ -22,21 +23,22 @@ class Task(BaseModel):
     priority: str = "medium"  # high, medium, low
     created_at: str
     updated_at: Optional[str] = None
-    completion_criteria: List[str] = []
-    dependencies: List[str] = []
+    completion_criteria: list[str] = []
+    dependencies: list[str] = []
 
 
 class TaskQueue(BaseModel):
     """API model for task queue."""
+
     agent_target: str  # session:window
-    pending_tasks: List[Task]
+    pending_tasks: list[Task]
     current_task: Optional[Task] = None
-    completed_tasks: List[Task] = []
+    completed_tasks: list[Task] = []
 
 
 # In-memory task storage (would be database in production)
-task_registry: Dict[str, Task] = {}
-agent_queues: Dict[str, TaskQueue] = {}
+task_registry: dict[str, Task] = {}
+agent_queues: dict[str, TaskQueue] = {}
 
 
 @router.post("/create", response_model=Task)
@@ -44,8 +46,8 @@ async def create_task(
     title: str,
     description: str,
     priority: str = "medium",
-    completion_criteria: Optional[List[str]] = None,
-    dependencies: Optional[List[str]] = None
+    completion_criteria: Optional[list[str]] = None,
+    dependencies: Optional[list[str]] = None,
 ) -> Task:
     """Create a new task in the registry.
 
@@ -61,7 +63,7 @@ async def create_task(
             priority=priority,
             created_at=datetime.now().isoformat(),
             completion_criteria=completion_criteria or [],
-            dependencies=dependencies or []
+            dependencies=dependencies or [],
         )
 
         task_registry[task_id] = task
@@ -72,8 +74,8 @@ async def create_task(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/list", response_model=List[Task])
-async def list_all_tasks(status: Optional[str] = None) -> List[Task]:
+@router.get("/list", response_model=list[Task])
+async def list_all_tasks(status: Optional[str] = None) -> list[Task]:
     """List all tasks in the registry.
 
     MCP tool for task overview.

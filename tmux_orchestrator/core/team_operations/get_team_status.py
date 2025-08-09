@@ -1,11 +1,11 @@
 """Business logic for getting team status."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-def get_team_status(tmux: TMUXManager, session: str) -> Optional[Dict[str, Any]]:
+def get_team_status(tmux: TMUXManager, session: str) -> Optional[dict[str, Any]]:
     """Get detailed team status for a session.
 
     Args:
@@ -20,36 +20,31 @@ def get_team_status(tmux: TMUXManager, session: str) -> Optional[Dict[str, Any]]
         return None
 
     # Get session info
-    sessions: List[Dict[str, str]] = tmux.list_sessions()
-    session_info: Optional[Dict[str, str]] = next(
-        (s for s in sessions if s['name'] == session), None
-    )
+    sessions: list[dict[str, str]] = tmux.list_sessions()
+    session_info: Optional[dict[str, str]] = next((s for s in sessions if s["name"] == session), None)
 
     if not session_info:
         return None
 
     # Get windows in session
-    windows: List[Dict[str, str]] = tmux.list_windows(session)
+    windows: list[dict[str, str]] = tmux.list_windows(session)
 
     if not windows:
         return {
-            'session_info': session_info,
-            'windows': [],
-            'summary': {
-                'total_windows': 0,
-                'active_agents': 0
-            }
+            "session_info": session_info,
+            "windows": [],
+            "summary": {"total_windows": 0, "active_agents": 0},
         }
 
     # Process each window
-    processed_windows: List[Dict[str, Any]] = []
+    processed_windows: list[dict[str, Any]] = []
     active_agents: int = 0
 
     for window in windows:
         target: str = f"{session}:{window['index']}"
 
         # Determine window type
-        window_name: str = window['name']
+        window_name: str = window["name"]
         window_type: str = _determine_window_type(window_name)
 
         # Get pane content to determine status
@@ -57,25 +52,24 @@ def get_team_status(tmux: TMUXManager, session: str) -> Optional[Dict[str, Any]]
         status, last_activity = _determine_window_status(tmux, pane_content)
 
         # Count agents
-        if 'claude' in window_name.lower() or 'pm' in window_name.lower():
+        if "claude" in window_name.lower() or "pm" in window_name.lower():
             active_agents += 1
 
-        processed_windows.append({
-            'index': window['index'],
-            'name': window_name,
-            'type': window_type,
-            'status': status,
-            'last_activity': last_activity,
-            'target': target
-        })
+        processed_windows.append(
+            {
+                "index": window["index"],
+                "name": window_name,
+                "type": window_type,
+                "status": status,
+                "last_activity": last_activity,
+                "target": target,
+            }
+        )
 
     return {
-        'session_info': session_info,
-        'windows': processed_windows,
-        'summary': {
-            'total_windows': len(windows),
-            'active_agents': active_agents
-        }
+        "session_info": session_info,
+        "windows": processed_windows,
+        "summary": {"total_windows": len(windows), "active_agents": active_agents},
     }
 
 
@@ -90,24 +84,20 @@ def _determine_window_type(window_name: str) -> str:
     """
     window_name_lower: str = window_name.lower()
 
-    if (
-        'claude' in window_name_lower
-        or 'pm' in window_name_lower
-        or 'qa' in window_name_lower
-    ):
-        if 'pm' in window_name_lower:
+    if "claude" in window_name_lower or "pm" in window_name_lower or "qa" in window_name_lower:
+        if "pm" in window_name_lower:
             return "Project Manager"
-        elif 'qa' in window_name_lower:
+        elif "qa" in window_name_lower:
             return "QA Engineer"
-        elif 'frontend' in window_name_lower:
+        elif "frontend" in window_name_lower:
             return "Frontend Dev"
-        elif 'backend' in window_name_lower:
+        elif "backend" in window_name_lower:
             return "Backend Dev"
         else:
             return "Developer"
-    elif 'dev' in window_name_lower or 'server' in window_name_lower:
+    elif "dev" in window_name_lower or "server" in window_name_lower:
         return "Dev Server"
-    elif 'shell' in window_name_lower:
+    elif "shell" in window_name_lower:
         return "Shell"
     else:
         return "Other"

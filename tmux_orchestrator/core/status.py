@@ -23,7 +23,7 @@ class StatusDashboard:
         layout.split_column(
             Layout(name="header", size=3),
             Layout(name="main"),
-            Layout(name="footer", size=3)
+            Layout(name="footer", size=3),
         )
 
         # Header
@@ -35,10 +35,7 @@ class StatusDashboard:
         layout["header"].update(Panel(header_text, style="bold blue"))
 
         # Main content - split into sessions and agents
-        layout["main"].split_row(
-            Layout(name="sessions", ratio=1),
-            Layout(name="agents", ratio=2)
-        )
+        layout["main"].split_row(Layout(name="sessions", ratio=1), Layout(name="agents", ratio=2))
 
         # Get sessions
         try:
@@ -47,7 +44,7 @@ class StatusDashboard:
             sessions = []
 
         if session_filter:
-            sessions = [s for s in sessions if s.get('name') == session_filter]
+            sessions = [s for s in sessions if s.get("name") == session_filter]
 
         # Sessions panel
         sessions_table = Table(title="Sessions")
@@ -57,11 +54,11 @@ class StatusDashboard:
 
         for session in sessions:
             try:
-                windows = self.tmux.list_windows(session['name'])
-                status = "Attached" if session.get('attached') == '1' else "Detached"
-                sessions_table.add_row(session['name'], str(len(windows)), status)
+                windows = self.tmux.list_windows(session["name"])
+                status = "Attached" if session.get("attached") == "1" else "Detached"
+                sessions_table.add_row(session["name"], str(len(windows)), status)
             except Exception:
-                sessions_table.add_row(session['name'], "?", "Unknown")
+                sessions_table.add_row(session["name"], "?", "Unknown")
 
         layout["sessions"].update(Panel(sessions_table, title="Sessions"))
 
@@ -80,12 +77,12 @@ class StatusDashboard:
                 2: "MCP-Developer",
                 3: "CLI-Developer",
                 4: "Agent-Recovery-Dev",
-                5: "Project-Manager"
+                5: "Project-Manager",
             }
 
             for window in windows:
-                window_id = window.get('window_index', '?')
-                window_name = window.get('window_name', 'Unknown')
+                window_id = window.get("window_index", "?")
+                window_name = window.get("window_name", "Unknown")
                 role = role_map.get(int(window_id), window_name)
 
                 # Simple status check - if window exists, assume agent is running
