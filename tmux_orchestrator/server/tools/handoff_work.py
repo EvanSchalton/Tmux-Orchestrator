@@ -211,19 +211,23 @@ def _create_handoff_message(
         if len(context) > 3000:
             truncated_context = context[:3000] + "... [context truncated]"
 
-        message_parts.extend([
-            "CONTEXT:",
-            truncated_context,
-            "",
-        ])
+        message_parts.extend(
+            [
+                "CONTEXT:",
+                truncated_context,
+                "",
+            ]
+        )
 
     # Add notes if provided
     if notes:
-        message_parts.extend([
-            "NOTES:",
-            notes,
-            "",
-        ])
+        message_parts.extend(
+            [
+                "NOTES:",
+                notes,
+                "",
+            ]
+        )
 
     message_parts.append("===== END HANDOFF =====")
 

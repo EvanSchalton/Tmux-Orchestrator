@@ -132,7 +132,7 @@ This is a **human-in-the-loop** system where Claude acts as the intelligent orch
   - Support custom compositions
   - File: `tmux_orchestrator/server/tools/create_team.py`
 
-- [ ] **TASK-2.2.2**: Implement `tmux_handoff_work` MCP tool
+- [x] **TASK-2.2.2**: Implement `tmux_handoff_work` MCP tool
   - Work transfer between agents
   - Context preservation
   - File: `tmux_orchestrator/server/tools/handoff_work.py`
@@ -142,13 +142,13 @@ This is a **human-in-the-loop** system where Claude acts as the intelligent orch
 ## 🎯 Priority 3: Enhanced Workflows
 
 ### 3.1 Task Management Integration
-- [ ] **TASK-3.1.1**: Implement task status tracking API
+- [x] **TASK-3.1.1**: Implement task status tracking API
   - Agents update task completion status
   - Integration with task distribution
   - Progress monitoring
-  - File: `tmux_orchestrator/cli/tasks.py`
+  - File: `tmux_orchestrator/server/tools/track_task_status.py`
 
-- [ ] **TASK-3.1.2**: Add task assignment via MCP
+- [x] **TASK-3.1.2**: Add task assignment via MCP
   - PM agents assign tasks dynamically
   - Load balancing across team
   - Priority handling

@@ -4,10 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from tmux_orchestrator.server.tools.handoff_work import (
-    HandoffWorkRequest,
-    handoff_work,
-)
+from tmux_orchestrator.server.tools.handoff_work import HandoffWorkRequest, handoff_work
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
@@ -18,9 +15,7 @@ class TestHandoffWork:
         """Test handoff_work with empty from_agent returns error."""
         tmux = Mock(spec=TMUXManager)
         request = HandoffWorkRequest(
-            from_agent="",
-            to_agent="dev:1",
-            work_description="Complete authentication feature"
+            from_agent="", to_agent="dev:1", work_description="Complete authentication feature"
         )
 
         result = handoff_work(tmux, request)
@@ -35,9 +30,7 @@ class TestHandoffWork:
         """Test handoff_work with empty to_agent returns error."""
         tmux = Mock(spec=TMUXManager)
         request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="",
-            work_description="Complete authentication feature"
+            from_agent="dev:0", to_agent="", work_description="Complete authentication feature"
         )
 
         result = handoff_work(tmux, request)
@@ -49,11 +42,7 @@ class TestHandoffWork:
     def test_handoff_work_empty_work_description(self) -> None:
         """Test handoff_work with empty work_description returns error."""
         tmux = Mock(spec=TMUXManager)
-        request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="dev:1",
-            work_description=""
-        )
+        request = HandoffWorkRequest(from_agent="dev:0", to_agent="dev:1", work_description="")
 
         result = handoff_work(tmux, request)
 
@@ -64,11 +53,7 @@ class TestHandoffWork:
     def test_handoff_work_invalid_from_agent_format(self) -> None:
         """Test handoff_work with invalid from_agent format returns error."""
         tmux = Mock(spec=TMUXManager)
-        request = HandoffWorkRequest(
-            from_agent="invalid-format",
-            to_agent="dev:1",
-            work_description="Complete feature"
-        )
+        request = HandoffWorkRequest(from_agent="invalid-format", to_agent="dev:1", work_description="Complete feature")
 
         result = handoff_work(tmux, request)
 
@@ -79,11 +64,7 @@ class TestHandoffWork:
     def test_handoff_work_invalid_to_agent_format(self) -> None:
         """Test handoff_work with invalid to_agent format returns error."""
         tmux = Mock(spec=TMUXManager)
-        request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="invalid-format",
-            work_description="Complete feature"
-        )
+        request = HandoffWorkRequest(from_agent="dev:0", to_agent="invalid-format", work_description="Complete feature")
 
         result = handoff_work(tmux, request)
 
@@ -94,11 +75,7 @@ class TestHandoffWork:
     def test_handoff_work_same_agent(self) -> None:
         """Test handoff_work with same from and to agent returns error."""
         tmux = Mock(spec=TMUXManager)
-        request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="dev:0",
-            work_description="Complete feature"
-        )
+        request = HandoffWorkRequest(from_agent="dev:0", to_agent="dev:0", work_description="Complete feature")
 
         result = handoff_work(tmux, request)
 
@@ -111,11 +88,7 @@ class TestHandoffWork:
         tmux = Mock(spec=TMUXManager)
         tmux.capture_pane.return_value = None  # Session/window not found
 
-        request = HandoffWorkRequest(
-            from_agent="nonexistent:0",
-            to_agent="dev:1",
-            work_description="Complete feature"
-        )
+        request = HandoffWorkRequest(from_agent="nonexistent:0", to_agent="dev:1", work_description="Complete feature")
 
         result = handoff_work(tmux, request)
 
@@ -128,11 +101,7 @@ class TestHandoffWork:
         tmux = Mock(spec=TMUXManager)
         tmux.capture_pane.side_effect = ["Context from source", None]  # First call succeeds, second fails
 
-        request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="nonexistent:1",
-            work_description="Complete feature"
-        )
+        request = HandoffWorkRequest(from_agent="dev:0", to_agent="nonexistent:1", work_description="Complete feature")
 
         result = handoff_work(tmux, request)
 
@@ -150,7 +119,7 @@ class TestHandoffWork:
             from_agent="dev:0",
             to_agent="dev:1",
             work_description="Complete authentication feature",
-            preserve_context=False
+            preserve_context=False,
         )
 
         result = handoff_work(tmux, request)
@@ -180,7 +149,7 @@ class TestHandoffWork:
             work_description="Test the completed authentication feature",
             preserve_context=True,
             priority="high",
-            deadline="2025-08-10"
+            deadline="2025-08-10",
         )
 
         result = handoff_work(tmux, request)
@@ -205,11 +174,7 @@ class TestHandoffWork:
         tmux.capture_pane.return_value = "Context"
         tmux.send_keys.return_value = False  # Send keys fails
 
-        request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="dev:1",
-            work_description="Complete feature"
-        )
+        request = HandoffWorkRequest(from_agent="dev:0", to_agent="dev:1", work_description="Complete feature")
 
         result = handoff_work(tmux, request)
 
@@ -227,7 +192,7 @@ class TestHandoffWork:
             from_agent="dev:0",
             to_agent="reviewer:0",
             work_description="Review authentication code",
-            notes="Please pay special attention to security vulnerabilities and test coverage"
+            notes="Please pay special attention to security vulnerabilities and test coverage",
         )
 
         result = handoff_work(tmux, request)
@@ -245,9 +210,7 @@ class TestHandoffWork:
         """Test handoff_work validates work description length."""
         tmux = Mock(spec=TMUXManager)
         request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="dev:1",
-            work_description="x" * 2001  # Exceeds 2000 char limit
+            from_agent="dev:0", to_agent="dev:1", work_description="x" * 2001  # Exceeds 2000 char limit
         )
 
         result = handoff_work(tmux, request)
@@ -263,7 +226,7 @@ class TestHandoffWork:
             from_agent="dev:0",
             to_agent="dev:1",
             work_description="Complete feature",
-            notes="x" * 1001  # Exceeds 1000 char limit
+            notes="x" * 1001,  # Exceeds 1000 char limit
         )
 
         result = handoff_work(tmux, request)
@@ -276,10 +239,7 @@ class TestHandoffWork:
         """Test handoff_work validates priority values."""
         tmux = Mock(spec=TMUXManager)
         request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="dev:1",
-            work_description="Complete feature",
-            priority="invalid"
+            from_agent="dev:0", to_agent="dev:1", work_description="Complete feature", priority="invalid"
         )
 
         result = handoff_work(tmux, request)
@@ -293,11 +253,7 @@ class TestHandoffWork:
         tmux = Mock(spec=TMUXManager)
         tmux.capture_pane.side_effect = Exception("Connection error")
 
-        request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="dev:1",
-            work_description="Complete feature"
-        )
+        request = HandoffWorkRequest(from_agent="dev:0", to_agent="dev:1", work_description="Complete feature")
 
         result = handoff_work(tmux, request)
 
@@ -313,10 +269,7 @@ class TestHandoffWork:
         tmux.send_keys.return_value = True
 
         request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="dev:1",
-            work_description="Complete feature",
-            preserve_context=True
+            from_agent="dev:0", to_agent="dev:1", work_description="Complete feature", preserve_context=True
         )
 
         result = handoff_work(tmux, request)
@@ -340,10 +293,7 @@ class TestHandoffWork:
         tmux.send_keys.return_value = True
 
         request = HandoffWorkRequest(
-            from_agent="dev:0",
-            to_agent="dev:1",
-            work_description="Complete feature",
-            priority=priority
+            from_agent="dev:0", to_agent="dev:1", work_description="Complete feature", priority=priority
         )
 
         result = handoff_work(tmux, request)
@@ -364,7 +314,7 @@ class TestHandoffWork:
             preserve_context=True,
             priority="high",
             deadline="2025-08-15",
-            notes="Focus on edge cases and security"
+            notes="Focus on edge cases and security",
         )
 
         result = handoff_work(tmux, request)
@@ -395,7 +345,7 @@ class TestHandoffWork:
         request = HandoffWorkRequest(
             from_agent="frontend:0",
             to_agent="backend:1",
-            work_description="Implement API endpoints for frontend integration"
+            work_description="Implement API endpoints for frontend integration",
         )
 
         result = handoff_work(tmux, request)
@@ -420,7 +370,7 @@ class TestHandoffWork:
             work_description="Complete testing phase",
             preserve_context=True,
             priority="medium",
-            deadline="2025-08-12"
+            deadline="2025-08-12",
         )
 
         result = handoff_work(tmux, request)

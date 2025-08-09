@@ -15,6 +15,12 @@ from tmux_orchestrator.server.tools.handoff_work import handoff_work
 from tmux_orchestrator.server.tools.kill_agent import kill_agent
 from tmux_orchestrator.server.tools.report_activity import report_activity
 from tmux_orchestrator.server.tools.restart_agent import restart_agent
+from tmux_orchestrator.server.tools.run_quality_checks import (
+    enforce_quality_gates,
+    get_check_results,
+    run_quality_checks,
+    run_single_check,
+)
 from tmux_orchestrator.server.tools.schedule_checkin import schedule_checkin
 from tmux_orchestrator.server.tools.send_message import send_message
 from tmux_orchestrator.server.tools.spawn_agent import spawn_agent
@@ -29,8 +35,10 @@ __all__ = [
     "assign_task",
     "broadcast_message",
     "create_team",
+    "enforce_quality_gates",
     "get_agent_status",
     "get_agent_workload",
+    "get_check_results",
     "get_messages",
     "get_session_status",
     "get_task_status",
@@ -41,6 +49,8 @@ __all__ = [
     "reassign_task",
     "report_activity",
     "restart_agent",
+    "run_quality_checks",
+    "run_single_check",
     "schedule_checkin",
     "send_message",
     "spawn_agent",
