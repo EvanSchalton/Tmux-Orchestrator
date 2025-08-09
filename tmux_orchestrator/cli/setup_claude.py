@@ -1,7 +1,6 @@
 """Setup commands for Claude Code integration."""
 
 import json
-import shutil
 from pathlib import Path
 
 import click
@@ -232,36 +231,19 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
         commands_dir = claude_path / "commands"
         commands_dir.mkdir(exist_ok=True)
 
-        # Source directory for slash commands - try multiple locations
-        possible_sources = [
-            Path(__file__).parent.parent.parent / ".claude" / "commands",
-            Path("/workspaces/Tmux-Orchestrator/.claude/commands"),
-            Path.home() / "Tmux-Orchestrator" / ".claude" / "commands",
-        ]
+        # Install slash commands from embedded data
+        from tmux_orchestrator.claude_commands import SLASH_COMMANDS
 
-        source_commands = None
-        for source in possible_sources:
-            if source.exists():
-                source_commands = source
-                break
+        commands_installed = 0
+        console.print(f"[dim]Installing {len(SLASH_COMMANDS)} slash commands[/dim]")
 
-        if source_commands and source_commands.exists():
-            commands_installed = 0
-            cmd_files = list(source_commands.glob("*.md"))
-            console.print(f"[dim]Found {len(cmd_files)} command files in {source_commands}[/dim]")
+        for filename, content in SLASH_COMMANDS.items():
+            dest_file = commands_dir / filename
+            if force or not dest_file.exists():
+                dest_file.write_text(content)
+                commands_installed += 1
 
-            for cmd_file in cmd_files:
-                dest_file = commands_dir / cmd_file.name
-                if force or not dest_file.exists():
-                    shutil.copy2(cmd_file, dest_file)
-                    commands_installed += 1
-
-            console.print(f"[green]✓ Installed {commands_installed} slash commands[/green]")
-        else:
-            console.print("[yellow]⚠ Slash commands source directory not found[/yellow]")
-            console.print("[dim]Searched in:[/dim]")
-            for source in possible_sources:
-                console.print(f"[dim]  • {source}[/dim]")
+        console.print(f"[green]✓ Installed {commands_installed} slash commands[/green]")
 
         progress.update(task, advance=1)
 
