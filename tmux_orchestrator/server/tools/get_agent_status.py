@@ -289,9 +289,10 @@ def _analyze_agent_health(
     team_id = latest_activity.team_id if latest_activity else None
 
     # Extract activity tags from recent activities
-    activity_tags = []
+    activity_tags: list[str] = []
     for activity in agent_activities[:5]:  # Last 5 activities
-        activity_tags.extend(activity.tags)
+        if activity.tags:
+            activity_tags.extend(activity.tags)
     activity_tags = list(set(activity_tags))  # Remove duplicates
 
     # Calculate responsiveness score

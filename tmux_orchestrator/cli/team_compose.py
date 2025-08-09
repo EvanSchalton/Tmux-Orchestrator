@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import click
 import yaml
@@ -53,7 +52,7 @@ def team() -> None:
 @click.option("--prd", help="Path to PRD for analysis")
 @click.option("--interactive", is_flag=True, help="Interactive team composition")
 @click.option("--template", help="Use predefined team template")
-def compose(project_name: str, prd: Optional[str], interactive: bool, template: Optional[str]) -> None:
+def compose(project_name: str, prd: str | None, interactive: bool, template: str | None) -> None:
     """Compose a custom team for the project.
 
     PROJECT_NAME: Name of the project
@@ -114,7 +113,7 @@ def compose(project_name: str, prd: Optional[str], interactive: bool, template: 
     console.print("2. Deploy team: tmux-orc team deploy " + project_name)
 
 
-def _interactive_team_composition(templates: dict, project_name: str, prd: Optional[str]) -> list[dict]:
+def _interactive_team_composition(templates: dict, project_name: str, prd: str | None) -> list[dict]:
     """Interactive team composition wizard."""
     console.print("\n[bold]Interactive Team Composition[/bold]")
 
@@ -132,7 +131,7 @@ def _interactive_team_composition(templates: dict, project_name: str, prd: Optio
     console.print("\n[bold]Available Agent Types:[/bold]")
 
     # Categorize templates
-    categories = {
+    categories: dict[str, list[tuple[str, str]]] = {
         "Development": [],
         "Quality": [],
         "Specialized": [],
@@ -154,7 +153,8 @@ def _interactive_team_composition(templates: dict, project_name: str, prd: Optio
     for category, agents in categories.items():
         if agents:
             console.print(f"\n[cyan]{category}:[/cyan]")
-            for template_name, role in agents:
+            for agent_tuple in agents:
+                template_name, role = agent_tuple
                 console.print(f"  • {template_name}: {role}")
 
     # Get team size
@@ -197,7 +197,7 @@ def _interactive_team_composition(templates: dict, project_name: str, prd: Optio
     return selected
 
 
-def _suggest_team_composition(project_name: str, prd: Optional[str], templates: dict) -> list[dict]:
+def _suggest_team_composition(project_name: str, prd: str | None, templates: dict) -> list[dict]:
     """Suggest team composition based on project analysis."""
     console.print("[yellow]Suggesting team composition based on project type...[/yellow]")
 
@@ -307,7 +307,7 @@ def _suggest_team_composition(project_name: str, prd: Optional[str], templates: 
     return suggested
 
 
-def _generate_team_composition(project_name: str, agents: list[dict], output_path: Path, prd: Optional[str]) -> None:
+def _generate_team_composition(project_name: str, agents: list[dict], output_path: Path, prd: str | None) -> None:
     """Generate team composition document."""
 
     # Load template

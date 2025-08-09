@@ -1,7 +1,5 @@
 """Project Manager specific commands."""
 
-from typing import Optional
-
 import click
 from rich.console import Console
 
@@ -164,7 +162,7 @@ def broadcast(ctx: click.Context, message: str) -> None:
 @pm.command()
 @click.option("--custom-message", help="Custom check-in message")
 @click.pass_context
-def custom_checkin(ctx: click.Context, custom_message: Optional[str]) -> None:
+def custom_checkin(ctx: click.Context, custom_message: str | None) -> None:
     """Send customized status check-in request to all team agents.
 
     Allows the PM to send a tailored status request instead of the
@@ -257,12 +255,8 @@ def status(ctx: click.Context, json: bool) -> None:
         "window": pm_target.split(":")[1] if ":" in pm_target else "0",
     }
 
-    # Get team overview (using tmux directly since get_team_agents may not exist)
-    try:
-        team_agents = manager.get_team_agents(pm_status["session"])
-    except AttributeError:
-        # Fallback: get agents from tmux directly
-        team_agents = ctx.obj["tmux"].list_agents()
+    # Get team overview using tmux directly
+    team_agents = ctx.obj["tmux"].list_agents()
 
     if json:
         import json as json_module
@@ -311,7 +305,7 @@ def status(ctx: click.Context, json: bool) -> None:
 @click.argument("session")
 @click.option("--project-dir", help="Project directory (defaults to current)")
 @click.pass_context
-def create(ctx: click.Context, session: str, project_dir: Optional[str]) -> None:
+def create(ctx: click.Context, session: str, project_dir: str | None) -> None:
     """Create a new Project Manager for team coordination and oversight.
 
     Deploys a specialized Claude agent configured as a Project Manager

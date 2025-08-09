@@ -1,7 +1,5 @@
 """Error management and reporting commands."""
 
-from typing import Optional
-
 import click
 from rich.console import Console
 from rich.panel import Panel
@@ -99,7 +97,7 @@ def summary(json: bool) -> None:
 @click.option("--count", "-n", default=10, help="Number of errors to show")
 @click.option("--severity", type=click.Choice(["low", "medium", "high", "critical"]), help="Filter by severity")
 @click.option("--category", help="Filter by error category")
-def recent(count: int, severity: Optional[str], category: Optional[str]) -> None:
+def recent(count: int, severity: str | None, category: str | None) -> None:
     """Display recent errors with details.
 
     Shows the most recent errors recorded by the system, with options

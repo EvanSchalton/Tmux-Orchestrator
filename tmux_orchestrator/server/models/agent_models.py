@@ -1,7 +1,5 @@
 """Pydantic models for agent management operations."""
 
-from typing import Optional, Union
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -31,12 +29,12 @@ class AgentSpawnRequest(BaseModel):
         pattern="^(developer|pm|qa|devops|reviewer|researcher|docs)$",
         examples=["developer", "pm", "qa"],
     )
-    project_path: Optional[str] = Field(
+    project_path: str | None = Field(
         None,
         description="Working directory for the agent",
         examples=["/Users/dev/my-project", "/workspace/app"],
     )
-    briefing_message: Optional[str] = Field(
+    briefing_message: str | None = Field(
         None,
         description="Initial briefing message for the agent",
         examples=["You are a senior developer working on React components"],
@@ -65,7 +63,7 @@ class AgentSpawnResponse(BaseModel):
     target: str = Field(..., description="Full tmux target (session:window)")
     agent_type: str = Field(..., description="Type of agent spawned")
     created_at: str = Field(..., description="ISO timestamp of creation")
-    error_message: Optional[str] = Field(None, description="Error details if failed")
+    error_message: str | None = Field(None, description="Error details if failed")
 
 
 class AgentStatusRequest(BaseModel):
@@ -118,7 +116,7 @@ class AgentStatusResponse(BaseModel):
     uptime_minutes: int = Field(..., description="Minutes since agent started")
     activity_summary: list[str] = Field(..., description="Recent activity lines")
     health_score: int = Field(..., description="Health score (0-100)")
-    error_details: Optional[str] = Field(None, description="Error information")
+    error_details: str | None = Field(None, description="Error information")
 
 
 class AgentRestartRequest(BaseModel):
@@ -136,7 +134,7 @@ class AgentRestartRequest(BaseModel):
 
     target: str = Field(..., description="Agent target to restart", pattern=r"^[^:]+:[^:]+$")
     preserve_context: bool = Field(True, description="Attempt to preserve work context")
-    briefing_message: Optional[str] = Field(None, description="Custom briefing for restarted agent")
+    briefing_message: str | None = Field(None, description="Custom briefing for restarted agent")
 
 
 class AgentRestartResponse(BaseModel):
@@ -157,11 +155,11 @@ class AgentRestartResponse(BaseModel):
 
     success: bool = Field(..., description="Restart operation success")
     target: str = Field(..., description="Agent target that was restarted")
-    old_pid: Optional[int] = Field(None, description="Previous process ID")
-    new_pid: Optional[int] = Field(None, description="New process ID")
+    old_pid: int | None = Field(None, description="Previous process ID")
+    new_pid: int | None = Field(None, description="New process ID")
     restart_time: str = Field(..., description="ISO timestamp of restart")
     context_preserved: bool = Field(..., description="Whether context was preserved")
-    error_message: Optional[str] = Field(None, description="Error details if failed")
+    error_message: str | None = Field(None, description="Error details if failed")
 
 
 class AgentKillRequest(BaseModel):
@@ -202,7 +200,7 @@ class AgentKillResponse(BaseModel):
     termination_method: str = Field(..., description="Method used (graceful/force)")
     final_state_saved: bool = Field(..., description="Whether final state was saved")
     terminated_at: str = Field(..., description="ISO timestamp of termination")
-    error_message: Optional[str] = Field(None, description="Error details if failed")
+    error_message: str | None = Field(None, description="Error details if failed")
 
 
 class AgentListResponse(BaseModel):
@@ -229,7 +227,7 @@ class AgentListResponse(BaseModel):
         }
     )
 
-    agents: list[dict[str, Union[str, int]]] = Field(..., description="List of all agents with their details")
+    agents: list[dict[str, str | int]] = Field(..., description="List of all agents with their details")
     total_count: int = Field(..., description="Total number of agents")
     active_count: int = Field(..., description="Number of active agents")
     idle_count: int = Field(..., description="Number of idle agents")

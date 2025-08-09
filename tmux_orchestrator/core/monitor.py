@@ -9,7 +9,6 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.recovery.detect_failure import detect_failure
@@ -38,7 +37,10 @@ class IdleMonitor:
         self.tmux = tmux
         self.pid_file = Path("/tmp/tmux-orchestrator-idle-monitor.pid")
         self.log_file = Path("/tmp/tmux-orchestrator-idle-monitor.log")
-        self.daemon_process: Optional[multiprocessing.Process] = None
+        self.daemon_process: multiprocessing.Process | None = None
+        self._crash_notifications: dict[str, datetime] = {}
+        self._idle_notifications: dict[str, datetime] = {}
+        self._idle_agents: dict[str, datetime] = {}
 
     def is_running(self) -> bool:
         """Check if monitor daemon is running."""
@@ -327,7 +329,7 @@ class IdleMonitor:
             else:
                 logger.debug(f"Agent {target} is active and healthy")
                 # Reset idle tracking when agent becomes active
-                if hasattr(self, "_idle_agents") and target in self._idle_agents:
+                if target in self._idle_agents:
                     del self._idle_agents[target]
 
         except Exception as e:
@@ -430,13 +432,10 @@ class IdleMonitor:
             crash_key = f"crash_{target}"
 
             # Check cooldown (5 minutes between crash notifications)
-            if hasattr(self, "_crash_notifications"):
-                last_notified = self._crash_notifications.get(crash_key)
-                if last_notified and (now - last_notified) < timedelta(minutes=5):
-                    logger.debug(f"Crash notification for {target} in cooldown")
-                    return
-            else:
-                self._crash_notifications = {}
+            last_notified = self._crash_notifications.get(crash_key)
+            if last_notified and (now - last_notified) < timedelta(minutes=5):
+                logger.debug(f"Crash notification for {target} in cooldown")
+                return
 
             # Format crash message
             message = (
@@ -472,11 +471,7 @@ class IdleMonitor:
     def _check_idle_notification(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
         """Check if PM should be notified about idle agent."""
         try:
-            # Initialize idle tracking if needed
-            if not hasattr(self, "_idle_notifications"):
-                self._idle_notifications = {}
-            if not hasattr(self, "_idle_agents"):
-                self._idle_agents = {}
+            # Already initialized in __init__
 
             now = datetime.now()
             idle_key = f"idle_{target}"
@@ -541,7 +536,7 @@ class IdleMonitor:
         except Exception as e:
             logger.error(f"Failed to send idle notification: {e}")
 
-    def _find_pm_target(self, tmux: TMUXManager) -> Optional[str]:
+    def _find_pm_target(self, tmux: TMUXManager) -> str | None:
         """Find PM session dynamically."""
         try:
             # First check tmux-orc-dev session for Project-Manager window

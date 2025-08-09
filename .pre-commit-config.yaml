@@ -2,8 +2,8 @@
 # Install with: poetry run pre-commit install
 repos:
   # Python formatting and linting with Ruff
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.1.6
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
     hooks:
       # Run formatter first
       - id: ruff-format
@@ -11,15 +11,15 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
 
-  # Type checking - disabled for now due to many legacy issues
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.7.1
-  #   hooks:
-  #     - id: mypy
-  #       additional_dependencies: [types-pyyaml==6.0.12.20250516]
-  #       args: [--config-file, pyproject.toml, --ignore-missing-imports]
-  #       files: ^tmux_orchestrator/
-  #       pass_filenames: false
+  # Type checking - enabled now that we've fixed type errors
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-pyyaml==6.0.12.20250516]
+        args: [--config-file, pyproject.toml, --ignore-missing-imports, tmux_orchestrator]
+        files: ^tmux_orchestrator/
+        pass_filenames: false
 
   # Security checks
   - repo: https://github.com/pycqa/bandit

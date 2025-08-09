@@ -1,7 +1,7 @@
 """Status dashboard for monitoring agents."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from rich.console import Console
 from rich.layout import Layout
@@ -16,7 +16,7 @@ class StatusDashboard:
         self.tmux = tmux_manager
         self.console = Console()
 
-    def display(self, session_filter: Optional[str] = None) -> None:
+    def display(self, session_filter: str | None = None) -> None:
         """Display the status dashboard."""
         # Create main layout
         layout = Layout()

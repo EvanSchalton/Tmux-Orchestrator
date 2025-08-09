@@ -1,13 +1,9 @@
 """Business logic for broadcasting messages to team agents."""
 
-from typing import Union
-
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-def broadcast_to_team(
-    tmux: TMUXManager, session: str, message: str
-) -> tuple[bool, str, list[dict[str, Union[str, bool]]]]:
+def broadcast_to_team(tmux: TMUXManager, session: str, message: str) -> tuple[bool, str, list[dict[str, str | bool]]]:
     """Broadcast a message to all agents in a session.
 
     Args:
@@ -34,7 +30,7 @@ def broadcast_to_team(
         return False, f"No agent windows found in session '{session}'", []
 
     # Send message to each agent
-    results: list[dict[str, Union[str, bool]]] = []
+    results: list[dict[str, str | bool]] = []
     success_count: int = 0
 
     for window in agent_windows:

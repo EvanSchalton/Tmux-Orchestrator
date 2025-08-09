@@ -2,7 +2,7 @@
 
 import os
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -15,7 +15,7 @@ class Message:
         from_agent: str,
         to_agent: str,
         content: str,
-        timestamp: Optional[datetime] = None,
+        timestamp: datetime | None = None,
     ):
         self.from_agent = from_agent
         self.to_agent = to_agent
@@ -35,7 +35,7 @@ class Message:
 class Agent:
     """SDK for AI agents to interact with the orchestrator."""
 
-    def __init__(self, agent_type: str, role: str, session: Optional[str] = None):
+    def __init__(self, agent_type: str, role: str, session: str | None = None):
         self.agent_type = agent_type
         self.role = role
         self.session = session or os.environ.get("TMUX", "").split(",")[0]
@@ -57,7 +57,7 @@ class Agent:
                     "session": self.session,
                 },
             )
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception as e:
             print(f"Failed to register: {e}")
             return False
@@ -67,7 +67,7 @@ class Agent:
         try:
             message = Message(self.agent_id, to_agent, content)
             response = self.client.post("/messages/send", json=message.to_dict())
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception as e:
             print(f"Failed to send message: {e}")
             return False
@@ -98,7 +98,7 @@ class Agent:
                 f"/agents/{self.agent_id}/status",
                 json={"status": status, "timestamp": datetime.now().isoformat()},
             )
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception as e:
             print(f"Failed to report status: {e}")
             return False
@@ -113,7 +113,7 @@ class Agent:
                     "timestamp": datetime.now().isoformat(),
                 },
             )
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception as e:
             print(f"Failed to report activity: {e}")
             return False
@@ -123,7 +123,9 @@ class Agent:
         try:
             response = self.client.get(f"/tasks/{self.agent_id}")
             if response.status_code == 200:
-                return response.json()
+                result = response.json()
+                if isinstance(result, list):
+                    return result
             return []
         except Exception as e:
             print(f"Failed to get tasks: {e}")
@@ -140,7 +142,7 @@ class Agent:
                     "timestamp": datetime.now().isoformat(),
                 },
             )
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception as e:
             print(f"Failed to update task status: {e}")
             return False
@@ -156,7 +158,7 @@ class Agent:
                     "timestamp": datetime.now().isoformat(),
                 },
             )
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception as e:
             print(f"Failed to request help: {e}")
             return False
@@ -173,7 +175,7 @@ class Agent:
                     "timestamp": datetime.now().isoformat(),
                 },
             )
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception as e:
             print(f"Failed to handoff work: {e}")
             return False
@@ -182,7 +184,7 @@ class Agent:
         """Unregister this agent from the orchestrator."""
         try:
             response = self.client.delete(f"/agents/{self.agent_id}")
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception as e:
             print(f"Failed to unregister: {e}")
             return False

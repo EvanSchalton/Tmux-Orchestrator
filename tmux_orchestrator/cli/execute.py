@@ -3,7 +3,7 @@
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any
 
 import click
 from rich.console import Console
@@ -16,7 +16,7 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 console = Console()
 
 
-def analyze_prd_for_team_composition(prd_path: Path) -> Tuple[str, int, Dict[str, str]]:
+def analyze_prd_for_team_composition(prd_path: Path) -> tuple[str, int, dict[str, Any]]:
     """Analyze PRD content to suggest optimal team type and size.
 
     This provides intelligent suggestions based on PRD content analysis,
@@ -30,7 +30,18 @@ def analyze_prd_for_team_composition(prd_path: Path) -> Tuple[str, int, Dict[str
         prd_content = prd_path.read_text()
     except Exception:
         # Default if can't read
-        return "fullstack", 5, {"error": "Could not read PRD"}
+        return (
+            "fullstack",
+            5,
+            {
+                "error": "Could not read PRD",
+                "frontend_score": 0,
+                "backend_score": 0,
+                "complexity": "medium",
+                "requires_qa": False,
+                "requires_devops": False,
+            },
+        )
 
     console.print("[blue]Analyzing PRD to suggest optimal team composition...[/blue]")
 
@@ -40,7 +51,7 @@ def analyze_prd_for_team_composition(prd_path: Path) -> Tuple[str, int, Dict[str
     # Analyze content for technology indicators
     content_lower = prd_content.lower()
 
-    tech_analysis = {
+    tech_analysis: dict[str, Any] = {
         "frontend_score": 0,
         "backend_score": 0,
         "complexity": "medium",
@@ -95,7 +106,7 @@ def analyze_prd_for_team_composition(prd_path: Path) -> Tuple[str, int, Dict[str
     return team_type, team_size, tech_analysis
 
 
-def generate_team_briefings_from_prd(prd_path: Path, project_name: str, team_type: str) -> Dict[str, str]:
+def generate_team_briefings_from_prd(prd_path: Path, project_name: str, team_type: str) -> dict[str, str]:
     """Generate role-specific briefings based on PRD content.
 
     Returns:
@@ -208,7 +219,7 @@ Wait for the PM to provide specific testing tasks.""",
     return briefings
 
 
-def _extract_section(content: str, keywords: List[str]) -> str:
+def _extract_section(content: str, keywords: list[str]) -> str:
     """Extract a section from PRD based on keywords."""
     lines = content.split("\n")
     for i, line in enumerate(lines):
@@ -303,7 +314,7 @@ def monitor_task_distribution(project_name: str) -> bool:
 def execute(
     ctx: click.Context,
     prd_file: str,
-    project_name: Optional[str],
+    project_name: str | None,
     team_size: int,
     team_type: str,
     no_monitor: bool,
@@ -381,8 +392,10 @@ def execute(
             if isinstance(tech_scores, dict) and "frontend_score" in tech_scores:
                 # New tech_analysis format
                 console.print(f"  Complexity: {tech_scores.get('complexity', 'medium')}")
-                console.print(f"  Frontend work: {'High' if tech_scores.get('frontend_score', 0) > 3 else 'Low'}")
-                console.print(f"  Backend work: {'High' if tech_scores.get('backend_score', 0) > 3 else 'Low'}")
+                frontend_score = tech_scores.get("frontend_score", 0)
+                backend_score = tech_scores.get("backend_score", 0)
+                console.print(f"  Frontend work: {'High' if frontend_score > 3 else 'Low'}")
+                console.print(f"  Backend work: {'High' if backend_score > 3 else 'Low'}")
                 if tech_scores.get("requires_qa"):
                     console.print("  Special: QA/Testing focus detected")
                 if tech_scores.get("requires_devops"):

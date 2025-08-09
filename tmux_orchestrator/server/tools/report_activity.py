@@ -180,8 +180,8 @@ def report_activity(tmux: TMUXManager, request: ReportActivityRequest) -> Report
             record_id=record.record_id,
             session_id=record.session_id,
             team_id=record.team_id,
-            tags=record.tags.copy(),
-            metadata=record.metadata.copy(),
+            tags=record.tags.copy() if record.tags else [],
+            metadata=record.metadata.copy() if record.metadata else {},
         )
 
     except PermissionError as e:
@@ -320,7 +320,7 @@ def _apply_filters(activities: list[ActivityRecord], request: ActivityHistoryReq
 
     # Filter by tags (must have all specified tags)
     if request.tags:
-        filtered_activities = [a for a in filtered_activities if all(tag in a.tags for tag in request.tags)]
+        filtered_activities = [a for a in filtered_activities if a.tags and all(tag in a.tags for tag in request.tags)]
 
     return filtered_activities
 

@@ -3,7 +3,6 @@
 import os
 import signal
 import subprocess
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -236,7 +235,7 @@ def status(ctx: click.Context, json: bool) -> None:
 @monitor.command("recovery-start")
 @click.option("--config", "-c", help="Configuration file path")
 @click.pass_context
-def recovery_start(ctx: click.Context, config: Optional[str]) -> None:
+def recovery_start(ctx: click.Context, config: str | None) -> None:
     """Start the advanced recovery daemon with bulletproof agent restoration.
 
     Launches an intelligent recovery system that automatically detects and
@@ -468,7 +467,7 @@ def recovery_logs(follow: bool, lines: int) -> None:
 @click.option("--refresh", default=5, help="Auto-refresh interval in seconds (0 to disable)")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def dashboard(ctx: click.Context, session: Optional[str], refresh: int, json: bool) -> None:
+def dashboard(ctx: click.Context, session: str | None, refresh: int, json: bool) -> None:
     """Launch interactive real-time monitoring dashboard with live updates.
 
     Displays a comprehensive, continuously updating overview of all system
@@ -625,7 +624,7 @@ def dashboard(ctx: click.Context, session: Optional[str], refresh: int, json: bo
 @click.option("--analyze", is_flag=True, help="Run performance analysis")
 @click.option("--optimize", is_flag=True, help="Show optimization recommendations")
 @click.pass_context
-def performance(ctx: click.Context, agent_count: Optional[int], analyze: bool, optimize: bool) -> None:
+def performance(ctx: click.Context, agent_count: int | None, analyze: bool, optimize: bool) -> None:
     """Monitor and optimize performance for large-scale deployments.
 
     Provides performance metrics, analysis, and optimization recommendations

@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -18,11 +18,11 @@ class Config:
         "server": {"host": "127.0.0.1", "port": 8000},
     }
 
-    def __init__(self, config_dict: Optional[dict[str, Any]] = None):
+    def __init__(self, config_dict: dict[str, Any] | None = None):
         self._config: dict[str, Any] = config_dict or self.DEFAULT_CONFIG.copy()
 
     @classmethod
-    def load(cls, config_path: Optional[Path] = None) -> "Config":
+    def load(cls, config_path: Path | None = None) -> "Config":
         """Load configuration from file or defaults."""
         if config_path is None:
             # Look for config in standard locations
@@ -98,7 +98,7 @@ class Config:
 
         config[keys[-1]] = value
 
-    def save(self, config_path: Optional[Path] = None) -> None:
+    def save(self, config_path: Path | None = None) -> None:
         """Save configuration to file."""
         if config_path is None:
             config_path = Path.cwd() / ".tmux-orchestrator" / "config.yml"
@@ -109,7 +109,7 @@ class Config:
             yaml.dump(self._config, f, default_flow_style=False)
 
     @property
-    def project_name(self) -> Optional[str]:
+    def project_name(self) -> str | None:
         """Get project name."""
         project_config = self._config["project"]
         name = project_config.get("name")
@@ -117,7 +117,7 @@ class Config:
         return name or (Path(path).name if path else None)
 
     @property
-    def project_path(self) -> Optional[Path]:
+    def project_path(self) -> Path | None:
         """Get project path."""
         path = self._config["project"]["path"]
         return Path(path) if path else None
@@ -132,7 +132,7 @@ class Config:
         """Get notification cooldown."""
         return int(self._config["monitoring"]["notification_cooldown"])
 
-    def get_agent_config(self, agent_type: str) -> Optional[dict[str, Any]]:
+    def get_agent_config(self, agent_type: str) -> dict[str, Any] | None:
         """Get configuration for a specific agent type."""
         agents = self._config["team"]["agents"]
         for agent in agents:

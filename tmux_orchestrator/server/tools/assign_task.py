@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from tmux_orchestrator.core.error_handler import (
     ErrorSeverity,
@@ -248,7 +248,7 @@ def list_available_agents(tmux: TMUXManager, request: AssignTaskRequest) -> Avai
         AvailableAgentsResult with available agent list or error
     """
     try:
-        available_agents = []
+        available_agents: list[dict[str, Any]] = []
 
         # Get all active sessions
         sessions = tmux.list_sessions() or []
@@ -278,7 +278,7 @@ def list_available_agents(tmux: TMUXManager, request: AssignTaskRequest) -> Avai
                     # Calculate load score for sorting
                     load_score = _calculate_load_score(active_tasks, total_hours)
 
-                    agent_info = {
+                    agent_info: dict[str, Any] = {
                         "agent_id": agent_id,
                         "session": session_name,
                         "window": window_index,
@@ -345,7 +345,7 @@ def reassign_task(tmux: TMUXManager, request: AssignTaskRequest) -> AssignTaskRe
         )
 
         # Perform the reassignment
-        result = assign_task(tmux, request_copy)
+        result: AssignTaskResult = assign_task(tmux, request_copy)
         if result.success:
             result.previous_agent = previous_agent
             result.reason = request.reason

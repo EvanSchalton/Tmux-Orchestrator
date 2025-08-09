@@ -195,7 +195,7 @@ def coordinate_agent_recovery(
                 notification_type="recovery_started",
                 message=f"Automatic recovery initiated for {target}. Reason: {health_status.failure_reason}",
                 cooldown_minutes=5,
-                logger=logger,
+                logger=recovery_logger,
             )
 
             recovery_data["recovery_start_notification"] = {
@@ -226,7 +226,7 @@ def coordinate_agent_recovery(
                     notification_type="recovery_failed",
                     message=f"Recovery disabled for {target}. Auto-restart is not enabled.",
                     cooldown_minutes=5,
-                    logger=logger,
+                    logger=recovery_logger,
                 )
             except Exception as e:
                 recovery_logger.warning(f"Failed to send recovery failure notification: {str(e)}")
@@ -247,7 +247,7 @@ def coordinate_agent_recovery(
         restart_success, restart_message, restart_context = auto_restart_agent(
             tmux=tmux,
             target=target,
-            logger=logger,
+            logger=recovery_logger,
             max_retries=max_retries,
             preserve_context=True,
             briefing_text=briefing_text,

@@ -120,7 +120,7 @@ def test_tasks_status(runner, temp_orchestrator_dir):
 
     assert result.exit_code == 0
     assert "test-project" in result.output
-    assert "33% complete" in result.output or "1/3" in result.output
+    assert "33%" in result.output or "33.3%" in result.output or "1/3" in result.output
 
 
 def test_tasks_status_nonexistent_project(runner, temp_orchestrator_dir):

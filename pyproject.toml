@@ -30,6 +30,7 @@ mcp = "^1.12.4"
 pre-commit = "^4.2.0"
 bandit = "^1.8.6"
 isort = "^6.0.1"
+invoke = "^2.2.0"
 
 [tool.poetry.scripts]
 tmux-orc = "tmux_orchestrator.cli:cli"
@@ -60,3 +61,8 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+
+[tool.invoke]
+# Invoke configuration
+echo = true
+warn_only = false

@@ -1,6 +1,6 @@
 """Tests for get_team_status business logic function."""
 
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -37,7 +37,7 @@ def test_get_team_status_success() -> None:
     session: str = "test-session"
 
     # Act
-    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: dict[str, Any] | None = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is not None
@@ -62,7 +62,7 @@ def test_get_team_status_session_not_found() -> None:
     session: str = "nonexistent-session"
 
     # Act
-    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: dict[str, Any] | None = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is None
@@ -79,7 +79,7 @@ def test_get_team_status_session_info_not_found() -> None:
     session: str = "test-session"
 
     # Act
-    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: dict[str, Any] | None = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is None
@@ -98,7 +98,7 @@ def test_get_team_status_no_windows() -> None:
     session: str = "test-session"
 
     # Act
-    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: dict[str, Any] | None = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is not None
@@ -177,7 +177,7 @@ def test_get_team_status_agent_counting() -> None:
     session: str = "test-session"
 
     # Act
-    result: Optional[dict[str, Any]] = get_team_status(mock_tmux, session)
+    result: dict[str, Any] | None = get_team_status(mock_tmux, session)
 
     # Assert
     assert result is not None

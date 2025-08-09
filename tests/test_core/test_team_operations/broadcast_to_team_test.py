@@ -1,6 +1,5 @@
 """Tests for broadcast_to_team business logic function."""
 
-from typing import Union
 from unittest.mock import Mock
 
 import pytest
@@ -210,7 +209,7 @@ def test_broadcast_to_team_result_structure() -> None:
 
     # Assert
     assert len(results) == 1
-    result: dict[str, Union[str, bool]] = results[0]
+    result: dict[str, str | bool] = results[0]
 
     assert result["target"] == "my-session:5"
     assert result["window_name"] == "claude-test-agent"

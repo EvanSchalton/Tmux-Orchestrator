@@ -1,7 +1,6 @@
 """Discover Claude agents automatically in tmux sessions."""
 
 import logging
-from typing import Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -9,7 +8,7 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 def discover_agents(
     tmux: TMUXManager,
     logger: logging.Logger,
-    exclude_sessions: Optional[set[str]] = None,
+    exclude_sessions: set[str] | None = None,
 ) -> set[str]:
     """
     Discover Claude agents automatically across tmux sessions.

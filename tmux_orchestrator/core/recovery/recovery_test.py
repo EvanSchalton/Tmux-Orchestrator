@@ -52,7 +52,7 @@ class RecoveryTestSuite:
         test_start_time = datetime.now()
 
         # Initialize test results
-        comprehensive_results = {
+        comprehensive_results: dict[str, Any] = {
             "test_session_id": self.test_session_id,
             "test_start_time": test_start_time.isoformat(),
             "target_agents": target_agents or [],
@@ -162,7 +162,7 @@ class RecoveryTestSuite:
 
     async def _test_failure_detection(self, target_agents: list[str]) -> dict[str, Any]:
         """Test failure detection functionality."""
-        detection_results = {
+        detection_results: dict[str, Any] = {
             "agents_tested": len(target_agents),
             "detection_successful": 0,
             "detection_failed": 0,
@@ -221,7 +221,7 @@ class RecoveryTestSuite:
 
     async def _test_recovery_coordination(self, target_agents: list[str]) -> dict[str, Any]:
         """Test recovery coordination without actually restarting agents."""
-        coordination_results = {
+        coordination_results: dict[str, Any] = {
             "agents_tested": len(target_agents),
             "coordination_successful": 0,
             "coordination_failed": 0,
@@ -272,7 +272,7 @@ class RecoveryTestSuite:
 
     async def _test_context_preservation(self, target_agents: list[str]) -> dict[str, Any]:
         """Test context preservation functionality."""
-        context_results = {
+        context_results: dict[str, Any] = {
             "agents_tested": len(target_agents),
             "context_successful": 0,
             "context_failed": 0,
@@ -320,7 +320,7 @@ class RecoveryTestSuite:
 
     async def _test_notification_system(self, target_agents: list[str]) -> dict[str, Any]:
         """Test notification system functionality."""
-        notification_results = {
+        notification_results: dict[str, Any] = {
             "agents_tested": len(target_agents),
             "notification_successful": 0,
             "notification_failed": 0,
@@ -373,7 +373,7 @@ class RecoveryTestSuite:
 
     async def _test_concurrent_recoveries(self, target_agents: list[str]) -> dict[str, Any]:
         """Test concurrent recovery handling."""
-        stress_results = {
+        stress_results: dict[str, Any] = {
             "agents_tested": len(target_agents),
             "concurrent_test_successful": False,
             "max_concurrent_recoveries": min(len(target_agents), 2),
@@ -404,7 +404,7 @@ class RecoveryTestSuite:
                         "recovery_successful": False,
                         "error": str(result),
                     }
-                else:
+                elif isinstance(result, dict):
                     agent_result = {
                         "target": target_agents[i],
                         "recovery_successful": result.get("success", False),
@@ -412,6 +412,12 @@ class RecoveryTestSuite:
                     }
                     if agent_result["recovery_successful"]:
                         successful_recoveries += 1
+                else:
+                    agent_result = {
+                        "target": target_agents[i],
+                        "recovery_successful": False,
+                        "error": "Unknown result type",
+                    }
 
                 stress_results["agent_results"].append(agent_result)
 
@@ -459,7 +465,7 @@ class RecoveryTestSuite:
 
     def _calculate_test_summary(self, test_results: list[dict[str, Any]]) -> dict[str, Any]:
         """Calculate overall test summary statistics."""
-        summary = {
+        summary: dict[str, Any] = {
             "total_tests": len(test_results),
             "tests_passed": 0,
             "tests_failed": 0,

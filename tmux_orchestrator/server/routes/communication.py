@@ -1,7 +1,5 @@
 """Inter-agent communication routes for MCP server."""
 
-from typing import Optional, Union
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 
@@ -53,7 +51,7 @@ class MessageResponse(BaseModel):
     success: bool
     target: str
     message_sent: str
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -72,8 +70,8 @@ class BroadcastRequest(BaseModel):
 
     session: str  # Session name to broadcast to
     message: str
-    agent_types: Optional[list[str]] = None  # Filter by agent types
-    exclude_targets: Optional[list[str]] = None  # Targets to exclude
+    agent_types: list[str] | None = None  # Filter by agent types
+    exclude_targets: list[str] | None = None  # Targets to exclude
     urgent: bool = False
 
     model_config = ConfigDict(
@@ -95,7 +93,7 @@ class BroadcastResponse(BaseModel):
     success: bool
     total_sent: int
     total_failed: int
-    results: list[dict[str, Union[str, bool]]]
+    results: list[dict[str, str | bool]]
     errors: list[str]
 
     model_config = ConfigDict(
@@ -199,9 +197,14 @@ async def broadcast_message_tool(request: BroadcastRequest) -> BroadcastResponse
         status_code = 404 if "not found" in error_msg.lower() else 500
         raise HTTPException(status_code=status_code, detail=result.error_message)
 
-    # Convert results to API response format
-    results = [{"target": target, "success": True} for target in result.targets_sent]
-    results.extend([{"target": target, "success": False} for target in result.targets_failed])
+    # Convert results to API response format with explicit typing
+    results: list[dict[str, str | bool]] = []
+    for target in result.targets_sent:
+        sent_result: dict[str, str | bool] = {"target": target, "success": True}
+        results.append(sent_result)
+    for target in result.targets_failed:
+        failed_result: dict[str, str | bool] = {"target": target, "success": False}
+        results.append(failed_result)
 
     return BroadcastResponse(
         success=result.success,
@@ -215,7 +218,7 @@ async def broadcast_message_tool(request: BroadcastRequest) -> BroadcastResponse
 @router.get("/history")
 async def get_conversation_history_tool(
     request: ConversationHistoryRequest,
-) -> dict[str, Union[str, list[dict[str, str]], int]]:
+) -> dict[str, str | list[dict[str, str | None]] | int]:
     """MCP Tool: Get conversation history for an agent.
 
     This tool retrieves the recent conversation history from an agent's
@@ -261,7 +264,7 @@ async def get_conversation_history_tool(
 @router.post("/interrupt")
 async def interrupt_agent_tool(
     request: InterruptRequest,
-) -> dict[str, Union[str, bool]]:
+) -> dict[str, str | bool]:
     """MCP Tool: Send interrupt signal to an agent.
 
     This tool sends a Ctrl+C signal to interrupt a running agent,
@@ -302,7 +305,7 @@ async def interrupt_agent_tool(
 @router.get("/agents/{session}")
 async def get_session_agents(
     session: str,
-) -> dict[str, Union[str, list[dict[str, str]], int]]:
+) -> dict[str, str | list[dict[str, str]] | int]:
     """MCP Tool: Get all agents in a specific session.
 
     This tool lists all Claude agents running within a specific tmux session

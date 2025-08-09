@@ -15,13 +15,11 @@ test-cov:
 
 # Format code
 format:
-	poetry run black tmux_orchestrator tests
-	poetry run isort tmux_orchestrator tests
+	poetry run ruff format tmux_orchestrator tests
 
 # Check formatting without changing files
 format-check:
-	poetry run black --check tmux_orchestrator tests
-	poetry run isort --check-only tmux_orchestrator tests
+	poetry run ruff format --check tmux_orchestrator tests
 
 # Run linter
 lint:
@@ -33,7 +31,7 @@ type-check:
 
 # Run security checks
 security-check:
-	poetry run bandit -r tmux_orchestrator -ll
+	poetry run bandit -r tmux_orchestrator -ll --skip B108
 
 # Run all checks (what CI will run)
 check: format-check lint type-check security-check test

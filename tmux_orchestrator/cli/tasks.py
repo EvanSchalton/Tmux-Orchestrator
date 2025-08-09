@@ -4,7 +4,7 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import click
 from rich.console import Console
@@ -370,7 +370,7 @@ def distribute(
 
     # Parse tasks more intelligently by section and priority
     all_tasks = []
-    task_categories = {
+    task_categories: dict[str, list[str]] = {
         "frontend": [],
         "backend": [],
         "api": [],
@@ -464,7 +464,7 @@ def distribute(
         agent_file = agents_dir / f"{agent_type}-tasks.md"
 
         # Select tasks for this agent based on categories
-        agent_tasks = []
+        agent_tasks: list[str] = []
 
         # Map agent types to task categories
         if agent_type == "frontend":
@@ -581,7 +581,7 @@ def export(project_name: str, format: str, output: Optional[str]) -> None:
         return
 
     # Gather all data
-    data = {
+    data: dict[str, Any] = {
         "project": project_name,
         "exported": datetime.now().isoformat(),
         "tasks": {},
@@ -726,10 +726,10 @@ Archive Location: {archive_name}
         console.print(f"[red]Failed to archive: {e}[/red]")
 
 
-@tasks.command()
+@tasks.command(name="list")
 @click.option("--active", is_flag=True, help="Show only active projects")
 @click.option("--archived", is_flag=True, help="Show archived projects")
-def list(active: bool, archived: bool) -> None:
+def list_tasks(active: bool, archived: bool) -> None:
     """List all projects and their status.
 
     Shows all projects in the task management system with their

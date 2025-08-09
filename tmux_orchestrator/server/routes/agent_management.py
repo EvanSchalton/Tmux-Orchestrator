@@ -1,6 +1,7 @@
 """Agent lifecycle management routes for MCP server."""
 
 import asyncio
+from datetime import datetime, timezone
 from typing import Union
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -73,7 +74,9 @@ async def spawn_agent_tool(request: AgentSpawnRequest, background_tasks: Backgro
         session=result.session,
         window=result.window,
         target=result.target,
-        message=f"Agent {request.agent_type} spawned successfully",
+        agent_type=request.agent_type,
+        created_at=datetime.now(timezone.utc).isoformat(),
+        error_message=None,
     )
 
 
@@ -86,11 +89,17 @@ async def restart_agent_tool(
     This tool handles agent recovery by safely restarting Claude processes
     while preserving the session context.
     """
+    # Parse target into session and window
+    if ":" not in request.target:
+        raise HTTPException(status_code=400, detail="Target must be in format 'session:window'")
+
+    session, window = request.target.split(":", 1)
+
     tool_request = ToolRestartRequest(
-        session=request.session,
-        window=request.window,
-        clear_terminal=request.clear_terminal,
-        restart_delay_seconds=request.restart_delay_seconds,
+        session=session,
+        window=window,
+        clear_terminal=True,  # Default to clearing terminal
+        restart_delay_seconds=2,  # Default delay
     )
 
     result = await restart_agent(tmux, tool_request)
@@ -112,7 +121,15 @@ async def get_agent_status_tool(request: AgentStatusRequest) -> AgentStatusRespo
     This tool provides comprehensive status information about an agent
     including activity state and recent output.
     """
-    tool_request = ToolAgentStatusRequest(session=request.session, window=request.window, lines=request.lines)
+    # Parse target into session and window
+    if ":" not in request.target:
+        raise HTTPException(status_code=400, detail="Target must be in format 'session:window'")
+
+    session, window = request.target.split(":", 1)
+
+    tool_request = ToolAgentStatusRequest(
+        session=session, window=window, lines=request.activity_lines if request.include_activity else 0
+    )
 
     result = get_agent_status(tmux, tool_request)
 
@@ -122,13 +139,21 @@ async def get_agent_status_tool(request: AgentStatusRequest) -> AgentStatusRespo
             detail=result.error_message,
         )
 
+    # Convert result to proper response format
+    activity_lines = []
+    if result.recent_output:
+        # recent_output is already a list[str]
+        activity_lines = result.recent_output[-10:]
+
     return AgentStatusResponse(
-        session=result.session,
-        window=result.window,
         target=result.target,
         status=result.status,
-        recent_output=result.recent_output,
-        output_length=result.output_length,
+        responsive=result.status == "active",
+        last_activity=datetime.now(timezone.utc).isoformat(),
+        uptime_minutes=0,  # TODO: Calculate actual uptime
+        activity_summary=activity_lines,
+        health_score=100 if result.status == "active" else 50,
+        error_details=None,
     )
 
 

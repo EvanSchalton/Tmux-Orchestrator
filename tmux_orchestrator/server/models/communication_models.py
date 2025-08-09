@@ -1,7 +1,5 @@
 """Pydantic models for inter-agent communication operations."""
 
-from typing import Optional, Union
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -33,7 +31,7 @@ class MessageRequest(BaseModel):
         examples=["Update status on React components", "Start working on API tests"],
     )
     urgent: bool = Field(False, description="Mark message as urgent")
-    sender_id: Optional[str] = Field(
+    sender_id: str | None = Field(
         None,
         description="Identifier of the message sender",
         examples=["orchestrator", "pm-agent", "user"],
@@ -60,7 +58,7 @@ class MessageResponse(BaseModel):
     message_id: str = Field(..., description="Unique message identifier")
     delivered_at: str = Field(..., description="ISO timestamp of delivery")
     estimated_read_time: str = Field(..., description="Estimated when agent will read")
-    error_message: Optional[str] = Field(None, description="Error details if failed")
+    error_message: str | None = Field(None, description="Error details if failed")
 
 
 class BroadcastRequest(BaseModel):
@@ -92,7 +90,7 @@ class BroadcastRequest(BaseModel):
         examples=[["developer", "qa"], ["pm"]],
     )
     urgent: bool = Field(False, description="Mark broadcast as urgent")
-    sender_id: Optional[str] = Field(None, description="Broadcast sender identifier")
+    sender_id: str | None = Field(None, description="Broadcast sender identifier")
 
 
 class BroadcastResponse(BaseModel):
@@ -121,7 +119,7 @@ class BroadcastResponse(BaseModel):
     broadcast_id: str = Field(..., description="Unique broadcast identifier")
     total_sent: int = Field(..., description="Number of successful deliveries")
     total_failed: int = Field(..., description="Number of failed deliveries")
-    results: list[dict[str, Union[str, bool]]] = Field(..., description="Detailed delivery results per target")
+    results: list[dict[str, str | bool]] = Field(..., description="Detailed delivery results per target")
     errors: list[str] = Field(..., description="List of error messages")
     broadcast_at: str = Field(..., description="ISO timestamp of broadcast")
 
@@ -142,8 +140,8 @@ class InterruptRequest(BaseModel):
 
     target: str = Field(..., description="Target agent to interrupt", pattern=r"^[^:]+:[^:]+(\.\d+)?$")
     interrupt_type: str = Field("soft", description="Type of interrupt", pattern="^(soft|hard|emergency)$")
-    reason: Optional[str] = Field(None, description="Reason for the interrupt", max_length=500)
-    new_instruction: Optional[str] = Field(None, description="New instruction after interrupt", max_length=1000)
+    reason: str | None = Field(None, description="Reason for the interrupt", max_length=500)
+    new_instruction: str | None = Field(None, description="New instruction after interrupt", max_length=1000)
 
 
 class InterruptResponse(BaseModel):
@@ -168,7 +166,7 @@ class InterruptResponse(BaseModel):
     interrupted_at: str = Field(..., description="ISO timestamp of interrupt")
     agent_acknowledged: bool = Field(..., description="Whether agent acknowledged interrupt")
     previous_state_saved: bool = Field(..., description="Whether previous work state was saved")
-    error_message: Optional[str] = Field(None, description="Error details if failed")
+    error_message: str | None = Field(None, description="Error details if failed")
 
 
 class ConversationHistoryRequest(BaseModel):
@@ -230,10 +228,8 @@ class ConversationHistoryResponse(BaseModel):
     )
 
     target: str = Field(..., description="Target agent for this conversation")
-    conversation: list[dict[str, Union[str, Optional[str]]]] = Field(
-        ..., description="Chronological conversation entries"
-    )
+    conversation: list[dict[str, str | None]] = Field(..., description="Chronological conversation entries")
     total_entries: int = Field(..., description="Number of conversation entries")
     history_range: dict[str, str] = Field(..., description="Timestamp range of conversation history")
     retrieved_at: str = Field(..., description="When this history was retrieved")
-    error_message: Optional[str] = Field(None, description="Error details if failed")
+    error_message: str | None = Field(None, description="Error details if failed")

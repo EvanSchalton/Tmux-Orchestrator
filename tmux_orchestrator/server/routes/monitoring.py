@@ -339,7 +339,7 @@ async def get_active_agents_tool() -> dict[str, Any]:
     """
     try:
         agents = tmux.list_agents()
-        active_agents = []
+        active_agents: list[dict[str, Any]] = []
 
         for agent in agents:
             if agent["status"] == "Active":
@@ -347,13 +347,13 @@ async def get_active_agents_tool() -> dict[str, Any]:
                 target = f"{agent['session']}:{agent['window']}"
                 recent_output = tmux.capture_pane(target, lines=20)
 
-                active_agents.append(
-                    {
-                        **agent,
-                        "recent_activity": recent_output.split("\n")[-5:] if recent_output else [],
-                        "activity_length": len(recent_output.split("\n")) if recent_output else 0,
-                    }
-                )
+                # Create a new dict with proper typing
+                agent_data: dict[str, Any] = {
+                    **agent,
+                    "recent_activity": recent_output.split("\n")[-5:] if recent_output else [],
+                    "activity_length": len(recent_output.split("\n")) if recent_output else 0,
+                }
+                active_agents.append(agent_data)
 
         # Group active agents by session
         by_session: dict[str, list[dict[str, Any]]] = {}

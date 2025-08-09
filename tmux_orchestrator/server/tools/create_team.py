@@ -35,7 +35,7 @@ class CreateTeamResult:
 
     success: bool
     team_name: str
-    created_agents: list[dict[str, str]] = field(default_factory=list)
+    created_agents: list[dict[str, Any]] = field(default_factory=list)
     team_metadata: dict[str, Any] | None = None
     error_message: str | None = None
 
@@ -271,7 +271,7 @@ def _generate_team_metadata(
     """Generate comprehensive team metadata for tracking and coordination."""
     now = datetime.now(timezone.utc)
 
-    metadata = {
+    metadata: dict[str, Any] = {
         "team_name": team_name,
         "project_path": project_path,
         "coordination_strategy": coordination_strategy,

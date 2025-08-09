@@ -393,7 +393,7 @@ def _get_stored_messages(session: str, since: Optional[str]) -> list[dict[str, A
         return []
 
     with open(session_file) as f:
-        messages = json.load(f)
+        messages: list[dict[str, Any]] = json.load(f)
 
     if since:
         since_dt = datetime.fromisoformat(since)

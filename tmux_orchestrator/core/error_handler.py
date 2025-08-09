@@ -250,7 +250,7 @@ class ErrorHandler:
         if not self.error_history:
             return {"total": 0, "by_category": {}, "by_severity": {}}
 
-        summary = {
+        summary: dict[str, Any] = {
             "total": len(self.error_history),
             "by_category": {},
             "by_severity": {},
