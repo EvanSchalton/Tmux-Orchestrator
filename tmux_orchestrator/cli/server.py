@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -42,9 +43,9 @@ def start(host: str, port: int, background: bool) -> None:
     console.print(f"[blue]Starting MCP server on {host}:{port}...[/blue]")
 
     if background:
-        # Run in background using subprocess
+        # Run in background using subprocess with current Python
         process = subprocess.Popen(
-            ["python", "-m", "tmux_orchestrator.server"],
+            [sys.executable, "-m", "tmux_orchestrator.server"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             env={**os.environ, "TMUX_ORC_SERVER_HOST": host, "TMUX_ORC_SERVER_PORT": str(port)},
@@ -71,7 +72,7 @@ def start(host: str, port: int, background: bool) -> None:
 
         try:
             subprocess.run(
-                ["python", "-m", "tmux_orchestrator.server"],
+                [sys.executable, "-m", "tmux_orchestrator.server"],
                 env={**os.environ, "TMUX_ORC_SERVER_HOST": host, "TMUX_ORC_SERVER_PORT": str(port)},
             )
         except KeyboardInterrupt:
@@ -169,7 +170,7 @@ def setup() -> None:
         progress.update(task, description="Adding MCP server to Claude config...")
 
         claude_config["mcpServers"]["tmux-orchestrator"] = {
-            "command": "python",
+            "command": sys.executable,
             "args": ["-m", "tmux_orchestrator.server"],
             "env": {"TMUX_ORC_SERVER_HOST": "127.0.0.1", "TMUX_ORC_SERVER_PORT": "8000"},
         }
@@ -193,29 +194,38 @@ def setup() -> None:
             else:
                 raise requests.exceptions.RequestException()
         except requests.exceptions.RequestException:
-            # Start server in background
+            # Start server in background with current Python
             subprocess.Popen(
-                ["python", "-m", "tmux_orchestrator.server"],
+                [sys.executable, "-m", "tmux_orchestrator.server"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            time.sleep(3)
+            console.print("[dim]Starting MCP server in background...[/dim]")
+            time.sleep(5)  # Give more time for server to start
 
         progress.update(task, advance=1)
 
-        # Step 4: Verify setup
+        # Step 4: Verify setup with retries
         progress.update(task, description="Verifying setup...")
 
-        try:
-            import requests  # type: ignore[import-untyped]
+        server_started = False
+        for attempt in range(5):  # Try 5 times
+            try:
+                import requests  # type: ignore[import-untyped]
 
-            response = requests.get("http://127.0.0.1:8000/health", timeout=2)
-            if response.status_code == 200:
-                progress.update(task, advance=1)
-            else:
-                raise Exception("Server not responding")
-        except Exception as e:
-            console.print(f"[red]✗ Setup failed: {e}[/red]")
+                response = requests.get("http://127.0.0.1:8000/health", timeout=2)
+                if response.status_code == 200:
+                    server_started = True
+                    progress.update(task, advance=1)
+                    break
+            except requests.exceptions.RequestException:
+                if attempt < 4:  # Not the last attempt
+                    time.sleep(2)  # Wait 2 seconds before retry
+                    continue
+
+        if not server_started:
+            console.print("[red]✗ Setup failed: Could not start or connect to MCP server[/red]")
+            console.print("[yellow]Try running 'tmux-orc server start' manually to see any error messages[/yellow]")
             return
 
     # Success message
