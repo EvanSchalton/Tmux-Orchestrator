@@ -220,19 +220,22 @@ Building on the original's solid foundation, this fork adds:
 | **Agent Variety** | Expanded to 20+ specialized agent templates |
 | **API Access** | Added MCP Server with REST API for integrations |
 
-### 🎯 Dynamic Team Composition (NEW!)
-No more one-size-fits-all teams! The orchestrator now analyzes your project requirements and assembles the perfect team:
-- **Automatic role selection** based on PRD analysis
-- **Specialized agents** from 20+ templates (CLI devs, API designers, security engineers)
-- **Team documentation** with interaction diagrams for recovery
-- **Resource efficiency** - only deploy the agents you need
+### 🎯 Document-Driven Team Workflow
+Claude Code acts as orchestrator, creating bespoke teams through planning documents:
+- **Claude Code orchestrator** analyzes requirements and creates team plans
+- **Planning documents** define custom team composition and interactions
+- **Agent examples** in `/agent-examples/` inspire various roles (or create new ones!)
+- **PM agents** execute plans by spawning team members individually
 
 ```bash
-# Execute PRD with custom team composition
-tmux-orc execute ./prd.md
+# Claude Code orchestrator workflow:
+# 1. Creates team plan in .tmux_orchestrator/planning/
+# 2. Spawns PM with plan reference
+tmux-orc agent spawn project:1 pm --briefing "Read plan at .tmux_orchestrator/planning/..."
 
-# Or manually compose your team
-tmux-orc team compose my-project --interactive
+# 3. PM reads plan and spawns team:
+tmux-orc agent spawn project:2 backend-dev --briefing "..."
+tmux-orc agent spawn project:3 custom-role --briefing "..."
 ```
 
 ### 📋 Task Management System (NEW!)

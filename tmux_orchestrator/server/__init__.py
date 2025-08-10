@@ -12,6 +12,7 @@ from tmux_orchestrator.server.middleware import TimingMiddleware
 from tmux_orchestrator.server.routes import (
     agent_management,
     communication,
+    contexts,
     coordination,
     monitoring,
     tasks,
@@ -76,6 +77,10 @@ app = FastAPI(
             "name": "Task Management",
             "description": "Task creation, assignment, tracking, and queue management",
         },
+        {
+            "name": "Context Management",
+            "description": "Standardized context briefings for system roles (orchestrator and PM)",
+        },
     ],
 )
 
@@ -131,6 +136,15 @@ app.include_router(
         500: {"description": "Task management error"},
     },
 )
+app.include_router(
+    contexts.router,
+    prefix="/contexts", 
+    tags=["Context Management"],
+    responses={
+        404: {"description": "Context not found"},
+        500: {"description": "Context operation error"},
+    },
+)
 
 
 @app.get("/")
@@ -164,6 +178,9 @@ async def root() -> dict[str, Union[str, list[str]]]:
             "setup_hub_spoke_coordination",
             "create_task",
             "get_task_status",
+            "list_contexts",
+            "get_context",
+            "spawn_with_context",
         ],
         "documentation": "/docs",
         "openapi_spec": "/openapi.json",

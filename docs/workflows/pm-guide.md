@@ -1,9 +1,9 @@
-# PM Quick Start Guide - PRD-Driven Orchestration
+# PM Agent Guide - Document-Driven Team Orchestration
 
 ## Overview
-This guide helps Project Managers implement the PRD-driven development workflow with horizontal scaling across development teams.
+This guide helps PM agents execute team plans created by human orchestrators, spawning agents individually and coordinating work based on planning documents.
 
-**Important**: Human remains in the loop for PRD creation and survey to ensure proper context curation.
+**Important**: PMs work from team plan documents created by human orchestrators, not templates.
 
 ## Quick Command Reference
 

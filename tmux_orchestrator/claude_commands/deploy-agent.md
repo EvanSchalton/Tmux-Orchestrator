@@ -1,24 +1,38 @@
 # Deploy Claude Agent
 
-Deploys a new Claude agent for a specific component or task in the Corporate Coach project.
+Spawns a new Claude agent based on a team planning document.
 
 ## Usage
 ```
-/deploy-agent <component> [role]
+/deploy-agent <session:window> <agent-name> --briefing "<briefing>"
 ```
 
 ### Parameters
-- **component** (required): The project component to work on
-  - `frontend` - React/TypeScript frontend
-  - `backend` - FastAPI/Python backend
-  - `database` - Neo4j/PostgreSQL
-  - `docs` - Documentation
+- **session:window** (required): Target tmux location (e.g., `project:2`)
+- **agent-name** (required): Descriptive name for the agent
+- **--briefing** (required): Full agent briefing from team plan
 
-- **role** (optional): The agent's role (default: `developer`)
-  - `developer` - Implements features and fixes bugs
-  - `pm` - Project manager for quality and coordination
-  - `qa` - Quality assurance and testing
-  - `reviewer` - Code review and standards enforcement
+## Document-Driven Approach
+
+Agents should be spawned based on a team plan document that defines:
+- Required agents and their expertise
+- Individual briefings with full context
+- Interaction patterns between agents
+- Recovery instructions
+
+## Examples from Team Plans
+
+```bash
+# From API project team plan:
+/deploy-agent api-project:2 backend-dev --briefing "You are a backend developer specializing in FastAPI..."
+
+# From CLI tool team plan:
+/deploy-agent cli-tool:2 cli-engineer --briefing "You are a CLI specialist focused on user experience..."
+
+# Custom agent types:
+/deploy-agent content:2 technical-writer --briefing "You are a technical writer creating user guides..."
+/deploy-agent research:2 ml-researcher --briefing "You are researching latest ML techniques..."
+```
 
 ## Examples
 ```

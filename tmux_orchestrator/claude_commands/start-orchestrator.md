@@ -1,20 +1,28 @@
-# Start Tmux Orchestrator
+# Start Project Session
 
-Initializes the Tmux Orchestrator environment for managing multiple Claude agents in the Corporate Coach project.
+Creates a new tmux session for a project with a human orchestrator window.
 
 ## Usage
 ```
 /start-orchestrator [session-name]
 ```
 
-Default session name: `orchestrator`
+Default session name: `project`
 
 ## What it does
 
-1. **Creates orchestrator session** - Sets up a new tmux session for the orchestrator
-2. **Starts Claude** - Launches Claude in the orchestrator window
-3. **Sends briefing** - Provides the orchestrator with its responsibilities and context
+1. **Creates project session** - Sets up a new tmux session for the project
+2. **Creates orchestrator window** - Window 0 is reserved for human interaction
+3. **Prepares for PM** - Ready to spawn a PM agent in window 1
 4. **Returns access info** - Shows how to attach to the session
+
+## Important Note
+
+The orchestrator role is filled by a human, not a Claude agent. The human orchestrator:
+- Creates team planning documents
+- Spawns the PM agent with the plan
+- Monitors high-level progress
+- Makes architectural decisions
 
 ## Process Details
 
@@ -24,22 +32,25 @@ tmux new-session -d -s orchestrator -c /workspaces/corporate-coach
 tmux rename-window -t orchestrator:0 "Orchestrator"
 ```
 
-### 2. Claude Initialization
+### 2. Human Orchestrator Window
 ```bash
-tmux send-keys -t orchestrator:0 "claude" Enter
-sleep 5  # Wait for Claude to start
+# Window 0 is for human interaction - no Claude started
+echo "Human orchestrator window ready"
 ```
 
-### 3. Orchestrator Briefing
-The orchestrator receives instructions to:
-- Manage multiple Claude agents across components
-- Coordinate frontend, backend, and database teams
-- Monitor progress and resolve blockers
-- Ensure code quality and git discipline
-- Reference the Tmux Orchestrator documentation
+### 3. Next Step: Create Team Plan
+The human orchestrator should:
+1. Create a team plan document in `.tmux_orchestrator/planning/`
+2. Define required agents based on project needs
+3. Include agent briefings and interaction diagrams
+4. Spawn PM agent with: `tmux-orc agent spawn [session]:1 pm --briefing "..."`
 
-### 4. Window Organization
-The orchestrator is instructed to rename all tmux windows with descriptive names for better organization.
+### 4. Document-Driven Workflow
+The system follows a document-driven approach where:
+- Team plans are documents, not code templates
+- Each team is bespoke for the project
+- Agents are spawned individually from the plan
+- Plans serve as recovery documentation
 
 ## Example Output
 ```

@@ -1,36 +1,42 @@
-# Orchestrated PRD-Driven Development Workflow with Dynamic Team Composition
+# Document-Driven Team Development Workflow
 
 ## Overview
 
-This workflow scales the successful single-agent PRD → Task List → Execution pattern to a multi-agent orchestrated system with flexible team composition and horizontal scaling across the stack with automated quality assurance.
+This workflow uses planning documents to define bespoke teams for each project. Teams are composed by spawning individual agents based on documented requirements, not templates.
 
 **Key Principles**:
-- Human remains in the loop for PRD creation and survey to ensure proper context curation
-- Team composition is dynamically determined based on project requirements
-- PM executes autonomously with occasional human feedback/guidance
+- Human orchestrator creates team planning documents
+- Each team is custom-designed for the specific project needs
+- Agents are spawned individually from the plan
+- Planning documents serve as the source of truth for recovery
 
 ## Workflow Architecture
 
 ```
-User Input (1-2 paragraphs)
+Human Request
     ↓
-Orchestrator/PM Analysis
-    ├→ PRD Creation (using /create-prd.md)
-    ├→ Team Composition Planning (based on PRD)
-    ├→ Task List Generation (using /generate-tasks.md)
-    └→ Dynamic Team Deployment
-         ├→ Custom Agent Roles (as needed)
-         ├→ Specialized Developers
-         └→ Quality & Testing Agents
+Claude Code Orchestrator (You)
+    ├→ Analyze requirements
+    ├→ Create team plan document
+    ├→ Define agent roles & interactions
+    └→ Spawn PM with plan reference
+         ↓
+    PM Agent (Spawned by You)
+         ├→ Reads team plan
+         ├→ Spawns team agents
+         ├→ Coordinates execution
+         └→ Reports back to you
               ↓
-         Coordinated Execution
+         Team Agents Work
+              ↓
+         You Monitor & Report to Human
 ```
 
-## Dynamic Team Composition
+## Document-Driven Team Planning
 
-### Flexible Team Planning
+### Team Plan Document Structure
 
-Instead of fixed team structures, the orchestrator analyzes the PRD to determine optimal team composition:
+Each project has a team plan in `.tmux_orchestrator/planning/[project]-team-plan.md`:
 
 #### Example Team Compositions
 
@@ -54,23 +60,30 @@ Instead of fixed team structures, the orchestrator analyzes the PRD to determine
 - 1 Security Tester (penetration testing)
 - 1 DevOps Engineer (secure deployment)
 
-### Team Composition Document
+### Team Plan Components
 
-Each project includes `team-composition.md` that defines:
-- Agent roles and specializations
-- Interaction patterns (Mermaid diagram)
-- Recovery information for crashes
-- Communication protocols
-- Quality standards per role
+1. **Project Overview** - What we're building and why
+2. **Required Agents** - Each agent's role and expertise
+3. **Agent Briefings** - Individual context for each agent
+4. **Interaction Model** - Mermaid diagram of communication flows
+5. **Recovery Instructions** - How to respawn failed agents
 
-### Agent Templates
+### Using Agent Examples
 
-Reusable agent templates in `.tmux_orchestrator/agent-templates/`:
-- `cli-developer.yaml` - Command-line specialist
-- `api-designer.yaml` - API architecture expert
-- `security-engineer.yaml` - Security specialist
-- `technical-writer.yaml` - Documentation expert
-- Plus standard roles (frontend, backend, QA, etc.)
+Agent examples in `/agent-examples/` provide starting points:
+- Review existing examples (backend-developer.md, qa-engineer.md, etc.)
+- Adapt briefings to project needs
+- Create entirely new agent types as needed (editor, novelist, researcher, etc.)
+- Each agent briefing should be self-contained with full context
+
+### Spawning Agents from the Plan
+
+```bash
+# PM reads the team plan and spawns each agent:
+tmux-orc agent spawn project-session backend-dev --briefing "From team plan..."
+tmux-orc agent spawn project-session qa-engineer --briefing "From team plan..."
+tmux-orc agent spawn project-session custom-role --briefing "Novel agent type..."
+```
 
 ## CLI/MCP Communication Layer
 

@@ -1,29 +1,48 @@
 # Claude.md - Tmux Orchestrator Project Knowledge Base
 
 ## Project Overview
-The Tmux Orchestrator is an AI-powered session management system where Claude acts as the orchestrator for multiple Claude agents across tmux sessions, managing codebases and keeping development moving forward 24/7.
+The Tmux Orchestrator is an AI-powered session management system that enables Claude agents to collaborate across tmux sessions, managing codebases and keeping development moving forward 24/7.
 
-## Agent System Architecture
+## Document-Driven Team Workflow
 
-### Orchestrator Role
-As the Orchestrator, you maintain high-level oversight without getting bogged down in implementation details:
-- Deploy and coordinate agent teams
-- Monitor system health
-- Resolve cross-project dependencies
-- Make architectural decisions
-- Ensure quality standards are maintained
+### Your Role as Orchestrator
+As the Claude Code orchestrator, you are the interface between the human and the agent system:
 
-### Agent Hierarchy
-```
-                    Orchestrator (You)
-                    /              \
-            Project Manager    Project Manager
-           /      |       \         |
-    Developer    QA    DevOps   Developer
-```
+1. **Planning Phase**: You create team plan documents in `.tmux_orchestrator/planning/` containing:
+   - Task requirements and objectives
+   - Required agents with specific roles and expertise
+   - Mermaid diagram showing agent interaction patterns
+   - Individual agent briefings and context
+   - Recovery instructions for failed agents
+
+2. **Execution Phase**: You spawn the PM and guide them to build the team:
+   ```bash
+   # You can use standardized context for PM
+   tmux-orc context spawn pm --session session-name:1
+   # Or with custom extensions:
+   tmux-orc agent spawn session-name:1 pm --briefing "$(tmux-orc context show pm --raw)\n\nProject specific: ..."
+   
+   # The PM then spawns other agents based on your plan
+   tmux-orc agent spawn session-name:2 backend-dev --briefing "..."
+   tmux-orc agent spawn session-name:3 qa-engineer --briefing "..."
+   ```
+
+3. **Oversight**: You monitor progress, handle issues, and maintain the human interface
+
+### Important Notes
+- **You (Claude Code) are the orchestrator** - Not a human, not another agent
+- **No rigid team templates** - Each team is bespoke based on requirements
+- **No `team deploy` command** - Teams are built through individual agent spawning
+- **Planning documents are the source of truth** - Created by you, executed by PM
+- **All planning documents go in `.tmux_orchestrator/planning/`** - Not in project root
+
+### Orchestrator vs Project Manager
+- **Orchestrator (You)**: Interface with human, create plans, spawn PM, monitor system
+- **PM Agent**: Execute detailed plans, coordinate team agents, report back to you
+- **Window 0**: Can be empty or used for system monitoring - not necessarily human-occupied
 
 ### Agent Types
-1. **Project Manager**: Quality-focused team coordination
+1. **Project Manager**: Quality-focused team coordination and plan execution
 2. **Developer**: Implementation and technical decisions
 3. **QA Engineer**: Testing and verification
 4. **DevOps**: Infrastructure and deployment
