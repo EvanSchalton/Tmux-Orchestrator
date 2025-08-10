@@ -5,13 +5,13 @@ import multiprocessing
 import os
 import signal
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from tmux_orchestrator.core.config import Config
-from tmux_orchestrator.core.recovery.detect_failure import detect_failure
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
@@ -35,8 +35,14 @@ class IdleMonitor:
 
     def __init__(self, tmux: TMUXManager):
         self.tmux = tmux
-        self.pid_file = Path("/tmp/tmux-orchestrator-idle-monitor.pid")
-        self.log_file = Path("/tmp/tmux-orchestrator-idle-monitor.log")
+        # Use project directory for storage as per user preference
+        project_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+        project_dir.mkdir(exist_ok=True)
+        logs_dir = project_dir / "logs"
+        logs_dir.mkdir(exist_ok=True)
+
+        self.pid_file = project_dir / "idle-monitor.pid"
+        self.log_file = logs_dir / "idle-monitor.log"
         self.daemon_process: multiprocessing.Process | None = None
         self._crash_notifications: dict[str, datetime] = {}
         self._idle_notifications: dict[str, datetime] = {}
@@ -63,20 +69,34 @@ class IdleMonitor:
             with open(self.pid_file) as f:
                 return int(f.read().strip())
 
-        # Create daemon process
-        self.daemon_process = multiprocessing.Process(target=self._run_monitoring_daemon, args=(interval,))
-        self.daemon_process.daemon = False  # Don't exit with parent process
+        # Fork to create daemon (proper daemonization to prevent early exit)
+        pid = os.fork()
+        if pid > 0:
+            # Parent process - wait for daemon to start
+            for _ in range(50):  # Wait up to 5 seconds
+                if self.pid_file.exists():
+                    with open(self.pid_file) as f:
+                        return int(f.read().strip())
+                time.sleep(0.1)
+            raise RuntimeError("Monitor daemon started but PID file not found")
 
-        self.daemon_process.start()
+        # Child process - become daemon
+        os.setsid()  # Create new session
 
-        # Wait for PID file to be created
-        for _ in range(50):  # Wait up to 5 seconds
-            if self.pid_file.exists():
-                with open(self.pid_file) as f:
-                    return int(f.read().strip())
-            time.sleep(0.1)
+        # Fork again to prevent zombie processes
+        pid = os.fork()
+        if pid > 0:
+            os._exit(0)  # Exit first child
 
-        raise RuntimeError("Monitor daemon started but PID file not found")
+        # Grandchild - the actual daemon
+        # Close file descriptors
+        sys.stdin.close()
+        sys.stdout.close()
+        sys.stderr.close()
+
+        # Run the monitoring daemon
+        self._run_monitoring_daemon(interval)
+        os._exit(0)  # Should never reach here
 
     def stop(self) -> bool:
         """Stop the idle monitor daemon."""
@@ -199,7 +219,8 @@ class IdleMonitor:
             logger.error(f"Monitoring daemon error: {e}", exc_info=True)
             # Try to write error to a debug file
             try:
-                with open("/tmp/monitor-daemon-error.log", "a") as f:
+                error_log = self.log_file.parent / "monitor-daemon-error.log"
+                with open(error_log, "a") as f:
                     f.write(f"{datetime.now()}: {type(e).__name__}: {e}\n")
                     import traceback
 
@@ -322,48 +343,106 @@ class IdleMonitor:
             return False
 
     def _check_agent_status(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
-        """Check the status of a specific agent using the recovery system."""
+        """Check agent status using simple 300ms polling method from PRD."""
         try:
-            # Use the bulletproof detection from recovery system
-            is_failed, failure_reason, status_details = detect_failure(
-                tmux=tmux,
-                target=target,
-                last_response=datetime.now() - timedelta(seconds=30),  # Default check window
-                consecutive_failures=0,
-                max_failures=3,
-                response_timeout=60,
-            )
+            # Step 1: Check if agent is idle using 300ms polling (4 snapshots over 1.2s)
+            is_idle = self._is_agent_idle_simple(tmux, target)
 
-            # Check for Claude crash
-            if failure_reason == "Claude interface not found":
-                logger.error(
-                    f"CRASH DETECTED: Claude Code appears to have crashed for {target} | Recovery needed immediately"
-                )
-                # Send crash notification to PM
-                self._notify_crash(tmux, target, logger)
-            # Check for unsubmitted messages
-            elif self._has_unsubmitted_message(tmux, target):
-                logger.warning(f"Agent {target} has unsubmitted message - auto-submitting")
-                self._auto_submit_message(tmux, target, logger)
-            # Log status
-            elif is_failed:
-                logger.warning(
-                    f"Agent {target} failed: {failure_reason} | "
-                    f"Idle: {status_details['is_idle']} | "
-                    f"Interface: {status_details['interface_status']}"
-                )
-            elif status_details["is_idle"]:
-                logger.info(f"Agent {target} is idle | Interface: {status_details['interface_status']}")
-                # Check if PM should be notified about idle agent
-                self._check_idle_notification(tmux, target, logger)
-            else:
-                logger.debug(f"Agent {target} is active and healthy")
+            if not is_idle:
+                logger.debug(f"Agent {target} is active")
                 # Reset idle tracking when agent becomes active
                 if target in self._idle_agents:
                     del self._idle_agents[target]
+                return
+
+            # Step 2: Agent is idle - check Claude interface status
+            content = tmux.capture_pane(target, lines=50)
+            has_claude_interface = self._has_claude_interface(content)
+
+            if has_claude_interface:
+                # Agent is idle but Claude is open - notify PM it's idle
+                logger.info(f"Agent {target} is idle with Claude interface")
+                self._check_idle_notification(tmux, target, logger)
+            else:
+                # Agent is idle and Claude isn't open - needs recovery
+                logger.error(f"Agent {target} needs recovery - no Claude interface detected")
+                self._notify_recovery_needed(tmux, target, logger)
 
         except Exception as e:
             logger.error(f"Failed to check agent {target}: {e}")
+
+    def _is_agent_idle_simple(self, tmux: TMUXManager, target: str) -> bool:
+        """Simple 300ms polling idle detection - check if terminal content changes at all."""
+        import time
+
+        snapshots = []
+
+        # Take 4 snapshots at 300ms intervals (total 1.2 seconds)
+        for i in range(4):
+            content = tmux.capture_pane(target, lines=50)
+            snapshots.append(content)
+
+            if i < 3:  # Don't sleep after last snapshot
+                time.sleep(0.3)
+
+        # If all snapshots are identical, agent is idle
+        return all(content == snapshots[0] for content in snapshots)
+
+    def _has_claude_interface(self, content: str) -> bool:
+        """Check if Claude Code interface is present."""
+        # Look for the specific Claude interface pattern from the user's example
+        claude_patterns = [
+            # The input box pattern (more flexible - check for box parts)
+            ("╭─" in content and "│" in content and "╰─" in content),
+            # The prompt indicator specifically
+            "│ >" in content,
+            # The shortcuts indicator
+            "? for shortcuts" in content,
+            # Bypassing permissions indicator
+            "Bypassing Permissions" in content,
+            # Claude-specific indicators
+            "@anthropic-ai/claude-code" in content,
+            # Active conversation indicators
+            ("assistant:" in content),
+            ("Human:" in content),
+        ]
+
+        # Must have at least the input box OR shortcuts indicator for Claude to be running
+        return any(claude_patterns)
+
+    def _notify_recovery_needed(self, tmux: TMUXManager, target: str, logger: logging.Logger):
+        """Notify PM that agent needs recovery."""
+        logger.warning(f"Notifying PM that {target} needs recovery")
+        pm_target = self._find_pm_agent(tmux)
+        if pm_target:
+            message = f"🔴 AGENT RECOVERY NEEDED: {target} is idle and Claude interface is not responding. Please restart this agent."
+            try:
+                tmux.send_message(pm_target, message)
+                logger.info(f"Sent recovery notification to PM at {pm_target}")
+            except Exception as e:
+                logger.error(f"Failed to notify PM: {e}")
+        else:
+            logger.warning("No PM agent found to notify about recovery")
+
+    def _find_pm_agent(self, tmux: TMUXManager) -> str | None:
+        """Find a PM agent to send notifications to."""
+        try:
+            sessions = tmux.list_sessions()
+            for session in sessions:
+                windows = tmux.list_windows(session["name"])
+                for window in windows:
+                    window_name = window.get("name", "").lower()
+                    target = f"{session['name']}:{window['index']}"
+
+                    # Check if this looks like a PM window
+                    if any(pm_indicator in window_name for pm_indicator in ["pm", "manager", "project"]):
+                        # Verify it has Claude interface
+                        content = tmux.capture_pane(target, lines=10)
+                        if self._has_claude_interface(content):
+                            return target
+            return None
+        except Exception:
+            return None
 
     def is_agent_idle(self, target: str) -> bool:
         """Check if agent is idle using the improved 4-snapshot method."""
@@ -525,25 +604,21 @@ class IdleMonitor:
                 return
 
             # Find PM target
-            pm_target = self._find_pm_target(tmux)
+            pm_target = self._find_pm_agent(tmux)
             if not pm_target:
                 logger.warning("No PM found to notify about idle agent")
                 return
 
-            # Check if PM is busy
-            pm_idle = self.is_agent_idle(pm_target)
-            if not pm_idle:
-                logger.debug("PM is busy, skipping idle notification")
-                return
-
-            # Send idle notification
+            # Determine agent type from target
             session, window = target.split(":")
             agent_type = self._determine_agent_type(session, window)
 
+            # Send idle notification
             message = (
                 f"🚨 IDLE AGENT ALERT:\n\n"
                 f"The following agent appears to be idle and needs tasks:\n"
                 f"{target} ({agent_type})\n\n"
+                f"Agent has been idle for {int(idle_duration.total_seconds()/60)} minutes.\n"
                 f"Please check their status and assign work as needed.\n\n"
                 f"This is an automated notification from the idle monitor."
             )

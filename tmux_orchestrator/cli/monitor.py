@@ -14,10 +14,13 @@ from tmux_orchestrator.core.performance_optimizer import (
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 console: Console = Console()
-PID_FILE = "/tmp/tmux-orchestrator-idle-monitor.pid"
-LOG_FILE = "/tmp/tmux-orchestrator-idle-monitor.log"
-RECOVERY_PID_FILE = "/tmp/tmux-orchestrator-recovery.pid"
-RECOVERY_LOG_FILE = "/tmp/tmux-orchestrator-recovery.log"
+# Use project directory for storage
+PROJECT_DIR = "/workspaces/Tmux-Orchestrator/.tmux_orchestrator"
+LOGS_DIR = f"{PROJECT_DIR}/logs"
+PID_FILE = f"{PROJECT_DIR}/idle-monitor.pid"
+LOG_FILE = f"{LOGS_DIR}/idle-monitor.log"
+RECOVERY_PID_FILE = f"{PROJECT_DIR}/recovery.pid"
+RECOVERY_LOG_FILE = f"{LOGS_DIR}/recovery.log"
 
 
 @click.group()
