@@ -225,12 +225,8 @@ def send(ctx: click.Context, target: str, message: str, delay: float, json: bool
         tmux.send_keys(target, message)
         time.sleep(max(delay * 6, 3.0))  # Ensure adequate time for message processing
 
-        # Move to end and submit
-        tmux.send_keys(target, "End")
-        time.sleep(delay * 0.4)
-        tmux.send_keys(target, "Enter")
-        time.sleep(delay * 2)
-        tmux.send_keys(target, "Enter")
+        # Submit with Ctrl+Enter (Claude's required key combination)
+        tmux.send_keys(target, "C-Enter")
 
         success = True
         status_msg = "sent"

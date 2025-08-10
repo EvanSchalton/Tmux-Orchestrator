@@ -86,9 +86,7 @@ class TMUXManager:
             self.send_keys(target, message)
             time.sleep(max(delay * 6, 3.0))  # Ensure adequate time for message processing
 
-            # Move to end and submit with Ctrl+Enter (Claude's required key combination)
-            self.send_keys(target, "End")
-            time.sleep(delay * 0.4)
+            # Submit with Ctrl+Enter (Claude's required key combination) - no End key needed
             self.send_keys(target, "C-Enter")
 
             return True
@@ -113,12 +111,8 @@ class TMUXManager:
         self.send_keys(target, message)
         subprocess.run(["sleep", "3.0"])
 
-        # Move to end and submit
-        self.send_keys(target, "End")
-        subprocess.run(["sleep", "0.2"])
-        self.send_keys(target, "Enter")
-        subprocess.run(["sleep", "1.0"])
-        self.send_keys(target, "Enter")
+        # Submit with Ctrl+Enter (Claude's required key combination)
+        self.send_keys(target, "C-Enter")
 
         return True
 
