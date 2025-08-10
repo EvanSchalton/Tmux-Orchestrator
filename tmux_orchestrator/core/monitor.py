@@ -64,7 +64,8 @@ class IdleMonitor:
                 return int(f.read().strip())
 
         # Create daemon process
-        self.daemon_process = multiprocessing.Process(target=self._run_monitoring_daemon, args=(interval,), daemon=True)
+        self.daemon_process = multiprocessing.Process(target=self._run_monitoring_daemon, args=(interval,))
+        self.daemon_process.daemon = False  # Don't exit with parent process
 
         self.daemon_process.start()
 
@@ -188,7 +189,16 @@ class IdleMonitor:
         except KeyboardInterrupt:
             logger.info("Monitoring daemon interrupted")
         except Exception as e:
-            logger.error(f"Monitoring daemon error: {e}")
+            logger.error(f"Monitoring daemon error: {e}", exc_info=True)
+            # Try to write error to a debug file
+            try:
+                with open("/tmp/monitor-daemon-error.log", "a") as f:
+                    f.write(f"{datetime.now()}: {type(e).__name__}: {e}\n")
+                    import traceback
+
+                    traceback.print_exc(file=f)
+            except Exception:
+                pass
         finally:
             self._cleanup_daemon()
 
