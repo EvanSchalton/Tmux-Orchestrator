@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from tmux_orchestrator import __version__
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.server.middleware import TimingMiddleware
 from tmux_orchestrator.server.routes import (
@@ -44,7 +45,7 @@ app = FastAPI(
     Currently operates in development mode without authentication.
     Production deployments should implement proper authentication and authorization.
     """,
-    version="2.0.0",
+    version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
@@ -137,7 +138,7 @@ async def root() -> dict[str, Union[str, list[str]]]:
     """Root endpoint with MCP server information."""
     return {
         "name": "TMUX Orchestrator MCP Server",
-        "version": "2.0.0",
+        "version": __version__,
         "description": "Model Context Protocol server for AI agent coordination",
         "status": "running",
         "protocol": "MCP",

@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from tmux_orchestrator import __version__
 from tmux_orchestrator.server import app, main
 
 
@@ -15,7 +16,7 @@ class TestMCPServerInitialization:
         """Test FastAPI app configuration."""
         assert isinstance(app, FastAPI)
         assert app.title == "TMUX Orchestrator MCP Server"
-        assert app.version == "2.0.0"
+        assert app.version == __version__
 
         # Check that routers are included
         routes = [route.path for route in app.routes]
@@ -74,7 +75,7 @@ class TestMCPServerInitialization:
 
         data = response.json()
         assert data["name"] == "TMUX Orchestrator MCP Server"
-        assert data["version"] == "2.0.0"
+        assert data["version"] == __version__
         assert data["status"] == "running"
         assert "available_tools" in data
         assert isinstance(data["available_tools"], list)
@@ -159,7 +160,7 @@ class TestMCPServerIntegration:
 
         openapi_spec = response.json()
         assert openapi_spec["info"]["title"] == "TMUX Orchestrator MCP Server"
-        assert openapi_spec["info"]["version"] == "2.0.0"
+        assert openapi_spec["info"]["version"] == __version__
 
         # Test documentation endpoints
         response = client.get("/docs")

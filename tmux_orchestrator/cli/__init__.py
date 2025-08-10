@@ -6,6 +6,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from tmux_orchestrator import __version__
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -14,7 +15,7 @@ console: Console = Console()
 
 
 @click.group(name="tmux-orc")
-@click.version_option(version="2.0.0", prog_name="tmux-orc")
+@click.version_option(version=__version__, prog_name="tmux-orc")
 @click.option(
     "--config-file",
     "-c",
