@@ -309,8 +309,12 @@ class IdleMonitor:
                 "I can help",
                 "Human:",
                 "Claude:",
-                "╭─.*─╮",
-            ]  # Claude prompt
+                "╭─",  # Start of Claude UI box
+                "╰─",  # End of Claude UI box
+                "? for shortcuts",
+                "Bypassing Permissions",
+                "@anthropic-ai/claude-code",
+            ]
 
             return any(indicator in content for indicator in claude_indicators)
 

@@ -102,13 +102,13 @@ class ClaudeInterface:
 
     @staticmethod
     def _method_standard_submit(target: str, message: str) -> bool:
-        """Standard submission: type and press Enter."""
+        """Standard submission: type and press Ctrl+Enter (Claude's required key)."""
         try:
             # Type the message
             subprocess.run(["tmux", "send-keys", "-t", target, message], check=True)
             time.sleep(0.5)
-            # Try Enter
-            subprocess.run(["tmux", "send-keys", "-t", target, "Enter"], check=True)
+            # Use Ctrl+Enter for Claude submission
+            subprocess.run(["tmux", "send-keys", "-t", target, "C-Enter"], check=True)
             return True
         except Exception:
             return False
@@ -122,8 +122,8 @@ class ClaudeInterface:
             # Paste it
             subprocess.run(["tmux", "paste-buffer", "-t", target], check=True)
             time.sleep(0.5)
-            # Submit
-            subprocess.run(["tmux", "send-keys", "-t", target, "Enter"], check=True)
+            # Submit with Ctrl+Enter
+            subprocess.run(["tmux", "send-keys", "-t", target, "C-Enter"], check=True)
             return True
         except Exception:
             return False
@@ -134,7 +134,7 @@ class ClaudeInterface:
         try:
             subprocess.run(["tmux", "send-keys", "-t", target, "-l", message], check=True)
             time.sleep(0.5)
-            subprocess.run(["tmux", "send-keys", "-t", target, "C-m"], check=True)
+            subprocess.run(["tmux", "send-keys", "-t", target, "C-Enter"], check=True)
             return True
         except Exception:
             return False
@@ -145,10 +145,8 @@ class ClaudeInterface:
         try:
             subprocess.run(["tmux", "send-keys", "-t", target, message], check=True)
             time.sleep(0.5)
-            # Try different Enter representations
-            for enter_key in ["Enter", "C-m", "Return", "KPEnter"]:
-                subprocess.run(["tmux", "send-keys", "-t", target, enter_key], check=True)
-                time.sleep(0.2)
+            # Use Ctrl+Enter which is the proven working method
+            subprocess.run(["tmux", "send-keys", "-t", target, "C-Enter"], check=True)
             return True
         except Exception:
             return False

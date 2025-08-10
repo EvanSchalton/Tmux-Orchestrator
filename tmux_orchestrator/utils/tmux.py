@@ -51,24 +51,37 @@ class TMUXManager:
         return result.returncode == 0
 
     def send_message(self, target: str, message: str) -> bool:
-        """Send a message to a Claude agent with enhanced handling."""
+        """Send a message to a Claude agent using the proven CLI method."""
+        import time
+
+        # Use the exact same method as the working CLI command
         try:
-            # Use Claude-specific interface handler
-            from tmux_orchestrator.utils.claude_interface import ClaudeInterface
+            delay = 0.5  # Standard delay from CLI
 
-            success, error = ClaudeInterface.send_message_to_claude(target, message)
-            if not success:
-                # Fallback to original method
-                self._send_message_fallback(target, message)
-                # Even if fallback appears to work, we can't verify submission
-                # Log this for debugging
-                import logging
+            # Clear any existing input first
+            self.send_keys(target, "C-c")
+            time.sleep(delay)
 
-                logging.warning(f"Claude message submission uncertain for {target}: {error}")
-            return True  # Return True since we attempted delivery
-        except ImportError:
-            # If claude_interface not available, use fallback
-            return self._send_message_fallback(target, message)
+            # Clear the input line
+            self.send_keys(target, "C-u")
+            time.sleep(delay)
+
+            # Send the actual message
+            self.send_keys(target, message)
+            time.sleep(max(delay * 6, 3.0))  # Ensure adequate time for message processing
+
+            # Move to end and submit with Ctrl+Enter (Claude's required key combination)
+            self.send_keys(target, "End")
+            time.sleep(delay * 0.4)
+            self.send_keys(target, "C-Enter")
+
+            return True
+
+        except Exception as e:
+            import logging
+
+            logging.error(f"Failed to send message to {target}: {e}")
+            return False
 
     def _send_message_fallback(self, target: str, message: str) -> bool:
         """Original message sending implementation as fallback."""

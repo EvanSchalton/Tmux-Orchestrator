@@ -203,7 +203,18 @@ class EnhancedMonitor:
                 return False
 
             # Look for Claude indicators
-            claude_indicators = ["Claude", "│ >", "assistant:", "Human:", "Anthropic", "╭─", "├─", "╰─"]
+            claude_indicators = [
+                "Claude",
+                "│ >",
+                "assistant:",
+                "Human:",
+                "Anthropic",
+                "╭─",
+                "╰─",
+                "? for shortcuts",
+                "Bypassing Permissions",
+                "@anthropic-ai/claude-code",
+            ]
 
             is_claude = any(indicator in content for indicator in claude_indicators)
 
