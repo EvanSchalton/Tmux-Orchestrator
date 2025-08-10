@@ -527,7 +527,7 @@ def dashboard(ctx: click.Context, session: str | None, refresh: int, json: bool)
 
     tmux: TMUXManager = ctx.obj["tmux"]
 
-    def create_dashboard() -> str:
+    def create_dashboard():
         """Create the dashboard layout."""
         # Get system data
         sessions = tmux.list_sessions()
@@ -553,7 +553,7 @@ def dashboard(ctx: click.Context, session: str | None, refresh: int, json: bool)
             return json_module.dumps(dashboard_data, indent=2)
 
         # Create dashboard components
-        title = "🔍 TMUX Orchestrator Dashboard" + (f" - {session}" if session else "")
+        title = "[bold]🔍 TMUX Orchestrator Dashboard" + (f" - {session}" if session else "") + "[/bold]"
 
         # System summary
         summary_text = (
@@ -596,16 +596,20 @@ def dashboard(ctx: click.Context, session: str | None, refresh: int, json: bool)
                 agent.get("last_activity", "Unknown"),
             )
 
-        # Layout
-        upper = Columns([summary_panel])
-        lower = Columns([sessions_table, agents_table])
+        # Return a renderable layout
+        from rich.layout import Layout
 
-        return f"{title}\n\n{upper}\n\n{lower}"
+        layout = Layout()
+        layout.split_column(
+            Layout(title, size=1), Layout(summary_panel, size=3), Layout(Columns([sessions_table, agents_table]))
+        )
+
+        return layout
 
     if refresh > 0:
         # Live updating dashboard
         try:
-            with Live(create_dashboard(), refresh_per_second=1 / refresh) as live:
+            with Live(create_dashboard(), refresh_per_second=1 / refresh, console=console) as live:
                 import time
 
                 while True:
@@ -615,8 +619,7 @@ def dashboard(ctx: click.Context, session: str | None, refresh: int, json: bool)
             console.print("\n[yellow]Dashboard stopped[/yellow]")
     else:
         # Static dashboard
-        result = create_dashboard()
-        console.print(result)
+        console.print(create_dashboard())
 
 
 @monitor.command("performance")
