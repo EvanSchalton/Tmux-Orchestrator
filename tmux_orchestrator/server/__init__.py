@@ -138,7 +138,7 @@ app.include_router(
 )
 app.include_router(
     contexts.router,
-    prefix="/contexts", 
+    prefix="/contexts",
     tags=["Context Management"],
     responses={
         404: {"description": "Context not found"},

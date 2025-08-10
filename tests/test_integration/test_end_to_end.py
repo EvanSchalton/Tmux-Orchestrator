@@ -36,7 +36,6 @@ def temp_orchestrator_home():
         orc_dir.mkdir()
         (orc_dir / "projects").mkdir()
         (orc_dir / "templates").mkdir()
-        (orc_dir / "agent-templates").mkdir()
         (orc_dir / "archive").mkdir()
 
         with patch.dict(os.environ, {"TMUX_ORCHESTRATOR_HOME": str(orc_dir)}):

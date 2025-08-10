@@ -58,6 +58,22 @@ class TMUXManager:
         try:
             delay = 0.5  # Standard delay from CLI
 
+            # Safety check: Wait if Claude is still initializing to prevent Ctrl+C interruption
+            max_wait = 15  # Maximum wait time in seconds
+            wait_count = 0
+            while wait_count < max_wait:
+                content = self.capture_pane(target)
+                if content and ("│ >" in content or "Bypassing Permissions" in content):
+                    # Claude is ready
+                    break
+                elif "Downloading" in content or "Installing" in content or content.strip() == "":
+                    # Claude is still initializing
+                    time.sleep(1)
+                    wait_count += 1
+                else:
+                    # Claude appears ready
+                    break
+
             # Clear any existing input first
             self.send_keys(target, "C-c")
             time.sleep(delay)
@@ -184,6 +200,9 @@ class TMUXManager:
                 ]:
                     # Determine agent type
                     agent_type = "Unknown"
+                    window_lower = window["name"].lower()
+
+                    # Check session name first
                     if "frontend" in session["name"]:
                         agent_type = "Frontend"
                     elif "backend" in session["name"]:
@@ -192,8 +211,19 @@ class TMUXManager:
                         agent_type = "QA"
                     elif "orchestrator" in session["name"]:
                         agent_type = "Orchestrator"
-                    elif window["name"] == "pm" or "Claude-pm" in window["name"]:
+                    # Then check window name for more specific types
+                    elif "pm" in window_lower:
                         agent_type = "PM"
+                    elif "developer" in window_lower:
+                        agent_type = "Developer"
+                    elif "devops" in window_lower:
+                        agent_type = "DevOps"
+                    elif "qa" in window_lower or "test" in window_lower:
+                        agent_type = "QA"
+                    elif "refactor" in window_lower:
+                        agent_type = "Engineer"
+                    elif "review" in window_lower:
+                        agent_type = "Reviewer"
 
                     # Check if idle
                     pane_content = self.capture_pane(f"{session['name']}:{window['index']}")
@@ -232,6 +262,18 @@ class TMUXManager:
             return True
 
         return False
+
+    def kill_window(self, target: str) -> bool:
+        """Kill a specific tmux window.
+
+        Args:
+            target: Window target in format "session:window" or "session:window_index"
+
+        Returns:
+            True if window was successfully killed, False otherwise
+        """
+        result = self._run_tmux(["kill-window", "-t", target], check=False)
+        return result.returncode == 0
 
     def kill_session(self, session_name: str) -> bool:
         """Kill a tmux session."""

@@ -18,6 +18,14 @@ You are the Claude Code Orchestrator for tmux-orchestrator, serving as the inter
 4. Monitor progress and handle escalations
 5. Report results back to human
 
+**Manual PM Spawning**: If spawning PM manually instead of using context command:
+```bash
+tmux new-session -d -s project
+tmux rename-window -t project:1 "Claude-pm"  # CRITICAL: Name window for monitoring
+tmux send-keys -t project:1 "claude --dangerously-skip-permissions" Enter
+# Wait 8 seconds, then send briefing
+```
+
 ## Complete CLI Command Reference
 
 ### Context Management

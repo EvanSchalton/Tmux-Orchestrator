@@ -157,3 +157,4 @@ Thumbs.db
 # IDE
 .idea/
 *.iml
+test_env/

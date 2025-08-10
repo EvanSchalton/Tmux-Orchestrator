@@ -54,14 +54,14 @@ To use these examples when spawning agents:
 
 ```bash
 # View an example for inspiration
-cat agent-examples/developer.md
+cat tmux_orchestrator/data/agent_examples/developer.md
 
 # Create a custom agent based on the example
 tmux-orc agent spawn my-developer orchestrator:2 \
   --briefing "You are a developer specializing in..."
 
 # Or reference the example when asking Claude to create agents
-# "Please create a backend developer agent similar to the example in agent-examples/backend-developer.md"
+# "Please create a backend developer agent similar to the example in tmux_orchestrator/data/agent_examples/backend-developer.md"
 ```
 
 ## Creating New Agent Examples
@@ -103,10 +103,10 @@ The orchestrator can reference these examples when:
 Example orchestrator usage:
 ```bash
 # List available agent examples
-ls agent-examples/*.md
+ls tmux_orchestrator/data/agent_examples/*.md
 
 # Read a specific example for inspiration
-cat agent-examples/security-engineer.md
+cat tmux_orchestrator/data/agent_examples/security-engineer.md
 
 # Create a custom agent based on an example
 tmux-orc agent spawn my-security-expert orchestrator:4 \

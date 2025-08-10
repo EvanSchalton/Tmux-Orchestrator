@@ -70,7 +70,7 @@ Each project has a team plan in `.tmux_orchestrator/planning/[project]-team-plan
 
 ### Using Agent Examples
 
-Agent examples in `/agent-examples/` provide starting points:
+Agent examples in `tmux_orchestrator/data/agent_examples/` provide starting points:
 - Review existing examples (backend-developer.md, qa-engineer.md, etc.)
 - Adapt briefings to project needs
 - Create entirely new agent types as needed (editor, novelist, researcher, etc.)

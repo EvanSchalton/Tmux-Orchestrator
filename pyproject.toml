@@ -6,7 +6,8 @@ authors = ["TMUX Orchestrator Team"]
 readme = "README.md"
 packages = [{include = "tmux_orchestrator"}]
 include = [
-    "tmux_orchestrator/claude_commands/*.md"
+    "tmux_orchestrator/claude_commands/*.md",
+    { path = "tmux_orchestrator/data/**/*", format = ["sdist", "wheel"] }
 ]
 
 [tool.poetry.dependencies]

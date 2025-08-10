@@ -288,7 +288,7 @@ def _setup_command_groups() -> None:
     """Set up command groups - called at module load time."""
     try:
         # Import command groups (with error handling for missing modules)
-        from tmux_orchestrator.cli import agent, monitor, pm, context
+        from tmux_orchestrator.cli import agent, context, monitor, pm
 
         # Add core command groups
         cli.add_command(agent.agent)

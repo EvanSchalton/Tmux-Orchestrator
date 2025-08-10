@@ -398,63 +398,77 @@ def status(ctx: click.Context, json: bool) -> None:
 
 @agent.command()
 @click.argument("target")
+@click.option("--session", is_flag=True, help="Kill entire session (requires confirmation)")
 @click.pass_context
-def kill(ctx: click.Context, target: str) -> None:
-    """Terminate a specific agent permanently.
+def kill(ctx: click.Context, target: str, session: bool) -> None:
+    """Terminate a specific agent or entire session.
 
-    Forcefully terminates the Claude agent at the specified location.
-    This is more aggressive than restart and should be used when an
-    agent is completely unresponsive or causing system issues.
+    By default, kills only the specified agent window. Use --session flag
+    to kill an entire session with all its agents.
 
-    TARGET: Target agent in format session:window (e.g., 'my-project:0')
+    TARGET:
+        - Without --session: session:window format (e.g., 'my-project:0')
+        - With --session: session name only (e.g., 'my-project')
 
     Examples:
-        tmux-orc agent kill frontend:0        # Kill unresponsive frontend agent
-        tmux-orc agent kill stuck-session:1   # Kill problematic agent
-        tmux-orc agent kill testing:2         # Remove completed testing agent
+        tmux-orc agent kill frontend:0        # Kill only frontend agent window
+        tmux-orc agent kill backend:2         # Kill only backend agent window
+        tmux-orc agent kill my-project --session  # Kill entire session (with confirmation)
 
-    ⚠️  WARNING: This permanently terminates the agent
+    ⚠️  WARNING:
+        - Window kill: Terminates only the specified agent
+        - Session kill: Terminates ALL agents in the session
 
-    When to Use:
-        - Agent is completely frozen and restart failed
-        - Agent is consuming excessive resources
-        - Agent is causing system instability
-        - Project is complete and agents no longer needed
+    When to Use Window Kill:
+        - Agent is frozen or unresponsive
+        - Agent completed its task
+        - Need to replace specific agent
 
-    Difference from Restart:
-        - Kill: Permanently removes the agent
-        - Restart: Terminates and immediately recreates the agent
+    When to Use Session Kill:
+        - Project is complete
+        - Need to clean up all agents at once
+        - Session is corrupted
 
-    The kill operation removes the agent's tmux window or session,
-    losing all context and conversation history.
+    The kill operation loses all context and conversation history.
     """
     tmux: TMUXManager = ctx.obj["tmux"]
 
-    console.print(f"[yellow]Killing agent at {target}...[/yellow]")
+    if session:
+        # Session kill mode
+        console.print("\n[bold red]⚠️  WARNING: Session Kill Mode[/bold red]")
+        console.print(f"This will terminate ALL agents in session '{target}'")
+        console.print("All agent contexts and conversations will be lost.\n")
 
-    # Parse target to get session and window
-    if ":" not in target:
-        console.print("[red]✗ Invalid target format. Use session:window[/red]")
-        return
+        if not click.confirm("Are you sure you want to kill the entire session?", default=False):
+            console.print("[yellow]Session kill cancelled.[/yellow]")
+            return
 
-    try:
-        # Kill the specific window (using session kill as fallback)
-        try:
-            if hasattr(tmux, "kill_window"):
-                success = tmux.kill_window(target)
-            else:
-                # Fallback: kill entire session if method doesn't exist
-                session = target.split(":")[0]
-                success = tmux.kill_session(session)
-        except Exception:
-            success = False
+        console.print(f"[yellow]Killing entire session '{target}'...[/yellow]")
+        success = tmux.kill_session(target)
 
         if success:
-            console.print(f"[green]✓ Agent at {target} killed successfully[/green]")
+            console.print(f"[green]✓ Session '{target}' killed successfully[/green]")
         else:
-            console.print(f"[red]✗ Failed to kill agent at {target}[/red]")
-    except Exception as e:
-        console.print(f"[red]✗ Error killing agent: {str(e)}[/red]")
+            console.print(f"[red]✗ Failed to kill session '{target}'[/red]")
+    else:
+        # Window kill mode (default)
+        if ":" not in target:
+            console.print("[red]✗ Invalid target format. Use session:window for window kill[/red]")
+            console.print("[dim]Tip: Use --session flag to kill entire session[/dim]")
+            return
+
+        console.print(f"[yellow]Killing agent at {target}...[/yellow]")
+
+        try:
+            # Kill the specific window ONLY
+            success = tmux.kill_window(target)
+
+            if success:
+                console.print(f"[green]✓ Agent at {target} killed successfully[/green]")
+            else:
+                console.print(f"[red]✗ Failed to kill agent at {target}[/red]")
+        except Exception as e:
+            console.print(f"[red]✗ Error killing agent: {str(e)}[/red]")
 
 
 @agent.command()
@@ -755,10 +769,10 @@ def spawn(ctx: click.Context, name: str, target: str, briefing: str, working_dir
     tmux.send_keys(actual_target, "claude --dangerously-skip-permissions")
     tmux.send_keys(actual_target, "Enter")
 
-    # Wait a moment for Claude to start
+    # CRITICAL: Wait for Claude to fully initialize to prevent Ctrl+C interruption
     import time
 
-    time.sleep(2)
+    time.sleep(8)  # Give Claude sufficient time to load completely
 
     # Send briefing if provided
     if briefing:

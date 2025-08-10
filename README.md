@@ -224,7 +224,7 @@ Building on the original's solid foundation, this fork adds:
 Claude Code acts as orchestrator, creating bespoke teams through planning documents:
 - **Claude Code orchestrator** analyzes requirements and creates team plans
 - **Planning documents** define custom team composition and interactions
-- **Agent examples** in `/agent-examples/` inspire various roles (or create new ones!)
+- **Agent examples** in `tmux_orchestrator/data/agent_examples/` inspire various roles (or create new ones!)
 - **PM agents** execute plans by spawning team members individually
 
 ```bash

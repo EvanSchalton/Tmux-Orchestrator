@@ -117,6 +117,12 @@ def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResu
                 error_message="Failed to send Enter key",
             )
 
+        # CRITICAL: Wait for Claude to fully initialize before allowing messages
+        # This prevents Ctrl+C interruption during startup
+        import time
+
+        time.sleep(8)  # Give Claude sufficient time to load completely
+
         return SpawnAgentResult(
             success=True,
             session=request.session_name,

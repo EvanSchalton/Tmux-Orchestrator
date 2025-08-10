@@ -10,8 +10,8 @@ from pathlib import Path
 # Add the project to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from tmux_orchestrator.core.monitor import IdleMonitor
-from tmux_orchestrator.utils.tmux import TMUXManager
+from tmux_orchestrator.core.monitor import IdleMonitor  # noqa: E402
+from tmux_orchestrator.utils.tmux import TMUXManager  # noqa: E402
 
 
 def test_tmux_discovery():

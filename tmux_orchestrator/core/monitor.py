@@ -190,6 +190,13 @@ class IdleMonitor:
         logger = self._setup_daemon_logging()
         logger.info(f"Native Python monitoring daemon started (PID: {os.getpid()}, interval: {interval}s)")
 
+        # Initialize tracking dictionaries for the daemon process
+        self._crash_notifications: dict[str, datetime] = {}
+        self._idle_notifications: dict[str, datetime] = {}
+        self._idle_agents: dict[str, datetime] = {}
+        self._submission_attempts: dict[str, int] = {}
+        self._last_submission_time: dict[str, float] = {}
+
         # Create TMUXManager instance for this process
         tmux = TMUXManager()
 
@@ -357,7 +364,9 @@ class IdleMonitor:
                     del self._idle_agents[target]
                 # Reset submission attempts when agent becomes active
                 if target in self._submission_attempts and self._submission_attempts[target] > 0:
-                    logger.info(f"Agent {target} is now active - resetting submission counter (was {self._submission_attempts[target]})")
+                    logger.info(
+                        f"Agent {target} is now active - resetting submission counter (was {self._submission_attempts[target]})"
+                    )
                     self._submission_attempts[target] = 0
                     if target in self._last_submission_time:
                         del self._last_submission_time[target]
@@ -370,53 +379,65 @@ class IdleMonitor:
             if has_claude_interface:
                 # Agent is idle but Claude is open - notify PM it's idle
                 logger.info(f"Agent {target} is idle with Claude interface")
-                
+
                 # Initialize tracking for this target if needed
                 if target not in self._submission_attempts:
                     self._submission_attempts[target] = 0
-                    self._last_submission_time = getattr(self, '_last_submission_time', {})
-                
+                    self._last_submission_time = getattr(self, "_last_submission_time", {})
+
                 # Check if we should attempt auto-submit (with cooldown)
                 current_time = time.time()
                 last_attempt = self._last_submission_time.get(target, 0)
                 time_since_last = current_time - last_attempt
-                
+
                 # Only attempt if: hasn't been tried yet OR it's been 30+ seconds since last attempt
-                should_attempt = (self._submission_attempts[target] == 0 or 
-                                time_since_last >= 30)
-                
+                should_attempt = self._submission_attempts[target] == 0 or time_since_last >= 30
+
                 if should_attempt:
                     # Auto-submit stuck message
                     try:
-                        logger.info(f"Auto-submitting stuck message for {target} (attempt #{self._submission_attempts[target] + 1})")
+                        logger.info(
+                            f"Auto-submitting stuck message for {target} (attempt #{self._submission_attempts[target] + 1})"
+                        )
                         tmux.send_keys(target, "Enter")
-                        
+
                         # Track submission attempt
                         self._submission_attempts[target] += 1
                         self._last_submission_time[target] = current_time
-                        
+
                         # Log detailed status
                         if self._submission_attempts[target] == 1:
                             logger.info(f"First auto-submit attempt for {target}")
                         elif self._submission_attempts[target] <= 3:
                             logger.info(f"Retry #{self._submission_attempts[target]} for {target}")
                         else:
-                            logger.warning(f"Agent {target} still stuck after {self._submission_attempts[target]} auto-submit attempts")
-                        
+                            logger.warning(
+                                f"Agent {target} still stuck after {self._submission_attempts[target]} auto-submit attempts"
+                            )
+
                         # Only notify PM if we've tried multiple times
                         if self._submission_attempts[target] > 3:
+                            logger.info(
+                                f"Calling _check_idle_notification for {target} (attempts: {self._submission_attempts[target]})"
+                            )
                             self._check_idle_notification(tmux, target, logger)
-                        
+                        else:
+                            logger.debug(
+                                f"Not notifying yet for {target} (attempts: {self._submission_attempts[target]})"
+                            )
+
                         # Reset counter if it gets too high to prevent overflow
                         if self._submission_attempts[target] > 10:
                             logger.error(f"Resetting counter for {target} after 10 failed attempts")
                             self._submission_attempts[target] = 0
-                            
+
                     except Exception as e:
                         logger.error(f"Failed to auto-submit for {target}: {e}")
                         self._check_idle_notification(tmux, target, logger)
                 else:
-                    logger.debug(f"Skipping auto-submit for {target} - cooldown active ({int(30 - time_since_last)}s remaining)")
+                    logger.debug(
+                        f"Skipping auto-submit for {target} - cooldown active ({int(30 - time_since_last)}s remaining)"
+                    )
             else:
                 # Agent is idle and Claude isn't open - needs recovery
                 logger.error(f"Agent {target} needs recovery - no Claude interface detected")
@@ -426,7 +447,7 @@ class IdleMonitor:
             logger.error(f"Failed to check agent {target}: {e}")
 
     def _is_agent_idle_simple(self, tmux: TMUXManager, target: str) -> bool:
-        """Simple 300ms polling idle detection - check if terminal content changes at all."""
+        """Simple 300ms polling idle detection - check if terminal content changes meaningfully."""
         import time
 
         snapshots = []
@@ -439,8 +460,34 @@ class IdleMonitor:
             if i < 3:  # Don't sleep after last snapshot
                 time.sleep(0.3)
 
-        # If all snapshots are identical, agent is idle
-        return all(content == snapshots[0] for content in snapshots)
+        # Check if changes are minimal (likely just cursor blink)
+        # Compare each snapshot to the first one
+        for i in range(1, len(snapshots)):
+            distance = self._calculate_change_distance(snapshots[0], snapshots[i])
+            # If distance > 1, there was meaningful change
+            if distance > 1:
+                return False
+
+        # All snapshots are effectively identical (distance <= 1)
+        return True
+
+    def _calculate_change_distance(self, text1: str, text2: str) -> int:
+        """Calculate simple change distance between two texts."""
+        # If lengths differ significantly, it's a real change
+        if abs(len(text1) - len(text2)) > 1:
+            return 999
+
+        # Count character differences
+        differences = 0
+        for i, (c1, c2) in enumerate(zip(text1, text2)):
+            if c1 != c2:
+                differences += 1
+                if differences > 1:
+                    return differences
+
+        # Account for length difference at the end
+        differences += abs(len(text1) - len(text2))
+        return differences
 
     def _has_claude_interface(self, content: str) -> bool:
         """Check if Claude Code interface is present."""
@@ -634,6 +681,7 @@ class IdleMonitor:
     def _check_idle_notification(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
         """Check if PM should be notified about idle agent."""
         try:
+            logger.debug(f"_check_idle_notification called for {target}")
             # Already initialized in __init__
 
             now = datetime.now()
@@ -661,6 +709,11 @@ class IdleMonitor:
             pm_target = self._find_pm_agent(tmux)
             if not pm_target:
                 logger.warning("No PM found to notify about idle agent")
+                return
+
+            # Don't notify PM about themselves being idle
+            if pm_target == target:
+                logger.debug(f"Skipping self-notification for PM at {target}")
                 return
 
             # Determine agent type from target
@@ -696,26 +749,8 @@ class IdleMonitor:
             logger.error(f"Failed to send idle notification: {e}")
 
     def _find_pm_target(self, tmux: TMUXManager) -> str | None:
-        """Find PM session dynamically."""
-        try:
-            # First check tmux-orc-dev session for Project-Manager window
-            if tmux.has_session("tmux-orc-dev"):
-                windows = tmux.list_windows("tmux-orc-dev")
-                for window in windows:
-                    if window.get("name", "").lower() == "project-manager" or window.get("id") == "5":
-                        return "tmux-orc-dev:5"
-
-            # Search other sessions for PM windows
-            sessions = tmux.list_sessions()
-            for session in sessions:
-                session_name = session.get("name", "")
-                if "pm" in session_name.lower() or "project-manager" in session_name.lower():
-                    return f"{session_name}:0"
-
-            return None
-
-        except Exception:
-            return None
+        """Find PM session dynamically - just use the better implementation."""
+        return self._find_pm_agent(tmux)
 
     def _determine_agent_type(self, session: str, window: str) -> str:
         """Determine agent type from session and window."""

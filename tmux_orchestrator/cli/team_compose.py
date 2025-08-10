@@ -11,16 +11,17 @@ from rich.table import Table
 
 console = Console()
 
-# Paths
-TEMPLATES_DIR = Path.home() / "workspaces" / "Tmux-Orchestrator" / ".tmux_orchestrator" / "agent-templates"
-TEAM_TEMPLATE = (
-    Path.home()
-    / "workspaces"
-    / "Tmux-Orchestrator"
-    / ".tmux_orchestrator"
-    / "templates"
-    / "team-composition-template.md"
-)
+# Paths - using package data directory
+try:
+    import pkg_resources
+
+    TEMPLATES_DIR = Path(pkg_resources.resource_filename("tmux_orchestrator", "data/agent_examples"))
+    TEAM_TEMPLATE = Path(
+        pkg_resources.resource_filename("tmux_orchestrator", "data/templates/team-composition-template.md")
+    )
+except ImportError:
+    TEMPLATES_DIR = Path(__file__).parent.parent / "data" / "agent_examples"
+    TEAM_TEMPLATE = Path(__file__).parent.parent / "data" / "templates" / "team-composition-template.md"
 
 
 @click.group()
