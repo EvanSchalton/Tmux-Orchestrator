@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tmux-orchestrator"
-version = "2.1.11"
+version = "2.1.12"
 description = "AI-powered tmux session orchestrator with CLI and MCP server"
 authors = ["TMUX Orchestrator Team"]
 readme = "README.md"
