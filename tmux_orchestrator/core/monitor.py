@@ -172,9 +172,14 @@ class IdleMonitor:
         tmux = TMUXManager()
 
         # Main monitoring loop
+        cycle_count = 0
         try:
             while True:
+                cycle_count += 1
                 start_time = time.time()
+
+                # Log cycle start
+                logger.info(f"Starting monitoring cycle #{cycle_count}")
 
                 # Discover and monitor agents
                 self._monitor_cycle(tmux, logger)
@@ -182,6 +187,8 @@ class IdleMonitor:
                 # Calculate sleep time to maintain interval
                 elapsed = time.time() - start_time
                 sleep_time = max(0, interval - elapsed)
+
+                logger.info(f"Cycle #{cycle_count} completed in {elapsed:.2f}s, next check in {sleep_time:.2f}s")
 
                 if sleep_time > 0:
                     time.sleep(sleep_time)
@@ -232,11 +239,19 @@ class IdleMonitor:
             # Discover active agents
             agents = self._discover_agents(tmux)
 
+            logger.info(f"Agent discovery complete: found {len(agents)} agents")
+
             if not agents:
-                logger.debug("No agents found to monitor")
+                logger.warning("No agents found to monitor")
+                # Log available sessions for debugging
+                try:
+                    sessions = tmux.list_sessions()
+                    logger.info(f"Available sessions: {[s['name'] for s in sessions]}")
+                except Exception as e:
+                    logger.error(f"Could not list sessions: {e}")
                 return
 
-            logger.debug(f"Monitoring {len(agents)} agents")
+            logger.info(f"Monitoring agents: {agents}")
 
             # Monitor each agent
             for target in agents:
@@ -263,8 +278,9 @@ class IdleMonitor:
                 try:
                     windows = tmux.list_windows(session_name)
                     for window_info in windows:
-                        window_id = window_info["id"]
-                        target = f"{session_name}:{window_id}"
+                        # Fix: use 'index' not 'id' - window_info contains index/name/active
+                        window_idx = window_info.get("index", "0")
+                        target = f"{session_name}:{window_idx}"
 
                         # Check if window contains an active agent
                         if self._is_agent_window(tmux, target):
