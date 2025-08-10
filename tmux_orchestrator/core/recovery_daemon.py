@@ -32,14 +32,16 @@ class RecoveryDaemon:
         """Initialize recovery daemon with configuration."""
         self.config: Config = Config.load(Path(config_file) if config_file else None)
         self.tmux: TMUXManager = TMUXManager()
-        self.logger: logging.Logger = self._setup_logging()
         self.running: bool = False
 
-        # Daemon configuration
+        # Daemon configuration - must be before _setup_logging()
         self.check_interval: int = self.config.get("daemon.check_interval", 30)
         self.auto_discover: bool = self.config.get("daemon.auto_discover", True)
         self.pid_file: Path = Path("/tmp/tmux-orchestrator-recovery.pid")
         self.log_file: Path = Path("/tmp/tmux-orchestrator-recovery.log")
+
+        # Now we can setup logging since log_file is initialized
+        self.logger: logging.Logger = self._setup_logging()
 
         # Agent tracking
         self.known_agents: set[str] = set()

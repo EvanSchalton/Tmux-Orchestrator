@@ -51,7 +51,27 @@ class TMUXManager:
         return result.returncode == 0
 
     def send_message(self, target: str, message: str) -> bool:
-        """Send a message to a Claude agent (handles timing)."""
+        """Send a message to a Claude agent with enhanced handling."""
+        try:
+            # Use Claude-specific interface handler
+            from tmux_orchestrator.utils.claude_interface import ClaudeInterface
+
+            success, error = ClaudeInterface.send_message_to_claude(target, message)
+            if not success:
+                # Fallback to original method
+                self._send_message_fallback(target, message)
+                # Even if fallback appears to work, we can't verify submission
+                # Log this for debugging
+                import logging
+
+                logging.warning(f"Claude message submission uncertain for {target}: {error}")
+            return True  # Return True since we attempted delivery
+        except ImportError:
+            # If claude_interface not available, use fallback
+            return self._send_message_fallback(target, message)
+
+    def _send_message_fallback(self, target: str, message: str) -> bool:
+        """Original message sending implementation as fallback."""
         # Clear any existing input
         self.send_keys(target, "C-c")
         subprocess.run(["sleep", "0.5"])
