@@ -196,6 +196,7 @@ class IdleMonitor:
         self._idle_agents: dict[str, datetime] = {}
         self._submission_attempts: dict[str, int] = {}
         self._last_submission_time: dict[str, float] = {}
+        self._restart_attempts: dict[str, datetime] = {}
 
         # Create TMUXManager instance for this process
         tmux = TMUXManager()
@@ -354,6 +355,16 @@ class IdleMonitor:
     def _check_agent_status(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
         """Check agent status using simple 300ms polling method from PRD."""
         try:
+            # Step 0: First check for agent crashes
+            content = tmux.capture_pane(target, lines=50)
+            if self._detect_agent_crash(content):
+                logger.error(f"Agent {target} has crashed - attempting auto-restart")
+                success = self._attempt_agent_restart(tmux, target, logger)
+                if not success:
+                    logger.error(f"Auto-restart failed for {target} - notifying PM")
+                    self._notify_crash(tmux, target, logger)
+                return
+
             # Step 1: Check if agent is idle using 300ms polling (4 snapshots over 1.2s)
             is_idle = self._is_agent_idle_simple(tmux, target)
 
@@ -373,7 +384,6 @@ class IdleMonitor:
                 return
 
             # Step 2: Agent is idle - check Claude interface status
-            content = tmux.capture_pane(target, lines=50)
             has_claude_interface = self._has_claude_interface(content)
 
             if has_claude_interface:
@@ -510,6 +520,97 @@ class IdleMonitor:
 
         # Must have at least the input box OR shortcuts indicator for Claude to be running
         return any(claude_patterns)
+
+    def _detect_agent_crash(self, content: str) -> bool:
+        """Detect if a Claude agent has crashed or exited unexpectedly."""
+        crash_indicators = [
+            # Command line indicates Claude has exited
+            "$ " in content.split('\n')[-1] if content else False,
+            "# " in content.split('\n')[-1] if content else False,  # Root shell
+            "bash-" in content and "@" in content,  # Typical bash prompt
+            
+            # Error messages that indicate crashes
+            "claude: command not found" in content,
+            "segmentation fault" in content.lower(),
+            "core dumped" in content.lower(),
+            "killed" in content.lower() and "claude" in content.lower(),
+            "connection lost" in content.lower(),
+            "network error" in content.lower(),
+            "timeout" in content.lower() and "claude" in content.lower(),
+            
+            # Python crash indicators
+            "Traceback (most recent call last)" in content,
+            "ModuleNotFoundError" in content,
+            "ImportError" in content and "claude" in content.lower(),
+            "SyntaxError" in content,
+            "KeyboardInterrupt" in content,
+            
+            # Process termination messages
+            "Process finished with exit code" in content,
+            "[Process completed]" in content,
+            "Terminated" in content and "claude" in content.lower(),
+        ]
+        
+        # Agent has crashed if any crash indicators are present AND Claude interface is gone
+        has_crash_indicator = any(crash_indicators)
+        has_claude_ui = self._has_claude_interface(content)
+        
+        # Only report crash if we see crash indicators without Claude UI
+        return has_crash_indicator and not has_claude_ui
+
+    def _attempt_agent_restart(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> bool:
+        """Attempt to automatically restart a crashed Claude agent."""
+        import time
+        
+        try:
+            # Get restart cooldown tracking
+            restart_key = f"restart_{target}"
+            now = datetime.now()
+            
+            # Check cooldown (10 minutes between restart attempts)
+            if hasattr(self, '_restart_attempts'):
+                last_restart = self._restart_attempts.get(restart_key)
+                if last_restart and (now - last_restart) < timedelta(minutes=10):
+                    logger.debug(f"Restart attempt for {target} in cooldown")
+                    return False
+            else:
+                self._restart_attempts = {}
+            
+            logger.info(f"Attempting to restart Claude agent at {target}")
+            
+            # Step 1: Send Ctrl+C to clear any stuck state
+            tmux.send_keys(target, "C-c")
+            time.sleep(1)
+            
+            # Step 2: Start Claude with dangerous skip permissions
+            tmux.send_keys(target, "claude --dangerously-skip-permissions")
+            tmux.send_keys(target, "Enter")
+            
+            # Step 3: Wait for Claude to initialize (up to 15 seconds)
+            max_wait = 15
+            for i in range(max_wait):
+                time.sleep(1)
+                content = tmux.capture_pane(target, lines=20)
+                
+                # Check if Claude has started successfully
+                if self._has_claude_interface(content):
+                    logger.info(f"Successfully restarted Claude agent at {target}")
+                    self._restart_attempts[restart_key] = now
+                    return True
+                    
+                # Check for error conditions
+                if any(error in content.lower() for error in ["command not found", "permission denied", "error"]):
+                    logger.error(f"Restart failed for {target}: {content[-100:]}")
+                    break
+                    
+                logger.debug(f"Waiting for Claude to start at {target} ({i+1}/{max_wait})")
+            
+            logger.warning(f"Restart timeout for {target} - Claude did not initialize in time")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Exception during restart attempt for {target}: {e}")
+            return False
 
     def _notify_recovery_needed(self, tmux: TMUXManager, target: str, logger: logging.Logger):
         """Notify PM that agent needs recovery."""
@@ -660,20 +761,14 @@ class IdleMonitor:
                 f"• tmux send-keys -t {target} 'claude --dangerously-skip-permissions' Enter"
             )
 
-            # Send notification using CLI
-            import subprocess
-
-            result = subprocess.run(
-                ["tmux-orc", "agent", "send", pm_target, message],
-                capture_output=True,
-                text=True,
-            )
-
-            if result.returncode == 0:
+            # Send notification using direct tmux.send_message() call  
+            success = tmux.send_message(pm_target, message)
+            
+            if success:
                 logger.info(f"Notified PM at {pm_target} about crash at {target}")
                 self._crash_notifications[crash_key] = now
             else:
-                logger.error(f"Failed to notify PM about crash: {result.stderr}")
+                logger.error(f"Failed to notify PM about crash at {target}")
 
         except Exception as e:
             logger.error(f"Failed to send crash notification: {e}")
@@ -695,8 +790,9 @@ class IdleMonitor:
 
             # Check how long agent has been idle
             idle_duration = now - self._idle_agents[target]
-            if idle_duration < timedelta(minutes=2):
+            if idle_duration < timedelta(seconds=30):  # Reduced from 2 minutes to 30 seconds for faster notifications
                 # Not idle long enough to notify
+                logger.info(f"Agent {target} idle for {idle_duration.total_seconds():.1f}s, need 30s minimum")
                 return
 
             # Check notification cooldown (5 minutes)
@@ -706,10 +802,12 @@ class IdleMonitor:
                 return
 
             # Find PM target
+            logger.info(f"Looking for PM to notify about idle agent {target}")
             pm_target = self._find_pm_agent(tmux)
             if not pm_target:
-                logger.warning("No PM found to notify about idle agent")
+                logger.warning(f"No PM found to notify about idle agent {target}")
                 return
+            logger.info(f"Found PM at {pm_target} to notify about idle agent {target}")
 
             # Don't notify PM about themselves being idle
             if pm_target == target:
@@ -730,20 +828,15 @@ class IdleMonitor:
                 f"This is an automated notification from the idle monitor."
             )
 
-            # Send notification using CLI
-            import subprocess
-
-            result = subprocess.run(
-                ["tmux-orc", "agent", "send", pm_target, message],
-                capture_output=True,
-                text=True,
-            )
-
-            if result.returncode == 0:
-                logger.info(f"Notified PM at {pm_target} about idle agent {target}")
+            # Send notification using direct tmux.send_message() call
+            logger.info(f"Sending idle notification to PM at {pm_target} about agent {target} (idle for {int(idle_duration.total_seconds())}s)")
+            success = tmux.send_message(pm_target, message)
+            
+            if success:
+                logger.info(f"Successfully notified PM at {pm_target} about idle agent {target}")
                 self._idle_notifications[idle_key] = now
             else:
-                logger.error(f"Failed to notify PM about idle agent: {result.stderr}")
+                logger.error(f"Failed to notify PM at {pm_target} about idle agent {target}")
 
         except Exception as e:
             logger.error(f"Failed to send idle notification: {e}")
