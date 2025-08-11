@@ -788,18 +788,12 @@ class IdleMonitor:
                 logger.debug(f"Started tracking idle state for {target}")
                 # Don't return here - continue to check if we should notify immediately
 
-            # Check how long agent has been idle
+            # Calculate how long agent has been idle for notification display
             idle_duration = now - self._idle_agents[target]
-            if idle_duration < timedelta(seconds=30):  # Reduced from 2 minutes to 30 seconds for faster notifications
-                # Not idle long enough to notify
-                logger.debug(f"Agent {target} idle for {idle_duration.total_seconds():.1f}s, need 30s minimum")
-                return
+            # No minimum wait time - if agent is idle, PM should know immediately
 
-            # Check notification cooldown (5 minutes)
-            last_notified = self._idle_notifications.get(idle_key)
-            if last_notified and (now - last_notified) < timedelta(minutes=5):
-                logger.debug(f"Idle notification for {target} in cooldown")
-                return
+            # No cooldown needed - if agent is idle, PM should be notified
+            # PM will communicate with agent, and if agent becomes active, notifications stop naturally
 
             # Find PM target
             logger.info(f"Looking for PM to notify about idle agent {target}")
@@ -834,7 +828,6 @@ class IdleMonitor:
             
             if success:
                 logger.info(f"Successfully notified PM at {pm_target} about idle agent {target}")
-                self._idle_notifications[idle_key] = now
             else:
                 logger.error(f"Failed to notify PM at {pm_target} about idle agent {target}")
 
