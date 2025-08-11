@@ -1,0 +1,4 @@
+Human: exit
+vscode ➜ /workspaces/Tmux-Orchestrator (main) $ claude --dangerously-skip-permissions
+bash: claude: command not found
+vscode ➜ /workspaces/Tmux-Orchestrator (main) $ 

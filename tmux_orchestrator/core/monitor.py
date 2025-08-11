@@ -12,6 +12,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from tmux_orchestrator.core.config import Config
+from tmux_orchestrator.core.monitor_helpers import (
+    AgentState,
+    has_unsubmitted_message,
+    is_claude_interface_present,
+    should_notify_pm,
+)
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
@@ -243,7 +249,7 @@ class IdleMonitor:
     def _setup_daemon_logging(self) -> logging.Logger:
         """Set up logging for the daemon process."""
         logger = logging.getLogger("idle_monitor_daemon")
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
 
         # Clear existing handlers
         logger.handlers.clear()
@@ -328,250 +334,219 @@ class IdleMonitor:
         return agents
 
     def _is_agent_window(self, tmux: TMUXManager, target: str) -> bool:
-        """Check if a window contains an active Claude agent."""
+        """Check if a window should be monitored as an agent window.
+
+        This checks window NAME patterns, not content, so we can track
+        crashed agents that need recovery.
+        """
         try:
-            content = tmux.capture_pane(target, lines=10)
+            session_name, window_idx = target.split(":")
+            windows = tmux.list_windows(session_name)
 
-            # Look for Claude interface indicators
-            claude_indicators = [
-                "│ >",
-                "assistant:",
-                "I'll help",
-                "I can help",
-                "Human:",
-                "Claude:",
-                "╭─",  # Start of Claude UI box
-                "╰─",  # End of Claude UI box
-                "? for shortcuts",
-                "Bypassing Permissions",
-                "@anthropic-ai/claude-code",
-            ]
+            # Find the window info for this index
+            for window in windows:
+                if str(window.get("index", "")) == str(window_idx):
+                    window_name = window.get("name", "").lower()
 
-            return any(indicator in content for indicator in claude_indicators)
+                    # Check if this is an agent window by name pattern
+                    # Claude agent windows are named "Claude-{role}"
+                    if window_name.startswith("claude-"):
+                        return True
+
+                    # Also check for common agent indicators in window name
+                    agent_indicators = ["pm", "developer", "qa", "engineer", "devops", "backend", "frontend"]
+                    if any(indicator in window_name for indicator in agent_indicators):
+                        return True
+
+            return False
 
         except Exception:
             return False
 
     def _check_agent_status(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
-        """Check agent status using simple 300ms polling method from PRD."""
+        """Check agent status using improved detection algorithm."""
         try:
-            # Step 0: First check for agent crashes
-            content = tmux.capture_pane(target, lines=50)
-            if self._detect_agent_crash(content):
-                logger.error(f"Agent {target} has crashed - attempting auto-restart")
-                success = self._attempt_agent_restart(tmux, target, logger)
-                if not success:
-                    logger.error(f"Auto-restart failed for {target} - notifying PM")
-                    self._notify_crash(tmux, target, logger)
-                return
+            logger.debug(f"Checking status for agent {target}")
 
-            # Step 1: Check if agent is idle using 300ms polling (4 snapshots over 1.2s)
-            is_idle = self._is_agent_idle_simple(tmux, target)
+            # Step 1: Use polling-based active detection (NEW METHOD)
+            snapshots = []
+            poll_interval = 0.3  # 300ms
+            poll_count = 4  # 1.2s total
 
-            if not is_idle:
-                logger.debug(f"Agent {target} is active")
-                # Reset idle tracking when agent becomes active
-                if target in self._idle_agents:
-                    del self._idle_agents[target]
-                # Reset submission attempts when agent becomes active
-                if target in self._submission_attempts and self._submission_attempts[target] > 0:
-                    logger.info(
-                        f"Agent {target} is now active - resetting submission counter (was {self._submission_attempts[target]})"
-                    )
-                    self._submission_attempts[target] = 0
-                    if target in self._last_submission_time:
-                        del self._last_submission_time[target]
-                return
+            # Take snapshots for change detection
+            for i in range(poll_count):
+                content = tmux.capture_pane(target, lines=50)
+                snapshots.append(content)
+                if i < poll_count - 1:
+                    time.sleep(poll_interval)
 
-            # Step 2: Agent is idle - check Claude interface status
-            has_claude_interface = self._has_claude_interface(content)
+            # Use last snapshot for state detection
+            content = snapshots[-1]
 
-            if has_claude_interface:
-                logger.info(f"Agent {target} is idle with Claude interface")
-                
-                # Notify PM immediately - they should know about idle agents
-                self._check_idle_notification(tmux, target, logger)
-                
-                # Also try auto-submit to fix potential stuck messages
-                current_time = time.time()
-                if target not in self._submission_attempts:
-                    self._submission_attempts[target] = 0
-                    self._last_submission_time = getattr(self, "_last_submission_time", {})
-                
-                last_attempt = self._last_submission_time.get(target, 0)
-                time_since_last = current_time - last_attempt
-                
-                # Try auto-submit if not attempted recently (10 second cooldown)
-                if time_since_last >= 10:
-                    try:
-                        logger.debug(f"Auto-submitting for {target} (attempt #{self._submission_attempts[target] + 1})")
-                        tmux.send_keys(target, "Enter")
-                        
-                        self._submission_attempts[target] += 1
-                        self._last_submission_time[target] = current_time
-                        
-                    except Exception as e:
-                        logger.error(f"Auto-submit failed for {target}: {e}")
-            else:
-                # Agent is idle and Claude isn't open - needs recovery
-                logger.error(f"Agent {target} needs recovery - no Claude interface detected")
+            # Step 2: Detect if terminal is actively changing
+            is_active = False
+            for i in range(1, len(snapshots)):
+                # Simple change detection - if content changed significantly, it's active
+                if snapshots[i - 1] != snapshots[i]:
+                    # Check if change is meaningful (not just cursor blink)
+                    changes = sum(1 for a, b in zip(snapshots[i - 1], snapshots[i]) if a != b)
+                    logger.debug(f"Agent {target} snapshot {i} has {changes} character changes")
+                    if changes > 1:
+                        is_active = True
+                        break
+
+            if not is_active:
+                logger.debug(f"Agent {target} determined to be idle - no significant changes")
+
+            # Also check for "Compacting conversation" or thinking indicators
+            if not is_active:
+                # Look for actual thinking animations (not just any bullet point)
+                thinking_patterns = [
+                    "💭 Thinking...",
+                    "✶ Thinking...",
+                    "✶ Divining...",
+                    "✶ Pondering...",
+                    "Compacting conversation",
+                    "· Thinking",
+                    "· Divining",
+                    "· Pondering",
+                ]
+                for pattern in thinking_patterns:
+                    if pattern in content:
+                        logger.debug(f"Agent {target} found thinking indicator: '{pattern}'")
+                        is_active = True
+                        break
+
+            # Step 3: Detect base state from content
+            if not is_claude_interface_present(content):
+                # No Claude interface - check if crashed
+                lines = content.strip().split("\n")
+                last_few_lines = [line for line in lines[-5:] if line.strip()]
+
+                # Check for bash prompt
+                for line in last_few_lines:
+                    if line.strip().endswith(("$", "#", ">", "%")):
+                        state = AgentState.CRASHED
+                        logger.error(f"Agent {target} has crashed - attempting auto-restart")
+                        success = self._attempt_agent_restart(tmux, target, logger)
+                        if not success:
+                            logger.error(f"Auto-restart failed for {target} - notifying PM")
+                            self._notify_crash(tmux, target, logger)
+                        return
+
+                # Otherwise it's an error state
+                state = AgentState.ERROR
+                logger.error(f"Agent {target} in error state - needs recovery")
                 self._notify_recovery_needed(tmux, target, logger)
+                return
+
+            # Step 4: Check for unsubmitted messages
+            if has_unsubmitted_message(content):
+                state = AgentState.MESSAGE_QUEUED
+                logger.info(f"Agent {target} has unsubmitted message - attempting auto-submit")
+                self._try_auto_submit(tmux, target, logger)
+                return
+
+            # Step 5: Determine if idle or active
+            if is_active:
+                state = AgentState.ACTIVE
+                logger.info(f"Agent {target} is ACTIVE")
+                # Reset tracking for active agents
+                self._reset_agent_tracking(target)
+            else:
+                state = AgentState.IDLE
+                logger.info(f"Agent {target} is IDLE")
+
+                # Notify PM if appropriate
+                if should_notify_pm(state, target, self._idle_notifications):
+                    logger.info(f"Agent {target} is idle without active work - notifying PM")
+                    self._check_idle_notification(tmux, target, logger)
+                    # Track notification time
+                    self._idle_notifications[target] = datetime.now()
 
         except Exception as e:
             logger.error(f"Failed to check agent {target}: {e}")
 
-    def _is_agent_idle_simple(self, tmux: TMUXManager, target: str) -> bool:
-        """Simple 300ms polling idle detection - check if terminal content changes meaningfully."""
-        import time
-
+    def _capture_snapshots(self, tmux: TMUXManager, target: str, count: int, interval: float) -> list[str]:
+        """Capture multiple snapshots of terminal content."""
         snapshots = []
-
-        # Take 4 snapshots at 300ms intervals (total 1.2 seconds)
-        for i in range(4):
+        for i in range(count):
             content = tmux.capture_pane(target, lines=50)
             snapshots.append(content)
+            if i < count - 1:
+                time.sleep(interval)
+        return snapshots
 
-            if i < 3:  # Don't sleep after last snapshot
-                time.sleep(0.3)
+    def _reset_agent_tracking(self, target: str) -> None:
+        """Reset tracking for active agents."""
+        if target in self._idle_agents:
+            del self._idle_agents[target]
+        if target in self._submission_attempts:
+            self._submission_attempts[target] = 0
+        if target in self._last_submission_time:
+            del self._last_submission_time[target]
 
-        # Check if changes are minimal (likely just cursor blink)
-        # Compare each snapshot to the first one
-        for i in range(1, len(snapshots)):
-            distance = self._calculate_change_distance(snapshots[0], snapshots[i])
-            # If distance > 1, there was meaningful change
-            if distance > 1:
-                return False
+    def _try_auto_submit(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
+        """Try auto-submitting stuck messages with cooldown."""
+        current_time = time.time()
+        last_attempt = self._last_submission_time.get(target, 0)
 
-        # All snapshots are effectively identical (distance <= 1)
-        return True
-
-    def _calculate_change_distance(self, text1: str, text2: str) -> int:
-        """Calculate simple change distance between two texts."""
-        # If lengths differ significantly, it's a real change
-        if abs(len(text1) - len(text2)) > 1:
-            return 999
-
-        # Count character differences
-        differences = 0
-        for i, (c1, c2) in enumerate(zip(text1, text2)):
-            if c1 != c2:
-                differences += 1
-                if differences > 1:
-                    return differences
-
-        # Account for length difference at the end
-        differences += abs(len(text1) - len(text2))
-        return differences
-
-    def _has_claude_interface(self, content: str) -> bool:
-        """Check if Claude Code interface is present."""
-        # Look for the specific Claude interface pattern from the user's example
-        claude_patterns = [
-            # The input box pattern (more flexible - check for box parts)
-            ("╭─" in content and "│" in content and "╰─" in content),
-            # The prompt indicator specifically
-            "│ >" in content,
-            # The shortcuts indicator
-            "? for shortcuts" in content,
-            # Bypassing permissions indicator
-            "Bypassing Permissions" in content,
-            # Claude-specific indicators
-            "@anthropic-ai/claude-code" in content,
-            # Active conversation indicators
-            ("assistant:" in content),
-            ("Human:" in content),
-        ]
-
-        # Must have at least the input box OR shortcuts indicator for Claude to be running
-        return any(claude_patterns)
-
-    def _detect_agent_crash(self, content: str) -> bool:
-        """Detect if a Claude agent has crashed or exited unexpectedly."""
-        crash_indicators = [
-            # Command line indicates Claude has exited
-            "$ " in content.split('\n')[-1] if content else False,
-            "# " in content.split('\n')[-1] if content else False,  # Root shell
-            "bash-" in content and "@" in content,  # Typical bash prompt
-            
-            # Error messages that indicate crashes
-            "claude: command not found" in content,
-            "segmentation fault" in content.lower(),
-            "core dumped" in content.lower(),
-            "killed" in content.lower() and "claude" in content.lower(),
-            "connection lost" in content.lower(),
-            "network error" in content.lower(),
-            "timeout" in content.lower() and "claude" in content.lower(),
-            
-            # Python crash indicators
-            "Traceback (most recent call last)" in content,
-            "ModuleNotFoundError" in content,
-            "ImportError" in content and "claude" in content.lower(),
-            "SyntaxError" in content,
-            "KeyboardInterrupt" in content,
-            
-            # Process termination messages
-            "Process finished with exit code" in content,
-            "[Process completed]" in content,
-            "Terminated" in content and "claude" in content.lower(),
-        ]
-        
-        # Agent has crashed if any crash indicators are present AND Claude interface is gone
-        has_crash_indicator = any(crash_indicators)
-        has_claude_ui = self._has_claude_interface(content)
-        
-        # Only report crash if we see crash indicators without Claude UI
-        return has_crash_indicator and not has_claude_ui
+        if current_time - last_attempt >= 10:  # 10 second cooldown
+            logger.info(f"Auto-submitting stuck message for {target}")
+            tmux.send_keys(target, "Enter")
+            self._submission_attempts[target] = self._submission_attempts.get(target, 0) + 1
+            self._last_submission_time[target] = current_time
 
     def _attempt_agent_restart(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> bool:
         """Attempt to automatically restart a crashed Claude agent."""
         import time
-        
+
         try:
             # Get restart cooldown tracking
             restart_key = f"restart_{target}"
             now = datetime.now()
-            
+
             # Check cooldown (10 minutes between restart attempts)
-            if hasattr(self, '_restart_attempts'):
+            if hasattr(self, "_restart_attempts"):
                 last_restart = self._restart_attempts.get(restart_key)
                 if last_restart and (now - last_restart) < timedelta(minutes=10):
                     logger.debug(f"Restart attempt for {target} in cooldown")
                     return False
             else:
                 self._restart_attempts = {}
-            
+
             logger.info(f"Attempting to restart Claude agent at {target}")
-            
+
             # Step 1: Send Ctrl+C to clear any stuck state
             tmux.send_keys(target, "C-c")
             time.sleep(1)
-            
+
             # Step 2: Start Claude with dangerous skip permissions
             tmux.send_keys(target, "claude --dangerously-skip-permissions")
             tmux.send_keys(target, "Enter")
-            
+
             # Step 3: Wait for Claude to initialize (up to 15 seconds)
             max_wait = 15
             for i in range(max_wait):
                 time.sleep(1)
                 content = tmux.capture_pane(target, lines=20)
-                
+
                 # Check if Claude has started successfully
-                if self._has_claude_interface(content):
+                if is_claude_interface_present(content):
                     logger.info(f"Successfully restarted Claude agent at {target}")
                     self._restart_attempts[restart_key] = now
                     return True
-                    
+
                 # Check for error conditions
-                if any(error in content.lower() for error in ["command not found", "permission denied", "error"]):
+                if any(error in content.lower() for error in ["command not found", "permission denied"]):
                     logger.error(f"Restart failed for {target}: {content[-100:]}")
                     break
-                    
-                logger.debug(f"Waiting for Claude to start at {target} ({i+1}/{max_wait})")
-            
+
+                logger.debug(f"Waiting for Claude to start at {target} ({i + 1}/{max_wait})")
+
             logger.warning(f"Restart timeout for {target} - Claude did not initialize in time")
             return False
-            
+
         except Exception as e:
             logger.error(f"Exception during restart attempt for {target}: {e}")
             return False
@@ -604,7 +579,7 @@ class IdleMonitor:
                     if any(pm_indicator in window_name for pm_indicator in ["pm", "manager", "project"]):
                         # Verify it has Claude interface
                         content = tmux.capture_pane(target, lines=10)
-                        if self._has_claude_interface(content):
+                        if is_claude_interface_present(content):
                             return target
             return None
         except Exception:
@@ -628,51 +603,6 @@ class IdleMonitor:
 
         except Exception:
             return False  # If we can't check, assume active
-
-    def _has_unsubmitted_message(self, tmux: TMUXManager, target: str) -> bool:
-        """Check if agent has unsubmitted message in Claude prompt."""
-        try:
-            # Capture the last 20 lines from the agent's terminal
-            content = tmux.capture_pane(target, lines=20)
-            if not content:
-                return False
-
-            # Check if there's text typed in Claude prompt that hasn't been submitted
-            # Look for the Claude prompt box with content inside
-            lines = content.strip().split("\n")
-            for line in lines:
-                # Check for non-empty prompt line
-                if "│ >" in line:
-                    # Extract content after the prompt
-                    prompt_content = line.split("│ >", 1)[1] if "│ >" in line else ""
-                    # Check if there's actual content (not just whitespace)
-                    if prompt_content.strip():
-                        return True
-
-            # Also check for multiline messages in the prompt box
-            in_prompt = False
-            for line in lines:
-                if "│ >" in line:
-                    in_prompt = True
-                    # Check if there's content on the same line as the prompt
-                    prompt_content = line.split("│ >", 1)[1] if "│ >" in line else ""
-                    if prompt_content.strip():
-                        return True
-                elif in_prompt and "│" in line:
-                    # Extract content between the box borders
-                    content_match = line.strip()
-                    if content_match.startswith("│") and content_match.endswith("│"):
-                        inner_content = content_match[1:-1].strip()
-                        if inner_content:
-                            return True
-                elif "╰─" in line:
-                    # End of prompt box
-                    in_prompt = False
-
-            return False
-
-        except Exception:
-            return False
 
     def _auto_submit_message(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
         """Auto-submit unsubmitted message in Claude prompt."""
@@ -725,9 +655,9 @@ class IdleMonitor:
                 f"• tmux send-keys -t {target} 'claude --dangerously-skip-permissions' Enter"
             )
 
-            # Send notification using direct tmux.send_message() call  
+            # Send notification using direct tmux.send_message() call
             success = tmux.send_message(pm_target, message)
-            
+
             if success:
                 logger.info(f"Notified PM at {pm_target} about crash at {target}")
                 self._crash_notifications[crash_key] = now
@@ -744,7 +674,6 @@ class IdleMonitor:
             # Already initialized in __init__
 
             now = datetime.now()
-            idle_key = f"idle_{target}"
 
             # Track idle state - but continue to calculate duration for potential notification
             if target not in self._idle_agents:
@@ -781,15 +710,17 @@ class IdleMonitor:
                 f"🚨 IDLE AGENT ALERT:\n\n"
                 f"The following agent appears to be idle and needs tasks:\n"
                 f"{target} ({agent_type})\n\n"
-                f"Agent has been idle for {int(idle_duration.total_seconds()/60)} minutes.\n"
+                f"Agent has been idle for {int(idle_duration.total_seconds() / 60)} minutes.\n"
                 f"Please check their status and assign work as needed.\n\n"
                 f"This is an automated notification from the idle monitor."
             )
 
             # Send notification using direct tmux.send_message() call
-            logger.info(f"Sending idle notification to PM at {pm_target} about agent {target} (idle for {int(idle_duration.total_seconds())}s)")
+            logger.info(
+                f"Sending idle notification to PM at {pm_target} about agent {target} (idle for {int(idle_duration.total_seconds())}s)"
+            )
             success = tmux.send_message(pm_target, message)
-            
+
             if success:
                 logger.info(f"Successfully notified PM at {pm_target} about idle agent {target}")
             else:
@@ -962,38 +893,15 @@ class AgentMonitor:
 
     def _has_normal_claude_interface(self, content: str) -> bool:
         """Check if content shows normal Claude interface."""
-        claude_indicators = [
-            "│ >",  # Claude prompt
-            "assistant:",  # Claude response marker
-            "I'll help",  # Common Claude response
-            "I can help",  # Common Claude response
-            "Let me",  # Common Claude response start
-            "Human:",  # Human input marker
-            "Claude:",  # Claude label
-        ]
-
-        return any(indicator in content for indicator in claude_indicators)
+        # Use the helper function from monitor_helpers
+        return is_claude_interface_present(content)
 
     def _has_critical_errors(self, content: str) -> bool:
         """Check for critical error states."""
-        critical_errors = [
-            "connection lost",
-            "network error",
-            "timeout",
-            "crashed",
-            "killed",
-            "segmentation fault",
-            "permission denied",
-            "command not found",
-            "python: can't open file",
-            "ModuleNotFoundError",
-            "ImportError",
-            "SyntaxError",
-            "claude: command not found",
-        ]
+        # Use the helper functions from monitor_helpers
+        from tmux_orchestrator.core.monitor_helpers import _has_crash_indicators, _has_error_indicators
 
-        content_lower = content.lower()
-        return any(error in content_lower for error in critical_errors)
+        return _has_crash_indicators(content) or _has_error_indicators(content)
 
     def should_attempt_recovery(self, target: str, status: AgentHealthStatus) -> bool:
         """Determine if recovery should be attempted."""

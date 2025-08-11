@@ -1,0 +1,15 @@
+╭─ Claude Code ──────────────────────────────────────────────────────────────╮
+│                                                                             │
+│ Human: What's the status of the current implementation?                     │
+│                                                                             │
+│ Assistant: Let me check the current implementation status for you.          │
+│                                                                             │
+│ Error: Network error occurred while processing your request.                │
+│ Please try again or check your internet connection.                         │
+│                                                                             │
+│ >                                                                           │
+│                                                                             │
+╰─────────────────────────────────────────────────────────────────────────────╯
+                                                                                
+─────────────────────────────────────────────────────────────────────────────── 
+? for shortcuts ▐ ↑/↓ navigate ▐ esc/cmd+c cancel ▐ enter/cmd+enter submit ▐

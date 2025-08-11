@@ -1,0 +1,4 @@
+Welcome to Claude Code!
+
+This is a pre-release version of Claude in the terminal. As a pre-release, it:
+• Is unsupported and not recommended for serious use

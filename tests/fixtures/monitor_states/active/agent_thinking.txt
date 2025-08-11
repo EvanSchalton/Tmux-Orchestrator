@@ -1,0 +1,7 @@
+· Divining… (571s · ↓ 9.1k tokens · esc to interrupt)
+
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ > Test message to see if monitor detects stuck messages                                               │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
+                                                                                  Bypassing Permissions
+                         ✗ Auto-update failed · Try claude doctor or npm i -g @anthropic-ai/claude-code
