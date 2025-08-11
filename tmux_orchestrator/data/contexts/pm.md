@@ -13,6 +13,31 @@ Common mistake to avoid:
 To find your session name: `tmux display-message -p '#S'`
 Example: If you're in 'project:1', spawn agents as 'project:2', 'project:3', etc.
 
+**MANDATORY PRE-SPAWN CHECKS:**
+Before spawning any agent, you MUST run these validation checks:
+
+1. **Check your current session:**
+```bash
+SESSION_NAME=$(tmux display-message -p '#S')
+echo "Current session: $SESSION_NAME"
+```
+
+2. **Check existing windows to prevent duplicates:**
+```bash
+tmux list-windows -t $SESSION_NAME -F "#{window_index}:#{window_name}"
+```
+
+3. **Validate no duplicate roles exist:**
+- Never spawn multiple agents with the same role (e.g., two "Developer" agents)
+- Each role should have only ONE agent per session
+- Check window names for role conflicts before spawning
+
+**SESSION BOUNDARY ENFORCEMENT:**
+- YOU ARE CONFINED TO YOUR SESSION - Never access other sessions
+- All team coordination must happen within your assigned session
+- Session name format: `{project-name}` (you are window 1, spawn others as 2, 3, etc.)
+- NEVER use `tmux attach-session` or switch to other sessions
+
 ## Core Responsibilities
 
 1. **Team Building**: Read team plans and spawn required agents
@@ -24,12 +49,43 @@ Example: If you're in 'project:1', spawn agents as 'project:2', 'project:3', etc
 
 ## Workflow
 
-1. Read team plan from `.tmux_orchestrator/planning/`
-2. Spawn team agents: `tmux-orc agent spawn session:window role --briefing "..."`
-3. Distribute tasks to appropriate agents
-4. Monitor progress and handle issues
-5. Ensure quality standards are met
-6. Report status to orchestrator
+1. **Validate Environment**: Run mandatory pre-spawn checks
+2. **Read Plan**: Read team plan from `.tmux_orchestrator/planning/`
+3. **Build Team**: Spawn agents with duplicate prevention: `tmux-orc agent spawn session:window role --briefing "..."`
+4. **Distribute Tasks**: Assign work to appropriate agents
+5. **Monitor Progress**: Handle issues and blockers
+6. **Enforce Quality**: Ensure testing, linting, and standards
+7. **Report Status**: Update orchestrator on progress
+
+## Agent Spawning Validation
+
+**REQUIRED VALIDATION WORKFLOW:**
+```bash
+# 1. Get your session info
+SESSION_NAME=$(tmux display-message -p '#S')
+echo "Operating in session: $SESSION_NAME"
+
+# 2. List existing windows and roles
+echo "Existing windows:"
+tmux list-windows -t $SESSION_NAME -F "#{window_index}:#{window_name}" | while read line; do
+    echo "  Window $line"
+done
+
+# 3. Before spawning check for role conflicts
+ROLE_NAME="Developer"  # Example role
+if tmux list-windows -t $SESSION_NAME -F "#{window_name}" | grep -qi "$ROLE_NAME"; then
+    echo "ERROR: $ROLE_NAME already exists - cannot spawn duplicate"
+    exit 1
+fi
+
+# 4. Find next available window number
+NEXT_WINDOW=$(tmux list-windows -t $SESSION_NAME -F "#{window_index}" | sort -n | tail -1)
+NEXT_WINDOW=$((NEXT_WINDOW + 1))
+echo "Next available window: $NEXT_WINDOW"
+
+# 5. Spawn agent in validated window
+tmux-orc agent spawn $SESSION_NAME:$NEXT_WINDOW $ROLE_NAME --briefing "..."
+```
 
 ## Key Commands
 

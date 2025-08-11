@@ -782,17 +782,17 @@ class IdleMonitor:
             now = datetime.now()
             idle_key = f"idle_{target}"
 
-            # Track idle state
+            # Track idle state - but continue to calculate duration for potential notification
             if target not in self._idle_agents:
                 self._idle_agents[target] = now
                 logger.debug(f"Started tracking idle state for {target}")
-                return
+                # Don't return here - continue to check if we should notify immediately
 
             # Check how long agent has been idle
             idle_duration = now - self._idle_agents[target]
             if idle_duration < timedelta(seconds=30):  # Reduced from 2 minutes to 30 seconds for faster notifications
                 # Not idle long enough to notify
-                logger.info(f"Agent {target} idle for {idle_duration.total_seconds():.1f}s, need 30s minimum")
+                logger.debug(f"Agent {target} idle for {idle_duration.total_seconds():.1f}s, need 30s minimum")
                 return
 
             # Check notification cooldown (5 minutes)

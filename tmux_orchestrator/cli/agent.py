@@ -716,6 +716,46 @@ def spawn(ctx: click.Context, name: str, target: str, briefing: str, working_dir
             console.print(f"[red]✗ {error_msg}[/red]")
             return
 
+    # Check for duplicate roles in the session
+    existing_windows = tmux.list_windows(session_name)
+    duplicate_role_found = False
+    
+    for window in existing_windows:
+        window_name = window.get("name", "").lower()
+        name_lower = name.lower()
+        
+        # Check for role conflicts (case-insensitive)
+        role_conflicts = [
+            (name_lower in window_name or window_name in name_lower) and len(name_lower) > 2,
+            # Specific role aliases
+            (name_lower in ["pm", "manager", "project-manager"] and any(pm in window_name for pm in ["pm", "manager", "project"])),
+            (name_lower in ["dev", "developer", "engineer"] and any(dev in window_name for dev in ["dev", "engineer"])),
+            (name_lower in ["qa", "tester", "test", "quality"] and any(qa in window_name for qa in ["qa", "test", "quality"])),
+            (name_lower in ["devops", "ops", "deploy"] and any(ops in window_name for ops in ["devops", "ops", "deploy"])),
+            (name_lower in ["reviewer", "review", "code-review"] and any(rev in window_name for rev in ["review"])),
+        ]
+        
+        if any(role_conflicts):
+            duplicate_role_found = True
+            error_msg = f"Role conflict: '{name}' conflicts with existing window '{window['name']}' in session '{session_name}'"
+            if json:
+                import json as json_module
+
+                result = {
+                    "success": False,
+                    "name": name,
+                    "target": target,
+                    "error": error_msg,
+                    "conflict_window": f"{session_name}:{window['index']}",
+                    "validation_failed": "duplicate_role",
+                }
+                console.print(json_module.dumps(result, indent=2))
+                return
+            console.print(f"[red]✗ {error_msg}[/red]")
+            console.print(f"[yellow]Existing window: {session_name}:{window['index']} - {window['name']}[/yellow]")
+            console.print("[dim]Each role should have only ONE agent per session[/dim]")
+            return
+
     # Create window with custom name
     window_name = f"Claude-{name}"
     success = tmux.create_window(session_name, window_name, working_dir)
