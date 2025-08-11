@@ -387,67 +387,31 @@ class IdleMonitor:
             has_claude_interface = self._has_claude_interface(content)
 
             if has_claude_interface:
-                # Agent is idle but Claude is open - notify PM it's idle
                 logger.info(f"Agent {target} is idle with Claude interface")
-
-                # Initialize tracking for this target if needed
+                
+                # Notify PM immediately - they should know about idle agents
+                self._check_idle_notification(tmux, target, logger)
+                
+                # Also try auto-submit to fix potential stuck messages
+                current_time = time.time()
                 if target not in self._submission_attempts:
                     self._submission_attempts[target] = 0
                     self._last_submission_time = getattr(self, "_last_submission_time", {})
-
-                # Check if we should attempt auto-submit (with cooldown)
-                current_time = time.time()
+                
                 last_attempt = self._last_submission_time.get(target, 0)
                 time_since_last = current_time - last_attempt
-
-                # Only attempt if: hasn't been tried yet OR it's been 30+ seconds since last attempt
-                should_attempt = self._submission_attempts[target] == 0 or time_since_last >= 30
-
-                if should_attempt:
-                    # Auto-submit stuck message
+                
+                # Try auto-submit if not attempted recently (10 second cooldown)
+                if time_since_last >= 10:
                     try:
-                        logger.info(
-                            f"Auto-submitting stuck message for {target} (attempt #{self._submission_attempts[target] + 1})"
-                        )
+                        logger.debug(f"Auto-submitting for {target} (attempt #{self._submission_attempts[target] + 1})")
                         tmux.send_keys(target, "Enter")
-
-                        # Track submission attempt
+                        
                         self._submission_attempts[target] += 1
                         self._last_submission_time[target] = current_time
-
-                        # Log detailed status
-                        if self._submission_attempts[target] == 1:
-                            logger.info(f"First auto-submit attempt for {target}")
-                        elif self._submission_attempts[target] <= 3:
-                            logger.info(f"Retry #{self._submission_attempts[target]} for {target}")
-                        else:
-                            logger.warning(
-                                f"Agent {target} still stuck after {self._submission_attempts[target]} auto-submit attempts"
-                            )
-
-                        # Only notify PM if we've tried multiple times
-                        if self._submission_attempts[target] > 3:
-                            logger.info(
-                                f"Calling _check_idle_notification for {target} (attempts: {self._submission_attempts[target]})"
-                            )
-                            self._check_idle_notification(tmux, target, logger)
-                        else:
-                            logger.debug(
-                                f"Not notifying yet for {target} (attempts: {self._submission_attempts[target]})"
-                            )
-
-                        # Reset counter if it gets too high to prevent overflow
-                        if self._submission_attempts[target] > 10:
-                            logger.error(f"Resetting counter for {target} after 10 failed attempts")
-                            self._submission_attempts[target] = 0
-
+                        
                     except Exception as e:
-                        logger.error(f"Failed to auto-submit for {target}: {e}")
-                        self._check_idle_notification(tmux, target, logger)
-                else:
-                    logger.debug(
-                        f"Skipping auto-submit for {target} - cooldown active ({int(30 - time_since_last)}s remaining)"
-                    )
+                        logger.error(f"Auto-submit failed for {target}: {e}")
             else:
                 # Agent is idle and Claude isn't open - needs recovery
                 logger.error(f"Agent {target} needs recovery - no Claude interface detected")
