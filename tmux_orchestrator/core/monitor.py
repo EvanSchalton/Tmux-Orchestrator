@@ -496,11 +496,6 @@ class IdleMonitor:
         if current_time - last_attempt >= 10:  # 10 second cooldown
             logger.info(f"Auto-submitting stuck message for {target} (attempt #{attempts + 1})")
 
-            # Check if Claude has auto-update error
-            content = tmux.capture_pane(target, lines=5)
-            if "Auto-update failed" in content:
-                logger.warning(f"Agent {target} has auto-update error - auto-submit may not work")
-
             # Try different submission methods
             if attempts == 0:
                 # First try: Just Enter (Claude Code submits with Enter, not Ctrl+Enter)
