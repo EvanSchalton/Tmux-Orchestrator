@@ -199,6 +199,10 @@ class IdleMonitor:
 
         # Initialize restart attempts tracking for the daemon process
         self._restart_attempts: dict[str, datetime] = {}
+        # Initialize notification tracking for the daemon process (fixes notification spam)
+        # These are intentionally separate from parent process attributes
+        self._idle_notifications: dict[str, datetime] = {}  # type: ignore[no-redef]
+        self._crash_notifications: dict[str, datetime] = {}  # type: ignore[no-redef]
 
         # Create TMUXManager instance for this process
         tmux = TMUXManager()
