@@ -19,6 +19,12 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 
 console = Console()
 
+# Use secure project directory instead of /tmp
+PROJECT_DIR = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+PROJECT_DIR.mkdir(exist_ok=True)
+LOGS_DIR = PROJECT_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
 
 @click.group()
 def recovery() -> None:
@@ -121,7 +127,7 @@ def stop_recovery() -> None:
 
     The daemon will wait up to 2 minutes for active recoveries to finish.
     """
-    pid_file = Path("/tmp/tmux-orchestrator-recovery-daemon.pid")
+    pid_file = PROJECT_DIR / "recovery-daemon.pid"
 
     if not pid_file.exists():
         console.print("[yellow]No recovery daemon PID file found[/yellow]")
@@ -179,7 +185,7 @@ def recovery_status(json: bool) -> None:
     tmux = TMUXManager()
 
     # Check daemon status
-    pid_file = Path("/tmp/tmux-orchestrator-recovery-daemon.pid")
+    pid_file = PROJECT_DIR / "recovery-daemon.pid"
     daemon_running = False
     daemon_pid = None
 
@@ -452,7 +458,7 @@ def _start_daemon_background(
     verbose: bool,
 ) -> None:
     """Start recovery daemon in background."""
-    pid_file = Path("/tmp/tmux-orchestrator-recovery-daemon.pid")
+    pid_file = PROJECT_DIR / "recovery-daemon.pid"
 
     # Check if daemon is already running
     if pid_file.exists():

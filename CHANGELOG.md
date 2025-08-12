@@ -1,5 +1,54 @@
 # Tmux Orchestrator Changelog
 
+## Version 2.1.14 - Monitoring System Improvements
+
+### 🔧 Fixed
+
+#### Critical Fix: False Positive Crash Detection
+- **Resolved**: False positive crash detection when agents type "@" symbol in their prompts
+- **Root Cause**: The "@" symbol was incorrectly included in bash prompt detection patterns
+- **Impact**: Prevented unnecessary agent restarts and PM notifications
+
+#### Major Improvement: Simplified Auto-Submit
+- **Changed**: Auto-submit mechanism from complex key sequences (C-a, C-e, Enter) to single Enter key
+- **Benefits**: More reliable message submission, reduced complexity, better compatibility
+- **Implementation**: Updated to use new `tmux.press_enter()` method
+
+### 🏗️ Refactoring
+
+#### Monitor Module Restructuring
+- **New Module**: Created `monitor_helpers.py` with extracted helper functions
+- **Test Coverage**: Achieved 91% test coverage on helper functions
+- **Functions Extracted**:
+  - `is_claude_interface_present()`: Detects active Claude UI
+  - `detect_agent_state()`: Determines agent state from terminal content
+  - `has_unsubmitted_message()`: Checks for pending messages
+  - `should_notify_pm()`: PM notification logic with cooldowns
+
+#### Updated tmux Integration
+- **Methods**: Replaced `send_keys()` with `send_text()` and `press_enter()`
+- **Literal Flag**: Added support for tmux literal flag to prevent key interpretation
+- **Reliability**: Improved text sending accuracy and special character handling
+
+### 🐛 Bug Fixes
+- Fixed crash detection logic to prioritize Claude UI indicators before checking bash prompts
+- Removed "@" symbol from bash prompt indicators list
+- Enhanced idle agent detection with more accurate state tracking
+- Fixed false positives from terminal content analysis
+
+### ⚠️ Known Issues
+- False positive crash detection still occurs when "claude --dangerously-skip-permissions" appears in agent terminal
+- Monitor may attempt to restart agents that are actively working if the command text appears in their visible terminal content
+- Workaround: The system checks for Claude UI indicators first, reducing but not eliminating false positives
+
+### 📊 Testing
+- Created comprehensive test suite for monitor helpers
+- Added fixtures for various agent states
+- Improved test isolation and reliability
+- 12 test failures remain in auto-recovery and auto-submit tests (under investigation)
+
+---
+
 ## Version 2.0.0 - Enhanced Agent Communication & VS Code Integration
 
 ### 🎉 Major Enhancements

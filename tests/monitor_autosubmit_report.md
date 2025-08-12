@@ -33,4 +33,3 @@
 - **monitor_running:** True
 - **recent_activity:** True
 - **errors_found:** False
-

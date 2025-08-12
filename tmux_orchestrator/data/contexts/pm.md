@@ -47,6 +47,48 @@ tmux list-windows -t $SESSION_NAME -F "#{window_index}:#{window_name}"
 5. **Status Reporting**: Update orchestrator on progress
 6. **Resource Cleanup**: Kill agents and sessions when work is complete
 
+## 🔄 Agent Restart & Recovery
+
+**When agents fail and need restart, you must handle the recovery:**
+
+### Agent Failure Process:
+1. **Monitor Notifications**: You will receive failure notifications like:
+   ```
+   🚨 AGENT FAILURE
+
+   Agent: project:2 (Developer)
+   Issue: API Error
+
+   Please restart this agent and provide the appropriate role prompt.
+   ```
+
+2. **Reference Team Plan**: Always consult your team plan in `.tmux_orchestrator/planning/` to determine the correct role briefing for the failed agent.
+
+3. **Restart with Role**: Use this exact command pattern:
+   ```bash
+   # Navigate to the failed agent's window
+   tmux select-window -t project:2
+
+   # Restart Claude with the role from your team plan
+   claude --dangerously-skip-permissions --system-prompt "[role briefing from team plan]"
+   ```
+
+### Role Briefing Sources:
+- **Team Plan**: Primary source in `.tmux_orchestrator/planning/`
+- **Agent Context**: Use original briefing you provided during spawning
+- **Planning Documents**: Refer to your initial project planning
+
+### Example Recovery:
+```bash
+# If Developer agent at project:2 fails:
+tmux select-window -t project:2
+
+# Restart with Developer role from team plan:
+claude --dangerously-skip-permissions --system-prompt "You are a Backend Developer agent working on the API refactoring project. Your responsibilities: - Implement REST endpoints - Write unit tests - Follow TDD principles - Collaborate with PM for task coordination..."
+```
+
+**CRITICAL: Never restart agents without proper role briefings. The monitoring system detects failures but cannot restore agent roles - that's YOUR responsibility as PM.**
+
 ## Workflow
 
 1. **Validate Environment**: Run mandatory pre-spawn checks
@@ -151,7 +193,7 @@ When work is complete:
    ```bash
    # CORRECT - kills only window 2:
    tmux-orc agent kill refactor:2
-   
+
    # WRONG - kills entire session:
    tmux-orc agent kill refactor
    ```
@@ -162,7 +204,7 @@ When work is complete:
    tmux-orc agent kill session:2  # Developer window
    tmux-orc agent kill session:3  # QA window
    # ... etc
-   
+
    # Finally, report completion and kill YOUR OWN SESSION
    echo "All work complete. Terminating project session."
    tmux-orc agent kill $(tmux display-message -p '#S') --session

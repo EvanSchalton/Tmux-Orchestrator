@@ -25,7 +25,7 @@
 - Same error message regardless of input variations
 - Suggests underlying command execution issue rather than input validation
 
-**Impact**: 
+**Impact**:
 - Cannot reliably deploy teams for projects
 - Manual spawning is unpredictable
 - Blocks automated orchestration workflows
@@ -48,7 +48,7 @@ Successfully spawned backend developer suggests possible workaround:
 2025-08-10 02:35:35,817 - Available sessions: ['agent-kanban-fullstack', 'kanban-backend', 'kanban-frontend', 'kanban-qa']
 ```
 
-**Root Cause**: 
+**Root Cause**:
 - Monitor sees tmux sessions but reports 0 agents
 - The `list_agents` MCP tool also returns agents with status "Active" but type "Unknown"
 - Agent detection logic appears broken - it can see sessions but not identify them as containing agents

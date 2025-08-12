@@ -109,14 +109,14 @@ def start(ctx: click.Context, session: str, project_dir: Optional[str]) -> None:
 
     # Start Claude orchestrator
     target = f"{session}:Orchestrator"
-    if not tmux.send_keys(target, "claude --dangerously-skip-permissions"):
+    if not tmux.send_text(target, "claude --dangerously-skip-permissions"):
         console.print("[red]✗ Failed to start Claude in orchestrator[/red]")
         return
 
     import time
 
     time.sleep(0.5)
-    tmux.send_keys(target, "Enter")
+    tmux.press_enter(target)
     time.sleep(3)  # Wait for Claude to start
 
     # Send orchestrator briefing

@@ -39,7 +39,7 @@ done
 if [ "$SYSTEM_FILES_MODIFIED" = true ]; then
     # Check if any of the changed files were modified after the context
     UPDATE_SUGGESTED=false
-    
+
     for file in $CHANGED_FILES; do
         if [ -f "$file" ]; then
             FILE_MODIFIED=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null || echo "0")
@@ -49,7 +49,7 @@ if [ "$SYSTEM_FILES_MODIFIED" = true ]; then
             fi
         fi
     done
-    
+
     if [ "$UPDATE_SUGGESTED" = true ]; then
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${YELLOW}⚠️  Orchestrator Context Update Reminder${NC}"

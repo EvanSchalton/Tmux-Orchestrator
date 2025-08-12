@@ -3,8 +3,8 @@
 ## Critical API Issues Found During QA Testing
 
 ### 1. Ticket Move Endpoint Issue
-**Endpoint:** `POST /api/tickets/move`  
-**Status Code:** 422 Unprocessable Entity  
+**Endpoint:** `POST /api/tickets/move`
+**Status Code:** 422 Unprocessable Entity
 **Expected Payload:**
 ```json
 {
@@ -15,9 +15,9 @@
 ```
 **Issue:** The endpoint rejects valid-looking payloads with 422 error. This blocks the entire drag-and-drop functionality.
 
-### 2. Comment Creation Endpoint Issue  
-**Endpoint:** `POST /api/tickets/{id}/comments`  
-**Status Code:** 422 Unprocessable Entity  
+### 2. Comment Creation Endpoint Issue
+**Endpoint:** `POST /api/tickets/{id}/comments`
+**Status Code:** 422 Unprocessable Entity
 **Expected Payload:**
 ```json
 {
@@ -28,7 +28,7 @@
 **Issue:** Cannot create comments on tickets. Validation appears to be rejecting standard comment payloads.
 
 ### 3. WebSocket Broadcast Limitations
-**Endpoint:** `ws://localhost:8000/ws/connect`  
+**Endpoint:** `ws://localhost:8000/ws/connect`
 **Issue:** WebSocket connects successfully but doesn't broadcast ticket creation/update events to connected clients. Only connection establishment messages are sent.
 
 ## Workarounds Implemented

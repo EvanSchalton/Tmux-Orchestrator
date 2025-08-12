@@ -214,19 +214,19 @@ def send(ctx: click.Context, target: str, message: str, delay: float, json: bool
     # Send message using TMUXManager with custom delay handling
     try:
         # Clear any existing input first
-        tmux.send_keys(target, "C-c")
+        tmux.press_ctrl_c(target)
         time.sleep(delay)
 
         # Clear the input line
-        tmux.send_keys(target, "C-u")
+        tmux.press_ctrl_u(target)
         time.sleep(delay)
 
-        # Send the actual message
-        tmux.send_keys(target, message)
+        # Send the actual message as literal text
+        tmux.send_text(target, message)
         time.sleep(max(delay * 6, 3.0))  # Ensure adequate time for message processing
 
-        # Submit with Ctrl+Enter (Claude's required key combination)
-        tmux.send_keys(target, "C-Enter")
+        # Submit with Enter (Claude Code uses Enter, not Ctrl+Enter)
+        tmux.press_enter(target)
 
         success = True
         status_msg = "sent"
@@ -718,26 +718,35 @@ def spawn(ctx: click.Context, name: str, target: str, briefing: str, working_dir
 
     # Check for duplicate roles in the session
     existing_windows = tmux.list_windows(session_name)
-    duplicate_role_found = False
-    
+
     for window in existing_windows:
         window_name = window.get("name", "").lower()
         name_lower = name.lower()
-        
+
         # Check for role conflicts (case-insensitive)
         role_conflicts = [
             (name_lower in window_name or window_name in name_lower) and len(name_lower) > 2,
             # Specific role aliases
-            (name_lower in ["pm", "manager", "project-manager"] and any(pm in window_name for pm in ["pm", "manager", "project"])),
+            (
+                name_lower in ["pm", "manager", "project-manager"]
+                and any(pm in window_name for pm in ["pm", "manager", "project"])
+            ),
             (name_lower in ["dev", "developer", "engineer"] and any(dev in window_name for dev in ["dev", "engineer"])),
-            (name_lower in ["qa", "tester", "test", "quality"] and any(qa in window_name for qa in ["qa", "test", "quality"])),
-            (name_lower in ["devops", "ops", "deploy"] and any(ops in window_name for ops in ["devops", "ops", "deploy"])),
+            (
+                name_lower in ["qa", "tester", "test", "quality"]
+                and any(qa in window_name for qa in ["qa", "test", "quality"])
+            ),
+            (
+                name_lower in ["devops", "ops", "deploy"]
+                and any(ops in window_name for ops in ["devops", "ops", "deploy"])
+            ),
             (name_lower in ["reviewer", "review", "code-review"] and any(rev in window_name for rev in ["review"])),
         ]
-        
+
         if any(role_conflicts):
-            duplicate_role_found = True
-            error_msg = f"Role conflict: '{name}' conflicts with existing window '{window['name']}' in session '{session_name}'"
+            error_msg = (
+                f"Role conflict: '{name}' conflicts with existing window '{window['name']}' in session '{session_name}'"
+            )
             if json:
                 import json as json_module
 
@@ -802,8 +811,8 @@ def spawn(ctx: click.Context, name: str, target: str, briefing: str, working_dir
 
     # Start Claude in the new window
     actual_target = f"{session_name}:{actual_window_idx}"
-    tmux.send_keys(actual_target, "claude --dangerously-skip-permissions")
-    tmux.send_keys(actual_target, "Enter")
+    tmux.send_text(actual_target, "claude --dangerously-skip-permissions")
+    tmux.press_enter(actual_target)
 
     # CRITICAL: Wait for Claude to fully initialize to prevent Ctrl+C interruption
     import time

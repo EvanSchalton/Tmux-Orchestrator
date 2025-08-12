@@ -45,10 +45,49 @@ class TMUXManager:
         result = self._run_tmux(cmd, check=False)
         return result.returncode == 0
 
-    def send_keys(self, target: str, keys: str) -> bool:
-        """Send keys to a tmux pane."""
-        result = self._run_tmux(["send-keys", "-t", target, keys], check=False)
+    def send_keys(self, target: str, keys: str, literal: bool = False) -> bool:
+        """Send keys to a tmux pane.
+
+        Args:
+            target: Target pane (session:window)
+            keys: Keys or text to send
+            literal: If True, send as literal text with -l flag (escaped)
+                    If False, send as command keys (Enter, C-c, etc.)
+        """
+        cmd = ["send-keys", "-t", target]
+        if literal:
+            cmd.append("-l")  # Literal mode for text
+        cmd.append(keys)
+        result = self._run_tmux(cmd, check=False)
         return result.returncode == 0
+
+    def press_enter(self, target: str) -> bool:
+        """Press Enter key in the target pane."""
+        return self.send_keys(target, "Enter", literal=False)
+
+    def press_ctrl_c(self, target: str) -> bool:
+        """Press Ctrl+C in the target pane."""
+        return self.send_keys(target, "C-c", literal=False)
+
+    def press_ctrl_u(self, target: str) -> bool:
+        """Press Ctrl+U (clear line) in the target pane."""
+        return self.send_keys(target, "C-u", literal=False)
+
+    def press_ctrl_e(self, target: str) -> bool:
+        """Press Ctrl+E (end of line) in the target pane."""
+        return self.send_keys(target, "C-e", literal=False)
+
+    def press_ctrl_a(self, target: str) -> bool:
+        """Press Ctrl+A (beginning of line) in the target pane."""
+        return self.send_keys(target, "C-a", literal=False)
+
+    def press_escape(self, target: str) -> bool:
+        """Press Escape key in the target pane."""
+        return self.send_keys(target, "Escape", literal=False)
+
+    def send_text(self, target: str, text: str) -> bool:
+        """Send literal text to the target pane (properly escaped)."""
+        return self.send_keys(target, text, literal=True)
 
     def send_message(self, target: str, message: str) -> bool:
         """Send a message to a Claude agent using the proven CLI method."""
@@ -75,19 +114,19 @@ class TMUXManager:
                     break
 
             # Clear any existing input first
-            self.send_keys(target, "C-c")
+            self.press_ctrl_c(target)
             time.sleep(delay)
 
             # Clear the input line
-            self.send_keys(target, "C-u")
+            self.press_ctrl_u(target)
             time.sleep(delay)
 
-            # Send the actual message
-            self.send_keys(target, message)
+            # Send the actual message as literal text
+            self.send_text(target, message)
             time.sleep(max(delay * 6, 3.0))  # Ensure adequate time for message processing
 
-            # Submit with Ctrl+Enter (Claude's required key combination) - no End key needed
-            self.send_keys(target, "C-Enter")
+            # Submit with Enter (Claude Code uses Enter, not Ctrl+Enter)
+            self.press_enter(target)
 
             return True
 
@@ -100,19 +139,19 @@ class TMUXManager:
     def _send_message_fallback(self, target: str, message: str) -> bool:
         """Original message sending implementation as fallback."""
         # Clear any existing input
-        self.send_keys(target, "C-c")
+        self.press_ctrl_c(target)
         subprocess.run(["sleep", "0.5"])
 
         # Clear the input line
-        self.send_keys(target, "C-u")
+        self.press_ctrl_u(target)
         subprocess.run(["sleep", "0.5"])
 
-        # Send the message
-        self.send_keys(target, message)
+        # Send the message as literal text
+        self.send_text(target, message)
         subprocess.run(["sleep", "3.0"])
 
-        # Submit with Ctrl+Enter (Claude's required key combination)
-        self.send_keys(target, "C-Enter")
+        # Submit with Enter (Claude Code uses Enter, not Ctrl+Enter)
+        self.press_enter(target)
 
         return True
 

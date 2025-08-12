@@ -3,9 +3,16 @@
 import logging
 import subprocess
 import time
+from pathlib import Path
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
+
+# Use secure project directory instead of /tmp
+PROJECT_DIR = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+PROJECT_DIR.mkdir(exist_ok=True)
+BRIEFINGS_DIR = PROJECT_DIR / "briefings"
+BRIEFINGS_DIR.mkdir(exist_ok=True)
 
 
 class ClaudeInterface:
@@ -219,7 +226,7 @@ class ClaudeAgentManager:
             logger.error(f"Failed to deliver briefing to {target}: {error}")
             # Try alternate delivery method - write to file
             try:
-                briefing_file = f"/tmp/briefing_{session}_{window}.txt"
+                briefing_file = BRIEFINGS_DIR / f"briefing_{session}_{window}.txt"
                 with open(briefing_file, "w") as f:
                     f.write(f"BRIEFING: {briefing}\n")
                 # Try to make agent read the file

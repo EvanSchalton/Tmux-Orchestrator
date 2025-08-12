@@ -1,7 +1,7 @@
 # Monitor Auto-Submit Test Report
 
-**QA Engineer:** Claude QA Engineer  
-**Date:** 2025-08-10 17:52  
+**QA Engineer:** Claude QA Engineer
+**Date:** 2025-08-10 17:52
 **Feature Tested:** Monitor Auto-Submit for Stuck Messages
 
 ## Executive Summary

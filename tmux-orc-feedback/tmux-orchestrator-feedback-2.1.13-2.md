@@ -12,7 +12,7 @@ Agents are being spawned across multiple disconnected tmux sessions, creating "z
 When deploying agents, the system created:
 - `kanban-project` - Main session with PM, QA, and Developer
 - `kanban-loadtest` - Isolated developer
-- `kanban-frontend-test` - Another isolated frontend agent  
+- `kanban-frontend-test` - Another isolated frontend agent
 - `kanban-qa` - Separate QA agent
 - `kanban-testing-testing` - Another testing session with 4 windows
 

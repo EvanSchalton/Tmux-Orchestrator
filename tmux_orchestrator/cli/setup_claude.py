@@ -417,21 +417,43 @@ def setup_vscode(project_dir: str, force: bool) -> None:
     # Generate and write tasks.json
     tasks_file = vscode_dir / "tasks.json"
 
-    # Check if tasks.json already exists
+    # Handle tasks.json
     if tasks_file.exists() and not force:
         console.print("[yellow]tasks.json already exists (use --force to overwrite)[/yellow]")
-        return
+        tasks_created = False
+    else:
+        # Generate tasks configuration
+        tasks_config = _generate_tasks_config(str(project_path))
+        # Write tasks.json file
+        with open(tasks_file, "w", encoding="utf-8") as f:
+            json.dump(tasks_config, f, indent=2, ensure_ascii=False)
+        tasks_created = True
+        console.print("[green]✓ Created tasks.json[/green]")
 
-    # Generate tasks configuration
-    tasks_config = _generate_tasks_config(str(project_path))
+    # Handle settings.json to prevent VS Code auto-activation issues
+    settings_file = vscode_dir / "settings.json"
+    if settings_file.exists() and not force:
+        console.print("[yellow]settings.json already exists (use --force to overwrite)[/yellow]")
+        settings_created = False
+    else:
+        # Load template settings
+        import importlib.resources
 
-    # Write tasks.json file
-    with open(tasks_file, "w", encoding="utf-8") as f:
-        json.dump(tasks_config, f, indent=2, ensure_ascii=False)
+        template_data = importlib.resources.read_text("tmux_orchestrator.templates", "vscode_settings.json")
+        settings_config = json.loads(template_data)
 
-    console.print("[green]✓ VS Code configuration complete[/green]")
-    console.print(f"  File: {tasks_file}")
-    console.print(f"  Tasks: {len(tasks_config.get('tasks', []))}")
+        # Write settings.json file
+        with open(settings_file, "w", encoding="utf-8") as f:
+            json.dump(settings_config, f, indent=2, ensure_ascii=False)
+        settings_created = True
+        console.print("[green]✓ Created settings.json (disabled auto-activation)[/green]")
+
+    if tasks_created or settings_created:
+        console.print("\n[green]✓ VS Code configuration complete[/green]")
+        if tasks_created:
+            console.print(f"  Tasks file: {tasks_file}")
+        if settings_created:
+            console.print(f"  Settings file: {settings_file}")
     console.print("\nAvailable tasks in VS Code:")
     console.print("• Open All Agents (Ctrl+Shift+P → 'Tasks: Run Task')")
     console.print("• Attach to Development Session")

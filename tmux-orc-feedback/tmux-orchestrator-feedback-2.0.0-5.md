@@ -7,10 +7,10 @@ The code uses `C-Enter` (Ctrl+Enter) to submit messages to Claude CLI, but Claud
 
 ```python
 # WRONG - in tmux_orchestrator/utils/tmux.py line 76
-self.send_keys(target, "C-Enter")  
+self.send_keys(target, "C-Enter")
 
 # CORRECT - should be
-self.send_keys(target, "Enter")  # or "C-m" 
+self.send_keys(target, "Enter")  # or "C-m"
 ```
 
 ### Evidence

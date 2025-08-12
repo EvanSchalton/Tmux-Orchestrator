@@ -15,8 +15,14 @@ class EnhancedMonitor:
     """Fixed monitoring daemon that actually monitors agents."""
 
     def __init__(self):
-        self.pid_file = Path("/tmp/tmux-orchestrator-enhanced-monitor.pid")
-        self.log_file = Path("/tmp/tmux-orchestrator-enhanced-monitor.log")
+        # Use secure project directory instead of /tmp
+        project_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+        project_dir.mkdir(exist_ok=True)
+        logs_dir = project_dir / "logs"
+        logs_dir.mkdir(exist_ok=True)
+
+        self.pid_file = project_dir / "enhanced-monitor.pid"
+        self.log_file = logs_dir / "enhanced-monitor.log"
         self.debug_mode = os.environ.get("TMUX_ORC_DEBUG", "").lower() in ("true", "1", "yes")
         self.monitored_agents: Dict[str, dict] = {}
         self.crashed_agents: Set[str] = set()

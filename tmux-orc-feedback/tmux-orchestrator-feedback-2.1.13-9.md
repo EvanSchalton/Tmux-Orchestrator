@@ -77,7 +77,7 @@ kanban-project: 3 windows (PM, QA, Developer)
 #### Session After PM Action
 ```bash
 $ tmux list-sessions
-kanban-project: 3 windows (PM, QA, Developer) 
+kanban-project: 3 windows (PM, QA, Developer)
 kanban-dev-fullstack: 5 windows (orchestrator, PM, Frontend-Dev, Backend-Dev, Developer)
 ```
 
@@ -117,7 +117,7 @@ PM agents should be trained to:
 ### Long-term Solution
 Need tmux-orchestrator features:
 1. **Session boundaries**: PM agents should not create new sessions
-2. **Resource limits**: Prevent duplicate role creation  
+2. **Resource limits**: Prevent duplicate role creation
 3. **Team management training**: Better PM agent behavior
 4. **Resource visibility**: Show PM what team they already have
 

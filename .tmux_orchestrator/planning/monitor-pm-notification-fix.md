@@ -8,7 +8,7 @@ The monitor daemon was failing to send PM notifications about idle agents due to
 ## Root Cause Analysis
 
 ### Primary Issue: Subprocess vs Direct Communication
-- **Original Code**: Used `subprocess.run(["tmux-orc", "agent", "send", pm_target, message])` 
+- **Original Code**: Used `subprocess.run(["tmux-orc", "agent", "send", pm_target, message])`
 - **Problem**: Subprocess calls were failing silently or timing out
 - **Solution**: Direct `tmux.send_message(pm_target, message)` calls
 
@@ -26,7 +26,7 @@ The monitor daemon was failing to send PM notifications about idle agents due to
 # OLD: 2-minute threshold
 if idle_duration < timedelta(minutes=2):
 
-# NEW: 30-second threshold  
+# NEW: 30-second threshold
 if idle_duration < timedelta(seconds=30):  # Reduced from 2 minutes to 30 seconds for faster notifications
     logger.info(f"Agent {target} idle for {idle_duration.total_seconds():.1f}s, need 30s minimum")
 ```
@@ -72,7 +72,7 @@ success = tmux.send_message(pm_target, message)
 
 ### Before Fix
 - ❌ No PM notifications delivered
-- ❌ Silent failures in notification system  
+- ❌ Silent failures in notification system
 - ❌ Agents could be idle indefinitely without PM awareness
 
 ### After Fix

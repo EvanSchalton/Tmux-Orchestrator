@@ -65,8 +65,3 @@
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
                                                                                   Bypassing Permissions
                          ✗ Auto-update failed · Try claude doctor or npm i -g @anthropic-ai/claude-code
-
-
-
-
-

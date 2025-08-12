@@ -1,6 +1,7 @@
 """Context commands for standardized agent briefings."""
 
 from pathlib import Path
+from typing import Dict
 
 import click
 import pkg_resources  # noqa: E402
@@ -18,7 +19,7 @@ except Exception:
     CONTEXTS_DIR = Path(__file__).parent.parent / "data" / "contexts"
 
 
-def get_available_contexts():
+def get_available_contexts() -> Dict[str, Path]:
     """Get list of available context files."""
     if not CONTEXTS_DIR.exists():
         return {}
@@ -41,7 +42,7 @@ def load_context(role: str) -> str:
 
 
 @click.group()
-def context():
+def context() -> None:
     """Provide standardized context briefings for common agent roles.
 
     These contexts serve as starting points that can be extended with
@@ -58,7 +59,7 @@ def context():
 @context.command()
 @click.argument("role")
 @click.option("--raw", is_flag=True, help="Output raw markdown without formatting")
-def show(role: str, raw: bool):
+def show(role: str, raw: bool) -> None:
     """Display context briefing for a specific role.
 
     ROLE: The agent role to show context for
@@ -82,7 +83,7 @@ def show(role: str, raw: bool):
 
 
 @context.command()
-def list():
+def list() -> None:
     """List all available context templates."""
     contexts = get_available_contexts()
 
@@ -108,7 +109,7 @@ def list():
 @click.argument("role")
 @click.option("--session", required=True, help="Target session:window")
 @click.option("--extend", help="Additional project-specific context")
-def spawn(role: str, session: str, extend: str = None):
+def spawn(role: str, session: str, extend: str | None = None) -> None:
     """Spawn an agent with standardized context (orchestrator/pm only).
 
     For other agent types, use custom briefings from your team plan.
@@ -133,8 +134,8 @@ def spawn(role: str, session: str, extend: str = None):
     if extend:
         briefing += f"\n\n## Project-Specific Context\n\n{extend}"
 
-    # Spawn the agent
-    success = tmux.spawn_agent(session, role, briefing)
+    # Create window and send briefing
+    success = tmux.send_message(session, briefing)
 
     if success:
         console.print(f"[green]✓ Spawned {role} agent at {session}[/green]")
@@ -146,7 +147,7 @@ def spawn(role: str, session: str, extend: str = None):
 @click.argument("output_file", type=click.Path())
 @click.option("--role", required=True, help="System role (orchestrator/pm) to export")
 @click.option("--project", help="Project name for customization")
-def export(output_file: str, role: str, project: str = None):
+def export(output_file: str, role: str, project: str | None = None) -> None:
     """Export a system role context to a file for customization.
 
     Only orchestrator and PM have standard contexts. All other agents

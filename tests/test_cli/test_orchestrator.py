@@ -28,8 +28,10 @@ def test_orchestrator_start_new_session(runner, mock_tmux):
     mock_tmux.has_session.return_value = False
     # Mock session creation
     mock_tmux.create_session.return_value = True
-    # Mock send_keys for starting Claude
-    mock_tmux.send_keys.return_value = True
+    # Mock send_text for starting Claude
+    mock_tmux.send_text.return_value = True
+    # Mock press_enter
+    mock_tmux.press_enter.return_value = True
     # Mock send_message for briefing
     mock_tmux.send_message.return_value = True
 
@@ -41,7 +43,8 @@ def test_orchestrator_start_new_session(runner, mock_tmux):
 
     # Verify tmux methods were called
     mock_tmux.create_session.assert_called_once_with("tmux-orc", "Orchestrator", str(Path.cwd()))
-    mock_tmux.send_keys.assert_called()  # Called multiple times
+    mock_tmux.send_text.assert_called_once_with("tmux-orc:Orchestrator", "claude --dangerously-skip-permissions")
+    mock_tmux.press_enter.assert_called_once_with("tmux-orc:Orchestrator")
     mock_tmux.send_message.assert_called_once()
 
 
@@ -91,7 +94,8 @@ def test_orchestrator_restart_via_kill_and_start(runner, mock_tmux):
     mock_tmux.kill_session.return_value = True
     # Mock successful session creation
     mock_tmux.create_session.return_value = True
-    mock_tmux.send_keys.return_value = True
+    mock_tmux.send_text.return_value = True
+    mock_tmux.press_enter.return_value = True
     mock_tmux.send_message.return_value = True
 
     # Kill first

@@ -195,7 +195,10 @@ def test_agent_send_success() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.send_keys.return_value = True
+    mock_tmux.press_ctrl_c.return_value = True
+    mock_tmux.press_ctrl_u.return_value = True
+    mock_tmux.send_text.return_value = True
+    mock_tmux.press_enter.return_value = True
 
     with patch("time.sleep"):  # Speed up tests by mocking sleep
         result = runner.invoke(agent, ["send", "test-session:0", "Hello agent!"], obj={"tmux": mock_tmux})
@@ -207,8 +210,11 @@ def test_agent_send_success() -> None:
 
     # Verify validation was performed
     mock_tmux.has_session.assert_called_once_with("test-session")
-    # Verify send_keys was called multiple times (for clearing and sending message)
-    assert mock_tmux.send_keys.call_count >= 4
+    # Verify the new methods were called
+    mock_tmux.press_ctrl_c.assert_called_once_with("test-session:0")
+    mock_tmux.press_ctrl_u.assert_called_once_with("test-session:0")
+    mock_tmux.send_text.assert_called_once_with("test-session:0", "Hello agent!")
+    mock_tmux.press_enter.assert_called_once_with("test-session:0")
 
 
 def test_agent_send_with_pane_target() -> None:
@@ -217,7 +223,10 @@ def test_agent_send_with_pane_target() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.send_keys.return_value = True
+    mock_tmux.press_ctrl_c.return_value = True
+    mock_tmux.press_ctrl_u.return_value = True
+    mock_tmux.send_text.return_value = True
+    mock_tmux.press_enter.return_value = True
 
     with patch("time.sleep"):
         result = runner.invoke(agent, ["send", "test-session:0.1", "Hello agent!"], obj={"tmux": mock_tmux})
@@ -233,7 +242,10 @@ def test_agent_send_custom_delay() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.send_keys.return_value = True
+    mock_tmux.press_ctrl_c.return_value = True
+    mock_tmux.press_ctrl_u.return_value = True
+    mock_tmux.send_text.return_value = True
+    mock_tmux.press_enter.return_value = True
 
     with patch("time.sleep") as mock_sleep:
         result = runner.invoke(agent, ["send", "test-session:0", "Hello!", "--delay", "1.5"], obj={"tmux": mock_tmux})
@@ -250,7 +262,10 @@ def test_agent_send_json_output() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.send_keys.return_value = True
+    mock_tmux.press_ctrl_c.return_value = True
+    mock_tmux.press_ctrl_u.return_value = True
+    mock_tmux.send_text.return_value = True
+    mock_tmux.press_enter.return_value = True
 
     with patch("time.sleep"):
         result = runner.invoke(agent, ["send", "test-session:0", "Hello!", "--json"], obj={"tmux": mock_tmux})
@@ -338,7 +353,10 @@ def test_agent_send_exception_handling() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.send_keys.side_effect = Exception("Network error")
+    mock_tmux.press_ctrl_c.return_value = True
+    mock_tmux.press_ctrl_u.return_value = True
+    mock_tmux.send_text.side_effect = Exception("Network error")
+    mock_tmux.press_enter.return_value = True
 
     result = runner.invoke(agent, ["send", "test-session:0", "Hello!"], obj={"tmux": mock_tmux})
 
@@ -353,7 +371,10 @@ def test_send_function_direct() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.send_keys.return_value = True
+    mock_tmux.press_ctrl_c.return_value = True
+    mock_tmux.press_ctrl_u.return_value = True
+    mock_tmux.send_text.return_value = True
+    mock_tmux.press_enter.return_value = True
 
     with patch("time.sleep"):
         result = runner.invoke(send, ["test-session:0", "Hello agent!"], obj={"tmux": mock_tmux})
@@ -361,8 +382,11 @@ def test_send_function_direct() -> None:
     assert result.exit_code == 0
     # Verify session validation was performed
     mock_tmux.has_session.assert_called_once_with("test-session")
-    # Verify multiple send_keys calls were made for the message sequence
-    assert mock_tmux.send_keys.call_count >= 4
+    # Verify the new methods were called
+    mock_tmux.press_ctrl_c.assert_called_once_with("test-session:0")
+    mock_tmux.press_ctrl_u.assert_called_once_with("test-session:0")
+    mock_tmux.send_text.assert_called_once_with("test-session:0", "Hello agent!")
+    mock_tmux.press_enter.assert_called_once_with("test-session:0")
 
 
 def test_agent_list_command() -> None:
@@ -420,11 +444,18 @@ def test_agent_spawn_command() -> None:
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
     mock_tmux.create_window.return_value = True
-    mock_tmux.list_windows.return_value = [
-        {"index": "0", "name": "Claude-pm"},
-        {"index": "1", "name": "Claude-api-specialist"},
+    # Mock list_windows to return different values on different calls
+    # First call: check for conflicts (only pm exists)
+    # Second call: after creating window (both pm and api-specialist exist)
+    mock_tmux.list_windows.side_effect = [
+        [{"index": "0", "name": "Claude-pm"}],  # First call - check for conflicts
+        [
+            {"index": "0", "name": "Claude-pm"},
+            {"index": "1", "name": "Claude-api-specialist"},
+        ],  # Second call - after creation
     ]
-    mock_tmux.send_keys.return_value = True
+    mock_tmux.send_text.return_value = True
+    mock_tmux.press_enter.return_value = True
     mock_tmux.send_message.return_value = True
 
     # Test basic spawn
@@ -435,17 +466,22 @@ def test_agent_spawn_command() -> None:
     assert "Spawned custom agent 'api-specialist'" in result.output
     assert "Claude-api-specialist" in result.output
     mock_tmux.create_window.assert_called_once_with("myproject", "Claude-api-specialist", None)
-    mock_tmux.send_keys.assert_any_call("myproject:1", "claude --dangerously-skip-permissions")
+    mock_tmux.send_text.assert_any_call("myproject:1", "claude --dangerously-skip-permissions")
+    mock_tmux.press_enter.assert_any_call("myproject:1")
 
     # Test spawn with briefing
     mock_tmux.create_window.reset_mock()
-    mock_tmux.send_keys.reset_mock()
+    mock_tmux.send_text.reset_mock()
+    mock_tmux.press_enter.reset_mock()
     mock_tmux.send_message.reset_mock()
 
     # Update mock to return the new window
-    mock_tmux.list_windows.return_value = [
-        {"index": "0", "name": "Claude-pm"},
-        {"index": "1", "name": "Claude-perf-engineer"},
+    mock_tmux.list_windows.side_effect = [
+        [{"index": "0", "name": "Claude-pm"}],  # First call - check for conflicts
+        [
+            {"index": "0", "name": "Claude-pm"},
+            {"index": "1", "name": "Claude-perf-engineer"},
+        ],  # Second call - after creation
     ]
 
     with patch("time.sleep"):
@@ -463,9 +499,12 @@ def test_agent_spawn_command() -> None:
     mock_tmux.create_window.reset_mock()
 
     # Update mock for db-expert window
-    mock_tmux.list_windows.return_value = [
-        {"index": "0", "name": "Claude-pm"},
-        {"index": "1", "name": "Claude-db-expert"},
+    mock_tmux.list_windows.side_effect = [
+        [{"index": "0", "name": "Claude-pm"}],  # First call - check for conflicts
+        [
+            {"index": "0", "name": "Claude-pm"},
+            {"index": "1", "name": "Claude-db-expert"},
+        ],  # Second call - after creation
     ]
 
     with patch("time.sleep"):
@@ -479,8 +518,9 @@ def test_agent_spawn_command() -> None:
 
     # Test JSON output
     # Update mock for test-agent window
-    mock_tmux.list_windows.return_value = [
-        {"index": "0", "name": "Claude-test-agent"},
+    mock_tmux.list_windows.side_effect = [
+        [],  # First call - check for conflicts (empty session)
+        [{"index": "0", "name": "Claude-test-agent"}],  # Second call - after creation
     ]
 
     with patch("time.sleep"):
@@ -502,6 +542,11 @@ def test_agent_spawn_command() -> None:
     # Test session creation when it doesn't exist
     mock_tmux.has_session.return_value = False
     mock_tmux.create_session.return_value = True
+    # Add side_effect for the new session test
+    mock_tmux.list_windows.side_effect = [
+        [],  # First call - check for conflicts (new session, empty)
+        [{"index": "0", "name": "Claude-new-agent"}],  # Second call - after creation
+    ]
 
     with patch("time.sleep"):
         result = runner.invoke(agent, ["spawn", "new-agent", "newsession:0"], obj={"tmux": mock_tmux})

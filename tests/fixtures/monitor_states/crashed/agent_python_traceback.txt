@@ -8,4 +8,4 @@ Traceback (most recent call last):
   File "/usr/local/lib/python3.12/dist-packages/claude_code/connection.py", line 89, in send_message
     raise ConnectionError("Network timeout occurred")
 ConnectionError: Network timeout occurred
-vscode ➜ /workspaces/Tmux-Orchestrator (main) $ 
+vscode ➜ /workspaces/Tmux-Orchestrator (main) $

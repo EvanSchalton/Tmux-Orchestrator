@@ -14,8 +14,14 @@ class SimpleMonitor:
     """Simplified but robust monitoring daemon."""
 
     def __init__(self):
-        self.pid_file = Path("/tmp/tmux-orchestrator-simple-monitor.pid")
-        self.log_file = Path("/tmp/tmux-orchestrator-simple-monitor.log")
+        # Use secure project directory instead of /tmp
+        project_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+        project_dir.mkdir(exist_ok=True)
+        logs_dir = project_dir / "logs"
+        logs_dir.mkdir(exist_ok=True)
+
+        self.pid_file = project_dir / "simple-monitor.pid"
+        self.log_file = logs_dir / "simple-monitor.log"
         self.agent_states = {}  # Track last known state of each agent
 
     def setup_logging(self):

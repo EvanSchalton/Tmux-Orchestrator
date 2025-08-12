@@ -10,7 +10,7 @@ Welcome to Claude Code!
 I'll be working as your AI agent in this tmux session. I'm ready to help with:
 
 • Code development and debugging
-• System administration tasks  
+• System administration tasks
 • Data analysis and processing
 • Documentation and technical writing
 • And much more!

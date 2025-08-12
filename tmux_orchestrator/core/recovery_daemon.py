@@ -37,8 +37,15 @@ class RecoveryDaemon:
         # Daemon configuration - must be before _setup_logging()
         self.check_interval: int = self.config.get("daemon.check_interval", 30)
         self.auto_discover: bool = self.config.get("daemon.auto_discover", True)
-        self.pid_file: Path = Path("/tmp/tmux-orchestrator-recovery.pid")
-        self.log_file: Path = Path("/tmp/tmux-orchestrator-recovery.log")
+
+        # Use secure project directory instead of /tmp
+        project_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+        project_dir.mkdir(exist_ok=True)
+        logs_dir = project_dir / "logs"
+        logs_dir.mkdir(exist_ok=True)
+
+        self.pid_file: Path = project_dir / "recovery.pid"
+        self.log_file: Path = logs_dir / "recovery.log"
 
         # Now we can setup logging since log_file is initialized
         self.logger: logging.Logger = self._setup_logging()

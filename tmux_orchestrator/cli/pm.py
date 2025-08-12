@@ -376,14 +376,14 @@ def create(ctx: click.Context, session: str, project_dir: str | None) -> None:
     console.print(f"[blue]Starting Project Manager at {target}...[/blue]")
 
     # Start Claude
-    if not tmux.send_keys(target, "claude --dangerously-skip-permissions"):
+    if not tmux.send_text(target, "claude --dangerously-skip-permissions"):
         console.print(f"[red]✗ Failed to start Claude in {target}[/red]")
         return
 
     import time
 
     time.sleep(0.5)
-    tmux.send_keys(target, "Enter")
+    tmux.press_enter(target)
     time.sleep(3)  # Wait for Claude to start
 
     # Send PM briefing
@@ -394,6 +394,16 @@ def create(ctx: click.Context, session: str, project_dir: str | None) -> None:
 3. Monitor progress and identify blockers quickly
 4. Facilitate communication between team members
 5. Report status updates to the orchestrator
+
+🔄 AGENT RESTART & RECOVERY:
+When agents fail and need restart, use the team plan you created to determine their role briefing, then restart with:
+claude --dangerously-skip-permissions --system-prompt "[role from team plan]"
+
+Steps for agent recovery:
+1. Navigate to failed agent's window: tmux select-window -t <session:window>
+2. Reference your team plan for the correct role briefing
+3. Restart with proper role: claude --dangerously-skip-permissions --system-prompt "..."
+4. Verify agent is responsive before reassigning tasks
 
 Begin by analyzing the project structure and creating an initial project plan."""
 

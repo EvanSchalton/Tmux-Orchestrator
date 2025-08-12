@@ -1,0 +1,38 @@
+{
+  "python.terminal.activateEnvironment": false,
+  "python.terminal.activateEnvInCurrentTerminal": false,
+  "python.condaPath": "",
+  "python.defaultInterpreterPath": "/usr/bin/python3",
+  "python.terminal.launchArgs": [],
+  "python.terminal.executeInFileDir": false,
+  "python.terminal.focusAfterLaunch": false,
+  "terminal.integrated.environmentChangesRelaunch": false,
+  "terminal.integrated.environmentChangesIndicator": "off",
+  "terminal.integrated.enablePersistentSessions": false,
+  "terminal.integrated.inheritEnv": false,
+  "terminal.integrated.env.linux": {
+    "TMUX_ORCHESTRATOR_DISABLE_AUTO_ACTIVATE": "1",
+    "VIRTUAL_ENV": "",
+    "CONDA_DEFAULT_ENV": ""
+  },
+  "terminal.integrated.env.osx": {
+    "TMUX_ORCHESTRATOR_DISABLE_AUTO_ACTIVATE": "1",
+    "VIRTUAL_ENV": "",
+    "CONDA_DEFAULT_ENV": ""
+  },
+  "terminal.integrated.env.windows": {
+    "TMUX_ORCHESTRATOR_DISABLE_AUTO_ACTIVATE": "1",
+    "VIRTUAL_ENV": "",
+    "CONDA_DEFAULT_ENV": ""
+  },
+  "terminal.integrated.profiles.linux": {
+    "bash": {
+      "path": "bash",
+      "args": ["--norc", "--noprofile"]
+    },
+    "zsh": {
+      "path": "zsh",
+      "args": ["-f"]
+    }
+  }
+}

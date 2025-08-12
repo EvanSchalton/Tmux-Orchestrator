@@ -13,7 +13,7 @@ Fix the critical bug where the monitor detects "idle with Claude interface" but 
    - Test the solution thoroughly
    - Report progress to orchestrator
 
-2. **Senior Python Developer** (Window 2)  
+2. **Senior Python Developer** (Window 2)
    - Expert in Python system programming
    - Fix the monitor auto-submit logic
    - Implement proper error handling
@@ -60,7 +60,7 @@ Context: The monitoring daemon detects idle Claude interfaces but doesn't submit
 
 Your task:
 1. Open /workspaces/Tmux-Orchestrator/tmux_orchestrator/core/monitor.py
-2. Find where it detects "idle with Claude interface" 
+2. Find where it detects "idle with Claude interface"
 3. Add logic to auto-submit the message:
    - Send Enter key using tmux.send_keys(target, "Enter")
    - Log the auto-submission attempt
@@ -91,14 +91,14 @@ if "idle with Claude interface" in status:
 Work with PM and QA to ensure the fix works properly.
 ```
 
-### QA Engineer Briefing  
+### QA Engineer Briefing
 ```
 You are a QA Engineer ensuring the monitor auto-submit fix works reliably.
 
 Your responsibilities:
 1. Create test scenarios:
    - Single agent with stuck message
-   - Multiple agents stuck simultaneously  
+   - Multiple agents stuck simultaneously
    - Agent that gets stuck repeatedly
    - Network/system delays
 
@@ -126,7 +126,7 @@ graph TB
     Dev[Python Developer]
     QA[QA Engineer]
     Monitor[Monitor Daemon]
-    
+
     Orchestrator -->|Team Plan| PM
     PM -->|Fix Requirements| Dev
     PM -->|Test Plan| QA

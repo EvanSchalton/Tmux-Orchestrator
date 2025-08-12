@@ -11,7 +11,7 @@ Address critical issues and feature requests identified in user feedback (v3, v4
 **File**: `tmux_orchestrator/core/monitor.py`
 **Priority**: P0 - System is unusable without this
 
-### 2. HIGH: Add Session-Level Attach Command  
+### 2. HIGH: Add Session-Level Attach Command
 **Problem**: No easy way to attach to tmux session containing all agents
 **Solution**: Add `tmux-orc session attach` command with auto-discovery
 **Files**: Create `tmux_orchestrator/cli/session.py`
@@ -19,7 +19,7 @@ Address critical issues and feature requests identified in user feedback (v3, v4
 
 ### 3. HIGH: Fix Agent Spawning Reliability
 **Problem**: Agents fail to spawn, crash silently, or show as "Unknown" type
-**Solution**: 
+**Solution**:
   - Add retry logic with backoff
   - Verify Claude started successfully
   - Store agent metadata properly
@@ -39,7 +39,7 @@ Address critical issues and feature requests identified in user feedback (v3, v4
 **Problem**: Can't manage all agents at once
 **Solution**: Add --all flag to agent commands:
   - `tmux-orc agent kill --all`
-  - `tmux-orc agent restart --all`  
+  - `tmux-orc agent restart --all`
   - `tmux-orc agent message --all "message"`
 **Files**: `tmux_orchestrator/cli/agent.py`
 **Priority**: P1 - Quality of life improvement
@@ -87,7 +87,7 @@ Address critical issues and feature requests identified in user feedback (v3, v4
 3. Add confirmation prompt for destructive operations
 4. Test with multiple agents
 
-### Task 6: Session Naming (Backend-Dev)  
+### Task 6: Session Naming (Backend-Dev)
 1. Add --name parameter to team deploy
 2. Use custom name instead of auto-generated
 3. Validate name (no spaces, special chars)

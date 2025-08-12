@@ -1,8 +1,8 @@
 # Team Plan: Monitor & Agent Management Fixes
 
-**Date**: 2025-08-10  
-**Project**: monitor-fixes  
-**Type**: Bug Fixes & Enhancement  
+**Date**: 2025-08-10
+**Project**: monitor-fixes
+**Type**: Bug Fixes & Enhancement
 
 ## Project Overview
 
@@ -11,9 +11,9 @@ Fix critical monitoring daemon and agent management issues based on recent user 
 ## Team Composition
 
 ### 1. Project Manager
-- **Session:Window**: monitor-fixes:0  
-- **Template**: pm.md  
-- **Primary Focus**: Coordinate fixes for monitoring daemon PM notifications and agent crash detection  
+- **Session:Window**: monitor-fixes:0
+- **Template**: pm.md
+- **Primary Focus**: Coordinate fixes for monitoring daemon PM notifications and agent crash detection
 - **Key Responsibilities**:
   - Review feedback files in `/workspaces/Tmux-Orchestrator/tmux-orc-feedback/`
   - Prioritize critical issues from production-critical-issue.md and feedback-2.1.13-10.md
@@ -26,7 +26,7 @@ You are the Project Manager for the monitor-fixes project focused on tmux-orches
 
 **Critical Issues to Address:**
 1. Monitor daemon detects idle agents but doesn't notify PMs (feedback-2.1.13-10.md)
-2. Agent crash detection missing causing development delays (orchestrator-crash-issue.md) 
+2. Agent crash detection missing causing development delays (orchestrator-crash-issue.md)
 3. PM agents creating duplicate sessions instead of managing existing teams (feedback-2.1.13-9.md)
 
 **Primary Objectives:**
@@ -49,9 +49,9 @@ You are the Project Manager for the monitor-fixes project focused on tmux-orches
 - Documentation must be updated
 ```
 
-### 2. Backend Developer  
+### 2. Backend Developer
 - **Session:Window**: monitor-fixes:1
-- **Template**: backend-developer  
+- **Template**: backend-developer
 - **Primary Focus**: Fix monitoring daemon notification system and agent crash detection
 - **Key Responsibilities**:
   - Fix `_check_idle_notification` method to use `tmux.send_message()` directly instead of subprocess
@@ -66,11 +66,11 @@ You are a Backend Developer fixing critical tmux-orchestrator monitoring issues.
 **Technical Focus Areas:**
 1. **Monitor Daemon Notifications**: Fix `/workspaces/Tmux-Orchestrator/tmux_orchestrator/core/monitor.py`
    - Replace subprocess calls with direct `tmux.send_message()` calls
-   - Fix `_check_idle_notification()` method 
+   - Fix `_check_idle_notification()` method
    - Ensure PM notifications work properly
 
 2. **Agent Crash Detection**: Add crash detection to monitoring daemon
-   - Detect when Claude agents crash/exit unexpectedly  
+   - Detect when Claude agents crash/exit unexpectedly
    - Implement auto-restart functionality
    - Add crash notifications to PM
 
@@ -94,11 +94,11 @@ Report progress regularly and coordinate with QA for testing.
 
 ### 3. QA Engineer
 - **Session:Window**: monitor-fixes:2
-- **Template**: qa-engineer  
+- **Template**: qa-engineer
 - **Primary Focus**: Test monitoring fixes and validate agent management improvements
 - **Key Responsibilities**:
   - Create test scenarios for idle agent detection and PM notification
-  - Test agent crash detection and auto-restart functionality  
+  - Test agent crash detection and auto-restart functionality
   - Validate that PM session management prevents duplicates
   - Run existing test suite to ensure no regressions
 
@@ -145,15 +145,15 @@ Work closely with backend developer to validate fixes and report any issues imme
 graph TD
     Orchestrator[Orchestrator] --> |strategic guidance| PM[Project Manager]
     PM --> |reports to| Orchestrator
-    
+
     PM --> |assigns tasks| BackendDev[Backend Developer]
     PM --> |coordinates testing| QA[QA Engineer]
-    
+
     BackendDev --> |status updates| PM
     QA --> |test results| PM
-    
+
     BackendDev <--> |fix validation| QA
-    
+
     PM --> |escalates blockers| Orchestrator
     Orchestrator --> |provides guidance| PM
 ```
@@ -186,7 +186,7 @@ tmux-orc monitor status
 
 ### Task Breakdown
 1. **Phase 1**: Fix monitor daemon PM notifications (Backend → QA validation)
-2. **Phase 2**: Implement agent crash detection (Backend → QA testing)  
+2. **Phase 2**: Implement agent crash detection (Backend → QA testing)
 3. **Phase 3**: Fix PM session management (Backend → QA validation)
 4. **Phase 4**: Integration testing and documentation updates
 

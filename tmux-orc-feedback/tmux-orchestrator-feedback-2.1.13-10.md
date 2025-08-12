@@ -40,7 +40,7 @@ When agents are detected as idle, the daemon should:
 #### What Actually Happens
 1. **Detection**: ✅ Daemon correctly identifies idle agents
 2. **Logging**: ✅ Events logged to idle-monitor.log
-3. **Auto-retry**: ✅ Attempts to auto-submit stuck messages  
+3. **Auto-retry**: ✅ Attempts to auto-submit stuck messages
 4. **PM Notification**: ❌ **NO MESSAGES SENT TO PM**
 
 ### Specific Idle Agents Detected
@@ -72,7 +72,7 @@ PM should receive messages like:
 ```
 "Alert: 3 agents have been idle for >5 minutes:
 - kanban-project:2 (Backend Dev) - idle 8 minutes
-- kanban-project:5 (Agent) - idle 12 minutes  
+- kanban-project:5 (Agent) - idle 12 minutes
 - Recommend: Check on these agents or reassign tasks"
 ```
 
@@ -83,7 +83,7 @@ PM should receive messages like:
 - Send alerts when agents idle >5 minutes
 - Include agent details and recommendations
 
-#### 2. Escalation Logic  
+#### 2. Escalation Logic
 - First alert: Simple notification
 - Second alert: Suggest intervention
 - Third alert: Recommend agent restart

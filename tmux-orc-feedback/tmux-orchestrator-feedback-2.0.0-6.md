@@ -24,7 +24,7 @@ The idle monitor daemon successfully detects stuck messages and auto-submits the
 ### Spawning PM Agents
 Using `mcp__tmux-orchestrator__spawn_agent` with agent_type "pm":
 - Successfully creates session and window
-- Names window "Claude-pm" 
+- Names window "Claude-pm"
 - Sends briefing message to Claude CLI
 - Monitor detects and auto-submits stuck message within ~10 seconds
 - Agent becomes active after auto-submission

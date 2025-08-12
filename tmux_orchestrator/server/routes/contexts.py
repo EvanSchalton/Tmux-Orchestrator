@@ -90,7 +90,7 @@ async def get_context(role: str):
 
 
 @router.post("/spawn/{role}")
-async def spawn_with_context(role: str, session: str, extend: str = None):
+async def spawn_with_context(role: str, session: str, extend: str | None = None):
     """Spawn an agent with standardized context.
 
     Args:
@@ -121,7 +121,7 @@ async def spawn_with_context(role: str, session: str, extend: str = None):
 
     # Spawn agent
     tmux = TMUXManager()
-    success = tmux.spawn_agent(session, role, briefing)
+    success = tmux.send_message(session, briefing)
 
     if not success:
         raise HTTPException(status_code=500, detail=f"Failed to spawn {role} agent at {session}")

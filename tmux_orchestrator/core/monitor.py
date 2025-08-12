@@ -10,6 +10,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitor_helpers import (
@@ -181,7 +182,7 @@ class IdleMonitor:
         """Run the monitoring daemon in a separate process."""
 
         # Set up signal handlers for graceful shutdown
-        def signal_handler(signum, frame):
+        def signal_handler(signum: int, frame: Any) -> None:
             self._cleanup_daemon()
             exit(0)
 
@@ -196,12 +197,7 @@ class IdleMonitor:
         logger = self._setup_daemon_logging()
         logger.info(f"Native Python monitoring daemon started (PID: {os.getpid()}, interval: {interval}s)")
 
-        # Initialize tracking dictionaries for the daemon process
-        self._crash_notifications: dict[str, datetime] = {}
-        self._idle_notifications: dict[str, datetime] = {}
-        self._idle_agents: dict[str, datetime] = {}
-        self._submission_attempts: dict[str, int] = {}
-        self._last_submission_time: dict[str, float] = {}
+        # Initialize restart attempts tracking for the daemon process
         self._restart_attempts: dict[str, datetime] = {}
 
         # Create TMUXManager instance for this process
@@ -491,67 +487,179 @@ class IdleMonitor:
         current_time = time.time()
         last_attempt = self._last_submission_time.get(target, 0)
 
+        # Check if we've already tried too many times
+        attempts = self._submission_attempts.get(target, 0)
+        if attempts >= 5:
+            logger.debug(f"Skipping auto-submit for {target} - already tried {attempts} times")
+            return
+
         if current_time - last_attempt >= 10:  # 10 second cooldown
-            logger.info(f"Auto-submitting stuck message for {target}")
-            tmux.send_keys(target, "Enter")
-            self._submission_attempts[target] = self._submission_attempts.get(target, 0) + 1
+            logger.info(f"Auto-submitting stuck message for {target} (attempt #{attempts + 1})")
+
+            # Check if Claude has auto-update error
+            content = tmux.capture_pane(target, lines=5)
+            if "Auto-update failed" in content:
+                logger.warning(f"Agent {target} has auto-update error - auto-submit may not work")
+
+            # Try different submission methods
+            if attempts == 0:
+                # First try: Just Enter (Claude Code submits with Enter, not Ctrl+Enter)
+                tmux.press_enter(target)
+            elif attempts == 1:
+                # Second try: Move to end of line then Enter
+                tmux.press_ctrl_e(target)
+                time.sleep(0.1)
+                tmux.press_enter(target)
+            elif attempts == 2:
+                # Third try: Escape (to exit any mode) then Enter
+                tmux.press_escape(target)
+                time.sleep(0.1)
+                tmux.press_enter(target)
+            else:
+                # Later attempts: Just Enter
+                tmux.press_enter(target)
+
+            self._submission_attempts[target] = attempts + 1
             self._last_submission_time[target] = current_time
 
     def _attempt_agent_restart(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> bool:
-        """Attempt to automatically restart a crashed Claude agent."""
-        import time
-
+        """Detect agent failure and notify PM with one-command restart solution."""
         try:
             # Get restart cooldown tracking
             restart_key = f"restart_{target}"
             now = datetime.now()
 
-            # Check cooldown (10 minutes between restart attempts)
+            # Check cooldown (5 minutes between notifications)
             if hasattr(self, "_restart_attempts"):
                 last_restart = self._restart_attempts.get(restart_key)
-                if last_restart and (now - last_restart) < timedelta(minutes=10):
-                    logger.debug(f"Restart attempt for {target} in cooldown")
+                if last_restart and (now - last_restart) < timedelta(minutes=5):
+                    logger.debug(f"Restart notification for {target} in cooldown")
                     return False
             else:
                 self._restart_attempts = {}
 
-            logger.info(f"Attempting to restart Claude agent at {target}")
+            # Step 1: Detect API error patterns and failure type
+            current_content = tmux.capture_pane(target, lines=50)
+            api_error_detected = self._detect_api_error_patterns(current_content)
 
-            # Step 1: Send Ctrl+C to clear any stuck state
-            tmux.send_keys(target, "C-c")
-            time.sleep(1)
+            if api_error_detected:
+                error_type = self._identify_error_type(current_content)
+                logger.info(f"API error detected for {target}: {error_type}. Notifying PM with one-command fix.")
+                failure_reason = f"API error ({error_type})"
+            else:
+                logger.info(f"Agent failure detected for {target}. Notifying PM with one-command fix.")
+                failure_reason = "Agent crash/failure"
 
-            # Step 2: Start Claude with dangerous skip permissions
-            tmux.send_keys(target, "claude --dangerously-skip-permissions")
-            tmux.send_keys(target, "Enter")
+            # Step 2: Send PM notification with ready-to-copy-paste command
+            self._send_simple_restart_notification(tmux, target, failure_reason, logger)
 
-            # Step 3: Wait for Claude to initialize (up to 15 seconds)
-            max_wait = 15
-            for i in range(max_wait):
-                time.sleep(1)
-                content = tmux.capture_pane(target, lines=20)
+            # Track notification time
+            self._restart_attempts[restart_key] = now
 
-                # Check if Claude has started successfully
-                if is_claude_interface_present(content):
-                    logger.info(f"Successfully restarted Claude agent at {target}")
-                    self._restart_attempts[restart_key] = now
-                    return True
-
-                # Check for error conditions
-                if any(error in content.lower() for error in ["command not found", "permission denied"]):
-                    logger.error(f"Restart failed for {target}: {content[-100:]}")
-                    break
-
-                logger.debug(f"Waiting for Claude to start at {target} ({i + 1}/{max_wait})")
-
-            logger.warning(f"Restart timeout for {target} - Claude did not initialize in time")
-            return False
+            return True
 
         except Exception as e:
-            logger.error(f"Exception during restart attempt for {target}: {e}")
+            logger.error(f"Exception during restart notification for {target}: {e}")
             return False
 
-    def _notify_recovery_needed(self, tmux: TMUXManager, target: str, logger: logging.Logger):
+    def _detect_api_error_patterns(self, content: str) -> bool:
+        """Detect API error patterns in terminal content."""
+        content_lower = content.lower()
+
+        # Common API error patterns
+        api_error_patterns = [
+            # Network and connection errors
+            "network error occurred",
+            "connection error",
+            "connection timed out",
+            "connection refused",
+            "network timeout",
+            "request timeout",
+            "socket timeout",
+            # API-specific errors
+            "api error",
+            "rate limit",
+            "rate limited",
+            "quota exceeded",
+            "authentication failed",
+            "unauthorized",
+            "forbidden",
+            "service unavailable",
+            "internal server error",
+            "bad gateway",
+            "gateway timeout",
+            # Claude-specific patterns
+            "claude api error",
+            "anthropic api",
+            "model overloaded",
+            "server overloaded",
+            # Red text indicators (ANSI escape codes for red)
+            "\033[31m",  # Red text
+            "\033[91m",  # Bright red
+            "\u001b[31m",  # Alternative red encoding
+        ]
+
+        return any(pattern in content_lower for pattern in api_error_patterns)
+
+    def _identify_error_type(self, content: str) -> str:
+        """Identify the specific type of API error for better reporting."""
+        content_lower = content.lower()
+
+        if any(pattern in content_lower for pattern in ["network error", "connection", "timeout"]):
+            return "Network/Connection"
+        elif any(pattern in content_lower for pattern in ["rate limit", "quota"]):
+            return "Rate Limiting"
+        elif any(pattern in content_lower for pattern in ["authentication", "unauthorized"]):
+            return "Authentication"
+        elif any(pattern in content_lower for pattern in ["server", "gateway", "service unavailable"]):
+            return "Server Error"
+        elif any(pattern in content_lower for pattern in ["overloaded", "capacity"]):
+            return "Capacity"
+        elif "\033[31m" in content or "\033[91m" in content:
+            return "Error Output"
+        else:
+            return "API Error"
+
+    def _send_simple_restart_notification(
+        self, tmux: TMUXManager, target: str, reason: str, logger: logging.Logger
+    ) -> None:
+        """Send simple PM notification about agent failure."""
+        try:
+            # Find PM target
+            pm_target = self._find_pm_agent(tmux)
+            if not pm_target:
+                logger.debug("No PM found to notify about agent failure")
+                return
+
+            # Don't notify PM about their own issues
+            if pm_target == target:
+                logger.debug(f"Skipping notification - PM at {target} has their own issue")
+                return
+
+            # Determine agent type from target
+            session, window = target.split(":")
+            agent_type = self._determine_agent_type(session, window)
+
+            # Send simple notification
+            message = (
+                f"🚨 AGENT FAILURE\n\n"
+                f"Agent: {target} ({agent_type})\n"
+                f"Issue: {reason}\n\n"
+                f"Please restart this agent and provide the appropriate role prompt."
+            )
+
+            # Send notification
+            success_sent = tmux.send_message(pm_target, message)
+
+            if success_sent:
+                logger.info(f"Sent restart notification to PM at {pm_target} for {target}")
+            else:
+                logger.warning(f"Failed to send restart notification to PM at {pm_target}")
+
+        except Exception as e:
+            logger.error(f"Failed to send restart notification: {e}")
+
+    def _notify_recovery_needed(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
         """Notify PM that agent needs recovery."""
         logger.warning(f"Notifying PM that {target} needs recovery")
         pm_target = self._find_pm_agent(tmux)
@@ -609,14 +717,9 @@ class IdleMonitor:
         try:
             logger.info(f"Auto-submitting unsubmitted message for {target}")
 
-            # Send key sequences to submit the message
-            tmux.send_keys(target, "C-a")  # Go to beginning of line
-            time.sleep(0.2)
-            tmux.send_keys(target, "C-e")  # Go to end of line
-            time.sleep(0.3)
-            tmux.send_keys(target, "Enter")  # Submit the message
-            time.sleep(0.5)
-            tmux.send_keys(target, "Enter")  # Extra enter to ensure submission
+            # Simply send Enter key to submit the message
+            # Claude Code submits with Enter, not complex key sequences
+            tmux.press_enter(target)
 
             logger.info(f"Message submitted for {target}")
 
@@ -675,14 +778,12 @@ class IdleMonitor:
 
             now = datetime.now()
 
-            # Track idle state - but continue to calculate duration for potential notification
+            # Track idle state for notification purposes
             if target not in self._idle_agents:
                 self._idle_agents[target] = now
                 logger.debug(f"Started tracking idle state for {target}")
                 # Don't return here - continue to check if we should notify immediately
 
-            # Calculate how long agent has been idle for notification display
-            idle_duration = now - self._idle_agents[target]
             # No minimum wait time - if agent is idle, PM should know immediately
 
             # No cooldown needed - if agent is idle, PM should be notified
@@ -696,9 +797,11 @@ class IdleMonitor:
                 return
             logger.info(f"Found PM at {pm_target} to notify about idle agent {target}")
 
-            # Don't notify PM about themselves being idle
+            # Don't notify PM about themselves being idle - only skip self-notifications
             if pm_target == target:
-                logger.debug(f"Skipping self-notification for PM at {target}")
+                logger.debug(
+                    f"Skipping self-notification - PM at {pm_target} would be notified about their own idle status"
+                )
                 return
 
             # Determine agent type from target
@@ -708,17 +811,13 @@ class IdleMonitor:
             # Send idle notification
             message = (
                 f"🚨 IDLE AGENT ALERT:\n\n"
-                f"The following agent appears to be idle and needs tasks:\n"
-                f"{target} ({agent_type})\n\n"
-                f"Agent has been idle for {int(idle_duration.total_seconds() / 60)} minutes.\n"
-                f"Please check their status and assign work as needed.\n\n"
-                f"This is an automated notification from the idle monitor."
+                f"Agent {target} ({agent_type}) is currently idle and available for work.\n\n"
+                f"Please review their status and assign tasks as needed.\n\n"
+                f"This is an automated notification from the monitoring system."
             )
 
             # Send notification using direct tmux.send_message() call
-            logger.info(
-                f"Sending idle notification to PM at {pm_target} about agent {target} (idle for {int(idle_duration.total_seconds())}s)"
-            )
+            logger.info(f"Sending idle notification to PM at {pm_target} about agent {target}")
             success = tmux.send_message(pm_target, message)
 
             if success:
@@ -766,6 +865,14 @@ class AgentMonitor:
         self.config = config
         self.tmux = tmux
         self.idle_monitor = IdleMonitor(tmux)
+
+        # Set up log file path
+        project_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+        project_dir.mkdir(exist_ok=True)
+        logs_dir = project_dir / "logs"
+        logs_dir.mkdir(exist_ok=True)
+        self.log_file = logs_dir / "agent-monitor.log"
+
         self.logger = self._setup_logging()
         self.agent_status: dict[str, AgentHealthStatus] = {}
 
@@ -787,7 +894,7 @@ class AgentMonitor:
         logger.handlers.clear()
 
         # Log to file
-        log_file = Path("/tmp/tmux-orchestrator-monitor.log")
+        log_file = self.log_file
         handler = logging.FileHandler(log_file)
         formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
@@ -988,7 +1095,7 @@ class AgentMonitor:
                 unhealthy.append((target, status))
         return unhealthy
 
-    def get_monitoring_summary(self) -> dict:
+    def get_monitoring_summary(self) -> dict[str, int]:
         """Get a summary of monitoring status."""
         total_agents = len(self.agent_status)
         healthy = sum(1 for s in self.agent_status.values() if s.status == "healthy")

@@ -33,6 +33,16 @@ Your responsibilities:
 - If no confirmation appears, press Enter again
 - Messages may need 2-3 Enter presses to submit properly
 
+🔄 AGENT RESTART & RECOVERY:
+When agents fail and need restart, use the team plan you created to determine their role briefing, then restart with:
+claude --dangerously-skip-permissions --system-prompt "[role from team plan]"
+
+Steps for agent recovery:
+1. Navigate to failed agent's window: tmux select-window -t <session:window>
+2. Reference your team plan for the correct role briefing
+3. Restart with proper role: claude --dangerously-skip-permissions --system-prompt "..."
+4. Verify agent is responsive before reassigning tasks
+
 Critical: No shortcuts allowed. Quality over speed.
 Please read the task file and create an implementation plan."""
 

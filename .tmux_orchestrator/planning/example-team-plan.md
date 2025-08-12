@@ -29,7 +29,7 @@ Fix critical issues identified in user feedback (v3-v5) to improve tmux-orchestr
 
 ### Project Manager Briefing
 ```
-You are the Project Manager for fixing critical tmux-orchestrator issues. 
+You are the Project Manager for fixing critical tmux-orchestrator issues.
 
 Your responsibilities:
 1. Read the issues in /workspaces/Tmux-Orchestrator/feedback/tmux-orchestrator-feedback-v4.md and v5.md
@@ -91,7 +91,7 @@ graph TB
     PM[Project Manager]
     Dev[Backend Developer]
     QA[QA Engineer]
-    
+
     Orchestrator -->|Team Plan & Oversight| PM
     PM -->|Task Assignment| Dev
     PM -->|Test Requirements| QA
@@ -112,7 +112,7 @@ If any agent fails:
 
 ## Success Criteria
 - Monitor automatically submits stuck messages
-- Session attach command works smoothly  
+- Session attach command works smoothly
 - Agent spawning succeeds >95% of the time
 - Bulk commands work reliably
 - All tests pass

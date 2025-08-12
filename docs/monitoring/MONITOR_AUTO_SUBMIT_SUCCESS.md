@@ -12,30 +12,30 @@ Added auto-submission logic to `/workspaces/Tmux-Orchestrator/tmux_orchestrator/
 if has_claude_interface:
     # Agent is idle but Claude is open - notify PM it's idle
     logger.info(f"Agent {target} is idle with Claude interface")
-    
+
     # Auto-submit stuck message
     try:
         logger.info(f"Auto-submitting stuck message for {target}")
         tmux.send_keys(target, "Enter")
-        
+
         # Track submission attempts to avoid infinite loops
         if not hasattr(self, '_submission_attempts'):
             self._submission_attempts = {}
-        
+
         if target not in self._submission_attempts:
             self._submission_attempts[target] = 0
-        
+
         self._submission_attempts[target] += 1
-        
+
         # Only notify PM if we've tried multiple times
         if self._submission_attempts[target] > 3:
             logger.warning(f"Agent {target} still stuck after {self._submission_attempts[target]} auto-submit attempts")
             self._check_idle_notification(tmux, target, logger)
-        
+
         # Reset counter if it gets too high
         if self._submission_attempts[target] > 10:
             self._submission_attempts[target] = 0
-            
+
     except Exception as e:
         logger.error(f"Failed to auto-submit for {target}: {e}")
         self._check_idle_notification(tmux, target, logger)

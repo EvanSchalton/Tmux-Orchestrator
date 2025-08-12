@@ -192,7 +192,8 @@ RUN pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 
 #### Quick Setup for Your Project
 ```bash
-# After installation, set up VS Code integration
+# After installation, set up VS Code integration (RECOMMENDED)
+# This prevents VS Code from interfering with agent terminals
 tmux-orc setup vscode .
 
 # Create a PRD for your project
@@ -378,6 +379,34 @@ For projects using Poetry:
 ```
 
 ## 🎯 VS Code Integration - New in v2.0!
+
+### ⚠️ VS Code Python Extension Notice
+
+VS Code's Python extension may inject `source .../activate` commands into terminals. This is mostly harmless but can be annoying.
+
+**Complete Fix:**
+1. Add to your workspace `.vscode/settings.json`:
+```json
+{
+  "python.terminal.activateEnvironment": false,
+  "python.terminal.activateEnvInCurrentTerminal": false,
+  "python.terminal.activateEnvironmentInBackground": false,
+  "python.experiments.enabled": false,
+  "python.createEnvironment.trigger": "off"
+}
+```
+
+2. Also update global VS Code settings (`~/.vscode-server/data/Machine/settings.json` in devcontainers)
+
+3. If the issue persists, rename any virtual environment directories:
+```bash
+mv test_env .test_env_hidden
+mv venv .venv_hidden
+```
+
+**Or just ignore it** - The activation commands don't affect tmux-orchestrator operations.
+
+For production deployments, we recommend running `tmux-orc` from a standard terminal outside VS Code.
 
 ### One-Click Agent Access
 Open all your agents instantly through VS Code's Command Palette:

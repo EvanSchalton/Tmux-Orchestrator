@@ -21,7 +21,7 @@ As the Claude Code orchestrator, you are the interface between the human and the
    tmux-orc context spawn pm --session session-name:1
    # Or with custom extensions:
    tmux-orc agent spawn session-name:1 pm --briefing "$(tmux-orc context show pm --raw)\n\nProject specific: ..."
-   
+
    # The PM then spawns other agents based on your plan
    tmux-orc agent spawn session-name:2 backend-dev --briefing "..."
    tmux-orc agent spawn session-name:3 qa-engineer --briefing "..."
@@ -73,3 +73,14 @@ As the Claude Code orchestrator, you are the interface between the human and the
 
 ### Dogfooding and Issue Tracking
 - While dogfooding you might come across other issues, you should note those for future enhancement/bug fixing
+
+### System Resilience and Recovery
+- As the orchestrator, you should periodically disrupt the agents to test system resilience:
+  - Periodically kill Claude within an agent
+  - Kill entire agents to verify recovery mechanisms
+  - Monitor and identify why an agent fails to recover
+  - Implement fixes for any detected recovery failures
+
+### Test Case Management
+- As we identify new agent terminal failure cases we should add them to the relevant parameterized tests e.g. tests/fixtures/monitor_states/*
+- **Test Capture Guideline**: Don't make up test cases for the daemon, copy actual terminal screens at the time of failure

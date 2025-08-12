@@ -4,7 +4,7 @@
 
 1. **C-Enter vs Enter Issue** - Fixed in previous work
 2. **Orchestrator Role Clarification** - Claude Code is the orchestrator
-3. **Documentation Updates** - Workflow shows document-driven approach  
+3. **Documentation Updates** - Workflow shows document-driven approach
 4. **Context System** - Added `tmux-orc context` commands
 5. **MCP Context Endpoints** - Added `/contexts/*` endpoints
 6. **Pre-commit Hook** - Warns about outdated orchestrator context
