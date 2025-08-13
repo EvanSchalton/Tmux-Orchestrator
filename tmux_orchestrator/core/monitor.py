@@ -10,12 +10,14 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitor_helpers import (
     DAEMON_CONTROL_LOOP_COOLDOWN_SECONDS,
+    NONRESPONSIVE_PM_ESCALATIONS_MINUTES,
     AgentState,
+    DaemonAction,
     calculate_sleep_duration,
     extract_rate_limit_reset_time,
     has_unsubmitted_message,
@@ -62,6 +64,8 @@ class IdleMonitor:
         self._session_agents: dict[str, set[str]] = {}  # Track high-water mark of agents per session
         self._missing_agent_grace: dict[str, datetime] = {}  # Track when agents were first identified as missing
         self._missing_agent_notifications: dict[str, datetime] = {}  # Track when we last notified about missing agents
+        self._team_idle_at: Dict[str, Optional[datetime]] = {}  # Track when entire team becomes idle per session
+        self._pm_escalation_history: Dict[str, Dict[int, datetime]] = {}  # Track escalation history per PM
 
     def is_running(self) -> bool:
         """Check if monitor daemon is running."""
@@ -379,6 +383,9 @@ class IdleMonitor:
                     self._check_agent_status(tmux, target, logger, pm_notifications)
                 except Exception as e:
                     logger.error(f"Error checking agent {target}: {e}")
+
+            # Check for team-wide idleness and handle PM escalations
+            self._check_team_idleness(tmux, agents, logger, pm_notifications)
 
             # Send all collected notifications at the end of the cycle
             pm_notified = False
@@ -1259,6 +1266,95 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
 
         # Add message to collection
         pm_notifications[pm_target].append(message)
+
+    def _check_team_idleness(
+        self, tmux: TMUXManager, agents: list[str], logger: logging.Logger, pm_notifications: dict[str, list[str]]
+    ) -> None:
+        """Check if entire team is idle and handle PM escalations."""
+        # Group agents by session to track team idleness per session
+        session_agents: Dict[str, list[str]] = {}
+        for agent in agents:
+            session = agent.split(":")[0]
+            if session not in session_agents:
+                session_agents[session] = []
+            session_agents[session].append(agent)
+
+        # Check each session/team
+        for session, team_agents in session_agents.items():
+            # Check if ALL agents in this session are idle
+            all_idle = all(agent in self._idle_agents for agent in team_agents)
+
+            if all_idle and team_agents:  # Ensure we have agents to check
+                # Find PM for this session
+                pm_target = None
+                for agent in team_agents:
+                    if "pm" in agent.lower() or ":0" in agent:  # PM usually in window 0
+                        pm_target = agent
+                        break
+
+                if not pm_target:
+                    # Try to find PM more broadly
+                    pm_target = self._find_pm_agent(tmux)
+
+                if pm_target:
+                    now = datetime.now()
+
+                    # Initialize team idle tracking for this session
+                    if session not in self._team_idle_at or self._team_idle_at[session] is None:
+                        self._team_idle_at[session] = now
+                        logger.info(f"Team in session {session} became idle at {now}")
+
+                    # Calculate elapsed time
+                    team_idle_time = self._team_idle_at[session]
+                    assert team_idle_time is not None  # Already checked above
+                    elapsed = now - team_idle_time
+                    elapsed_minutes = int(elapsed.total_seconds() / 60)
+
+                    # Check for escalations
+                    for threshold_minutes, (action, message) in sorted(NONRESPONSIVE_PM_ESCALATIONS_MINUTES.items()):
+                        if elapsed_minutes >= threshold_minutes:
+                            # Check if we've already sent this escalation
+                            if pm_target not in self._pm_escalation_history:
+                                self._pm_escalation_history[pm_target] = {}
+
+                            if threshold_minutes not in self._pm_escalation_history[pm_target]:
+                                # Send escalation
+                                if action == DaemonAction.MESSAGE and message:
+                                    logger.warning(f"Sending {threshold_minutes}min escalation to PM {pm_target}")
+                                    self._collect_notification(pm_notifications, session, message, tmux)
+                                    self._pm_escalation_history[pm_target][threshold_minutes] = now
+
+                                elif action == DaemonAction.KILL:
+                                    logger.critical(
+                                        f"PM {pm_target} unresponsive for {threshold_minutes}min - killing PM"
+                                    )
+                                    try:
+                                        # Kill the PM window
+                                        tmux.kill_window(pm_target)
+                                        logger.info(f"Killed unresponsive PM {pm_target}")
+
+                                        # Clear escalation history for this PM
+                                        if pm_target in self._pm_escalation_history:
+                                            del self._pm_escalation_history[pm_target]
+
+                                        # Reset team idle tracking for this session
+                                        self._team_idle_at[session] = None
+
+                                        # The daemon's PM recovery will automatically spawn a new PM
+                                    except Exception as e:
+                                        logger.error(f"Failed to kill PM {pm_target}: {e}")
+
+                                    self._pm_escalation_history[pm_target][threshold_minutes] = now
+            else:
+                # Team is not all idle - reset tracking for this session
+                if session in self._team_idle_at and self._team_idle_at[session] is not None:
+                    logger.info(f"Team in session {session} is active again")
+                    self._team_idle_at[session] = None
+
+                    # Clear escalation history for PMs in this session
+                    for agent in team_agents:
+                        if agent in self._pm_escalation_history:
+                            del self._pm_escalation_history[agent]
 
     def _send_collected_notifications(
         self, pm_notifications: dict[str, list[str]], tmux: TMUXManager, logger: logging.Logger

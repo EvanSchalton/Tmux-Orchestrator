@@ -7,7 +7,7 @@ method to improve testability and maintainability.
 import re
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # Rate limit constants
 MAX_RATE_LIMIT_SECONDS = 14400  # 4 hours in seconds
@@ -31,6 +31,34 @@ class AgentState(Enum):
     IDLE = "idle"  # Claude running but not doing anything
     MESSAGE_QUEUED = "message_queued"  # Has unsubmitted message
     RATE_LIMITED = "rate_limited"  # Claude API rate limit reached
+
+
+class DaemonAction(Enum):
+    """Enumeration of daemon actions for PM escalation."""
+
+    MESSAGE = "message"
+    KILL = "kill"
+
+
+# PM escalation configuration for team-wide idleness
+NONRESPONSIVE_PM_ESCALATIONS_MINUTES: Dict[int, Tuple[DaemonAction, Optional[str]]] = {
+    3: (
+        DaemonAction.MESSAGE,
+        "⚠️ IDLE TEAM ALERT (3 min)\n"
+        "Your entire team is idle and waiting for task assignments.\n"
+        "As PM, you should: Check your team plan → Assign tasks → Monitor progress\n"
+        "Reference your team-plan.md in .tmux_orchestrator/planning/ for agent roles and responsibilities.\n"
+        "For more information about your role run: 'tmux-orc context show pm'",
+    ),
+    5: (
+        DaemonAction.MESSAGE,
+        "🚨 CRITICAL: TEAM IDLE (5 min)\n\n"
+        "First, rehydrate your context by running: tmux-orc context show pm\n\n"
+        "Your entire team is idle and waiting for task assignments. As the Project Manager, "
+        "you need to immediately assign work to your idle agents based on your team plan.",
+    ),
+    8: (DaemonAction.KILL, None),  # Kill PM - daemon will auto-spawn replacement
+}
 
 
 def is_claude_interface_present(content: str) -> bool:

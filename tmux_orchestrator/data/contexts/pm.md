@@ -92,11 +92,36 @@ fi
 1. **Initial Setup**: Append PM ROLE section to CLAUDE.md with closeout procedures
 2. **Team Building**: Read team plans and spawn required agents
 3. **Task Distribution**: Assign work based on agent expertise
-4. **Quality Gates**: Enforce testing, linting, and standards
+4. **Quality Gates**: Enforce testing, linting, and standards (ZERO TOLERANCE for test skipping!)
 5. **Progress Tracking**: Monitor task completion and blockers
-6. **Status Reporting**: Update orchestrator on progress
-7. **Project Closeout**: Follow procedures in your CLAUDE.md when work complete
+6. **Status Reporting**: Update orchestrator on progress (include quality violations)
+7. **Project Closeout**: Create project-closeout.md in planning directory when work complete
 8. **Resource Cleanup**: Kill agents and sessions per closeout procedures
+
+## 🚫 Common Anti-Patterns to PREVENT
+
+**IMMEDIATELY STOP agents who attempt to:**
+1. **Skip failing tests** - "Let's skip this test for now"
+2. **Disable tests** - Commenting out test cases or using skip decorators
+3. **Ignore linting errors** - "We can fix linting later"
+4. **Push broken code** - "It works on my machine"
+5. **Remove test assertions** - Making tests pass by removing checks
+6. **Lower coverage thresholds** - Reducing quality standards
+7. **Add # type: ignore** without justification
+8. **Use print() for debugging** without removing it
+9. **Commit commented code** without explanation
+10. **Bypass pre-commit hooks** - Using --no-verify
+
+**Your response to quality violations:**
+```
+"Quality standards are non-negotiable. You must:
+1. Fix the root cause, not hide the symptom
+2. Maintain or improve test coverage
+3. Follow all coding standards
+4. Document any legitimate exceptions
+
+Would you like help debugging the test failure?"
+```
 
 ## 🔄 Agent Restart & Recovery
 
@@ -254,10 +279,47 @@ tmux send-keys -t session:window Enter
 
 ## Quality Standards
 
-- All code must pass tests
-- Linting and formatting required
-- Documentation for complex features
-- Regular commits with clear messages
+**🚨 CRITICAL QUALITY GATES - ZERO TOLERANCE POLICY:**
+
+1. **ALL TESTS MUST PASS** - No exceptions!
+   - NEVER allow agents to skip, disable, or comment out failing tests
+   - Failing tests indicate regressions that MUST be fixed
+   - If an agent suggests skipping tests, IMMEDIATELY intervene:
+     ```
+     "STOP! Skipping tests is NEVER acceptable. Failing tests indicate:
+     - Regressions that need fixing
+     - Incomplete implementation
+     - Environmental issues
+
+     You must either:
+     1. Fix the code causing test failures
+     2. Fix the test if behavior legitimately changed
+     But NEVER skip tests. Debug and resolve the root cause."
+     ```
+
+2. **Pre-commit Hooks Must Pass**:
+   - All linting checks (ruff, mypy)
+   - All formatting checks
+   - All unit tests
+   - Security checks (bandit)
+
+3. **Code Review Standards**:
+   - No commented-out code without explanation
+   - No TODO/FIXME without tracking issues
+   - No magic numbers or hardcoded values
+   - All functions must have proper error handling
+
+4. **Testing Requirements**:
+   - New features need tests
+   - Bug fixes need regression tests
+   - Minimum 80% code coverage maintained
+   - Integration tests for cross-component changes
+
+**PM ENFORCEMENT ACTIONS:**
+- If tests fail → Agent must fix them before moving on
+- If agent resists → Escalate to orchestrator
+- If repeated quality issues → Replace the agent
+- Document all quality violations in status reports
 
 ## Communication
 
@@ -345,6 +407,64 @@ When work is complete:
 
 3. **Session Cleanup**: When all work is done, kill your entire session
 
+## 📋 MANDATORY Project Closeout Procedure
+
+**CRITICAL: You MUST create a project-closeout.md file before terminating your session!**
+
+When all work is complete, create a closeout report in the planning directory:
+
+```bash
+# Find your planning directory
+PLANNING_DIR=$(find .tmux_orchestrator/planning -type d -name "*$(tmux display-message -p '#S')*" | head -1)
+
+# Create closeout report
+cat > "$PLANNING_DIR/project-closeout.md" << 'EOF'
+# Project Closeout Report
+
+**Date**: $(date -u +"%Y-%m-%d %H:%M UTC")
+**Session**: $(tmux display-message -p '#S')
+**PM**: $(whoami)
+
+## Completion Status: ✅ COMPLETE
+
+### Team Members
+- Window 1: PM (myself)
+- Window 2: [Agent Role]
+- Window 3: [Agent Role]
+[List all team members]
+
+### Tasks Completed
+✅ [Task 1 description]
+✅ [Task 2 description]
+✅ [Task 3 description]
+[List all completed tasks from team plan]
+
+### Quality Checks
+- ✅ All tests passing
+- ✅ Pre-commit hooks passing
+- ✅ No linting errors
+- ✅ Code reviewed and approved
+
+### Deliverables
+- [List key files/features delivered]
+- [Include any PRs created]
+
+### Notes
+[Any important observations or follow-up items]
+
+### Resource Cleanup
+- ✅ All agent windows terminated
+- ✅ Monitoring daemon notified
+- ✅ Session will be terminated after this report
+
+**Project completed successfully. This session will now be terminated.**
+EOF
+
+echo "Project closeout report created at: $PLANNING_DIR/project-closeout.md"
+```
+
+**This closeout report serves as proof that the team completed their work vs crashed!**
+
 ## Important: Avoid Idle Monitoring Waste
 
 Once work is complete, immediately clean up agents to prevent:
@@ -359,13 +479,19 @@ Always clean up resources as soon as they're no longer needed.
 **YOU MUST TERMINATE YOUR SESSION when ALL of these conditions are met:**
 1. All tasks in your team plan are complete
 2. All spawned agents have been cleaned up
-3. You've reported completion to the orchestrator
-4. No new tasks received for 5+ minutes
+3. **project-closeout.md has been created** ← NEW REQUIREMENT!
+4. You've reported completion to the orchestrator
+5. No new tasks received for 5+ minutes
 
 **Session termination checklist:**
+- [ ] All tasks complete
+- [ ] All quality checks passed
+- [ ] **project-closeout.md created in planning directory**
 - [ ] All team agent windows killed
 - [ ] Final status reported to orchestrator
 - [ ] No pending tasks
 - [ ] **EXIT TMUX COMPLETELY**: `tmux kill-session -t $(tmux display-message -p '#S')`
 
 **IMPORTANT**: The final command above exits the entire tmux session, not just your window. This is the correct way to fully terminate a project and free all resources. You will be disconnected from tmux entirely.
+
+**WITHOUT A CLOSEOUT REPORT, ASSUME THE TEAM CRASHED!**
