@@ -89,7 +89,9 @@ tmux send-keys -t project:1 "claude --dangerously-skip-permissions" Enter
 
 # 3. Wait for Claude to initialize, then send briefing
 sleep 8
-tmux-orc agent send project:1 "$(cat /workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md)"
+# Use the context show command, not raw file reading
+PM_CONTEXT=$(tmux-orc context show pm --raw)
+tmux-orc agent send project:1 "$PM_CONTEXT"
 
 # 4. Wait for PM to complete initial team spawning before restarting daemon
 # (PM will manage daemon for additional spawning as needed)
@@ -182,6 +184,13 @@ The `tmux-orc agent send` command:
 2. Automatically adds Enter to submit (uses C-Enter for Claude CLI)
 3. Confirms successful delivery
 
+**⚠️ IMPORTANT Message Sending Limitations:**
+- **Keep messages concise** - Very long messages may fail silently
+- **Avoid embedding large files** - Don't use `$(cat large-file.md)` in messages
+- **Break up complex instructions** - Send multiple smaller messages instead of one huge message
+- **Use context spawn for PMs** - `tmux-orc context spawn pm` is more reliable than manual setup
+- **Tell agents to read their own context** - Instead of sending full context, tell them to run `tmux-orc context show [role]`
+
 **Example spawning and messaging a PM:**
 ```bash
 # 1. Stop daemon first
@@ -218,6 +227,33 @@ Your team plans should include:
 5. Recovery instructions for failed agents
 
 Place all team plans in organized directories: `.tmux_orchestrator/planning/[iso-timestamp]-[project-name]/team-plan.md`
+
+## 📋 Checking Project Completion Status
+
+**When asked "Did the team complete or crash?", follow this procedure:**
+
+1. **Check for project-closeout.md**:
+   ```bash
+   # Find closeout reports in planning directories
+   find .tmux_orchestrator/planning -name "project-closeout.md" -mtime -7
+   ```
+
+2. **Interpretation**:
+   - **Closeout file exists** = Team completed successfully ✅
+   - **No closeout file** = Team likely crashed or is still running ❌
+
+3. **If no closeout found**, check if session still exists:
+   ```bash
+   tmux list-sessions | grep [project-name]
+   ```
+
+4. **Recovery procedure if crashed**:
+   - Stop monitoring: `tmux-orc monitor stop`
+   - Create new session and spawn PM with recovery context
+   - Include information about previous attempt in briefing
+   - Restart monitoring after PM is ready
+
+**Key point**: PMs are required to create `project-closeout.md` before terminating. Without this file, assume the team crashed!
 
 Example structure:
 ```

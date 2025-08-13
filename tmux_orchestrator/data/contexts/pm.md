@@ -272,6 +272,13 @@ The `tmux-orc agent send` command:
 2. Automatically adds Enter to submit
 3. Confirms successful delivery
 
+**⚠️ Message Sending Best Practices:**
+- **Keep messages concise** - Very long messages may fail to send
+- **Break up complex instructions** - Multiple smaller messages are more reliable
+- **Avoid embedding files** - Don't use `$(cat file.md)` in messages
+- **Use clear, simple formatting** - Avoid complex special characters
+- **Test with a simple message first** - "Are you ready?" before sending complex instructions
+
 If agents aren't responding, they may have queued messages. Fix with:
 ```bash
 tmux send-keys -t session:window Enter
