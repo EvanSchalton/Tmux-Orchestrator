@@ -1,0 +1,212 @@
+"""Spawn orchestrator command - entry point for human interaction.
+
+TODO: Consider refactoring this to be under an 'orchestrator' command group
+      (e.g., 'tmux-orc orchestrator spawn') for better consistency with other
+      nested commands like 'agent spawn' and 'context spawn'.
+"""
+
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import click
+from rich.console import Console
+
+console = Console()
+
+
+@click.command()
+@click.option("--profile", help="Claude Code profile to use (defaults to system default)")
+@click.option(
+    "--terminal", default="auto", help="Terminal to use: auto, gnome-terminal, konsole, xterm, screen, tmux, etc."
+)
+@click.option("--no-launch", is_flag=True, help="Create config but don't launch terminal")
+@click.option("--no-gui", is_flag=True, help="Run in current terminal (for SSH/bash environments)")
+def spawn_orc(profile: str | None, terminal: str, no_launch: bool, no_gui: bool) -> None:
+    """Launch Claude Code as an orchestrator in a new terminal.
+
+    This is the primary entry point for humans to start working with tmux-orchestrator.
+    It will:
+    1. Create a new terminal window
+    2. Launch Claude Code with the --dangerously-skip-permissions flag
+    3. Automatically load the orchestrator context
+
+    After launching, you'll be ready to create feature requests and use /create-prd
+    to generate PRDs that will spawn autonomous agent teams.
+    """
+
+    # Build Claude command
+    claude_cmd = ["claude"]
+    if profile:
+        claude_cmd.extend(["--profile", profile])
+    claude_cmd.append("--dangerously-skip-permissions")
+
+    # Create startup script that will run in the new terminal
+    startup_script = f"""#!/bin/bash
+# Tmux Orchestrator Startup Script
+
+echo "🚀 Starting Claude Code as Orchestrator..."
+echo ""
+echo "This will launch Claude Code with autonomous permissions."
+echo "Claude will be instructed to load the orchestrator context."
+echo ""
+echo "Starting in 3 seconds..."
+sleep 3
+
+# Create initial instruction file
+INSTRUCTION_FILE=$(mktemp /tmp/orc-instruction-XXXXXX.md)
+cat > "$INSTRUCTION_FILE" << 'EOF'
+Welcome! You are being launched as the Tmux Orchestrator.
+
+Please run the following command to load your orchestrator context:
+
+tmux-orc context show orchestrator
+
+This will provide you with your role, responsibilities, and workflow for managing AI agent teams.
+EOF
+
+# Launch Claude with the instruction
+{' '.join(claude_cmd)} "$INSTRUCTION_FILE"
+
+# Clean up
+rm -f "$INSTRUCTION_FILE"
+"""
+
+    # Write temporary startup script
+    script_path = Path("/tmp/tmux-orc-startup.sh")
+    script_path.write_text(startup_script)
+    script_path.chmod(0o755)
+
+    if no_launch:
+        console.print("[green]Startup script created at:[/green]", script_path)
+        console.print("\n[yellow]To launch manually, run:[/yellow]")
+        console.print(f"  {script_path}")
+        return
+
+    # Handle non-GUI mode
+    if no_gui:
+        console.print("[green]Running orchestrator in current terminal...[/green]")
+        console.print("[dim]Starting in 3 seconds...[/dim]")
+        time.sleep(3)
+
+        # Run the script directly
+        try:
+            subprocess.run([str(script_path)], check=True)
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]Error running orchestrator: {e}[/red]")
+            sys.exit(1)
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Orchestrator session interrupted[/yellow]")
+        return
+
+    # Detect terminal emulator for GUI mode
+    terminal_cmd = _get_terminal_command(terminal, str(script_path))
+
+    if not terminal_cmd:
+        console.print("[red]Error: Could not detect terminal emulator[/red]")
+        console.print("[yellow]Try one of these options:[/yellow]")
+        console.print("  - Use --no-gui flag to run in current terminal (SSH/bash)")
+        console.print("  - Specify --terminal explicitly (gnome-terminal, konsole, xterm, etc.)")
+        console.print("  - Use --no-launch to create script and run manually")
+        sys.exit(1)
+
+    # Launch terminal
+    try:
+        console.print(f"[green]Launching orchestrator in new {terminal} window...[/green]")
+        subprocess.Popen(terminal_cmd, start_new_session=True)
+
+        # Give helpful instructions
+        console.print("\n[bold cyan]🎉 Orchestrator terminal launched![/bold cyan]\n")
+        console.print("In the new terminal window:")
+        console.print("1. Claude Code will start with autonomous permissions")
+        console.print("2. The orchestrator context will be automatically loaded")
+        console.print("3. You'll be ready to manage AI agent teams")
+        console.print("\n[yellow]Typical orchestrator workflow:[/yellow]")
+        console.print("1. Create a feature request: `planning/feature-xyz.md`")
+        console.print("2. Use Claude's `/create-prd` command with the file")
+        console.print("3. Answer the PRD survey questions")
+        console.print("4. The orchestrator will spawn a PM with the PRD")
+        console.print("5. The PM will use `/generate-tasks` to create task list")
+        console.print("6. The PM will spawn the team and begin work")
+
+    except Exception as e:
+        console.print(f"[red]Error launching terminal: {e}[/red]")
+        console.print("\n[yellow]Manual launch instructions:[/yellow]")
+        console.print("1. Open a new terminal")
+        console.print(f"2. Run: {script_path}")
+        console.print("   OR use: spawn-orc --no-gui")
+        sys.exit(1)
+
+
+def _get_terminal_command(terminal: str, script_path: str) -> list[str] | None:
+    """Get the command to launch a terminal with our script.
+
+    Args:
+        terminal: Terminal name or "auto" for auto-detection
+        script_path: Path to the startup script
+
+    Returns:
+        Command list to launch terminal, or None if not found
+    """
+    # Terminal commands that execute our script
+    terminal_commands = {
+        "gnome-terminal": ["gnome-terminal", "--", script_path],
+        "konsole": ["konsole", "-e", script_path],
+        "xfce4-terminal": ["xfce4-terminal", "-e", script_path],
+        "mate-terminal": ["mate-terminal", "-e", script_path],
+        "terminator": ["terminator", "-e", script_path],
+        "kitty": ["kitty", script_path],
+        "alacritty": ["alacritty", "-e", script_path],
+        "xterm": ["xterm", "-e", script_path],
+        "urxvt": ["urxvt", "-e", script_path],
+        "st": ["st", "-e", script_path],
+        # macOS
+        "iterm2": ["open", "-a", "iTerm", script_path],
+        "terminal": ["open", "-a", "Terminal", script_path],
+    }
+
+    if terminal != "auto":
+        # User specified a terminal
+        if terminal in terminal_commands:
+            return terminal_commands[terminal]
+        else:
+            # Try generic command
+            return [terminal, "-e", script_path]
+
+    # Auto-detect terminal
+    # First check if we're on macOS
+    if sys.platform == "darwin":
+        # Try iTerm2 first, then Terminal
+        for term in ["iterm2", "terminal"]:
+            if _command_exists(term.split()[0]):
+                return terminal_commands[term]
+
+    # Check common Linux terminals in order of preference
+    for term in [
+        "gnome-terminal",
+        "konsole",
+        "xfce4-terminal",
+        "kitty",
+        "alacritty",
+        "mate-terminal",
+        "terminator",
+        "xterm",
+    ]:
+        if _command_exists(term):
+            return terminal_commands[term]
+
+    return None
+
+
+def _command_exists(command: str) -> bool:
+    """Check if a command exists in PATH."""
+    try:
+        subprocess.run(["which", command], capture_output=True, check=True)
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+if __name__ == "__main__":
+    spawn_orc()
