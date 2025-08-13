@@ -235,28 +235,52 @@ class TMUXManager:
                     agent_type = "Unknown"
                     window_lower = window["name"].lower()
 
-                    # Check session name first
-                    if "frontend" in session["name"]:
+                    # Remove "claude-" prefix if present for better matching
+                    if window_lower.startswith("claude-"):
+                        window_lower = window_lower[7:]  # Remove "claude-" (7 chars)
+
+                    # Check session name first for initial type
+                    session_lower = session["name"].lower()
+                    if "frontend" in session_lower:
                         agent_type = "Frontend"
-                    elif "backend" in session["name"]:
+                    elif "backend" in session_lower:
                         agent_type = "Backend"
-                    elif "testing" in session["name"]:
+                    elif "testing" in session_lower:
                         agent_type = "QA"
-                    elif "orchestrator" in session["name"]:
+                    elif "orchestrator" in session_lower:
                         agent_type = "Orchestrator"
-                    # Then check window name for more specific types
-                    elif "pm" in window_lower:
+
+                    # Then check window name for more specific types (can override session type)
+                    if "pm" in window_lower or "project-manager" in window_lower:
                         agent_type = "PM"
-                    elif "developer" in window_lower:
+                    elif "developer" in window_lower or "dev" in window_lower:
                         agent_type = "Developer"
-                    elif "devops" in window_lower:
+                    elif "devops" in window_lower or "ops" in window_lower:
                         agent_type = "DevOps"
-                    elif "qa" in window_lower or "test" in window_lower:
+                    elif "qa" in window_lower or "test" in window_lower or "quality" in window_lower:
                         agent_type = "QA"
-                    elif "refactor" in window_lower:
+                    elif "frontend" in window_lower or "ui" in window_lower:
+                        agent_type = "Frontend"
+                    elif "backend" in window_lower or "api" in window_lower:
+                        agent_type = "Backend"
+                    elif "refactor" in window_lower or "engineer" in window_lower:
                         agent_type = "Engineer"
-                    elif "review" in window_lower:
+                    elif "review" in window_lower or "code-review" in window_lower:
                         agent_type = "Reviewer"
+                    elif "researcher" in window_lower or "research" in window_lower:
+                        agent_type = "Researcher"
+                    elif "writer" in window_lower or "docs" in window_lower or "documentation" in window_lower:
+                        agent_type = "Writer"
+                    elif "architect" in window_lower:
+                        agent_type = "Architect"
+                    elif "security" in window_lower:
+                        agent_type = "Security"
+                    elif "data" in window_lower or "database" in window_lower or "db" in window_lower:
+                        agent_type = "Database"
+                    # If still unknown, extract the core name
+                    elif agent_type == "Unknown" and window_lower:
+                        # Use the window name as a fallback, capitalizing first letter
+                        agent_type = window_lower.replace("-", " ").replace("_", " ").title()
 
                     # Check if idle
                     pane_content = self.capture_pane(f"{session['name']}:{window['index']}")
