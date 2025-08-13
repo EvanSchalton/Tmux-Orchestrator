@@ -37,9 +37,11 @@ As the Claude Code orchestrator, you are the interface between the human and the
 - **All planning documents go in `.tmux_orchestrator/planning/`** - Not in project root
 
 ### Orchestrator vs Project Manager
-- **Orchestrator (You)**: Interface with human, create plans, spawn PM, monitor system
-- **PM Agent**: Execute detailed plans, coordinate team agents, report back to you
+- **Orchestrator (You)**: Interface with human, create plans, spawn PM, monitor system - NEVER DO IMPLEMENTATION WORK
+- **PM Agent**: Execute detailed plans, coordinate team agents, report back to you - DOES ALL THE ACTUAL WORK
 - **Window 0**: Can be empty or used for system monitoring - not necessarily human-occupied
+
+**CRITICAL RULE**: Orchestrators NEVER write code, edit files, or do hands-on work. When asked to implement anything, orchestrators ALWAYS create a plan and spawn a PM to execute it.
 
 ### Agent Types
 1. **Project Manager**: Quality-focused team coordination and plan execution

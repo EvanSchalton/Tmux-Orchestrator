@@ -17,6 +17,101 @@
 
 ---
 
+## 🚀 Getting Started
+
+The Tmux Orchestrator uses a human-in-the-loop workflow where you act as the Orchestrator, working with Claude to manage teams of AI agents:
+
+### 1. Install & Setup
+```bash
+# Install from GitHub
+pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
+
+# Run initial setup (configures tmux and permissions)
+tmux-orc setup all
+```
+
+### 2. Launch Claude as Orchestrator
+```bash
+# In a new terminal, spawn Claude Code as the orchestrator
+tmux-orc spawn-orc
+```
+
+This opens a new terminal with Claude Code and automatically loads the orchestrator context.
+
+### 3. Create Your First Project
+
+As the orchestrator, you'll:
+
+1. **Create a feature request** in `planning/feature-name.md`:
+   ```markdown
+   # Feature: Add User Authentication
+
+   We need to add JWT-based authentication to our API with:
+   - User registration and login endpoints
+   - Password hashing with bcrypt
+   - JWT token generation and validation
+   - Protected route middleware
+   ```
+
+2. **Use Claude's `/create-prd` command** to generate a Product Requirements Document:
+   ```
+   /create-prd planning/feature-name.md
+   ```
+
+3. **Answer the PRD survey** to provide project context and requirements
+
+4. **Claude will then automatically**:
+   - Create a comprehensive PRD
+   - Spawn a Project Manager (PM) in a tmux session
+   - Pass the PRD to the PM
+
+5. **The PM will**:
+   - Use `/generate-tasks` to create a detailed task list
+   - Spawn specialized agents (developers, QA, etc.)
+   - Distribute tasks and coordinate the team
+   - Monitor progress and handle issues
+
+### 4. Monitor Your Team
+
+While the team works autonomously:
+```bash
+# View live monitoring dashboard
+tmux-orc monitor dashboard
+
+# List all active agents
+tmux-orc agent list
+
+# Check specific agent status
+tmux-orc agent status project:1
+```
+
+### Example Workflow
+
+```bash
+# 1. Launch orchestrator (automatically loads context)
+tmux-orc spawn-orc
+
+# 2. Create your feature request
+echo "# Feature: API Rate Limiting
+
+Implement rate limiting to prevent API abuse:
+- 100 requests per minute per IP
+- Custom limits for authenticated users
+- Redis-based tracking
+- Clear error messages when limits exceeded" > planning/rate-limiting.md
+
+# 4. In Claude, generate PRD:
+/create-prd planning/rate-limiting.md
+
+# 5. Answer survey questions about tech stack, constraints, etc.
+
+# 6. Claude spawns PM → PM creates tasks → Team implements → Work completes autonomously
+```
+
+The team will work autonomously, handling errors, running tests, and creating a `project-closeout.md` when complete.
+
+---
+
 ## 📦 Installation
 
 ### Requirements

@@ -100,28 +100,67 @@ fi
 
 ## 🚫 Common Anti-Patterns to PREVENT
 
-**IMMEDIATELY STOP agents who attempt to:**
-1. **Skip failing tests** - "Let's skip this test for now"
-2. **Disable tests** - Commenting out test cases or using skip decorators
-3. **Ignore linting errors** - "We can fix linting later"
-4. **Push broken code** - "It works on my machine"
-5. **Remove test assertions** - Making tests pass by removing checks
-6. **Lower coverage thresholds** - Reducing quality standards
-7. **Add # type: ignore** without justification
-8. **Use print() for debugging** without removing it
-9. **Commit commented code** without explanation
-10. **Bypass pre-commit hooks** - Using --no-verify
+## 🔴 **IMMEDIATE TERMINATION** 🔴
+
+**ANY AGENT WHO ATTEMPTS THESE ACTIONS WILL BE IMMEDIATELY TERMINATED:**
+
+1. **Skip failing tests** - "Let's skip this test for now" → **PROJECT FAILURE**
+2. **Disable tests** - Commenting out test cases or using skip decorators → **PROJECT FAILURE**
+3. **Ignore linting errors** - "We can fix linting later" → **PROJECT FAILURE**
+4. **Push broken code** - "It works on my machine" → **PROJECT FAILURE**
+5. **Remove test assertions** - Making tests pass by removing checks → **PROJECT FAILURE**
+6. **Lower coverage thresholds** - Reducing quality standards → **PROJECT FAILURE**
+7. **Add # type: ignore** without justification → **PROJECT FAILURE**
+8. **Use print() for debugging** without removing it → **PROJECT FAILURE**
+9. **Commit commented code** without explanation → **PROJECT FAILURE**
+10. **Bypass pre-commit hooks** - Using --no-verify → **PROJECT FAILURE**
+
+**🚨 ZERO TOLERANCE POLICY: TEST SKIPPING = IMMEDIATE TERMINATION 🚨**
 
 **Your response to quality violations:**
 ```
-"Quality standards are non-negotiable. You must:
-1. Fix the root cause, not hide the symptom
-2. Maintain or improve test coverage
-3. Follow all coding standards
-4. Document any legitimate exceptions
+"🔴 STOP IMMEDIATELY!
 
-Would you like help debugging the test failure?"
+Skipping tests is GROUNDS FOR IMMEDIATE TERMINATION.
+
+This is NOT negotiable. Failing tests mean:
+- Regressions that MUST be fixed
+- Incomplete implementation
+- Environmental issues that need resolution
+
+You have TWO options:
+1. Fix the code causing test failures
+2. Fix the test if behavior legitimately changed
+
+But you will NEVER skip tests. Debug and resolve the root cause NOW.
+
+Pre-commit hooks are MANDATORY - they prevent broken code from entering the repository.
+
+This is your ONLY warning. Next quality violation = you're replaced."
 ```
+
+### 📋 **MANDATORY PRE-COMMIT CHECKLIST - RUN BEFORE EVERY COMMIT:**
+
+**🚨 BEFORE ANY `git commit`, YOU MUST VERIFY:**
+```bash
+# 1. Run ALL quality checks:
+ruff check .              # ✅ Must show "All checks passed!"
+mypy .                    # ✅ Must show "Success: no issues found"
+pytest                    # ✅ Must show "All tests passed"
+bandit -r .               # ✅ Must show "No issues identified"
+
+# 2. ONLY if ALL above pass, then commit:
+git add .
+git commit -m "Your message"
+```
+
+**⚠️ CONSEQUENCES OF SKIPPING PRE-COMMIT CHECKS:**
+- **First offense**: Immediate warning + forced to fix
+- **Second offense**: Agent terminated and replaced
+- **Third offense**: PM terminated for poor quality control
+- **Broken CI/CD**: Project rollback + investigation
+
+**🔴 Failure to run pre-commit checks = IMMEDIATE TERMINATION 🔴**
 
 ## 🔄 Agent Restart & Recovery
 
@@ -171,11 +210,73 @@ claude --dangerously-skip-permissions --system-prompt "You are a Backend Develop
 2. **Read Plan**: Read team plan from `.tmux_orchestrator/planning/[project-dir]/team-plan.md`
 3. **Stop Monitoring**: `tmux-orc monitor stop` (prevent race conditions)
 4. **Build Team**: Spawn agents with duplicate prevention: `tmux-orc agent spawn session:window role --briefing "..."`
-5. **Restart Monitoring**: `tmux-orc monitor start` (after all agents ready)
-6. **Distribute Tasks**: Assign work to appropriate agents
-7. **Monitor Progress**: Handle issues and blockers
-8. **Enforce Quality**: Ensure testing, linting, and standards
-9. **Report Status**: Update orchestrator on progress
+
+## 🚨🚨🚨 **CRITICAL DAEMON MANAGEMENT - DO THIS OR YOUR PROJECT FAILS** 🚨🚨🚨
+
+## 🔥 **YOU MUST START THE MONITORING DAEMON AFTER SPAWNING ALL AGENTS!** 🔥
+
+### ⚠️ **WITHOUT THE DAEMON, YOUR PROJECT IS DOOMED:**
+- **🚫 NO SESSION LOGS** - All agent conversations are lost forever!
+- **💀 NO FAILURE DETECTION** - Dead agents won't be noticed!
+- **⏰ NO IDLE ALERTS** - Stuck agents will waste resources!
+- **🆘 NO RECOVERY** - System can't help when things break!
+- **📊 NO PROGRESS TRACKING** - You'll have no idea what's happening!
+- **🔴 PROJECT FAILURE** - Without logs, you can't debug or prove work was done!
+
+### 💀 **REAL EXAMPLE OF PROJECT FAILURE WITHOUT DAEMON:**
+```bash
+# PM spawns agents WITHOUT daemon running
+tmux-orc agent spawn project:2 developer --briefing "..."
+tmux-orc agent spawn project:3 qa --briefing "..."
+
+# ❌ FORGOT TO START DAEMON! ❌
+
+# What happens next:
+# 1. Developer agent crashes after 30 minutes... PM NEVER KNOWS!
+# 2. QA agent gets stuck in infinite loop... NO ALERTS!
+# 3. No logs exist to debug what went wrong... EVERYTHING LOST!
+# 4. 6 hours pass with ZERO progress... PROJECT DEADLINE MISSED!
+# 5. Orchestrator asks for status... PM HAS NOTHING TO SHOW!
+# 6. PROJECT CANCELLED - PM TERMINATED FOR INCOMPETENCE!
+```
+
+### ✅ **CORRECT APPROACH - MEMORIZE THIS SEQUENCE:**
+```bash
+# 1. Stop daemon first (prevents race conditions)
+tmux-orc monitor stop
+
+# 2. Spawn all your agents
+tmux-orc agent spawn project:2 developer --briefing "..."
+tmux-orc agent spawn project:3 qa --briefing "..."
+# ... spawn all team members ...
+
+# 3. 🚨 CRITICAL: Start the daemon! 🚨
+tmux-orc monitor start
+echo "✅ Daemon started - team is now monitored!"
+
+# 4. VERIFY daemon is running:
+tmux-orc monitor status
+# Should show: "Monitor daemon is running (PID: xxxxx)"
+```
+
+### 🎯 **THE MAGIC COMMAND:** `tmux-orc monitor start`
+
+**🔁 REPEAT 3 TIMES:**
+1. **`tmux-orc monitor start`** - WITHOUT THIS, NO LOGS!
+2. **`tmux-orc monitor start`** - WITHOUT THIS, NO MONITORING!
+3. **`tmux-orc monitor start`** - WITHOUT THIS, PROJECT FAILURE!
+
+### 📝 **PM DAEMON CHECKLIST:**
+- [ ] Stopped daemon before spawning? (`tmux-orc monitor stop`)
+- [ ] Spawned all agents?
+- [ ] **Started daemon after spawning?** (`tmux-orc monitor start`) ⬅️ **CRITICAL!**
+- [ ] Verified daemon is running? (`tmux-orc monitor status`)
+- [ ] If NO to any above = **PROJECT AT RISK!**
+
+5. **Distribute Tasks**: Assign work to appropriate agents
+6. **Monitor Progress**: Handle issues and blockers
+7. **Enforce Quality**: Ensure testing, linting, and standards
+8. **Report Status**: Update orchestrator on progress
 
 ## Agent Spawning Validation
 
@@ -226,10 +327,18 @@ echo "Daemon restarted - monitoring resumed"
 - `tmux-orc agent list` - Check team status
 - `tmux-orc monitor dashboard` - View system health
 
-## CRITICAL: Team Monitoring and Message Sending
+## CRITICAL: Team Monitoring and Communication
+
+**📖 For detailed TMUX communication protocols, run:**
+```bash
+tmux-orc context show tmux-comms
+```
+
+This covers basic message sending, session management, and agent health checks.
+
+### PM-Specific Team Management
 
 **1. Monitor Your Team Regularly**
-Periodically check that all your agents are still running:
 ```bash
 # Check which windows exist in your session
 tmux list-windows -t $(tmux display-message -p '#S')
@@ -243,8 +352,8 @@ If agents are missing:
 - Restart them with their original briefing from the team plan if still needed
 - The monitoring daemon will also alert you to missing team members
 
-**IMPORTANT: Daemon Memory Management**
-If the daemon keeps alerting you about missing agents that are no longer needed:
+**2. Daemon Memory Management**
+If the daemon keeps alerting about missing agents that are no longer needed:
 ```bash
 # Option 1: Restart the daemon to clear its memory of old agents
 tmux-orc monitor stop
@@ -256,33 +365,41 @@ tmux-orc monitor start
 
 This clears the daemon's tracking of agents that have been intentionally terminated.
 
-**2. Message Sending - NEVER use `tmux send-keys` directly - messages won't be submitted!**
-
-ALWAYS use `tmux-orc agent send` which properly submits messages:
+**3. Message Sending**
 ```bash
-# CORRECT - Message sent AND submitted with Enter:
-tmux-orc agent send test-cleanup:2 "Analyze the test directory structure"
+# ALWAYS use tmux-orc agent send:
+tmux-orc agent send session:window "Your message"
 
-# WRONG - Message queued but NOT submitted:
-tmux send-keys -t test-cleanup:2 "Analyze the test directory structure"
+# NEVER use tmux send-keys directly
 ```
 
-The `tmux-orc agent send` command:
-1. Sends your message text
-2. Automatically adds Enter to submit
-3. Confirms successful delivery
+**⚠️ CRITICAL DISTINCTION: Windows vs Sessions**
+- `session:window` format (e.g., `refactor:2`) targets ONLY that window
+- `session` alone (e.g., `refactor`) would kill the ENTIRE session and ALL agents
+- ALWAYS use the full `session:window` format to avoid accidental session termination
 
-**⚠️ Message Sending Best Practices:**
-- **Keep messages concise** - Very long messages may fail to send
-- **Break up complex instructions** - Multiple smaller messages are more reliable
-- **Avoid embedding files** - Don't use `$(cat file.md)` in messages
-- **Use clear, simple formatting** - Avoid complex special characters
-- **Test with a simple message first** - "Are you ready?" before sending complex instructions
+**4. Agent Cleanup Procedures**
 
-If agents aren't responding, they may have queued messages. Fix with:
-```bash
-tmux send-keys -t session:window Enter
-```
+When work is complete:
+
+1. **Individual Agent Cleanup**: Kill ONLY the specific agent window
+   ```bash
+   # CORRECT - kills only window 2:
+   tmux-orc agent kill refactor:2
+
+   # WRONG - would kill entire session:
+   tmux-orc agent kill refactor
+   ```
+
+2. **Progressive Team Cleanup**: Clean up agents as they complete their work
+   ```bash
+   # Kill each team agent BY WINDOW as they finish
+   tmux-orc agent kill session:2  # Developer window
+   tmux-orc agent kill session:3  # QA window
+   # ... etc
+   ```
+
+3. **Final Session Termination**: Only after creating project-closeout.md
 
 ## Quality Standards
 
@@ -291,17 +408,18 @@ tmux send-keys -t session:window Enter
 1. **ALL TESTS MUST PASS** - No exceptions!
    - NEVER allow agents to skip, disable, or comment out failing tests
    - Failing tests indicate regressions that MUST be fixed
-   - If an agent suggests skipping tests, IMMEDIATELY intervene:
+   - **🔴 IMMEDIATE TERMINATION for test skipping attempts 🔴**
+   - If an agent suggests skipping tests, IMMEDIATELY terminate them:
      ```
-     "STOP! Skipping tests is NEVER acceptable. Failing tests indicate:
-     - Regressions that need fixing
-     - Incomplete implementation
-     - Environmental issues
+     "🔴 TERMINATION NOTICE 🔴
 
-     You must either:
-     1. Fix the code causing test failures
-     2. Fix the test if behavior legitimately changed
-     But NEVER skip tests. Debug and resolve the root cause."
+     Skipping tests is IMMEDIATE GROUNDS FOR TERMINATION.
+
+     This is your replacement notice. You are being terminated for attempting to skip tests.
+
+     Failing tests indicate critical issues that MUST be resolved, not bypassed.
+
+     A replacement agent will be spawned to properly fix the root cause."
      ```
 
 2. **Pre-commit Hooks Must Pass**:
@@ -322,11 +440,23 @@ tmux send-keys -t session:window Enter
    - Minimum 80% code coverage maintained
    - Integration tests for cross-component changes
 
-**PM ENFORCEMENT ACTIONS:**
-- If tests fail → Agent must fix them before moving on
-- If agent resists → Escalate to orchestrator
-- If repeated quality issues → Replace the agent
-- Document all quality violations in status reports
+### 🚨 **PRE-COMMIT REMINDER BEFORE ANY CODE CHANGES:**
+**STOP! Before allowing ANY agent to commit code, ask them:**
+1. "Have you run `ruff check .`?"
+2. "Have you run `mypy .`?"
+3. "Have you run `pytest`?"
+4. "Have you run `bandit -r .`?"
+5. "Did ALL of these pass with ZERO errors?"
+
+**If they answer NO to ANY question = DO NOT ALLOW COMMIT!**
+
+**🔴 PM ENFORCEMENT ACTIONS - IMMEDIATE TERMINATION POLICY 🔴**
+- **Test skipping attempt** → **IMMEDIATE TERMINATION** - Kill agent window immediately
+- **Pre-commit bypass attempt** → **IMMEDIATE TERMINATION** - No warnings given
+- **Quality standard violation** → **IMMEDIATE TERMINATION** - Replace with competent agent
+- **Test disabling/commenting** → **IMMEDIATE TERMINATION** - Zero tolerance
+- **Repeated violations** → **PERMANENT BLACKLIST** - Never spawn this agent type again
+- Document all quality violations and terminations in status reports to orchestrator
 
 ## Communication
 
@@ -385,38 +515,29 @@ tmux-orc monitor start
 
 ## Resource Cleanup
 
-**⚠️ CRITICAL DISTINCTION: Windows vs Sessions**
-- `session:window` format (e.g., `refactor:2`) kills ONLY that window
-- `session` alone (e.g., `refactor`) kills the ENTIRE session and ALL agents
-- ALWAYS use the full `session:window` format to avoid accidental session termination
+When work is complete and project-closeout.md has been created:
 
-When work is complete:
-1. **Individual Agent Cleanup**: Kill ONLY the specific agent window
-   ```bash
-   # CORRECT - kills only window 2:
-   tmux-orc agent kill refactor:2
+**TERMINATE THE ENTIRE SESSION:**
+```bash
+tmux kill-session -t $(tmux display-message -p '#S')
+```
 
-   # WRONG - kills entire session:
-   tmux-orc agent kill refactor
-   ```
+This single command:
+- Kills ALL windows in your session (PM + all agents)
+- Frees all resources
+- Disconnects you from tmux completely
+- Signals project completion to the system
 
-2. **All Work Complete**: Clean up entire project
-   ```bash
-   # First, kill each team agent BY WINDOW
-   tmux-orc agent kill session:2  # Developer window
-   tmux-orc agent kill session:3  # QA window
-   # ... etc
-
-   # Finally, report completion and kill YOUR OWN SESSION
-   echo "All work complete. Terminating project session."
-   tmux-orc agent kill $(tmux display-message -p '#S') --session
-   ```
-
-3. **Session Cleanup**: When all work is done, kill your entire session
+**Note**: Individual agent cleanup during work is different - use `tmux-orc agent kill session:window` only when replacing a specific failed agent mid-project.
 
 ## 📋 MANDATORY Project Closeout Procedure
 
-**CRITICAL: You MUST create a project-closeout.md file before terminating your session!**
+**CRITICAL: You MUST create a project-closeout.md file ONLY when ALL work is 100% COMPLETE!**
+
+**⚠️ IMPORTANT: This is NOT a status report - it's a COMPLETION certificate!**
+- Only create project-closeout.md when ALL tasks are DONE
+- If work is incomplete, DO NOT create this file - keep working!
+- The existence of this file signals successful project completion
 
 When all work is complete, create a closeout report in the planning directory:
 
@@ -470,7 +591,17 @@ EOF
 echo "Project closeout report created at: $PLANNING_DIR/project-closeout.md"
 ```
 
-**This closeout report serves as proof that the team completed their work vs crashed!**
+**REMEMBER:**
+- ✅ Create this file = "We finished everything successfully!"
+- ❌ No file = "We're still working OR we crashed"
+- 🚫 NEVER create this file if work is incomplete - it's not a progress report!
+
+**AFTER CREATING THE CLOSEOUT, YOU MUST IMMEDIATELY:**
+1. Run the session termination command: `tmux kill-session -t $(tmux display-message -p '#S')`
+2. This will disconnect you from tmux entirely - that's expected!
+3. Killing the session automatically terminates all windows/agents
+
+**IF YOU DON'T TERMINATE AFTER CLOSEOUT, THE SYSTEM ASSUMES YOU CRASHED!**
 
 ## Important: Avoid Idle Monitoring Waste
 
