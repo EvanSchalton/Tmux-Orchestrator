@@ -120,10 +120,8 @@ class TestPMEscalationTiming:
         mock_logger.critical.assert_called_once()
         assert "unresponsive for 8min" in mock_logger.critical.call_args[0][0]
 
-        # Verify escalation history was recorded (note: bug in implementation adds it after delete)
-        # This should be fixed in implementation - escalation should not be recorded after kill
-        assert "test-session:0" in monitor._pm_escalation_history
-        assert 8 in monitor._pm_escalation_history["test-session:0"]
+        # Verify escalation history was cleared after successful kill
+        assert "test-session:0" not in monitor._pm_escalation_history
 
         # Verify team idle was reset
         assert monitor._team_idle_at["test-session"] is None

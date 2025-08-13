@@ -1343,8 +1343,10 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
                                         # The daemon's PM recovery will automatically spawn a new PM
                                     except Exception as e:
                                         logger.error(f"Failed to kill PM {pm_target}: {e}")
-
-                                    self._pm_escalation_history[pm_target][threshold_minutes] = now
+                                        # Only record this in history if kill failed
+                                        if pm_target not in self._pm_escalation_history:
+                                            self._pm_escalation_history[pm_target] = {}
+                                        self._pm_escalation_history[pm_target][threshold_minutes] = now
             else:
                 # Team is not all idle - reset tracking for this session
                 if session in self._team_idle_at and self._team_idle_at[session] is not None:
