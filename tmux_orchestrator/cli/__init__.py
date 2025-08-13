@@ -326,6 +326,14 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # setup_claude.py module for environment setup
 
+        # Add spawn-orc command
+        try:
+            from tmux_orchestrator.cli import spawn_orc
+
+            cli.add_command(spawn_orc.spawn_orc)
+        except ImportError:
+            pass  # spawn_orc.py module for orchestrator launch
+
         # Add VS Code setup commands
         try:
             from tmux_orchestrator.cli import setup
@@ -341,6 +349,14 @@ def _setup_command_groups() -> None:
             cli.add_command(recovery.recovery)
         except ImportError:
             pass  # recovery.py module for automatic agent recovery
+
+        # Add session commands
+        try:
+            from tmux_orchestrator.cli import session
+
+            cli.add_command(session.session)
+        except ImportError:
+            pass  # session.py module for session management
 
         # Add pubsub commands
         try:
