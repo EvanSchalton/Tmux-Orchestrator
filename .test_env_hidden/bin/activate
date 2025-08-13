@@ -1,0 +1,4 @@
+#!/bin/bash
+# Dummy activate script - does nothing
+# Real activate script renamed to activate.disabled
+echo "# Virtual environment activation disabled"

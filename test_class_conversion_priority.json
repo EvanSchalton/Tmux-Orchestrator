@@ -1,0 +1,331 @@
+{
+  "summary": {
+    "total_files": 39,
+    "files_with_setup_teardown": 9,
+    "files_with_inheritance": 2,
+    "total_setup_teardown_methods": 21,
+    "total_inherited_classes": 2
+  },
+  "priority_order": [
+    {
+      "path": "tests/monitor_helpers_test.py",
+      "complexity": 46,
+      "classes": 10,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/rate_limit_handling_test.py",
+      "complexity": 34,
+      "classes": 7,
+      "has_setup_teardown": true,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/report_activity_test.py",
+      "complexity": 34,
+      "classes": 6,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/get_agent_status_test.py",
+      "complexity": 30,
+      "classes": 5,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/monitor_crash_detection_test.py",
+      "complexity": 28,
+      "classes": 4,
+      "has_setup_teardown": true,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/monitor_pm_notifications_test.py",
+      "complexity": 25,
+      "classes": 4,
+      "has_setup_teardown": true,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/schedule_checkin_test.py",
+      "complexity": 25,
+      "classes": 3,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/create_team_test.py",
+      "complexity": 23,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/monitor_auto_recovery_test.py",
+      "complexity": 21,
+      "classes": 3,
+      "has_setup_teardown": true,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/handoff_work_test.py",
+      "complexity": 21,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/track_task_status_test.py",
+      "complexity": 21,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/run_quality_checks_test.py",
+      "complexity": 20,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/simplified_restart_system_test.py",
+      "complexity": 19,
+      "classes": 3,
+      "has_setup_teardown": true,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/assign_task_test.py",
+      "complexity": 19,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/create_pull_request_test.py",
+      "complexity": 19,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/monitor_fixtures_dynamic_test.py",
+      "complexity": 17,
+      "classes": 1,
+      "has_setup_teardown": true,
+      "has_inheritance": true
+    },
+    {
+      "path": "tests/test_server/test_tools/get_session_status_test.py",
+      "complexity": 17,
+      "classes": 2,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_core/error_handler_test.py",
+      "complexity": 16,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_core/performance_optimizer_test.py",
+      "complexity": 16,
+      "classes": 2,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/send_message_test.py",
+      "complexity": 16,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/integration_rate_limit_test.py",
+      "complexity": 13,
+      "classes": 2,
+      "has_setup_teardown": true,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_core/test_recovery/detect_failure_test.py",
+      "complexity": 13,
+      "classes": 4,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/integration_compaction_test.py",
+      "complexity": 12,
+      "classes": 2,
+      "has_setup_teardown": true,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_cli/errors_test.py",
+      "complexity": 12,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_cli/vscode_setup_test.py",
+      "complexity": 12,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/broadcast_message_test.py",
+      "complexity": 12,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/get_messages_test.py",
+      "complexity": 12,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_core/test_recovery/discover_agents_test.py",
+      "complexity": 11,
+      "classes": 2,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/mcp_server_test.py",
+      "complexity": 11,
+      "classes": 2,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/routes_basic_test.py",
+      "complexity": 11,
+      "classes": 3,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/integration_combined_features_test.py",
+      "complexity": 10,
+      "classes": 1,
+      "has_setup_teardown": true,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/rate_limit_test.py",
+      "complexity": 10,
+      "classes": 2,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/kill_agent_test.py",
+      "complexity": 10,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/monitor_message_detection_test.py",
+      "complexity": 9,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": true
+    },
+    {
+      "path": "tests/test_core/test_recovery/restore_context_test.py",
+      "complexity": 9,
+      "classes": 2,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_server/test_tools/spawn_agent_test.py",
+      "complexity": 9,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/test_core/test_recovery/check_agent_health_test.py",
+      "complexity": 6,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/compaction_detection_test.py",
+      "complexity": 4,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    },
+    {
+      "path": "tests/monitor_daemon_resume_test.py",
+      "complexity": 4,
+      "classes": 1,
+      "has_setup_teardown": false,
+      "has_inheritance": false
+    }
+  ],
+  "difficulty_categories": {
+    "easy": [
+      "tests/test_core/test_recovery/detect_failure_test.py",
+      "tests/test_server/routes_basic_test.py",
+      "tests/test_core/test_recovery/restore_context_test.py",
+      "tests/compaction_detection_test.py",
+      "tests/monitor_daemon_resume_test.py"
+    ],
+    "medium": [
+      "tests/monitor_helpers_test.py",
+      "tests/rate_limit_handling_test.py",
+      "tests/test_server/test_tools/report_activity_test.py",
+      "tests/monitor_crash_detection_test.py",
+      "tests/monitor_pm_notifications_test.py",
+      "tests/test_server/test_tools/schedule_checkin_test.py",
+      "tests/monitor_auto_recovery_test.py",
+      "tests/simplified_restart_system_test.py",
+      "tests/test_server/test_tools/get_session_status_test.py",
+      "tests/integration_rate_limit_test.py",
+      "tests/integration_compaction_test.py",
+      "tests/test_cli/errors_test.py",
+      "tests/test_cli/vscode_setup_test.py",
+      "tests/test_server/test_tools/broadcast_message_test.py",
+      "tests/test_server/test_tools/get_messages_test.py",
+      "tests/test_core/test_recovery/discover_agents_test.py",
+      "tests/test_server/mcp_server_test.py",
+      "tests/integration_combined_features_test.py",
+      "tests/rate_limit_test.py",
+      "tests/test_server/test_tools/kill_agent_test.py",
+      "tests/monitor_message_detection_test.py",
+      "tests/test_server/test_tools/spawn_agent_test.py",
+      "tests/test_core/test_recovery/check_agent_health_test.py"
+    ],
+    "hard": [
+      "tests/test_server/test_tools/get_agent_status_test.py",
+      "tests/test_server/test_tools/create_team_test.py",
+      "tests/test_server/test_tools/handoff_work_test.py",
+      "tests/test_server/test_tools/track_task_status_test.py",
+      "tests/test_server/test_tools/run_quality_checks_test.py",
+      "tests/test_server/test_tools/assign_task_test.py",
+      "tests/test_server/test_tools/create_pull_request_test.py",
+      "tests/monitor_fixtures_dynamic_test.py",
+      "tests/test_core/error_handler_test.py",
+      "tests/test_core/performance_optimizer_test.py",
+      "tests/test_server/test_tools/send_message_test.py"
+    ]
+  }
+}

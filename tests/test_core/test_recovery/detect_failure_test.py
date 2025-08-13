@@ -13,198 +13,193 @@ from tmux_orchestrator.core.recovery.detect_failure import (
 )
 
 
-class TestDetectFailure:
-    """Test suite for detect_failure function."""
+def test_detect_failure_with_critical_error() -> None:
+    """Test failure detection when critical errors are present."""
+    # Arrange
+    tmux_mock: Mock = Mock()
+    tmux_mock.capture_pane.return_value = "connection lost - cannot proceed"
+    target: str = "test-session:0"
+    last_response: datetime = datetime.now() - timedelta(minutes=1)
 
-    def test_detect_failure_with_critical_error(self) -> None:
-        """Test failure detection when critical errors are present."""
-        # Arrange
-        tmux_mock: Mock = Mock()
-        tmux_mock.capture_pane.return_value = "connection lost - cannot proceed"
-        target: str = "test-session:0"
-        last_response: datetime = datetime.now() - timedelta(minutes=1)
+    # Act
+    is_failed, failure_reason, status_details = detect_failure(tmux_mock, target, last_response, 0)
 
-        # Act
-        is_failed, failure_reason, status_details = detect_failure(tmux_mock, target, last_response, 0)
-
-        # Assert
-        assert is_failed is True
-        assert failure_reason == "Critical errors detected in agent output"
-        assert isinstance(status_details, dict)
-        assert "is_idle" in status_details
-
-    def test_detect_failure_with_max_failures(self) -> None:
-        """Test failure detection when max consecutive failures reached."""
-        # Arrange
-        tmux_mock: Mock = Mock()
-        tmux_mock.capture_pane.return_value = "│ > waiting for input"
-        target: str = "test-session:0"
-        last_response: datetime = datetime.now() - timedelta(minutes=1)
-        consecutive_failures: int = 3
-        max_failures: int = 3
-
-        # Act
-        is_failed, failure_reason, status_details = detect_failure(
-            tmux_mock, target, last_response, consecutive_failures, max_failures
-        )
-
-        # Assert
-        assert is_failed is True
-        assert failure_reason == f"Agent failed {consecutive_failures} consecutive health checks"
-        assert isinstance(status_details, dict)
-
-    def test_detect_failure_with_extended_unresponsiveness(self) -> None:
-        """Test failure detection with extended unresponsiveness."""
-        # Arrange
-        tmux_mock: Mock = Mock()
-        tmux_mock.capture_pane.return_value = "│ > normal interface"
-        target: str = "test-session:0"
-        last_response: datetime = datetime.now() - timedelta(minutes=10)
-        response_timeout: int = 60  # 1 minute
-
-        # Act
-        is_failed, failure_reason, status_details = detect_failure(
-            tmux_mock, target, last_response, 0, 3, response_timeout
-        )
-
-        # Assert
-        assert is_failed is True
-        assert "Agent unresponsive for" in failure_reason
-        assert "timeout:" in failure_reason
-        assert isinstance(status_details, dict)
-
-    def test_detect_failure_healthy_agent(self) -> None:
-        """Test failure detection with healthy agent."""
-        # Arrange
-        tmux_mock: Mock = Mock()
-        tmux_mock.capture_pane.return_value = "│ > I'll help you with that task"
-        target: str = "test-session:0"
-        last_response: datetime = datetime.now() - timedelta(seconds=30)
-
-        # Act
-        is_failed, failure_reason, status_details = detect_failure(tmux_mock, target, last_response, 0)
-
-        # Assert
-        assert is_failed is False
-        assert failure_reason == "Agent is healthy"
-        assert isinstance(status_details, dict)
-
-    def test_detect_failure_invalid_target_format(self) -> None:
-        """Test failure detection with invalid target format."""
-        # Arrange
-        tmux_mock: Mock = Mock()
-        target: str = "invalid-target-format"
-        last_response: datetime = datetime.now()
-
-        # Act & Assert
-        with pytest.raises(ValueError, match="Invalid target format"):
-            detect_failure(tmux_mock, target, last_response, 0)
+    # Assert
+    assert is_failed is True
+    assert failure_reason == "Critical errors detected in agent output"
+    assert isinstance(status_details, dict)
+    assert "is_idle" in status_details
 
 
-class TestCheckIdleStatusV2:
-    """Test suite for _check_idle_status_v2 function."""
+def test_detect_failure_with_max_failures() -> None:
+    """Test failure detection when max consecutive failures reached."""
+    # Arrange
+    tmux_mock: Mock = Mock()
+    tmux_mock.capture_pane.return_value = "│ > waiting for input"
+    target: str = "test-session:0"
+    last_response: datetime = datetime.now() - timedelta(minutes=1)
+    consecutive_failures: int = 3
+    max_failures: int = 3
 
-    def test_check_idle_status_agent_is_idle(self) -> None:
-        """Test idle detection when agent is idle."""
-        # Arrange
-        tmux_mock: Mock = Mock()
-        tmux_mock.capture_pane.return_value = "│ > same output line"
-        target: str = "test-session:0"
+    # Act
+    is_failed, failure_reason, status_details = detect_failure(
+        tmux_mock, target, last_response, consecutive_failures, max_failures
+    )
 
-        # Act
-        idle_details = _check_idle_status_v2(tmux_mock, target)
-        is_idle: bool = idle_details["is_idle"]
-
-        # Assert
-        assert is_idle is True
-        assert tmux_mock.capture_pane.call_count == 4
-
-    def test_check_idle_status_agent_is_active(self) -> None:
-        """Test idle detection when agent is active."""
-        # Arrange
-        tmux_mock: Mock = Mock()
-        # Simulate changing output
-        tmux_mock.capture_pane.side_effect = ["line 1", "line 2", "line 3", "line 4"]
-        target: str = "test-session:0"
-
-        # Act
-        idle_details = _check_idle_status_v2(tmux_mock, target)
-        is_idle: bool = idle_details["is_idle"]
-
-        # Assert
-        assert is_idle is False
-        assert tmux_mock.capture_pane.call_count == 4
+    # Assert
+    assert is_failed is True
+    assert failure_reason == f"Agent failed {consecutive_failures} consecutive health checks"
+    assert isinstance(status_details, dict)
 
 
-class TestHasCriticalErrors:
-    """Test suite for _has_critical_errors function."""
+def test_detect_failure_with_extended_unresponsiveness() -> None:
+    """Test failure detection with extended unresponsiveness."""
+    # Arrange
+    tmux_mock: Mock = Mock()
+    tmux_mock.capture_pane.return_value = "│ > normal interface"
+    target: str = "test-session:0"
+    last_response: datetime = datetime.now() - timedelta(minutes=10)
+    response_timeout: int = 60  # 1 minute
 
-    def test_has_critical_errors_with_error(self) -> None:
-        """Test critical error detection with error present."""
-        # Arrange
-        content: str = "Connection lost - unable to proceed"
+    # Act
+    is_failed, failure_reason, status_details = detect_failure(tmux_mock, target, last_response, 0, 3, response_timeout)
 
-        # Act
-        has_errors: bool = _has_critical_errors(content)
-
-        # Assert
-        assert has_errors is True
-
-    def test_has_critical_errors_without_error(self) -> None:
-        """Test critical error detection with normal content."""
-        # Arrange
-        content: str = "│ > I'm ready to help with your task"
-
-        # Act
-        has_errors: bool = _has_critical_errors(content)
-
-        # Assert
-        assert has_errors is False
-
-    def test_has_critical_errors_case_insensitive(self) -> None:
-        """Test critical error detection is case insensitive."""
-        # Arrange
-        content: str = "NETWORK ERROR occurred during processing"
-
-        # Act
-        has_errors: bool = _has_critical_errors(content)
-
-        # Assert
-        assert has_errors is True
+    # Assert
+    assert is_failed is True
+    assert "Agent unresponsive for" in failure_reason
+    assert "timeout:" in failure_reason
+    assert isinstance(status_details, dict)
 
 
-class TestHasNormalClaudeInterface:
-    """Test suite for _has_normal_claude_interface function."""
+def test_detect_failure_healthy_agent() -> None:
+    """Test failure detection with healthy agent."""
+    # Arrange
+    tmux_mock: Mock = Mock()
+    tmux_mock.capture_pane.return_value = "│ > I'll help you with that task"
+    target: str = "test-session:0"
+    last_response: datetime = datetime.now() - timedelta(seconds=30)
 
-    def test_has_normal_claude_interface_with_prompt(self) -> None:
-        """Test Claude interface detection with prompt box."""
-        # Arrange
-        content: str = "│ > waiting for your input"
+    # Act
+    is_failed, failure_reason, status_details = detect_failure(tmux_mock, target, last_response, 0)
 
-        # Act
-        has_interface: bool = _has_normal_claude_interface(content)
+    # Assert
+    assert is_failed is False
+    assert failure_reason == "Agent is healthy"
+    assert isinstance(status_details, dict)
 
-        # Assert
-        assert has_interface is True
 
-    def test_has_normal_claude_interface_with_assistant_marker(self) -> None:
-        """Test Claude interface detection with assistant marker."""
-        # Arrange
-        content: str = "assistant: I'll help you with that"
+def test_detect_failure_invalid_target_format() -> None:
+    """Test failure detection with invalid target format."""
+    # Arrange
+    tmux_mock: Mock = Mock()
+    target: str = "invalid-target-format"
+    last_response: datetime = datetime.now()
 
-        # Act
-        has_interface: bool = _has_normal_claude_interface(content)
+    # Act & Assert
+    with pytest.raises(ValueError, match="Invalid target format"):
+        detect_failure(tmux_mock, target, last_response, 0)
 
-        # Assert
-        assert has_interface is True
 
-    def test_has_normal_claude_interface_without_markers(self) -> None:
-        """Test Claude interface detection without interface markers."""
-        # Arrange
-        content: str = "some random terminal output"
+def test_check_idle_status_agent_is_idle() -> None:
+    """Test idle detection when agent is idle."""
+    # Arrange
+    tmux_mock: Mock = Mock()
+    tmux_mock.capture_pane.return_value = "│ > same output line"
+    target: str = "test-session:0"
 
-        # Act
-        has_interface: bool = _has_normal_claude_interface(content)
+    # Act
+    idle_details = _check_idle_status_v2(tmux_mock, target)
+    is_idle: bool = idle_details["is_idle"]
 
-        # Assert
-        assert has_interface is False
+    # Assert
+    assert is_idle is True
+    assert tmux_mock.capture_pane.call_count == 4
+
+
+def test_check_idle_status_agent_is_active() -> None:
+    """Test idle detection when agent is active."""
+    # Arrange
+    tmux_mock: Mock = Mock()
+    # Simulate changing output
+    tmux_mock.capture_pane.side_effect = ["line 1", "line 2", "line 3", "line 4"]
+    target: str = "test-session:0"
+
+    # Act
+    idle_details = _check_idle_status_v2(tmux_mock, target)
+    is_idle: bool = idle_details["is_idle"]
+
+    # Assert
+    assert is_idle is False
+    assert tmux_mock.capture_pane.call_count == 4
+
+
+def test_has_critical_errors_with_error() -> None:
+    """Test critical error detection with error present."""
+    # Arrange
+    content: str = "Connection lost - unable to proceed"
+
+    # Act
+    has_errors: bool = _has_critical_errors(content)
+
+    # Assert
+    assert has_errors is True
+
+
+def test_has_critical_errors_without_error() -> None:
+    """Test critical error detection with normal content."""
+    # Arrange
+    content: str = "│ > I'm ready to help with your task"
+
+    # Act
+    has_errors: bool = _has_critical_errors(content)
+
+    # Assert
+    assert has_errors is False
+
+
+def test_has_critical_errors_case_insensitive() -> None:
+    """Test critical error detection is case insensitive."""
+    # Arrange
+    content: str = "NETWORK ERROR occurred during processing"
+
+    # Act
+    has_errors: bool = _has_critical_errors(content)
+
+    # Assert
+    assert has_errors is True
+
+
+def test_has_normal_claude_interface_with_prompt() -> None:
+    """Test Claude interface detection with prompt box."""
+    # Arrange
+    content: str = "│ > waiting for your input"
+
+    # Act
+    has_interface: bool = _has_normal_claude_interface(content)
+
+    # Assert
+    assert has_interface is True
+
+
+def test_has_normal_claude_interface_with_assistant_marker() -> None:
+    """Test Claude interface detection with assistant marker."""
+    # Arrange
+    content: str = "assistant: I'll help you with that"
+
+    # Act
+    has_interface: bool = _has_normal_claude_interface(content)
+
+    # Assert
+    assert has_interface is True
+
+
+def test_has_normal_claude_interface_without_markers() -> None:
+    """Test Claude interface detection without interface markers."""
+    # Arrange
+    content: str = "some random terminal output"
+
+    # Act
+    has_interface: bool = _has_normal_claude_interface(content)
+
+    # Assert
+    assert has_interface is False

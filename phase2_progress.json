@@ -1,0 +1,349 @@
+{
+  "timestamp": "2025-08-12T21:11:21.222847",
+  "progress": {
+    "total_files": 56,
+    "files_with_classes": 22,
+    "files_converted": 34,
+    "total_classes_remaining": 50,
+    "total_functions": 707,
+    "files_status": [
+      {
+        "path": "tests/monitor_manual_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 0
+      },
+      {
+        "path": "tests/rate_limit_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 10
+      },
+      {
+        "path": "tests/simplified_restart_system_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 10
+      },
+      {
+        "path": "tests/monitor_daemon_resume_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 4
+      },
+      {
+        "path": "tests/integration_rate_limit_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 10
+      },
+      {
+        "path": "tests/monitor_fixtures_dynamic_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 7
+      },
+      {
+        "path": "tests/rate_limit_handling_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 25
+      },
+      {
+        "path": "tests/monitor_crash_detection_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 16
+      },
+      {
+        "path": "tests/compaction_detection_simple_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 2
+      },
+      {
+        "path": "tests/monitor_message_detection_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 2
+      },
+      {
+        "path": "tests/monitor_auto_recovery_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 12
+      },
+      {
+        "path": "tests/monitor_helpers_test.py",
+        "has_classes": true,
+        "class_count": 10,
+        "function_count": 46
+      },
+      {
+        "path": "tests/integration_compaction_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 9
+      },
+      {
+        "path": "tests/monitor_pm_notifications_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 13
+      },
+      {
+        "path": "tests/integration_combined_features_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 7
+      },
+      {
+        "path": "tests/monitor_autosubmit_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 4
+      },
+      {
+        "path": "tests/compaction_detection_realistic_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 4
+      },
+      {
+        "path": "tests/compaction_detection_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 4
+      },
+      {
+        "path": "tests/test_server/mcp_server_test.py",
+        "has_classes": true,
+        "class_count": 2,
+        "function_count": 11
+      },
+      {
+        "path": "tests/test_server/routes_basic_test.py",
+        "has_classes": true,
+        "class_count": 3,
+        "function_count": 11
+      },
+      {
+        "path": "tests/test_server/test_tools/get_messages_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 12
+      },
+      {
+        "path": "tests/test_server/test_tools/spawn_agent_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 9
+      },
+      {
+        "path": "tests/test_server/test_tools/handoff_work_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 21
+      },
+      {
+        "path": "tests/test_server/test_tools/get_session_status_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 17
+      },
+      {
+        "path": "tests/test_server/test_tools/schedule_checkin_test.py",
+        "has_classes": true,
+        "class_count": 3,
+        "function_count": 25
+      },
+      {
+        "path": "tests/test_server/test_tools/kill_agent_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 10
+      },
+      {
+        "path": "tests/test_server/test_tools/send_message_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 16
+      },
+      {
+        "path": "tests/test_server/test_tools/get_agent_status_test.py",
+        "has_classes": true,
+        "class_count": 5,
+        "function_count": 30
+      },
+      {
+        "path": "tests/test_server/test_tools/report_activity_test.py",
+        "has_classes": true,
+        "class_count": 6,
+        "function_count": 34
+      },
+      {
+        "path": "tests/test_server/test_tools/track_task_status_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 21
+      },
+      {
+        "path": "tests/test_server/test_tools/create_team_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 23
+      },
+      {
+        "path": "tests/test_server/test_tools/assign_task_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 19
+      },
+      {
+        "path": "tests/test_server/test_tools/run_quality_checks_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 20
+      },
+      {
+        "path": "tests/test_server/test_tools/create_pull_request_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 19
+      },
+      {
+        "path": "tests/test_server/test_tools/broadcast_message_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 12
+      },
+      {
+        "path": "tests/test_integration/end_to_end_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 6
+      },
+      {
+        "path": "tests/test_cli/errors_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 12
+      },
+      {
+        "path": "tests/test_cli/recovery_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 7
+      },
+      {
+        "path": "tests/test_cli/orchestrator_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 10
+      },
+      {
+        "path": "tests/test_cli/execute_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 8
+      },
+      {
+        "path": "tests/test_cli/tasks_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 11
+      },
+      {
+        "path": "tests/test_cli/setup_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 6
+      },
+      {
+        "path": "tests/test_cli/agent_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 22
+      },
+      {
+        "path": "tests/test_cli/vscode_setup_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 12
+      },
+      {
+        "path": "tests/test_cli/monitor_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 10
+      },
+      {
+        "path": "tests/test_cli/team_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 11
+      },
+      {
+        "path": "tests/test_core/performance_optimizer_test.py",
+        "has_classes": true,
+        "class_count": 2,
+        "function_count": 16
+      },
+      {
+        "path": "tests/test_core/error_handler_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 16
+      },
+      {
+        "path": "tests/test_core/test_recovery/check_agent_health_test.py",
+        "has_classes": true,
+        "class_count": 1,
+        "function_count": 6
+      },
+      {
+        "path": "tests/test_core/test_recovery/detect_failure_test.py",
+        "has_classes": true,
+        "class_count": 4,
+        "function_count": 13
+      },
+      {
+        "path": "tests/test_core/test_recovery/discover_agents_test.py",
+        "has_classes": true,
+        "class_count": 2,
+        "function_count": 11
+      },
+      {
+        "path": "tests/test_core/test_recovery/restore_context_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 9
+      },
+      {
+        "path": "tests/test_core/test_team_operations/get_team_status_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 7
+      },
+      {
+        "path": "tests/test_core/test_team_operations/broadcast_to_team_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 7
+      },
+      {
+        "path": "tests/test_core/test_team_operations/list_all_teams_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 6
+      },
+      {
+        "path": "tests/test_core/test_agent_operations/restart_agent_test.py",
+        "has_classes": false,
+        "class_count": 0,
+        "function_count": 6
+      }
+    ]
+  },
+  "test_count": 833
+}

@@ -84,3 +84,22 @@ As the Claude Code orchestrator, you are the interface between the human and the
 ### Test Case Management
 - As we identify new agent terminal failure cases we should add them to the relevant parameterized tests e.g. tests/fixtures/monitor_states/*
 - **Test Capture Guideline**: Don't make up test cases for the daemon, copy actual terminal screens at the time of failure
+
+## Recent Monitoring Enhancements Completed: 2025-08-12
+- **Rate Limit Handling**: Daemon now auto-pauses during rate limits and resumes after reset
+- **Compaction Detection**: Fixed false idle alerts during agent compaction states
+- See closeout report at `.tmux_orchestrator/planning/completed/20250812/MONITORING_FEATURES_CLOSEOUT.md`
+
+
+
+# ROLES
+
+If you are filling one of these roles, please adhere to these instructions.
+
+## Project Manager (PM)
+
+Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md`
+
+## Orchestrator
+
+Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrator.md`

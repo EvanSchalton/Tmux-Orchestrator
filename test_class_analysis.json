@@ -1,0 +1,142 @@
+{
+  "summary": {
+    "total_files": 56,
+    "files_with_classes": 16,
+    "total_classes": 42,
+    "total_class_methods": 321,
+    "total_functions": 386
+  },
+  "files_needing_conversion": [
+    {
+      "path": "tests/monitor_daemon_resume_test.py",
+      "classes": 1,
+      "methods": 4
+    },
+    {
+      "path": "tests/monitor_helpers_test.py",
+      "classes": 10,
+      "methods": 46
+    },
+    {
+      "path": "tests/test_cli/errors_test.py",
+      "classes": 1,
+      "methods": 12
+    },
+    {
+      "path": "tests/test_cli/vscode_setup_test.py",
+      "classes": 1,
+      "methods": 12
+    },
+    {
+      "path": "tests/test_core/test_recovery/detect_failure_test.py",
+      "classes": 4,
+      "methods": 13
+    },
+    {
+      "path": "tests/test_server/mcp_server_test.py",
+      "classes": 2,
+      "methods": 11
+    },
+    {
+      "path": "tests/test_server/routes_basic_test.py",
+      "classes": 3,
+      "methods": 11
+    },
+    {
+      "path": "tests/test_server/test_tools/assign_task_test.py",
+      "classes": 1,
+      "methods": 19
+    },
+    {
+      "path": "tests/test_server/test_tools/create_pull_request_test.py",
+      "classes": 1,
+      "methods": 19
+    },
+    {
+      "path": "tests/test_server/test_tools/create_team_test.py",
+      "classes": 1,
+      "methods": 23
+    },
+    {
+      "path": "tests/test_server/test_tools/get_agent_status_test.py",
+      "classes": 5,
+      "methods": 30
+    },
+    {
+      "path": "tests/test_server/test_tools/handoff_work_test.py",
+      "classes": 1,
+      "methods": 21
+    },
+    {
+      "path": "tests/test_server/test_tools/report_activity_test.py",
+      "classes": 6,
+      "methods": 34
+    },
+    {
+      "path": "tests/test_server/test_tools/run_quality_checks_test.py",
+      "classes": 1,
+      "methods": 20
+    },
+    {
+      "path": "tests/test_server/test_tools/schedule_checkin_test.py",
+      "classes": 3,
+      "methods": 25
+    },
+    {
+      "path": "tests/test_server/test_tools/track_task_status_test.py",
+      "classes": 1,
+      "methods": 21
+    }
+  ],
+  "organization": {
+    "by_feature": [
+      "tests/monitor_helpers_test.py::TestClaudeInterfaceDetection",
+      "tests/monitor_helpers_test.py::TestUnsubmittedMessageDetection",
+      "tests/monitor_helpers_test.py::TestIdleDetection",
+      "tests/monitor_helpers_test.py::TestChangeDistance",
+      "tests/monitor_helpers_test.py::TestRecoveryLogic",
+      "tests/monitor_helpers_test.py::TestCrashIndicators",
+      "tests/monitor_helpers_test.py::TestErrorIndicators",
+      "tests/test_cli/errors_test.py::TestErrorsCLI",
+      "tests/test_cli/vscode_setup_test.py::TestVSCodeSetup",
+      "tests/test_server/mcp_server_test.py::TestMCPServerInitialization",
+      "tests/test_server/routes_basic_test.py::TestRouteExistence",
+      "tests/test_server/test_tools/assign_task_test.py::TestAssignTask",
+      "tests/test_server/test_tools/create_pull_request_test.py::TestCreatePullRequest",
+      "tests/test_server/test_tools/track_task_status_test.py::TestTrackTaskStatus"
+    ],
+    "by_method": [
+      "tests/test_core/test_recovery/detect_failure_test.py::TestDetectFailure",
+      "tests/test_core/test_recovery/detect_failure_test.py::TestCheckIdleStatusV2",
+      "tests/test_core/test_recovery/detect_failure_test.py::TestHasCriticalErrors",
+      "tests/test_core/test_recovery/detect_failure_test.py::TestHasNormalClaudeInterface",
+      "tests/test_server/test_tools/create_team_test.py::TestCreateTeam",
+      "tests/test_server/test_tools/get_agent_status_test.py::TestHealthStatus",
+      "tests/test_server/test_tools/get_agent_status_test.py::TestAgentHealthMetrics",
+      "tests/test_server/test_tools/get_agent_status_test.py::TestAgentStatusRequest",
+      "tests/test_server/test_tools/get_agent_status_test.py::TestAgentStatusResult",
+      "tests/test_server/test_tools/get_agent_status_test.py::TestGetAgentStatus",
+      "tests/test_server/test_tools/handoff_work_test.py::TestHandoffWork",
+      "tests/test_server/test_tools/report_activity_test.py::TestActivityType",
+      "tests/test_server/test_tools/report_activity_test.py::TestReportActivityRequest",
+      "tests/test_server/test_tools/report_activity_test.py::TestActivityRecord",
+      "tests/test_server/test_tools/report_activity_test.py::TestReportActivity",
+      "tests/test_server/test_tools/report_activity_test.py::TestActivityHistoryRequest",
+      "tests/test_server/test_tools/report_activity_test.py::TestGetActivityHistory",
+      "tests/test_server/test_tools/schedule_checkin_test.py::TestScheduleCheckinRequest",
+      "tests/test_server/test_tools/schedule_checkin_test.py::TestCheckinSchedule",
+      "tests/test_server/test_tools/schedule_checkin_test.py::TestScheduleCheckin"
+    ],
+    "mixed": [
+      "tests/monitor_daemon_resume_test.py::TestDaemonResumeAfterRateLimit",
+      "tests/monitor_helpers_test.py::TestAgentStateDetection",
+      "tests/monitor_helpers_test.py::TestNotificationLogic",
+      "tests/monitor_helpers_test.py::TestIntegration",
+      "tests/test_server/mcp_server_test.py::TestMCPServerIntegration",
+      "tests/test_server/routes_basic_test.py::TestErrorHandling",
+      "tests/test_server/routes_basic_test.py::TestHealthEndpoints",
+      "tests/test_server/test_tools/run_quality_checks_test.py::TestRunQualityChecks"
+    ],
+    "unclear": []
+  }
+}

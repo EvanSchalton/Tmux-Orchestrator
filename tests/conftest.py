@@ -1,6 +1,11 @@
 """Pytest configuration and shared fixtures for Tmux-Orchestrator tests."""
 
-from unittest.mock import Mock
+import json
+import logging
+import tempfile
+from pathlib import Path
+from typing import Generator
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from click.testing import CliRunner
@@ -92,3 +97,77 @@ def cleanup_test_logs(tmp_path, monkeypatch):
     yield
 
     # Cleanup is automatic with tmp_path
+
+
+# ===== COMMONLY USED FIXTURES =====
+# These fixtures are used across many test files and have been consolidated here
+
+
+@pytest.fixture
+def mock_tmux() -> Mock:
+    """Create a mock TMUXManager for testing.
+
+    This is the most commonly used fixture across the test suite.
+    Use this instead of creating local mock_tmux fixtures.
+    """
+    return MagicMock(spec=TMUXManager)
+
+
+@pytest.fixture
+def logger() -> Mock:
+    """Create a mock logger for testing.
+
+    Used by monitor tests and other components that use logging.
+    """
+    return MagicMock(spec=logging.Logger)
+
+
+@pytest.fixture
+def runner() -> CliRunner:
+    """Create Click test runner.
+
+    Used by CLI tests for testing command line interfaces.
+    """
+    return CliRunner()
+
+
+@pytest.fixture
+def temp_activity_file() -> Generator[Path, None, None]:
+    """Create a temporary activity file for testing.
+
+    Used by report_activity and get_agent_status tests.
+    """
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        temp_path = Path(f.name)
+        # Initialize empty activity file
+        json.dump([], f)
+    yield temp_path
+    # Clean up
+    if temp_path.exists():
+        temp_path.unlink()
+
+
+@pytest.fixture
+def temp_schedule_file() -> Generator[Path, None, None]:
+    """Create a temporary schedule file for testing.
+
+    Used by schedule_checkin tests.
+    """
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        temp_path = Path(f.name)
+        # Initialize empty schedule file
+        json.dump([], f)
+    yield temp_path
+    # Clean up
+    if temp_path.exists():
+        temp_path.unlink()
+
+
+@pytest.fixture
+def temp_orchestrator_dir() -> Generator[Path, None, None]:
+    """Create temporary orchestrator directory.
+
+    Used by CLI tests that need a temporary working directory.
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield Path(temp_dir)

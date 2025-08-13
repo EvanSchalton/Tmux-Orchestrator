@@ -162,7 +162,51 @@ The MCP server provides REST API access for integrations:
 - PM has autonomy to spawn team members as needed
 - Keep planning documents as source of truth
 - Focus on high-level orchestration, not implementation
-- Messages use C-Enter for Claude CLI submission
+
+## CRITICAL: Message Sending to Agents
+
+**NEVER use `tmux send-keys` directly - messages won't be submitted!**
+
+ALWAYS use `tmux-orc agent send` which properly submits messages:
+
+```bash
+# CORRECT - Message sent AND submitted with Enter:
+tmux-orc agent send project:1 "Your PM briefing here..."
+
+# WRONG - Message queued but NOT submitted:
+tmux send-keys -t project:1 "Your PM briefing here..."
+```
+
+The `tmux-orc agent send` command:
+1. Sends your message text
+2. Automatically adds Enter to submit (uses C-Enter for Claude CLI)
+3. Confirms successful delivery
+
+**Example spawning and messaging a PM:**
+```bash
+# 1. Stop daemon first
+tmux-orc monitor stop
+
+# 2. Create session and PM window
+tmux new-session -d -s project
+tmux rename-window -t project:1 "Claude-pm"
+tmux send-keys -t project:1 "claude --dangerously-skip-permissions" Enter
+
+# 3. Wait for Claude to initialize
+sleep 8
+
+# 4. Send PM briefing using tmux-orc agent send
+tmux-orc agent send project:1 "$(cat /workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md)
+
+CRITICAL PROJECT BRIEFING: [Your specific project details here]"
+
+# 5. Wait for PM to spawn team, then restart daemon
+```
+
+If an agent isn't responding, they may have a queued message. Fix with:
+```bash
+tmux send-keys -t session:window Enter
+```
 
 ## Team Planning Structure
 
