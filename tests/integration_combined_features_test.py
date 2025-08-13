@@ -46,7 +46,16 @@ def test_rate_limit_plus_compaction_no_false_alerts(mock_tmux, monitor, logger) 
     # Mock PM discovery
     with patch.object(monitor, "_find_pm_agent", return_value=pm_target):
         with patch("tmux_orchestrator.core.monitor.logging.getLogger") as mock_logger_factory:
-            mock_logger_factory.return_value = logger
+            # Create a mock logger with handlers attribute
+            session_logger = MagicMock()
+            session_logger.handlers = []
+
+            def logger_factory(name):
+                if "idle_monitor_" in name:
+                    return session_logger
+                return logger
+
+            mock_logger_factory.side_effect = logger_factory
 
             # Test both monitor cycle and direct agent status check
             monitor._monitor_cycle(mock_tmux, logger)
@@ -56,7 +65,13 @@ def test_rate_limit_plus_compaction_no_false_alerts(mock_tmux, monitor, logger) 
 
     # Verify rate limit was detected (takes priority)
     warning_calls = [call.args[0] for call in logger.warning.call_args_list]
-    assert any("Rate limit detected" in msg for msg in warning_calls)
+    session_warning_calls = [call.args[0] for call in session_logger.warning.call_args_list]
+    all_warnings = warning_calls + session_warning_calls
+
+    print(f"Logger warnings: {warning_calls}")
+    print(f"Session logger warnings: {session_warning_calls}")
+
+    assert any("Rate limit" in msg for msg in all_warnings)
 
     # Verify no false compaction alerts
     debug_calls = [call.args[0] for call in logger.debug.call_args_list]
@@ -83,7 +98,16 @@ def test_compaction_during_normal_operation(mock_tmux, monitor, logger) -> None:
     mock_tmux.capture_pane.side_effect = [compaction_content] * 4  # 4 snapshots
 
     with patch("tmux_orchestrator.core.monitor.logging.getLogger") as mock_logger_factory:
-        mock_logger_factory.return_value = logger
+        # Create a mock session logger with handlers attribute
+        session_logger = MagicMock()
+        session_logger.handlers = []
+
+        def logger_factory(name):
+            if "idle_monitor_" in name:
+                return session_logger
+            return logger
+
+        mock_logger_factory.side_effect = logger_factory
 
         # Mock PM discovery
         monitor._find_pm_agent = MagicMock(return_value="pm-session:0")
@@ -92,7 +116,7 @@ def test_compaction_during_normal_operation(mock_tmux, monitor, logger) -> None:
         monitor._check_agent_status(mock_tmux, target, logger, {})
 
     # Verify compaction was detected as activity
-    debug_calls = [call.args[0] for call in logger.debug.call_args_list]
+    debug_calls = [call.args[0] for call in session_logger.debug.call_args_list]
     assert any("found thinking indicator: 'Compacting conversation'" in msg for msg in debug_calls)
 
     # Verify no idle notification was sent
@@ -121,7 +145,16 @@ Claude usage limit reached. Your limit will reset at 4:30pm (UTC).
     mock_tmux.list_windows.return_value = [{"index": "1", "name": "claude-dev"}]
 
     with patch("tmux_orchestrator.core.monitor.logging.getLogger") as mock_logger_factory:
-        mock_logger_factory.return_value = logger
+        # Create a mock session logger with handlers attribute
+        session_logger = MagicMock()
+        session_logger.handlers = []
+
+        def logger_factory(name):
+            if "idle_monitor_" in name:
+                return session_logger
+            return logger
+
+        mock_logger_factory.side_effect = logger_factory
 
         # Mock PM discovery
         monitor._find_pm_agent = MagicMock(return_value="pm-session:0")
@@ -133,12 +166,15 @@ Claude usage limit reached. Your limit will reset at 4:30pm (UTC).
         # Also check specific agent
         monitor._check_agent_status(mock_tmux, target, logger, {})
 
-        # Verify rate limit was detected
+        # Verify rate limit was detected (check both loggers)
         warning_calls = [call.args[0] for call in logger.warning.call_args_list]
-        assert any("Rate limit detected" in msg for msg in warning_calls)
+        session_warning_calls = [call.args[0] for call in session_logger.warning.call_args_list]
+        all_warnings = warning_calls + session_warning_calls
+        assert any("Rate limit detected" in msg for msg in all_warnings)
 
-        # Reset logger for second cycle
+        # Reset loggers for second cycle
         logger.reset_mock()
+        session_logger.reset_mock()
 
         # Second cycle: Normal operation (recovery)
         mock_tmux.capture_pane.return_value = normal_content
@@ -146,9 +182,11 @@ Claude usage limit reached. Your limit will reset at 4:30pm (UTC).
         monitor._check_agent_status(mock_tmux, target, logger, {})
 
         # Verify normal operation detected (no rate limit warnings)
-        if logger.warning.called:
+        if logger.warning.called or session_logger.warning.called:
             warning_calls = [call.args[0] for call in logger.warning.call_args_list]
-            assert not any("Rate limit detected" in msg for msg in warning_calls)
+            session_warning_calls = [call.args[0] for call in session_logger.warning.call_args_list]
+            all_warnings = warning_calls + session_warning_calls
+            assert not any("Rate limit detected" in msg for msg in all_warnings)
 
 
 def test_multiple_agents_different_states(mock_tmux, monitor, logger) -> None:
@@ -200,7 +238,16 @@ def test_multiple_agents_different_states(mock_tmux, monitor, logger) -> None:
     mock_tmux.capture_pane.side_effect = mock_capture_pane
 
     with patch("tmux_orchestrator.core.monitor.logging.getLogger") as mock_logger_factory:
-        mock_logger_factory.return_value = logger
+        # Create a mock session logger with handlers attribute
+        session_logger = MagicMock()
+        session_logger.handlers = []
+
+        def logger_factory(name):
+            if "idle_monitor_" in name:
+                return session_logger
+            return logger
+
+        mock_logger_factory.side_effect = logger_factory
 
         # Run monitoring cycle
         monitor._monitor_cycle(mock_tmux, logger)

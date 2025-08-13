@@ -55,6 +55,7 @@ class IdleMonitor:
 
         self.pid_file = project_dir / "idle-monitor.pid"
         self.log_file = logs_dir / "idle-monitor.log"
+        self.logs_dir = logs_dir  # Store for multi-log system
         self.daemon_process: multiprocessing.Process | None = None
         self._crash_notifications: dict[str, datetime] = {}
         self._idle_notifications: dict[str, datetime] = {}
@@ -66,6 +67,7 @@ class IdleMonitor:
         self._missing_agent_notifications: dict[str, datetime] = {}  # Track when we last notified about missing agents
         self._team_idle_at: Dict[str, Optional[datetime]] = {}  # Track when entire team becomes idle per session
         self._pm_escalation_history: Dict[str, Dict[int, datetime]] = {}  # Track escalation history per PM
+        self._session_loggers: Dict[str, logging.Logger] = {}  # Cache session-specific loggers
 
     def is_running(self) -> bool:
         """Check if monitor daemon is running."""
@@ -172,6 +174,17 @@ class IdleMonitor:
                 except OSError:
                     log_info = f"\nLog file: {self.log_file}"
 
+            # List all session-specific logs
+            session_logs = list(self.logs_dir.glob("idle-monitor-*.log"))
+            if session_logs:
+                log_info += "\n\nSession logs:"
+                for log in sorted(session_logs):
+                    try:
+                        size = log.stat().st_size
+                        log_info += f"\n  {log.name}: {size} bytes"
+                    except OSError:
+                        log_info += f"\n  {log.name}: (unavailable)"
+
             console.print(
                 Panel(
                     f"✓ Monitor is running (PID: {pid})\nNative Python daemon with bulletproof detection{log_info}",
@@ -264,13 +277,56 @@ class IdleMonitor:
         # Clear existing handlers
         logger.handlers.clear()
 
-        # File handler
+        # File handler for general log (keeping for backward compatibility)
         handler = logging.FileHandler(self.log_file)
         formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
+        # Also create general logger for non-session-specific logs
+        general_log = self.logs_dir / "idle-monitor-general.log"
+        general_handler = logging.FileHandler(general_log)
+        general_handler.setFormatter(formatter)
+
+        general_logger = logging.getLogger("idle_monitor_general")
+        general_logger.setLevel(logging.INFO)
+        general_logger.handlers.clear()
+        general_logger.addHandler(general_handler)
+
         return logger
+
+    def _get_session_logger(self, session_name: str) -> logging.Logger:
+        """Get or create a session-specific logger.
+
+        Args:
+            session_name: Name of the session
+
+        Returns:
+            Logger instance for the session
+        """
+        # Return cached logger if available
+        if session_name in self._session_loggers:
+            return self._session_loggers[session_name]
+
+        # Create new session logger
+        logger_name = f"idle_monitor_{session_name}"
+        session_logger = logging.getLogger(logger_name)
+        session_logger.setLevel(logging.INFO)
+
+        # Clear any existing handlers
+        session_logger.handlers.clear()
+
+        # Create session-specific log file
+        log_file = self.logs_dir / f"idle-monitor-{session_name}.log"
+        handler = logging.FileHandler(log_file)
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        handler.setFormatter(formatter)
+        session_logger.addHandler(handler)
+
+        # Cache the logger
+        self._session_loggers[session_name] = session_logger
+
+        return session_logger
 
     def _cleanup_daemon(self) -> None:
         """Clean up daemon resources."""
@@ -283,22 +339,25 @@ class IdleMonitor:
     def _monitor_cycle(self, tmux: TMUXManager, logger: logging.Logger) -> None:
         """Perform one monitoring cycle."""
         try:
+            # Use general logger for system-wide events
+            general_logger = logging.getLogger("idle_monitor_general")
+
             # Discover active agents
             agents = self._discover_agents(tmux)
 
-            logger.debug(f"Agent discovery complete: found {len(agents)} agents")
+            general_logger.debug(f"Agent discovery complete: found {len(agents)} agents")
 
             if not agents:
-                logger.warning("No agents found to monitor")
+                general_logger.warning("No agents found to monitor")
                 # Log available sessions for debugging
                 try:
                     sessions = tmux.list_sessions()
-                    logger.debug(f"Available sessions: {[s['name'] for s in sessions]}")
+                    general_logger.debug(f"Available sessions: {[s['name'] for s in sessions]}")
                 except Exception as e:
-                    logger.error(f"Could not list sessions: {e}")
+                    general_logger.error(f"Could not list sessions: {e}")
                 return
 
-            logger.debug(f"Monitoring agents: {agents}")
+            general_logger.debug(f"Monitoring agents: {agents}")
 
             # Initialize notification collection structure for this cycle
             pm_notifications: dict[str, list[str]] = {}
@@ -470,7 +529,11 @@ class IdleMonitor:
     ) -> None:
         """Check agent status using improved detection algorithm."""
         try:
-            logger.debug(f"Checking status for agent {target}")
+            # Get session-specific logger
+            session_name = target.split(":")[0]
+            session_logger = self._get_session_logger(session_name)
+
+            session_logger.debug(f"Checking status for agent {target}")
 
             # Step 1: Use polling-based active detection (NEW METHOD)
             snapshots = []
@@ -494,13 +557,13 @@ class IdleMonitor:
                 if snapshots[i - 1] != snapshots[i]:
                     # Check if change is meaningful (not just cursor blink)
                     changes = sum(1 for a, b in zip(snapshots[i - 1], snapshots[i]) if a != b)
-                    logger.debug(f"Agent {target} snapshot {i} has {changes} character changes")
+                    session_logger.debug(f"Agent {target} snapshot {i} has {changes} character changes")
                     if changes > 1:
                         is_active = True
                         break
 
             if not is_active:
-                logger.debug(f"Agent {target} determined to be idle - no significant changes")
+                session_logger.debug(f"Agent {target} determined to be idle - no significant changes")
 
             # Simple activity detection (minimal coupling to Claude Code implementation)
             if not is_active:
@@ -508,14 +571,16 @@ class IdleMonitor:
 
                 # Check for compaction (robust across Claude Code versions)
                 if "compacting conversation" in content_lower:
-                    logger.debug(f"Agent {target} is compacting conversation")
+                    session_logger.debug(f"Agent {target} is compacting conversation")
+                    session_logger.debug(f"Agent {target} found thinking indicator: 'Compacting conversation'")
+                    session_logger.info(f"Agent {target} appears idle but is compacting - will not mark as idle")
                     is_active = True
 
                 # Check for active processing (ellipsis indicates ongoing work)
                 elif "…" in content and any(
                     word in content_lower for word in ["thinking", "pondering", "divining", "musing", "elucidating"]
                 ):
-                    logger.debug(f"Agent {target} is actively processing")
+                    session_logger.debug(f"Agent {target} is actively processing")
                     is_active = True
 
             # Step 3: Detect base state from content
@@ -528,45 +593,45 @@ class IdleMonitor:
                 for line in last_few_lines:
                     if line.strip().endswith(("$", "#", ">", "%")):
                         state = AgentState.CRASHED
-                        logger.error(f"Agent {target} has crashed - attempting auto-restart")
-                        success = self._attempt_agent_restart(tmux, target, logger)
+                        session_logger.error(f"Agent {target} has crashed - attempting auto-restart")
+                        success = self._attempt_agent_restart(tmux, target, session_logger)
                         if not success:
-                            logger.error(f"Auto-restart failed for {target} - notifying PM")
+                            session_logger.error(f"Auto-restart failed for {target} - notifying PM")
                             self._notify_crash(tmux, target, logger, pm_notifications)
                         return
 
                 # Otherwise it's an error state
                 state = AgentState.ERROR
-                logger.error(f"Agent {target} in error state - needs recovery")
-                self._notify_recovery_needed(tmux, target, logger)
+                session_logger.error(f"Agent {target} in error state - needs recovery")
+                self._notify_recovery_needed(tmux, target, session_logger)
                 return
 
             # Step 4: Check for unsubmitted messages
             if has_unsubmitted_message(content):
                 state = AgentState.MESSAGE_QUEUED
-                logger.info(f"Agent {target} has unsubmitted message - attempting auto-submit")
-                self._try_auto_submit(tmux, target, logger)
+                session_logger.info(f"Agent {target} has unsubmitted message - attempting auto-submit")
+                self._try_auto_submit(tmux, target, session_logger)
                 return
 
             # Step 5: Determine if idle or active
             if is_active:
                 state = AgentState.ACTIVE
-                logger.info(f"Agent {target} is ACTIVE")
+                session_logger.info(f"Agent {target} is ACTIVE")
                 # Reset tracking for active agents
                 self._reset_agent_tracking(target)
             else:
                 state = AgentState.IDLE
-                logger.info(f"Agent {target} is IDLE")
+                session_logger.info(f"Agent {target} is IDLE")
 
                 # Check if should notify PM about idle agent
                 if should_notify_pm(state, target, self._idle_notifications):
-                    logger.info(f"Agent {target} is idle without active work - notifying PM")
-                    self._check_idle_notification(tmux, target, logger, pm_notifications)
+                    session_logger.info(f"Agent {target} is idle without active work - notifying PM")
+                    self._check_idle_notification(tmux, target, session_logger, pm_notifications)
                     # Track notification time
                     self._idle_notifications[target] = datetime.now()
 
         except Exception as e:
-            logger.error(f"Failed to check agent {target}: {e}")
+            session_logger.error(f"Failed to check agent {target}: {e}")
 
     def _capture_snapshots(self, tmux: TMUXManager, target: str, count: int, interval: float) -> list[str]:
         """Capture multiple snapshots of terminal content."""
@@ -835,9 +900,10 @@ class IdleMonitor:
         try:
             # Find PM target IN THE SAME SESSION
             session_name = target.split(":")[0]
+            session_logger = self._get_session_logger(session_name)
             pm_target = self._find_pm_in_session(tmux, session_name)
             if not pm_target:
-                logger.warning(f"No PM found in session {session_name} to notify about crash")
+                session_logger.warning(f"No PM found in session {session_name} to notify about crash")
                 return
 
             # Get current time for cooldown check
@@ -847,7 +913,7 @@ class IdleMonitor:
             # Check cooldown (5 minutes between crash notifications)
             last_notified = self._crash_notifications.get(crash_key)
             if last_notified and (now - last_notified) < timedelta(minutes=5):
-                logger.debug(f"Crash notification for {target} in cooldown")
+                session_logger.debug(f"Crash notification for {target} in cooldown")
                 return
 
             # Format crash message
@@ -865,18 +931,21 @@ class IdleMonitor:
 
             # Collect notification instead of sending directly
             self._collect_notification(pm_notifications, session_name, message, tmux)
-            logger.info(f"Collected crash notification for {target}")
+            session_logger.info(f"Collected crash notification for {target}")
             self._crash_notifications[crash_key] = now
 
         except Exception as e:
-            logger.error(f"Failed to collect crash notification: {e}")
+            session_logger.error(f"Failed to collect crash notification: {e}")
 
     def _check_idle_notification(
         self, tmux: TMUXManager, target: str, logger: logging.Logger, pm_notifications: dict[str, list[str]]
     ) -> None:
         """Check if PM should be notified about idle agent."""
         try:
-            logger.debug(f"_check_idle_notification called for {target}")
+            session_name = target.split(":")[0]
+            session_logger = self._get_session_logger(session_name)
+
+            session_logger.debug(f"_check_idle_notification called for {target}")
             # Already initialized in __init__
 
             now = datetime.now()
@@ -884,7 +953,7 @@ class IdleMonitor:
             # Track idle state for notification purposes
             if target not in self._idle_agents:
                 self._idle_agents[target] = now
-                logger.debug(f"Started tracking idle state for {target}")
+                session_logger.debug(f"Started tracking idle state for {target}")
                 # Don't return here - continue to check if we should notify immediately
 
             # No minimum wait time - if agent is idle, PM should know immediately
@@ -971,29 +1040,21 @@ class IdleMonitor:
 
             time.sleep(8)
 
-            # Send PM context
-            from pathlib import Path
+            # Send PM instruction message
+            message = (
+                "You're the PM for our team, please run 'tmux-orc context show pm' for more information about your role"
+            )
 
-            pm_context_path = Path(__file__).parent.parent / "data" / "contexts" / "pm.md"
-            if pm_context_path.exists():
-                with open(pm_context_path) as f:
-                    pm_context = f.read()
+            # Add recovery context if provided
+            if recovery_context:
+                message += f"\n\n## Recovery Context\n\n{recovery_context}"
 
-                # Build message with context and any recovery info
-                message_parts = [pm_context]
-                if recovery_context:
-                    message_parts.append(recovery_context)
-
-                full_message = "\n\n".join(message_parts)
-
-                success = tmux.send_message(pm_target, full_message)
-                if success:
-                    logger.info(f"Successfully spawned PM at {pm_target} with context")
-                    return pm_target
-                else:
-                    logger.error(f"Failed to send context to PM at {pm_target}")
+            success = tmux.send_message(pm_target, message)
+            if success:
+                logger.info(f"Successfully spawned PM at {pm_target} with instruction")
+                return pm_target
             else:
-                logger.error("PM context file not found")
+                logger.error(f"Failed to send instruction to PM at {pm_target}")
 
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to create PM window: {e}")
@@ -1036,7 +1097,7 @@ class IdleMonitor:
             recovery_context = f"""AUTO-RECOVERY NOTIFICATION:
 You have been automatically spawned as PM because the previous PM failed but other agents still exist.
 Your session: {target_session}
-Active agents: {', '.join(agents)}
+Active agents: {", ".join(agents)}
 Please assess the current situation and resume project management."""
 
             # Use the reusable spawn_pm function

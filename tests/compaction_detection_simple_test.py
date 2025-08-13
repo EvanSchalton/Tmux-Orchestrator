@@ -77,12 +77,14 @@ def test_truly_idle_without_compacting(mock_tmux, mock_sleep) -> None:
 
         tmux.capture_pane.side_effect = [idle_content] * 4
         monitor._find_pm_agent = MagicMock(return_value="pm-session:0")
+        monitor._find_pm_in_session = MagicMock(return_value="test-session:0")
 
         # Clear any previous notifications
         monitor._idle_notifications = {}
 
         # Run check
-        monitor._check_agent_status(tmux, "test-session:1", logger, {})
+        pm_notifications = {}
+        monitor._check_agent_status(tmux, "test-session:1", logger, pm_notifications)
 
         # Get logs
         info_calls = [call.args[0] for call in logger.info.call_args_list]
@@ -93,10 +95,17 @@ def test_truly_idle_without_compacting(mock_tmux, mock_sleep) -> None:
             "is idle without active work" in msg for msg in info_calls
         ), f"Expected idle notification in logs: {info_calls}"
 
-        # Verify PM WAS notified
+        # Verify notification was collected
+        assert len(pm_notifications) > 0, f"Expected notifications to be collected, but got: {pm_notifications}"
+
+        # Send collected notifications
+        monitor._send_collected_notifications(pm_notifications, tmux, logger)
+
+        # Now verify PM WAS notified
         assert tmux.send_message.called, "PM should be notified for truly idle agents"
         notification = tmux.send_message.call_args[0][1]
-        assert "IDLE AGENT ALERT" in notification
+        assert "IDLE AGENTS" in notification
+        assert "test-session:1" in notification
 
 
 if __name__ == "__main__":
