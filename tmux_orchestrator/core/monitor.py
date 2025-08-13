@@ -8,13 +8,16 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitor_helpers import (
+    DAEMON_CONTROL_LOOP_COOLDOWN_SECONDS,
     AgentState,
+    calculate_sleep_duration,
+    extract_rate_limit_reset_time,
     has_unsubmitted_message,
     is_claude_interface_present,
     should_notify_pm,
@@ -56,6 +59,9 @@ class IdleMonitor:
         self._idle_agents: dict[str, datetime] = {}
         self._submission_attempts: dict[str, int] = {}
         self._last_submission_time: dict[str, float] = {}
+        self._session_agents: dict[str, set[str]] = {}  # Track high-water mark of agents per session
+        self._missing_agent_grace: dict[str, datetime] = {}  # Track when agents were first identified as missing
+        self._missing_agent_notifications: dict[str, datetime] = {}  # Track when we last notified about missing agents
 
     def is_running(self) -> bool:
         """Check if monitor daemon is running."""
@@ -215,7 +221,7 @@ class IdleMonitor:
                 start_time = time.time()
 
                 # Log cycle start
-                logger.info(f"Starting monitoring cycle #{cycle_count}")
+                logger.debug(f"Starting monitoring cycle #{cycle_count}")
 
                 # Discover and monitor agents
                 self._monitor_cycle(tmux, logger)
@@ -224,7 +230,7 @@ class IdleMonitor:
                 elapsed = time.time() - start_time
                 sleep_time = max(0, interval - elapsed)
 
-                logger.info(f"Cycle #{cycle_count} completed in {elapsed:.2f}s, next check in {sleep_time:.2f}s")
+                logger.debug(f"Cycle #{cycle_count} completed in {elapsed:.2f}s, next check in {sleep_time:.2f}s")
 
                 if sleep_time > 0:
                     time.sleep(sleep_time)
@@ -249,7 +255,7 @@ class IdleMonitor:
     def _setup_daemon_logging(self) -> logging.Logger:
         """Set up logging for the daemon process."""
         logger = logging.getLogger("idle_monitor_daemon")
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
 
         # Clear existing handlers
         logger.handlers.clear()
@@ -276,26 +282,115 @@ class IdleMonitor:
             # Discover active agents
             agents = self._discover_agents(tmux)
 
-            logger.info(f"Agent discovery complete: found {len(agents)} agents")
+            logger.debug(f"Agent discovery complete: found {len(agents)} agents")
 
             if not agents:
                 logger.warning("No agents found to monitor")
                 # Log available sessions for debugging
                 try:
                     sessions = tmux.list_sessions()
-                    logger.info(f"Available sessions: {[s['name'] for s in sessions]}")
+                    logger.debug(f"Available sessions: {[s['name'] for s in sessions]}")
                 except Exception as e:
                     logger.error(f"Could not list sessions: {e}")
                 return
 
-            logger.info(f"Monitoring agents: {agents}")
+            logger.debug(f"Monitoring agents: {agents}")
 
-            # Monitor each agent
+            # Initialize notification collection structure for this cycle
+            pm_notifications: dict[str, list[str]] = {}
+
+            # First, check all agents for rate limiting
             for target in agents:
                 try:
-                    self._check_agent_status(tmux, target, logger)
+                    content = tmux.capture_pane(target, lines=50)
+
+                    # Check for rate limit message
+                    if (
+                        "claude usage limit reached" in content.lower()
+                        and "your limit will reset at" in content.lower()
+                    ):
+                        reset_time = extract_rate_limit_reset_time(content)
+                        if reset_time:
+                            # Calculate sleep duration
+                            now = datetime.now(timezone.utc)
+                            sleep_seconds = calculate_sleep_duration(reset_time, now)
+
+                            # If sleep_seconds is 0, it means the rate limit is stale/invalid (>4 hours away)
+                            if sleep_seconds == 0:
+                                logger.warning(
+                                    f"Rate limit message appears stale (reset time {reset_time} is >4 hours away). "
+                                    f"Ignoring and continuing normal monitoring."
+                                )
+                                continue
+
+                            # Calculate resume time
+                            resume_time = now + timedelta(seconds=sleep_seconds)
+
+                            logger.warning(f"Rate limit detected on agent {target}. Reset time: {reset_time} UTC")
+
+                            # Try to notify PM (may also be rate limited)
+                            pm_target = self._find_pm_agent(tmux)
+                            if pm_target:
+                                message = (
+                                    f"🚨 RATE LIMIT REACHED: All Claude agents are rate limited.\n"
+                                    f"Will reset at {reset_time} UTC.\n\n"
+                                    f"The monitoring daemon will pause and resume at {resume_time.strftime('%H:%M')} UTC "
+                                    f"(2 minutes after reset for safety).\n"
+                                    f"All agents will become responsive after the rate limit resets."
+                                )
+                                try:
+                                    tmux.send_message(pm_target, message)
+                                    logger.info(f"PM {pm_target} notified about rate limit")
+                                except Exception:
+                                    logger.warning("Could not notify PM - may also be rate limited")
+
+                            # Log and sleep
+                            logger.debug(
+                                f"Rate limit detected. Sleeping for {sleep_seconds} seconds until {reset_time} UTC"
+                            )
+                            time.sleep(sleep_seconds)
+
+                            # After waking up, notify that monitoring has resumed
+                            logger.info("Rate limit period ended, resuming monitoring")
+                            if pm_target:
+                                try:
+                                    tmux.send_message(
+                                        pm_target,
+                                        "🎉 Rate limit reset! Monitoring resumed. All agents should now be responsive.",
+                                    )
+                                except Exception:
+                                    pass
+
+                            # Return to restart the monitoring cycle
+                            return
+
+                except Exception as e:
+                    logger.error(f"Error checking rate limit for {target}: {e}")
+
+            # Check for PM recovery need before monitoring agents
+            self._check_pm_recovery(tmux, agents, logger)
+
+            # Check for missing agents (track high-water mark per session)
+            self._check_missing_agents(tmux, agents, logger, pm_notifications)
+
+            # Monitor each agent normally if no rate limit detected
+            for target in agents:
+                try:
+                    self._check_agent_status(tmux, target, logger, pm_notifications)
                 except Exception as e:
                     logger.error(f"Error checking agent {target}: {e}")
+
+            # Send all collected notifications at the end of the cycle
+            pm_notified = False
+            if pm_notifications:
+                logger.info(f"Sending collected notifications to {len(pm_notifications)} PMs")
+                self._send_collected_notifications(pm_notifications, tmux, logger)
+                pm_notified = True
+
+            # If any PM was notified, apply cooldown period
+            if pm_notified:
+                logger.info(f"PM notification sent - applying {DAEMON_CONTROL_LOOP_COOLDOWN_SECONDS}s cooldown")
+                time.sleep(DAEMON_CONTROL_LOOP_COOLDOWN_SECONDS)
 
         except Exception as e:
             logger.error(f"Error in monitoring cycle: {e}")
@@ -363,7 +458,9 @@ class IdleMonitor:
         except Exception:
             return False
 
-    def _check_agent_status(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
+    def _check_agent_status(
+        self, tmux: TMUXManager, target: str, logger: logging.Logger, pm_notifications: dict[str, list[str]]
+    ) -> None:
         """Check agent status using improved detection algorithm."""
         try:
             logger.debug(f"Checking status for agent {target}")
@@ -398,24 +495,21 @@ class IdleMonitor:
             if not is_active:
                 logger.debug(f"Agent {target} determined to be idle - no significant changes")
 
-            # Also check for "Compacting conversation" or thinking indicators
+            # Simple activity detection (minimal coupling to Claude Code implementation)
             if not is_active:
-                # Look for actual thinking animations (not just any bullet point)
-                thinking_patterns = [
-                    "💭 Thinking...",
-                    "✶ Thinking...",
-                    "✶ Divining...",
-                    "✶ Pondering...",
-                    "Compacting conversation",
-                    "· Thinking",
-                    "· Divining",
-                    "· Pondering",
-                ]
-                for pattern in thinking_patterns:
-                    if pattern in content:
-                        logger.debug(f"Agent {target} found thinking indicator: '{pattern}'")
-                        is_active = True
-                        break
+                content_lower = content.lower()
+
+                # Check for compaction (robust across Claude Code versions)
+                if "compacting conversation" in content_lower:
+                    logger.debug(f"Agent {target} is compacting conversation")
+                    is_active = True
+
+                # Check for active processing (ellipsis indicates ongoing work)
+                elif "…" in content and any(
+                    word in content_lower for word in ["thinking", "pondering", "divining", "musing", "elucidating"]
+                ):
+                    logger.debug(f"Agent {target} is actively processing")
+                    is_active = True
 
             # Step 3: Detect base state from content
             if not is_claude_interface_present(content):
@@ -431,7 +525,7 @@ class IdleMonitor:
                         success = self._attempt_agent_restart(tmux, target, logger)
                         if not success:
                             logger.error(f"Auto-restart failed for {target} - notifying PM")
-                            self._notify_crash(tmux, target, logger)
+                            self._notify_crash(tmux, target, logger, pm_notifications)
                         return
 
                 # Otherwise it's an error state
@@ -457,10 +551,10 @@ class IdleMonitor:
                 state = AgentState.IDLE
                 logger.info(f"Agent {target} is IDLE")
 
-                # Notify PM if appropriate
+                # Check if should notify PM about idle agent
                 if should_notify_pm(state, target, self._idle_notifications):
                     logger.info(f"Agent {target} is idle without active work - notifying PM")
-                    self._check_idle_notification(tmux, target, logger)
+                    self._check_idle_notification(tmux, target, logger, pm_notifications)
                     # Track notification time
                     self._idle_notifications[target] = datetime.now()
 
@@ -624,10 +718,11 @@ class IdleMonitor:
     ) -> None:
         """Send simple PM notification about agent failure."""
         try:
-            # Find PM target
-            pm_target = self._find_pm_agent(tmux)
+            # Find PM target IN THE SAME SESSION
+            session_name = target.split(":")[0]
+            pm_target = self._find_pm_in_session(tmux, session_name)
             if not pm_target:
-                logger.debug("No PM found to notify about agent failure")
+                logger.debug(f"No PM found in session {session_name} to notify about agent failure")
                 return
 
             # Don't notify PM about their own issues
@@ -635,14 +730,14 @@ class IdleMonitor:
                 logger.debug(f"Skipping notification - PM at {target} has their own issue")
                 return
 
-            # Determine agent type from target
+            # Get window name from target
             session, window = target.split(":")
-            agent_type = self._determine_agent_type(session, window)
+            window_name = self._get_window_name(tmux, session, window)
 
             # Send simple notification
             message = (
                 f"🚨 AGENT FAILURE\n\n"
-                f"Agent: {target} ({agent_type})\n"
+                f"Agent: {target} ({window_name})\n"
                 f"Issue: {reason}\n\n"
                 f"Please restart this agent and provide the appropriate role prompt."
             )
@@ -661,7 +756,8 @@ class IdleMonitor:
     def _notify_recovery_needed(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
         """Notify PM that agent needs recovery."""
         logger.warning(f"Notifying PM that {target} needs recovery")
-        pm_target = self._find_pm_agent(tmux)
+        session_name = target.split(":")[0]
+        pm_target = self._find_pm_in_session(tmux, session_name)
         if pm_target:
             message = f"🔴 AGENT RECOVERY NEEDED: {target} is idle and Claude interface is not responding. Please restart this agent."
             try:
@@ -670,7 +766,7 @@ class IdleMonitor:
             except Exception as e:
                 logger.error(f"Failed to notify PM: {e}")
         else:
-            logger.warning("No PM agent found to notify about recovery")
+            logger.warning(f"No PM agent found in session {session_name} to notify about recovery")
 
     def _find_pm_agent(self, tmux: TMUXManager) -> str | None:
         """Find a PM agent to send notifications to."""
@@ -725,13 +821,16 @@ class IdleMonitor:
         except Exception as e:
             logger.error(f"Failed to auto-submit message for {target}: {e}")
 
-    def _notify_crash(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
+    def _notify_crash(
+        self, tmux: TMUXManager, target: str, logger: logging.Logger, pm_notifications: dict[str, list[str]]
+    ) -> None:
         """Notify PM about crashed Claude agent."""
         try:
-            # Find PM target
-            pm_target = self._find_pm_target(tmux)
+            # Find PM target IN THE SAME SESSION
+            session_name = target.split(":")[0]
+            pm_target = self._find_pm_in_session(tmux, session_name)
             if not pm_target:
-                logger.warning("No PM found to notify about crash")
+                logger.warning(f"No PM found in session {session_name} to notify about crash")
                 return
 
             # Get current time for cooldown check
@@ -757,19 +856,17 @@ class IdleMonitor:
                 f"• tmux send-keys -t {target} 'claude --dangerously-skip-permissions' Enter"
             )
 
-            # Send notification using direct tmux.send_message() call
-            success = tmux.send_message(pm_target, message)
-
-            if success:
-                logger.info(f"Notified PM at {pm_target} about crash at {target}")
-                self._crash_notifications[crash_key] = now
-            else:
-                logger.error(f"Failed to notify PM about crash at {target}")
+            # Collect notification instead of sending directly
+            self._collect_notification(pm_notifications, session_name, message, tmux)
+            logger.info(f"Collected crash notification for {target}")
+            self._crash_notifications[crash_key] = now
 
         except Exception as e:
-            logger.error(f"Failed to send crash notification: {e}")
+            logger.error(f"Failed to collect crash notification: {e}")
 
-    def _check_idle_notification(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
+    def _check_idle_notification(
+        self, tmux: TMUXManager, target: str, logger: logging.Logger, pm_notifications: dict[str, list[str]]
+    ) -> None:
         """Check if PM should be notified about idle agent."""
         try:
             logger.debug(f"_check_idle_notification called for {target}")
@@ -788,11 +885,12 @@ class IdleMonitor:
             # No cooldown needed - if agent is idle, PM should be notified
             # PM will communicate with agent, and if agent becomes active, notifications stop naturally
 
-            # Find PM target
+            # Find PM target IN THE SAME SESSION
             logger.info(f"Looking for PM to notify about idle agent {target}")
-            pm_target = self._find_pm_agent(tmux)
+            session_name = target.split(":")[0]
+            pm_target = self._find_pm_in_session(tmux, session_name)
             if not pm_target:
-                logger.warning(f"No PM found to notify about idle agent {target}")
+                logger.warning(f"No PM found in session {session_name} to notify about idle agent {target}")
                 return
             logger.info(f"Found PM at {pm_target} to notify about idle agent {target}")
 
@@ -803,58 +901,458 @@ class IdleMonitor:
                 )
                 return
 
-            # Determine agent type from target
+            # Get window name from target
             session, window = target.split(":")
-            agent_type = self._determine_agent_type(session, window)
+            window_name = self._get_window_name(tmux, session, window)
 
             # Send idle notification
             message = (
-                f"🚨 IDLE AGENT ALERT:\n\n"
-                f"Agent {target} ({agent_type}) is currently idle and available for work.\n\n"
+                f"🚨 IDLE AGENT(S) ALERT:\n\n"
+                f"Agent {target} ({window_name}) is currently idle and available for work.\n\n"
                 f"Please review their status and assign tasks as needed.\n\n"
                 f"This is an automated notification from the monitoring system."
             )
 
-            # Send notification using direct tmux.send_message() call
-            logger.info(f"Sending idle notification to PM at {pm_target} about agent {target}")
-            success = tmux.send_message(pm_target, message)
-
-            if success:
-                logger.info(f"Successfully notified PM at {pm_target} about idle agent {target}")
-            else:
-                logger.error(f"Failed to notify PM at {pm_target} about idle agent {target}")
+            # Collect notification instead of sending directly
+            self._collect_notification(pm_notifications, session_name, message, tmux)
+            logger.info(f"Collected idle notification for {target}")
 
         except Exception as e:
-            logger.error(f"Failed to send idle notification: {e}")
+            logger.error(f"Failed to collect idle notification: {e}")
 
     def _find_pm_target(self, tmux: TMUXManager) -> str | None:
         """Find PM session dynamically - just use the better implementation."""
         return self._find_pm_agent(tmux)
 
-    def _determine_agent_type(self, session: str, window: str) -> str:
-        """Determine agent type from session and window."""
-        # Map of windows to agent types in tmux-orc-dev
-        if session == "tmux-orc-dev":
-            agent_map = {
-                "1": "Orchestrator",
-                "2": "MCP-Developer",
-                "3": "CLI-Developer",
-                "4": "Agent-Recovery-Dev",
-                "5": "Project-Manager",
-            }
-            return agent_map.get(window, "Agent")
+    def _spawn_pm(
+        self,
+        tmux: TMUXManager,
+        target_session: str,
+        window_index: int,
+        logger: logging.Logger,
+        recovery_context: str = "",
+    ) -> str | None:
+        """Spawn a PM agent at the specified location.
 
-        # Determine from session name
-        if "frontend" in session.lower():
-            return "Frontend"
-        elif "backend" in session.lower():
-            return "Backend"
-        elif "qa" in session.lower() or "testing" in session.lower():
-            return "QA"
-        elif "devops" in session.lower():
-            return "DevOps"
-        else:
-            return "Agent"
+        Args:
+            tmux: TMUXManager instance
+            target_session: Session to spawn PM in
+            window_index: Window index to use
+            logger: Logger instance
+            recovery_context: Additional context for recovery scenarios
+
+        Returns:
+            PM target string if successful, None if failed
+        """
+        pm_target = f"{target_session}:{window_index}"
+
+        try:
+            # Create new window for PM using subprocess
+            import subprocess
+
+            subprocess.run(
+                ["tmux", "new-window", "-t", f"{target_session}:{window_index}", "-n", "Claude-pm"], check=True
+            )
+            logger.info(f"Created PM window at {pm_target}")
+
+            # Start Claude with PM context
+            tmux.send_keys(pm_target, "claude --dangerously-skip-permissions", literal=True)
+            tmux.send_keys(pm_target, "Enter")
+
+            # Wait for Claude to initialize
+            import time
+
+            time.sleep(8)
+
+            # Send PM context
+            from pathlib import Path
+
+            pm_context_path = Path(__file__).parent.parent / "data" / "contexts" / "pm.md"
+            if pm_context_path.exists():
+                with open(pm_context_path) as f:
+                    pm_context = f.read()
+
+                # Build message with context and any recovery info
+                message_parts = [pm_context]
+                if recovery_context:
+                    message_parts.append(recovery_context)
+
+                full_message = "\n\n".join(message_parts)
+
+                success = tmux.send_message(pm_target, full_message)
+                if success:
+                    logger.info(f"Successfully spawned PM at {pm_target} with context")
+                    return pm_target
+                else:
+                    logger.error(f"Failed to send context to PM at {pm_target}")
+            else:
+                logger.error("PM context file not found")
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to create PM window: {e}")
+        except Exception as e:
+            logger.error(f"Failed to spawn PM: {e}")
+
+        return None
+
+    def _check_pm_recovery(self, tmux: TMUXManager, agents: list[str], logger: logging.Logger) -> None:
+        """Check if PM needs to be auto-spawned when other agents exist but PM is missing."""
+        try:
+            # Skip if no agents exist
+            if not agents:
+                return
+
+            # Check if PM exists
+            pm_target = self._find_pm_agent(tmux)
+            if pm_target:
+                return  # PM exists, no recovery needed
+
+            # PM missing but other agents exist - auto-spawn PM
+            logger.warning(f"PM missing but {len(agents)} agents exist. Auto-spawning PM for recovery.")
+
+            # Find the session with the most agents
+            session_counts: dict[str, int] = {}
+            for agent in agents:
+                session_name = agent.split(":")[0]
+                session_counts[session_name] = session_counts.get(session_name, 0) + 1
+
+            target_session = max(session_counts.keys(), key=lambda k: session_counts[k])
+
+            # Find available window number in that session
+            windows = tmux.list_windows(target_session)
+            used_indices = {int(w["index"]) for w in windows}
+            new_window_index = 1
+            while new_window_index in used_indices:
+                new_window_index += 1
+
+            # Create recovery context message
+            recovery_context = f"""AUTO-RECOVERY NOTIFICATION:
+You have been automatically spawned as PM because the previous PM failed but other agents still exist.
+Your session: {target_session}
+Active agents: {', '.join(agents)}
+Please assess the current situation and resume project management."""
+
+            # Use the reusable spawn_pm function
+            pm_target = self._spawn_pm(tmux, target_session, new_window_index, logger, recovery_context)
+            if pm_target:
+                logger.info(f"PM auto-recovery successful at {pm_target}")
+            else:
+                logger.error("PM auto-recovery failed")
+
+        except Exception as e:
+            logger.error(f"Failed to auto-spawn PM: {e}")
+
+    def _check_missing_agents(
+        self,
+        tmux: TMUXManager,
+        current_agents: list[str],
+        logger: logging.Logger,
+        pm_notifications: dict[str, list[str]],
+    ) -> None:
+        """Track agents per session and notify PM when agents disappear."""
+        try:
+            # Import the constant here to avoid circular imports
+            from tmux_orchestrator.core.monitor_helpers import MISSING_AGENT_GRACE_MINUTES
+
+            # Group current agents by session
+            current_by_session: dict[str, set[str]] = {}
+            for agent in current_agents:
+                session_name = agent.split(":")[0]
+                if session_name not in current_by_session:
+                    current_by_session[session_name] = set()
+                current_by_session[session_name].add(agent)
+
+            # Check each session for missing agents
+            for session_name, current_agents_set in current_by_session.items():
+                # Update high-water mark (union with existing)
+                if session_name not in self._session_agents:
+                    self._session_agents[session_name] = set()
+
+                previous_agents = self._session_agents[session_name].copy()
+                self._session_agents[session_name] = self._session_agents[session_name].union(current_agents_set)
+
+                # Check for missing agents (set subtraction)
+                missing_agents = previous_agents - current_agents_set
+
+                # Clean up agents that have come back
+                for agent in current_agents_set:
+                    if agent in self._missing_agent_grace:
+                        del self._missing_agent_grace[agent]
+                        logger.info(f"Agent {agent} has recovered - removing from grace period tracking")
+
+                if missing_agents:
+                    now = datetime.now()
+
+                    # Check grace period for each missing agent
+                    agents_to_notify = []
+                    for agent in missing_agents:
+                        if agent not in self._missing_agent_grace:
+                            # First time seeing this agent as missing
+                            self._missing_agent_grace[agent] = now
+                            logger.info(
+                                f"Agent {agent} detected as missing - starting {MISSING_AGENT_GRACE_MINUTES} minute grace period"
+                            )
+                        else:
+                            # Check if grace period has expired
+                            time_missing = now - self._missing_agent_grace[agent]
+                            if time_missing >= timedelta(minutes=MISSING_AGENT_GRACE_MINUTES):
+                                agents_to_notify.append(agent)
+                            else:
+                                remaining = timedelta(minutes=MISSING_AGENT_GRACE_MINUTES) - time_missing
+                                logger.debug(
+                                    f"Agent {agent} still in grace period - {remaining.seconds} seconds remaining"
+                                )
+
+                    # Only notify if we have agents past their grace period
+                    if agents_to_notify:
+                        # Find PM in this session to notify
+                        pm_target = None
+                        for agent in current_agents_set:
+                            if self._is_pm_agent(tmux, agent):
+                                pm_target = agent
+                                break
+
+                        if pm_target:
+                            # Import cooldown constant
+                            from tmux_orchestrator.core.monitor_helpers import (
+                                MISSING_AGENT_NOTIFICATION_COOLDOWN_MINUTES,
+                            )
+
+                            # Check cooldown for these specific missing agents
+                            notification_key = f"{session_name}:{','.join(sorted(agents_to_notify))}"
+                            last_notified = self._missing_agent_notifications.get(notification_key)
+
+                            if last_notified:
+                                time_since_notification = now - last_notified
+                                if time_since_notification < timedelta(
+                                    minutes=MISSING_AGENT_NOTIFICATION_COOLDOWN_MINUTES
+                                ):
+                                    cooldown_remaining = (
+                                        timedelta(minutes=MISSING_AGENT_NOTIFICATION_COOLDOWN_MINUTES)
+                                        - time_since_notification
+                                    )
+                                    logger.debug(
+                                        f"Missing agents notification in cooldown - {cooldown_remaining.seconds} seconds remaining"
+                                    )
+                                    continue
+
+                            # Get display names for missing and current agents
+                            missing_display = []
+                            for agent in agents_to_notify:
+                                display_name = self._get_agent_display_name(tmux, agent)
+                                missing_display.append(display_name)
+
+                            current_display = []
+                            for agent in current_agents_set:
+                                display_name = self._get_agent_display_name(tmux, agent)
+                                current_display.append(display_name)
+
+                            missing_list = "\n".join(sorted(missing_display))
+                            current_list = "\n".join(sorted(current_display))
+
+                            message = f"""🚨 TEAM MEMBER ALERT:
+
+Missing agents detected in session {session_name}:
+{missing_list}
+
+Current team members:
+{current_list}
+
+Please review your team plan to determine if these agents are still needed.
+If they are needed, restart them with their appropriate briefing.
+If they are no longer needed, no action is required.
+
+Use 'tmux list-windows -t {session_name}' to check window status."""
+
+                            try:
+                                # Collect notification instead of sending directly
+                                self._collect_notification(pm_notifications, session_name, message, tmux)
+                                logger.warning(
+                                    f"Collected missing agents notification for session {session_name}: {missing_list}"
+                                )
+                                # Track notification time
+                                self._missing_agent_notifications[notification_key] = now
+                            except Exception as e:
+                                logger.error(f"Error collecting missing agents notification: {e}")
+                        else:
+                            logger.warning(
+                                f"Missing agents {agents_to_notify} in session {session_name} but no PM found to notify"
+                            )
+
+        except Exception as e:
+            logger.error(f"Error checking missing agents: {e}")
+
+    def _get_agent_display_name(self, tmux: TMUXManager, target: str) -> str:
+        """Get a display name for an agent that includes window name and location."""
+        try:
+            session_name, window_idx = target.split(":")
+            windows = tmux.list_windows(session_name)
+
+            for window in windows:
+                if str(window.get("index", "")) == str(window_idx):
+                    window_name = window.get("name", "Unknown")
+                    # Format: "WindowName[session:idx]"
+                    return f"{window_name}[{target}]"
+
+            return f"Unknown[{target}]"
+        except Exception:
+            return target
+
+    def _get_window_name(self, tmux: TMUXManager, session: str, window: str) -> str:
+        """Get just the window name for an agent."""
+        try:
+            windows = tmux.list_windows(session)
+            for w in windows:
+                if str(w.get("index", "")) == str(window):
+                    return w.get("name", "Unknown")
+            return "Unknown"
+        except Exception:
+            return "Unknown"
+
+    def _find_pm_in_session(self, tmux: TMUXManager, session: str) -> str | None:
+        """Find PM agent in a specific session."""
+        try:
+            windows = tmux.list_windows(session)
+            for window in windows:
+                window_idx = str(window.get("index", ""))
+                target = f"{session}:{window_idx}"
+                if self._is_pm_agent(tmux, target):
+                    return target
+            return None
+        except Exception:
+            return None
+
+    def _is_pm_agent(self, tmux: TMUXManager, target: str) -> bool:
+        """Check if target is a PM agent."""
+        try:
+            # Simple check: window name contains 'pm' or is identified as PM
+            session, window = target.split(":")
+            windows = tmux.list_windows(session)
+            for w in windows:
+                if w.get("index") == window:
+                    window_name = w.get("name", "").lower()
+                    return "pm" in window_name or "manager" in window_name
+            return False
+        except Exception:
+            return False
+
+    def _collect_notification(
+        self, pm_notifications: dict[str, list[str]], session: str, message: str, tmux: TMUXManager
+    ) -> None:
+        """Collect notification for batching instead of sending immediately.
+
+        Args:
+            pm_notifications: Collection dict mapping PM targets to messages
+            session: Session name to find PM in
+            message: Notification message to collect
+            tmux: TMUXManager instance
+        """
+        # Find PM in the session
+        pm_target = self._find_pm_in_session(tmux, session)
+        if not pm_target:
+            # No PM to notify, discard message
+            return
+
+        # Initialize list if needed
+        if pm_target not in pm_notifications:
+            pm_notifications[pm_target] = []
+
+        # Add message to collection
+        pm_notifications[pm_target].append(message)
+
+    def _send_collected_notifications(
+        self, pm_notifications: dict[str, list[str]], tmux: TMUXManager, logger: logging.Logger
+    ) -> None:
+        """Send all collected notifications as consolidated reports to PMs.
+
+        Args:
+            pm_notifications: Collection dict mapping PM targets to messages
+            tmux: TMUXManager instance
+            logger: Logger instance
+        """
+        for pm_target, messages in pm_notifications.items():
+            if not messages:
+                continue
+
+            # Build consolidated report
+            timestamp = datetime.now().strftime("%H:%M:%S UTC")
+            report_header = f"🔔 MONITORING REPORT - {timestamp}\n"
+
+            # Group messages by type
+            crashed_agents = []
+            idle_agents = []
+            missing_agents = []
+            other_messages = []
+
+            for msg in messages:
+                if "CRASH" in msg or "FAILURE" in msg:
+                    crashed_agents.append(msg)
+                elif "IDLE" in msg:
+                    idle_agents.append(msg)
+                elif "MISSING" in msg or "TEAM MEMBER ALERT" in msg:
+                    missing_agents.append(msg)
+                else:
+                    other_messages.append(msg)
+
+            # Build consolidated message
+            report_parts = [report_header]
+
+            if crashed_agents:
+                report_parts.append("\n🚨 CRASHED AGENTS:")
+                for msg in crashed_agents:
+                    # Extract agent info from message
+                    if "Agent: " in msg:
+                        agent_line = [line for line in msg.split("\n") if line.startswith("Agent: ")][0]
+                        report_parts.append(f"- {agent_line}")
+                    elif "agent at " in msg:
+                        import re
+
+                        match = re.search(r"agent at ([^\s]+)", msg)
+                        if match:
+                            report_parts.append(f"- {match.group(1)}")
+
+            if idle_agents:
+                report_parts.append("\n⚠️ IDLE AGENTS:")
+                for msg in idle_agents:
+                    # Extract agent info
+                    if "Agent " in msg and " (" in msg:
+                        import re
+
+                        match = re.search(r"Agent ([^\s]+) \(([^)]+)\)", msg)
+                        if match:
+                            report_parts.append(f"- {match.group(1)} ({match.group(2)})")
+
+            if missing_agents:
+                report_parts.append("\n📍 MISSING AGENTS:")
+                for msg in missing_agents:
+                    # Extract missing agents list
+                    if "Missing agents detected" in msg:
+                        lines = msg.split("\n")
+                        for i, line in enumerate(lines):
+                            if "Missing agents detected" in line and i + 1 < len(lines):
+                                report_parts.append(f"- {lines[i + 1]}")
+                                break
+
+            if other_messages:
+                report_parts.append("\n📋 OTHER NOTIFICATIONS:")
+                for msg in other_messages:
+                    # Get first meaningful line
+                    first_line = msg.strip().split("\n")[0]
+                    if first_line:
+                        report_parts.append(f"- {first_line}")
+
+            report_parts.append("\nPlease review and take appropriate action.")
+
+            # Send consolidated report
+            consolidated_message = "\n".join(report_parts)
+            try:
+                success = tmux.send_message(pm_target, consolidated_message)
+                if success:
+                    logger.info(f"Sent consolidated report to PM at {pm_target} with {len(messages)} notifications")
+                else:
+                    logger.error(f"Failed to send consolidated report to PM at {pm_target}")
+            except Exception as e:
+                logger.error(f"Error sending consolidated report to {pm_target}: {e}")
 
 
 class AgentMonitor:

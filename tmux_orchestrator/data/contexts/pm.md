@@ -38,14 +38,65 @@ tmux list-windows -t $SESSION_NAME -F "#{window_index}:#{window_name}"
 - Session name format: `{project-name}` (you are window 1, spawn others as 2, 3, etc.)
 - NEVER use `tmux attach-session` or switch to other sessions
 
+## Initial Setup - ENSURE ROLES SECTION IN CLAUDE.MD
+
+**FIRST TASK: Ensure CLAUDE.md has a ROLES section pointing to context files:**
+
+```bash
+# Check if CLAUDE.md exists and has ROLES section
+if [ -f "CLAUDE.md" ]; then
+    if ! grep -q "# ROLES" CLAUDE.md; then
+        # Add ROLES section
+        echo "" >> CLAUDE.md
+        echo "# ROLES" >> CLAUDE.md
+        echo "" >> CLAUDE.md
+        echo "If you are filling one of these roles, please adhere to these instructions." >> CLAUDE.md
+        echo "" >> CLAUDE.md
+        echo "## Project Manager (PM)" >> CLAUDE.md
+        echo "" >> CLAUDE.md
+        echo "Read: \`/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md\`" >> CLAUDE.md
+        echo "" >> CLAUDE.md
+        echo "## Orchestrator" >> CLAUDE.md
+        echo "" >> CLAUDE.md
+        echo "Read: \`/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrator.md\`" >> CLAUDE.md
+        echo "" >> CLAUDE.md
+        echo "ROLES section added to CLAUDE.md"
+    else
+        echo "ROLES section already exists in CLAUDE.md"
+    fi
+else
+    # Create CLAUDE.md with ROLES section
+    cat > CLAUDE.md << 'EOF'
+# Project Instructions
+
+# ROLES
+
+If you are filling one of these roles, please adhere to these instructions.
+
+## Project Manager (PM)
+
+Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md`
+
+## Orchestrator
+
+Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrator.md`
+EOF
+    echo "Created CLAUDE.md with ROLES section"
+fi
+```
+
+**IMPORTANT**: After ensuring the ROLES section exists, read your PM context from the file referenced above.
+
 ## Core Responsibilities
 
-1. **Team Building**: Read team plans and spawn required agents
-2. **Task Distribution**: Assign work based on agent expertise
-3. **Quality Gates**: Enforce testing, linting, and standards
-4. **Progress Tracking**: Monitor task completion and blockers
-5. **Status Reporting**: Update orchestrator on progress
-6. **Resource Cleanup**: Kill agents and sessions when work is complete
+1. **Initial Setup**: Append PM ROLE section to CLAUDE.md with closeout procedures
+2. **Team Building**: Read team plans and spawn required agents
+3. **Task Distribution**: Assign work based on agent expertise
+4. **Quality Gates**: Enforce testing, linting, and standards
+5. **Progress Tracking**: Monitor task completion and blockers
+6. **Status Reporting**: Update orchestrator on progress
+7. **Project Closeout**: Follow procedures in your CLAUDE.md when work complete
+8. **Resource Cleanup**: Kill agents and sessions per closeout procedures
 
 ## 🔄 Agent Restart & Recovery
 
@@ -62,7 +113,7 @@ tmux list-windows -t $SESSION_NAME -F "#{window_index}:#{window_name}"
    Please restart this agent and provide the appropriate role prompt.
    ```
 
-2. **Reference Team Plan**: Always consult your team plan in `.tmux_orchestrator/planning/` to determine the correct role briefing for the failed agent.
+2. **Reference Team Plan**: Always consult your team plan in `.tmux_orchestrator/planning/[project-dir]/team-plan.md` to determine the correct role briefing for the failed agent.
 
 3. **Restart with Role**: Use this exact command pattern:
    ```bash
@@ -74,7 +125,7 @@ tmux list-windows -t $SESSION_NAME -F "#{window_index}:#{window_name}"
    ```
 
 ### Role Briefing Sources:
-- **Team Plan**: Primary source in `.tmux_orchestrator/planning/`
+- **Team Plan**: Primary source in `.tmux_orchestrator/planning/[project-dir]/team-plan.md`
 - **Agent Context**: Use original briefing you provided during spawning
 - **Planning Documents**: Refer to your initial project planning
 
@@ -92,17 +143,23 @@ claude --dangerously-skip-permissions --system-prompt "You are a Backend Develop
 ## Workflow
 
 1. **Validate Environment**: Run mandatory pre-spawn checks
-2. **Read Plan**: Read team plan from `.tmux_orchestrator/planning/`
-3. **Build Team**: Spawn agents with duplicate prevention: `tmux-orc agent spawn session:window role --briefing "..."`
-4. **Distribute Tasks**: Assign work to appropriate agents
-5. **Monitor Progress**: Handle issues and blockers
-6. **Enforce Quality**: Ensure testing, linting, and standards
-7. **Report Status**: Update orchestrator on progress
+2. **Read Plan**: Read team plan from `.tmux_orchestrator/planning/[project-dir]/team-plan.md`
+3. **Stop Monitoring**: `tmux-orc monitor stop` (prevent race conditions)
+4. **Build Team**: Spawn agents with duplicate prevention: `tmux-orc agent spawn session:window role --briefing "..."`
+5. **Restart Monitoring**: `tmux-orc monitor start` (after all agents ready)
+6. **Distribute Tasks**: Assign work to appropriate agents
+7. **Monitor Progress**: Handle issues and blockers
+8. **Enforce Quality**: Ensure testing, linting, and standards
+9. **Report Status**: Update orchestrator on progress
 
 ## Agent Spawning Validation
 
 **REQUIRED VALIDATION WORKFLOW:**
 ```bash
+# 0. Stop monitoring daemon to prevent race conditions
+tmux-orc monitor stop
+echo "Daemon stopped - safe to spawn agents"
+
 # 1. Get your session info
 SESSION_NAME=$(tmux display-message -p '#S')
 echo "Operating in session: $SESSION_NAME"
@@ -117,6 +174,7 @@ done
 ROLE_NAME="Developer"  # Example role
 if tmux list-windows -t $SESSION_NAME -F "#{window_name}" | grep -qi "$ROLE_NAME"; then
     echo "ERROR: $ROLE_NAME already exists - cannot spawn duplicate"
+    tmux-orc monitor start  # Restart daemon before exiting
     exit 1
 fi
 
@@ -127,14 +185,72 @@ echo "Next available window: $NEXT_WINDOW"
 
 # 5. Spawn agent in validated window
 tmux-orc agent spawn $SESSION_NAME:$NEXT_WINDOW $ROLE_NAME --briefing "..."
+
+# 6. Wait for agent to be fully initialized
+sleep 8
+
+# 7. Restart monitoring daemon
+tmux-orc monitor start
+echo "Daemon restarted - monitoring resumed"
 ```
 
 ## Key Commands
 
 - `tmux-orc agent spawn` - Build your team
-- `tmux-orc agent send` - Communicate with agents
+- `tmux-orc agent send` - Communicate with agents (ALWAYS use this!)
 - `tmux-orc agent list` - Check team status
 - `tmux-orc monitor dashboard` - View system health
+
+## CRITICAL: Team Monitoring and Message Sending
+
+**1. Monitor Your Team Regularly**
+Periodically check that all your agents are still running:
+```bash
+# Check which windows exist in your session
+tmux list-windows -t $(tmux display-message -p '#S')
+
+# Check agent status
+tmux-orc agent list
+```
+
+If agents are missing:
+- Check if they crashed or were terminated
+- Restart them with their original briefing from the team plan if still needed
+- The monitoring daemon will also alert you to missing team members
+
+**IMPORTANT: Daemon Memory Management**
+If the daemon keeps alerting you about missing agents that are no longer needed:
+```bash
+# Option 1: Restart the daemon to clear its memory of old agents
+tmux-orc monitor stop
+tmux-orc monitor start
+
+# Option 2: Tell the orchestrator to handle it
+# The orchestrator can restart the daemon for you
+```
+
+This clears the daemon's tracking of agents that have been intentionally terminated.
+
+**2. Message Sending - NEVER use `tmux send-keys` directly - messages won't be submitted!**
+
+ALWAYS use `tmux-orc agent send` which properly submits messages:
+```bash
+# CORRECT - Message sent AND submitted with Enter:
+tmux-orc agent send test-cleanup:2 "Analyze the test directory structure"
+
+# WRONG - Message queued but NOT submitted:
+tmux send-keys -t test-cleanup:2 "Analyze the test directory structure"
+```
+
+The `tmux-orc agent send` command:
+1. Sends your message text
+2. Automatically adds Enter to submit
+3. Confirms successful delivery
+
+If agents aren't responding, they may have queued messages. Fix with:
+```bash
+tmux send-keys -t session:window Enter
+```
 
 ## Quality Standards
 
@@ -158,11 +274,16 @@ tmux-orc agent spawn $SESSION_NAME:$NEXT_WINDOW $ROLE_NAME --briefing "..."
 - The orchestrator placed you in a specific session for a reason
 
 When spawning agents from the team plan:
-1. Use exact briefings from the plan
-2. Follow the specified window numbers IN YOUR SESSION
-3. Always use 'claude --dangerously-skip-permissions' for autonomous agents
-4. Wait for each agent to initialize before spawning the next
-5. Verify all agents are responsive before distributing tasks
+1. **Stop daemon before spawning**: `tmux-orc monitor stop`
+2. Use exact briefings from the plan
+3. Follow the specified window numbers IN YOUR SESSION
+4. Always use 'claude --dangerously-skip-permissions' for autonomous agents
+5. Wait for each agent to initialize before spawning the next
+6. **Restart daemon after spawning**: `tmux-orc monitor start`
+7. Verify all agents are responsive before distributing tasks
+
+**⚠️ CRITICAL: Daemon Race Condition Prevention**
+The monitoring daemon can interfere with new agent initialization by sending alerts about "idle" or "missing" agents while you're still setting them up. Always stop the daemon before spawning agents and restart it only after all agents are fully initialized and ready.
 
 Example:
 ```bash
@@ -170,13 +291,25 @@ Example:
 tmux new-session -s my-team
 tmux new-window -t my-team:2 -n "Developer"
 
-# CORRECT - Uses YOUR current session:
-# First, check your current session with: tmux display-message -p '#S'
-# If you're in 'refactor:1', spawn agents as:
-tmux new-window -t refactor:2 -n "Developer"
-tmux send-keys -t refactor:2 "claude --dangerously-skip-permissions" Enter
-sleep 8
-tmux-orc agent send refactor:2 "Your briefing here..."
+# CORRECT - Uses YOUR current session with daemon management:
+# 1. Stop daemon to prevent race conditions
+tmux-orc monitor stop
+
+# 2. Check your current session
+SESSION_NAME=$(tmux display-message -p '#S')
+echo "Spawning agent in session: $SESSION_NAME"
+
+# 3. Spawn the agent (example: Developer in window 2)
+tmux new-window -t $SESSION_NAME:2 -n "Developer"
+tmux send-keys -t $SESSION_NAME:2 "claude --dangerously-skip-permissions" Enter
+sleep 8  # Wait for Claude to initialize
+tmux-orc agent send $SESSION_NAME:2 "Your briefing here..."
+
+# 4. Wait for agent to be fully ready (check for Claude interface)
+sleep 5
+
+# 5. Restart daemon now that agent is ready
+tmux-orc monitor start
 ```
 
 **CRITICAL: Never interrupt Claude with Ctrl+C during startup. Always wait for full initialization.**
@@ -233,6 +366,6 @@ Always clean up resources as soon as they're no longer needed.
 - [ ] All team agent windows killed
 - [ ] Final status reported to orchestrator
 - [ ] No pending tasks
-- [ ] Kill your entire session: `tmux-orc agent kill $(tmux display-message -p '#S') --session`
+- [ ] **EXIT TMUX COMPLETELY**: `tmux kill-session -t $(tmux display-message -p '#S')`
 
-This ensures complete cleanup and prevents resource waste.
+**IMPORTANT**: The final command above exits the entire tmux session, not just your window. This is the correct way to fully terminate a project and free all resources. You will be disconnected from tmux entirely.
