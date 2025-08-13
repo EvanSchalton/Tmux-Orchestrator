@@ -4,9 +4,22 @@ This module contains extracted helper functions from the monitor._check_agent_st
 method to improve testability and maintainability.
 """
 
+import re
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, Optional
+
+# Rate limit constants
+MAX_RATE_LIMIT_SECONDS = 14400  # 4 hours in seconds
+RATE_LIMIT_BUFFER_SECONDS = 120  # 2 minute buffer after rate limit reset
+
+# Recovery constants
+MISSING_AGENT_GRACE_MINUTES = 2  # Grace period before notifying about missing agents
+MISSING_AGENT_NOTIFICATION_COOLDOWN_MINUTES = 30  # Cooldown between repeated missing agent notifications
+
+# Daemon timing constants
+DAEMON_CONTROL_LOOP_SECONDS = 10  # How often the daemon checks agent status
+DAEMON_CONTROL_LOOP_COOLDOWN_SECONDS = 60  # Cooldown after notifying any PM
 
 
 class AgentState(Enum):
@@ -17,6 +30,7 @@ class AgentState(Enum):
     ERROR = "error"  # Has error indicators
     IDLE = "idle"  # Claude running but not doing anything
     MESSAGE_QUEUED = "message_queued"  # Has unsubmitted message
+    RATE_LIMITED = "rate_limited"  # Claude API rate limit reached
 
 
 def is_claude_interface_present(content: str) -> bool:
@@ -91,6 +105,11 @@ def detect_agent_state(content: str) -> AgentState:
     Returns:
         AgentState enum value
     """
+    # Check for rate limit first (it may not have Claude interface)
+    # Be flexible - just check for the main error message
+    if "claude usage limit reached" in content.lower():
+        return AgentState.RATE_LIMITED
+
     # Check for crashes - no Claude interface present
     if not is_claude_interface_present(content):
         if _has_crash_indicators(content):
@@ -206,7 +225,7 @@ def needs_recovery(state: AgentState) -> bool:
     Returns:
         True if recovery is needed, False otherwise
     """
-    return state in [AgentState.CRASHED, AgentState.ERROR]
+    return state in [AgentState.CRASHED, AgentState.ERROR, AgentState.RATE_LIMITED]
 
 
 def should_notify_pm(state: AgentState, target: str, notification_history: Dict[str, datetime]) -> bool:
@@ -220,8 +239,8 @@ def should_notify_pm(state: AgentState, target: str, notification_history: Dict[
     Returns:
         True if PM should be notified, False otherwise
     """
-    # Always notify for crashes and errors (with cooldown)
-    if state in [AgentState.CRASHED, AgentState.ERROR]:
+    # Always notify for crashes, errors, and rate limits (with cooldown)
+    if state in [AgentState.CRASHED, AgentState.ERROR, AgentState.RATE_LIMITED]:
         # 5 minute cooldown for crash/error notifications
         last_notified = notification_history.get(f"crash_{target}")
         if last_notified:
@@ -230,14 +249,8 @@ def should_notify_pm(state: AgentState, target: str, notification_history: Dict[
                 return False
         return True
 
-    # Notify for idle agents with cooldown
+    # Notify for idle agents (no cooldown - PM should know immediately)
     if state == AgentState.IDLE:
-        # 10 minute cooldown for idle notifications
-        last_notified = notification_history.get(target)
-        if last_notified:
-            time_since = datetime.now() - last_notified
-            if time_since < timedelta(minutes=10):
-                return False
         return True
 
     # Don't notify for healthy/active agents or messages queued
@@ -313,6 +326,8 @@ def _has_error_indicators(content: str) -> bool:
         "anthropic api error",
         "api rate limit",
         "authentication failed",
+        "claude usage limit reached",
+        "your limit will reset at",
     ]
 
     # Only look for these in Claude interface contexts
@@ -344,3 +359,83 @@ def _has_error_indicators(content: str) -> bool:
     ]
 
     return any(indicator in content_lower for indicator in general_error_indicators)
+
+
+def extract_rate_limit_reset_time(content: str) -> Optional[str]:
+    """Extract the reset time from rate limit error message.
+
+    Args:
+        content: Terminal content containing rate limit message
+
+    Returns:
+        Reset time string (e.g., "4am", "4:30pm") or None if not found
+    """
+    # Pattern to match "Your limit will reset at 4am (UTC)." or similar
+    # Handle extra whitespace with \s+
+    pattern = r"Your limit will reset at\s+(\d{1,2}(?::\d{2})?(?:am|pm))\s+\(UTC\)"
+    match = re.search(pattern, content, re.IGNORECASE)
+    if match:
+        time_str = match.group(1).strip()
+        # Validate the hour is in valid range (1-12 for 12-hour format)
+        hour_match = re.match(r"(\d{1,2})", time_str)
+        if hour_match:
+            hour = int(hour_match.group(1))
+            # For 12-hour format with am/pm, hour should be 1-12
+            # For 24-hour format (no am/pm), hour should be 0-23
+            has_meridiem = "am" in time_str.lower() or "pm" in time_str.lower()
+            if has_meridiem and (hour < 1 or hour > 12):
+                return None
+            elif not has_meridiem and (hour < 0 or hour > 23):
+                return None
+        return time_str
+    return None
+
+
+def calculate_sleep_duration(reset_time_str: str, now: datetime) -> int:
+    """Calculate seconds until reset time plus buffer.
+
+    Args:
+        reset_time_str: Time string like "4am", "4:30pm", etc.
+        now: Current datetime (should be UTC)
+
+    Returns:
+        Number of seconds to sleep (including 2 minute buffer), or 0 if > 4 hours
+    """
+    # Handle simple time formats
+    reset_time_str = reset_time_str.strip()
+
+    # Parse hour and optional minutes
+    time_match = re.match(r"(\d{1,2})(?::(\d{2}))?([ap]m)?", reset_time_str.lower())
+    if not time_match:
+        raise ValueError(f"Invalid time format: {reset_time_str}")
+
+    hour = int(time_match.group(1))
+    minute = int(time_match.group(2) or 0)
+    meridiem = time_match.group(3)
+
+    # Convert to 24-hour format
+    if meridiem == "pm" and hour != 12:
+        hour += 12
+    elif meridiem == "am" and hour == 12:
+        hour = 0
+
+    # Create reset datetime for today
+    reset_dt = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+    # If reset time has passed today, use tomorrow
+    if reset_dt <= now:
+        reset_dt += timedelta(days=1)
+
+    # Calculate difference
+    diff = reset_dt - now
+    sleep_seconds = int(diff.total_seconds())
+
+    # Add buffer to ensure rate limit has fully reset
+    sleep_seconds += RATE_LIMIT_BUFFER_SECONDS
+
+    # Cap at maximum rate limit duration
+    # If it's more than MAX_RATE_LIMIT_SECONDS, it's likely a stale/misread rate limit
+    if sleep_seconds > (MAX_RATE_LIMIT_SECONDS + RATE_LIMIT_BUFFER_SECONDS):
+        return 0
+
+    return sleep_seconds
