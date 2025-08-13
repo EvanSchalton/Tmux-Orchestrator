@@ -130,7 +130,7 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
     from tmux_orchestrator.utils.tmux import TMUXManager
 
     try:
-        briefing = load_context(role)
+        load_context(role)
     except click.ClickException as e:
         console.print(f"[red]Error: {e}[/red]")
         console.print("\n[yellow]Note:[/yellow] Only system roles (orchestrator, pm) have standard contexts.")
@@ -181,13 +181,20 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
     console.print("[dim]Waiting for Claude to initialize...[/dim]")
     time.sleep(8)
 
+    # Send instruction message instead of full context
+    if role == "pm":
+        message = (
+            "You're the PM for our team, please run 'tmux-orc context show pm' for more information about your role"
+        )
+    else:
+        message = f"You're the {role} for our team, please run 'tmux-orc context show {role}' for more information about your role"
+
     # Add extension if provided
     if extend:
-        briefing += f"\n\n## Project-Specific Context\n\n{extend}"
+        message += f"\n\n## Additional Instructions\n\n{extend}"
 
-    # Send the role context
-    console.print(f"[blue]Sending {role} context...[/blue]")
-    success = tmux.send_message(session, briefing)
+    console.print(f"[blue]Sending {role} instruction...[/blue]")
+    success = tmux.send_message(session, message)
 
     if success:
         console.print(f"[green]✓ Successfully spawned {role} agent at {session}[/green]")
