@@ -3,7 +3,8 @@
 
 import subprocess
 
-print("""
+print(
+    """
 PM DETECTION TEST SUMMARY
 ========================
 
@@ -30,7 +31,8 @@ If notifications appear to be missing, check:
 1. Daemon log timing - notifications may have been sent earlier
 2. PM's message history - they may have already acted on notifications
 3. Cooldown periods - daemon has 5-minute cooldowns between duplicate notifications
-""")
+"""
+)
 
 result = subprocess.run(
     ["tmux", "list-windows", "-t", "critical-fixes", "-F", "#{window_index}:#{window_name}"],
