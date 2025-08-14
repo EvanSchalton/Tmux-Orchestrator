@@ -352,7 +352,7 @@ def test_create_team_coordination_strategies() -> None:
         result = create_team(tmux, request)
 
         assert result.success
-        assert result.team_metadata["coordination_strategy"] == strategy
+        assert result.team_metadata is not None and result.team_metadata["coordination_strategy"] == strategy
 
 
 def test_create_team_edge_case_maximum_agents() -> None:
@@ -372,7 +372,7 @@ def test_create_team_edge_case_maximum_agents() -> None:
 
     assert result.success
     assert len(result.created_agents) == 20
-    assert result.team_metadata["total_agents"] == 20
+    assert result.team_metadata is not None and result.team_metadata["total_agents"] == 20
 
 
 def test_create_team_duplicate_custom_sessions() -> None:
@@ -453,6 +453,7 @@ def test_create_team_metadata_persistence() -> None:
 
     assert result.success
     metadata = result.team_metadata
+    assert metadata is not None
 
     # Required metadata fields
     assert "team_name" in metadata

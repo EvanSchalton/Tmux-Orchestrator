@@ -16,7 +16,7 @@ def test_app_configuration() -> None:
     assert app.version == __version__
 
     # Check that routers are included
-    routes = [route.path for route in app.routes]
+    routes = [getattr(route, "path", str(route)) for route in app.routes]
     assert any("/monitor" in route for route in routes)
     assert any("/messages" in route for route in routes)
     assert any("/coordination" in route for route in routes)

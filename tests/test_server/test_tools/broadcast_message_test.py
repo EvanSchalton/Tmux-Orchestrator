@@ -86,7 +86,7 @@ def hello_team_request():
 
 
 @pytest.fixture
-def test_message_request() -> None:
+def test_message_request() -> BroadcastMessageRequest:
     """Request for test message."""
     return BroadcastMessageRequest(
         session="test-session",
@@ -312,7 +312,7 @@ def test_broadcast_message_exception_handling(mock_tmux, test_message_request) -
 
     # Assert
     assert not result.success
-    assert "Unexpected error broadcasting message" in result.error_message
+    assert result.error_message is not None and "Unexpected error broadcasting message" in result.error_message
 
 
 def test_broadcast_message_multiple_agent_types(mock_tmux, dev_qa_request) -> None:

@@ -115,7 +115,7 @@ def test_schedule_checkin_weekly_invalid_days(mock_tmux, temp_schedule_file) -> 
         result = schedule_checkin(mock_tmux, request)
 
     assert not result.success
-    assert "Invalid weekday names" in result.error_message
+    assert result.error_message is not None and "Invalid weekday names" in result.error_message
 
 
 def test_schedule_checkin_duplicate_agent_conflict(mock_tmux, temp_schedule_file) -> None:
@@ -145,7 +145,7 @@ def test_schedule_checkin_duplicate_agent_conflict(mock_tmux, temp_schedule_file
         result2 = schedule_checkin(mock_tmux, request2)
 
     assert not result2.success
-    assert "Scheduling conflict" in result2.error_message
+    assert result2.error_message is not None and "Scheduling conflict" in result2.error_message
 
 
 def test_schedule_checkin_file_permission_error(mock_tmux, temp_schedule_file) -> None:
@@ -164,7 +164,7 @@ def test_schedule_checkin_file_permission_error(mock_tmux, temp_schedule_file) -
             result = schedule_checkin(mock_tmux, request)
 
     assert not result.success
-    assert "Permission denied" in result.error_message
+    assert result.error_message is not None and "Permission denied" in result.error_message
 
 
 def test_schedule_checkin_json_error(mock_tmux, temp_schedule_file) -> None:
@@ -185,4 +185,6 @@ def test_schedule_checkin_json_error(mock_tmux, temp_schedule_file) -> None:
         result = schedule_checkin(mock_tmux, request)
 
     assert not result.success
-    assert "Invalid JSON" in result.error_message or "JSON" in result.error_message
+    assert result.error_message is not None and (
+        "Invalid JSON" in result.error_message or "JSON" in result.error_message
+    )

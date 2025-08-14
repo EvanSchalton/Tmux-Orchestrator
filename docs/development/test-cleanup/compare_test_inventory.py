@@ -16,7 +16,7 @@ def get_detailed_test_inventory() -> Dict[str, Set[str]]:
     try:
         result = subprocess.run(["poetry", "run", "pytest", "--collect-only", "-q"], capture_output=True, text=True)
 
-        inventory = {}
+        inventory: dict[str, set[str]] = {}
         current_file = None
 
         for line in result.stdout.splitlines():

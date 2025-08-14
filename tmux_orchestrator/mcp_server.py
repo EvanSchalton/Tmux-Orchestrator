@@ -6,7 +6,7 @@ to interact with the tmux orchestrator system.
 
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from mcp import Tool
 from mcp.server import Server
@@ -43,7 +43,7 @@ mcp_server = Server("tmux-orchestrator")
 
 
 @mcp_server.list_tools()
-async def list_tools() -> List[Tool]:
+async def list_tools() -> list[Tool]:
     """List all available MCP tools."""
     return [
         Tool(
@@ -144,7 +144,7 @@ async def list_tools() -> List[Tool]:
 
 
 @mcp_server.call_tool()
-async def call_tool(name: str, arguments: Dict[str, Any]) -> Any:
+async def call_tool(name: str, arguments: dict[str, Any]) -> Any:
     """Handle tool calls from the MCP client."""
     logger.info(f"Tool called: {name} with arguments: {arguments}")
 

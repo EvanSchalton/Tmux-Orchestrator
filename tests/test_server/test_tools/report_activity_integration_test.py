@@ -2,6 +2,7 @@
 
 import json
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 from tmux_orchestrator.server.tools.report_activity import (
@@ -140,7 +141,7 @@ def test_get_activity_history_all_records(mock_tmux, temp_activity_file) -> None
     base_time = datetime.now()
 
     for i in range(5):
-        record = {
+        record: dict[str, Any] = {
             "record_id": f"record-{i}",
             "agent_id": f"agent-{i}",
             "activity_type": "working",
@@ -168,7 +169,7 @@ def test_get_activity_history_all_records(mock_tmux, temp_activity_file) -> None
     assert result.total_records == 5
 
     # Records should be sorted by timestamp descending (most recent first)
-    timestamps = [record.timestamp for record in result.records]
+    timestamps = [record.timestamp for record in result.records if record.timestamp is not None]
     assert timestamps == sorted(timestamps, reverse=True)
 
 
@@ -180,7 +181,7 @@ def test_get_activity_history_agent_filter(mock_tmux, temp_activity_file) -> Non
 
     agents = ["agent-1", "agent-2", "agent-1", "agent-3", "agent-1"]
     for i, agent in enumerate(agents):
-        record = {
+        record: dict[str, Any] = {
             "record_id": f"record-{i}",
             "agent_id": agent,
             "activity_type": "working",
@@ -216,7 +217,7 @@ def test_get_activity_history_team_filter(mock_tmux, temp_activity_file) -> None
 
     teams = ["team-alpha", "team-beta", "team-alpha", None, "team-gamma"]
     for i, team in enumerate(teams):
-        record = {
+        record: dict[str, Any] = {
             "record_id": f"record-{i}",
             "agent_id": f"agent-{i}",
             "activity_type": "working",
@@ -252,7 +253,7 @@ def test_get_activity_history_activity_type_filter(mock_tmux, temp_activity_file
 
     activity_types = ["working", "idle", "blocked", "working", "completed"]
     for i, activity_type in enumerate(activity_types):
-        record = {
+        record: dict[str, Any] = {
             "record_id": f"record-{i}",
             "agent_id": f"agent-{i}",
             "activity_type": activity_type,
@@ -287,7 +288,7 @@ def test_get_activity_history_timestamp_filter(mock_tmux, temp_activity_file) ->
     base_time = datetime.now()
 
     for i in range(6):
-        record = {
+        record: dict[str, Any] = {
             "record_id": f"record-{i}",
             "agent_id": f"agent-{i}",
             "activity_type": "working",
@@ -314,7 +315,7 @@ def test_get_activity_history_timestamp_filter(mock_tmux, temp_activity_file) ->
 
     assert result.success
     assert len(result.records) == 4  # Records from hour 2, 3, 4, 5
-    assert all(record.timestamp >= since_time for record in result.records)
+    assert all(record.timestamp is not None and record.timestamp >= since_time for record in result.records)
 
 
 def test_get_activity_history_limit(mock_tmux, temp_activity_file) -> None:
@@ -324,7 +325,7 @@ def test_get_activity_history_limit(mock_tmux, temp_activity_file) -> None:
     base_time = datetime.now()
 
     for i in range(20):
-        record = {
+        record: dict[str, Any] = {
             "record_id": f"record-{i}",
             "agent_id": f"agent-{i}",
             "activity_type": "working",
@@ -360,7 +361,7 @@ def test_get_activity_history_tags_filter(mock_tmux, temp_activity_file) -> None
 
     tags_list = [["backend", "api"], ["frontend"], ["backend", "database"], [], ["api", "testing"]]
     for i, tags in enumerate(tags_list):
-        record = {
+        record: dict[str, Any] = {
             "record_id": f"record-{i}",
             "agent_id": f"agent-{i}",
             "activity_type": "working",
@@ -395,7 +396,7 @@ def test_get_activity_history_combined_filters(mock_tmux, temp_activity_file) ->
     base_time = datetime.now()
 
     for i in range(10):
-        record = {
+        record: dict[str, Any] = {
             "record_id": f"record-{i}",
             "agent_id": f"agent-{i % 3}",  # 3 different agents
             "activity_type": ["working", "idle", "blocked"][i % 3],

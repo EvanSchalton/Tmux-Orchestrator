@@ -7,7 +7,8 @@ method to improve testability and maintainability.
 import re
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+
+# No typing imports needed
 
 # Rate limit constants
 MAX_RATE_LIMIT_SECONDS = 14400  # 4 hours in seconds
@@ -42,7 +43,7 @@ class DaemonAction(Enum):
 
 
 # PM escalation configuration for team-wide idleness
-NONRESPONSIVE_PM_ESCALATIONS_MINUTES: Dict[int, Tuple[DaemonAction, Optional[str]]] = {
+NONRESPONSIVE_PM_ESCALATIONS_MINUTES: dict[int, tuple[DaemonAction, str | None]] = {
     3: (
         DaemonAction.MESSAGE,
         "⚠️ IDLE TEAM ALERT (3 min)\n"
@@ -262,7 +263,7 @@ def has_unsubmitted_message(content: str) -> bool:
     return False
 
 
-def is_terminal_idle(snapshots: List[str]) -> bool:
+def is_terminal_idle(snapshots: list[str]) -> bool:
     """Check if terminal is idle based on multiple snapshots.
 
     DEPRECATED: This functionality is now integrated into _check_agent_status
@@ -297,7 +298,7 @@ def needs_recovery(state: AgentState) -> bool:
     return state in [AgentState.CRASHED, AgentState.ERROR, AgentState.RATE_LIMITED]
 
 
-def should_notify_pm(state: AgentState, target: str, notification_history: Dict[str, datetime]) -> bool:
+def should_notify_pm(state: AgentState, target: str, notification_history: dict[str, datetime]) -> bool:
     """Determine if PM should be notified about agent state.
 
     Args:
@@ -440,7 +441,7 @@ def _has_error_indicators(content: str) -> bool:
     return any(indicator in content_lower for indicator in general_error_indicators)
 
 
-def extract_rate_limit_reset_time(content: str) -> Optional[str]:
+def extract_rate_limit_reset_time(content: str) -> str | None:
     """Extract the reset time from rate limit error message.
 
     Args:

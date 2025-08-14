@@ -61,7 +61,7 @@ def test_detects_compacting_above_input_box(mock_tmux_manager, mock_sleep) -> No
 @patch("tmux_orchestrator.core.monitor.TMUXManager")
 @patch("tmux_orchestrator.core.monitor.logging.getLogger")
 @patch("tmux_orchestrator.core.monitor.is_claude_interface_present", return_value=True)
-@patch("tmux_orchestrator.core.monitor.has_unsubmitted_message", return_value=False)
+@patch("tmux_orchestrator.core.monitor_helpers.has_unsubmitted_message", return_value=False)
 def test_compacting_check_case_insensitive(
     mock_unsubmitted, mock_claude_present, mock_get_logger, mock_tmux_manager, mock_sleep
 ) -> None:

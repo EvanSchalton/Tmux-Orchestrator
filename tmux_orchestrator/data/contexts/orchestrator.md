@@ -215,7 +215,7 @@ The MCP server provides REST API access for integrations:
 
 ### Context Endpoints
 - `GET /contexts/list` - List available contexts
-- `GET /contexts/{role}` - Get specific context (orchestrator/pm)
+- `GET /contexts/{role}` - Get specific context (orchestrator/pm/cleanup)
 - `POST /contexts/spawn/{role}` - Spawn agent with context
 
 ### Agent Endpoints

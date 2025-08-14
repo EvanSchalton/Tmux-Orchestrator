@@ -103,7 +103,7 @@ class MonitorAutoSubmitTester:
         print(f"Message submitted: {message_submitted}")
         print(f"Test result: {'PASS' if result['success'] else 'FAIL'}")
 
-        return result["success"]
+        assert result["success"], f"Test failed: {result.get('error', 'Unknown error')}"
 
     def test_multiple_agents_stuck(self) -> None:
         """Test scenario: Multiple agents stuck simultaneously."""
@@ -167,7 +167,7 @@ class MonitorAutoSubmitTester:
 
         print(f"Test result: {'PASS' if result['success'] else 'FAIL'}")
 
-        return result["success"]
+        assert result["success"], f"Test failed: {result.get('error', 'Unknown error')}"
 
     def test_repeated_stuck_agent(self) -> None:
         """Test scenario: Agent that gets stuck repeatedly."""
@@ -245,7 +245,7 @@ class MonitorAutoSubmitTester:
         print(f"No infinite loop: {no_infinite_loop}")
         print(f"Test result: {'PASS' if result['success'] else 'FAIL'}")
 
-        return result["success"]
+        assert result["success"], f"Test failed: {result.get('error', 'Unknown error')}"
 
     def test_monitor_stability(self) -> None:
         """Test monitor stability during extended operation."""
@@ -292,7 +292,7 @@ class MonitorAutoSubmitTester:
         print(f"Errors in logs: {errors_found}")
         print(f"Test result: {'PASS' if result['success'] else 'FAIL'}")
 
-        return result["success"]
+        assert result["success"], f"Test failed: {result.get('error', 'Unknown error')}"
 
     def generate_report(self):
         """Generate test report."""

@@ -79,7 +79,7 @@ def test_get_agent_status_single_agent_by_id_success(mock_tmux, temp_activity_fi
     assert metrics.last_activity_type == ActivityType.WORKING
     assert metrics.last_activity_description == "Implementing user dashboard"
     assert metrics.session_active is True
-    assert metrics.session_info["status"] == "Active"
+    assert metrics.session_info is not None and metrics.session_info["status"] == "Active"
 
 
 def test_get_agent_status_single_agent_by_target_success(mock_tmux, temp_activity_file, sample_activity_data) -> None:
@@ -102,7 +102,7 @@ def test_get_agent_status_single_agent_by_target_success(mock_tmux, temp_activit
     assert metrics.agent_id == "backend-project:1"
     assert metrics.health_status == HealthStatus.IDLE
     assert metrics.last_activity_type == ActivityType.IDLE
-    assert metrics.session_info["status"] == "Idle"
+    assert metrics.session_info is not None and metrics.session_info["status"] == "Idle"
 
 
 def test_get_agent_status_agent_not_found(mock_tmux, temp_activity_file) -> None:
@@ -115,7 +115,7 @@ def test_get_agent_status_agent_not_found(mock_tmux, temp_activity_file) -> None
         result = get_agent_status(mock_tmux, request)
 
     assert result.success is False
-    assert "Agent 'nonexistent:0' not found" in result.error_message
+    assert result.error_message is not None and "Agent 'nonexistent:0' not found" in result.error_message
 
 
 def test_get_agent_status_offline_agent(mock_tmux, temp_activity_file, sample_activity_data) -> None:
@@ -192,7 +192,7 @@ def test_get_agent_status_file_permission_error(mock_tmux, temp_activity_file) -
             result = get_agent_status(mock_tmux, request)
 
     assert result.success is False
-    assert "Permission denied" in result.error_message
+    assert result.error_message is not None and "Permission denied" in result.error_message
 
 
 def test_get_agent_status_json_decode_error(mock_tmux, temp_activity_file) -> None:
@@ -209,7 +209,9 @@ def test_get_agent_status_json_decode_error(mock_tmux, temp_activity_file) -> No
         result = get_agent_status(mock_tmux, request)
 
     assert result.success is False
-    assert "Invalid JSON" in result.error_message or "JSON" in result.error_message
+    assert result.error_message is not None and (
+        "Invalid JSON" in result.error_message or "JSON" in result.error_message
+    )
 
 
 def test_get_agent_status_unexpected_error(mock_tmux, temp_activity_file) -> None:
@@ -226,7 +228,7 @@ def test_get_agent_status_unexpected_error(mock_tmux, temp_activity_file) -> Non
             result = get_agent_status(mock_tmux, request)
 
     assert result.success is False
-    assert "Unexpected error" in result.error_message
+    assert result.error_message is not None and "Unexpected error" in result.error_message
 
 
 def test_get_agent_status_activity_file_not_exist(mock_tmux) -> None:
@@ -241,7 +243,7 @@ def test_get_agent_status_activity_file_not_exist(mock_tmux) -> None:
 
         # Should fail when agent not found and no activity
         assert result.success is False
-        assert "Agent 'test:0' not found" in result.error_message
+        assert result.error_message is not None and "Agent 'test:0' not found" in result.error_message
 
 
 def test_get_agent_status_mixed_health_states_team(mock_tmux, temp_activity_file) -> None:

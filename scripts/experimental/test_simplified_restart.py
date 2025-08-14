@@ -2,13 +2,14 @@
 """Test the simplified one-command restart system."""
 
 import sys
-
-sys.path.insert(0, "/workspaces/Tmux-Orchestrator")
-
 from datetime import datetime, timedelta
+from pathlib import Path
 from unittest.mock import Mock
 
-from tmux_orchestrator.core.monitor import IdleMonitor
+# Add project to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from tmux_orchestrator.core.monitor import IdleMonitor  # noqa: E402
 
 
 def test_api_error_detection():

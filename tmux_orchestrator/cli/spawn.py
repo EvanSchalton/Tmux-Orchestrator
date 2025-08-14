@@ -39,7 +39,8 @@ def spawn() -> None:
 )
 @click.option("--no-launch", is_flag=True, help="Create config but don't launch terminal")
 @click.option("--no-gui", is_flag=True, help="Run in current terminal (for SSH/bash environments)")
-def orc(profile: str | None, terminal: str, no_launch: bool, no_gui: bool) -> None:
+@click.pass_context
+def orc(ctx: click.Context, profile: str | None, terminal: str, no_launch: bool, no_gui: bool) -> None:
     """Launch Claude Code as an orchestrator in a new terminal.
 
     This is the primary entry point for humans to start working with tmux-orchestrator.
@@ -61,13 +62,14 @@ def orc(profile: str | None, terminal: str, no_launch: bool, no_gui: bool) -> No
     from tmux_orchestrator.cli.spawn_orc import spawn_orc
 
     # Call the existing implementation
-    spawn_orc.callback(profile, terminal, no_launch, no_gui)
+    ctx.invoke(spawn_orc, profile=profile, terminal=terminal, no_launch=no_launch, no_gui=no_gui)
 
 
 @spawn.command()
 @click.option("--session", required=True, help="Target session:window")
 @click.option("--extend", help="Additional project-specific context")
-def pm(session: str, extend: str | None = None) -> None:
+@click.pass_context
+def pm(ctx: click.Context, session: str, extend: str | None = None) -> None:
     """Spawn a Project Manager with standardized context.
 
     This command creates a complete PM agent setup:
@@ -87,7 +89,7 @@ def pm(session: str, extend: str | None = None) -> None:
     from tmux_orchestrator.cli.context import spawn as context_spawn
 
     # Call the existing implementation
-    context_spawn.callback("pm", session, extend)
+    ctx.invoke(context_spawn, name="pm", session=session, extend=extend)
 
 
 @spawn.command()

@@ -52,7 +52,7 @@ def test_send_message_failure(mock_tmux) -> None:
     assert result.success is False
     assert result.target == "broken:window"
     assert result.message_sent == "Test message"
-    assert "Failed to send message" in result.error_message
+    assert result.error_message is not None and "Failed to send message" in result.error_message
 
 
 def test_send_message_exception(mock_tmux) -> None:
@@ -66,7 +66,7 @@ def test_send_message_exception(mock_tmux) -> None:
     assert result.success is False
     assert result.target == "test:agent"
     assert result.message_sent == "Hello"
-    assert "Connection lost" in result.error_message
+    assert result.error_message is not None and "Connection lost" in result.error_message
 
 
 def test_send_message_empty_target(mock_tmux) -> None:
@@ -78,7 +78,7 @@ def test_send_message_empty_target(mock_tmux) -> None:
     assert result.success is False
     assert result.target == ""
     assert result.message_sent == "Test message"
-    assert "Target must be in format" in result.error_message
+    assert result.error_message is not None and "Target must be in format" in result.error_message
 
     # Should not call tmux methods
     mock_tmux.send_message.assert_not_called()
@@ -93,7 +93,7 @@ def test_send_message_empty_message(mock_tmux) -> None:
     assert result.success is False
     assert result.target == "test:agent"
     assert result.message_sent == ""
-    assert "Message cannot be empty" in result.error_message
+    assert result.error_message is not None and "Message cannot be empty" in result.error_message
 
     # Should not call tmux methods
     mock_tmux.send_message.assert_not_called()
@@ -106,7 +106,7 @@ def test_send_message_whitespace_target(mock_tmux) -> None:
     result = send_message(mock_tmux, request)
 
     assert result.success is False
-    assert "Target must be in format" in result.error_message
+    assert result.error_message is not None and "Target must be in format" in result.error_message
 
 
 def test_send_message_whitespace_message(mock_tmux) -> None:
@@ -118,7 +118,7 @@ def test_send_message_whitespace_message(mock_tmux) -> None:
     # The actual implementation treats whitespace as empty
     assert result.success is False
     assert result.message_sent == "   \t\n   "
-    assert "Message cannot be empty" in result.error_message
+    assert result.error_message is not None and "Message cannot be empty" in result.error_message
 
 
 def test_send_message_long_message(mock_tmux) -> None:
@@ -217,7 +217,7 @@ def test_send_message_invalid_target_formats(mock_tmux) -> None:
 
         assert result.success is False
         assert result.target == target
-        assert "Target must be in format" in result.error_message
+        assert result.error_message is not None and "Target must be in format" in result.error_message
 
     # Targets with colons pass basic validation (but may fail due to session not found)
     mock_tmux.has_session.return_value = False  # Mock session not found
@@ -234,4 +234,4 @@ def test_send_message_invalid_target_formats(mock_tmux) -> None:
 
         assert result.success is False
         assert result.target == target
-        assert "not found" in result.error_message
+        assert result.error_message is not None and "not found" in result.error_message

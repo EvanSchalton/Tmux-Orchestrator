@@ -158,3 +158,21 @@ Thumbs.db
 .idea/
 *.iml
 test_env/
+
+# Test result files in root
+/*.txt
+!requirements*.txt
+!README.txt
+
+# Analysis files
+/*analysis*.json
+/*_analysis.json
+
+# Temporary Python scripts in root
+/test_*.py
+/temp_*.py
+/tmp_*.py
+
+# Old reports and generated files
+/*_report.md
+/*_summary.md

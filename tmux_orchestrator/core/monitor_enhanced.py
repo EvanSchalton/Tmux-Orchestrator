@@ -6,7 +6,6 @@ import signal
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Set
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -24,8 +23,8 @@ class EnhancedMonitor:
         self.pid_file = project_dir / "enhanced-monitor.pid"
         self.log_file = logs_dir / "enhanced-monitor.log"
         self.debug_mode = os.environ.get("TMUX_ORC_DEBUG", "").lower() in ("true", "1", "yes")
-        self.monitored_agents: Dict[str, dict] = {}
-        self.crashed_agents: Set[str] = set()
+        self.monitored_agents: dict[str, dict] = {}
+        self.crashed_agents: set[str] = set()
 
     def start(self, interval: int = 30) -> int:
         """Start the monitoring daemon."""
@@ -159,7 +158,7 @@ class EnhancedMonitor:
         if crashed_agents or idle_agents:
             self._report_issues(tmux, crashed_agents, idle_agents, logger)
 
-    def _discover_agents(self, tmux: TMUXManager, logger: logging.Logger) -> Dict[str, dict]:
+    def _discover_agents(self, tmux: TMUXManager, logger: logging.Logger) -> dict[str, dict]:
         """Discover all active agents."""
         agents = {}
 

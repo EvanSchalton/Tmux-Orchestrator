@@ -9,7 +9,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 
 def get_test_inventory() -> Dict[str, Set[str]]:
@@ -17,7 +17,7 @@ def get_test_inventory() -> Dict[str, Set[str]]:
     try:
         result = subprocess.run(["poetry", "run", "pytest", "--collect-only", "-q"], capture_output=True, text=True)
 
-        inventory = {}
+        inventory: dict[str, set[str]] = {}
         current_file = None
 
         for line in result.stdout.splitlines():
@@ -90,7 +90,7 @@ def check_conversion_progress() -> Dict:
     """Check overall conversion progress."""
     test_files = list(Path("tests").rglob("*_test.py"))
 
-    progress = {
+    progress: dict[str, Any] = {
         "total_files": len(test_files),
         "files_with_classes": 0,
         "files_converted": 0,

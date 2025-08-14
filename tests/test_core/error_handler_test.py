@@ -282,7 +282,7 @@ def test_recovery_procedures_setup(error_handler: ErrorHandler) -> None:
 
 def test_exponential_backoff() -> None:
     """Test exponential backoff in retry decorator."""
-    delays = []
+    delays: list[float] = []
 
     @retry_on_error(max_attempts=4, initial_delay=0.1, backoff_factor=2.0)
     def track_delays() -> str:

@@ -6,15 +6,15 @@ import sys
 from pathlib import Path
 
 # Add project to path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from tmux_orchestrator.core.monitor_change_detection import (
+from tmux_orchestrator.core.monitor_change_detection import (  # noqa: E402
     capture_snapshots_with_timing,
     compare_detection_methods,
     detect_idle_with_empty_prompt,
     detect_message_queued,
 )
-from tmux_orchestrator.utils.tmux import TMUXManager
+from tmux_orchestrator.utils.tmux import TMUXManager  # noqa: E402
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

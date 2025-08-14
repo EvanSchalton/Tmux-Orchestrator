@@ -7,7 +7,7 @@ for more accurate agent state detection.
 import logging
 import re
 import time
-from typing import Any, Callable, List
+from typing import Any, Callable
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -43,7 +43,7 @@ def levenshtein_distance(s1: str, s2: str) -> int:
     return previous_row[-1]
 
 
-def detect_active_state_levenshtein(snapshots: List[str], threshold: int = 1) -> bool:
+def detect_active_state_levenshtein(snapshots: list[str], threshold: int = 1) -> bool:
     """Detect if terminal is actively changing using Levenshtein distance.
 
     Based on planning/change-detection.md:
@@ -119,7 +119,7 @@ def detect_message_queued(content: str) -> bool:
 
 def capture_snapshots_with_timing(
     capture_func: Callable[..., Any], target: str, count: int = 4, interval: float = 0.3
-) -> List[str]:
+) -> list[str]:
     """Capture multiple snapshots with precise timing.
 
     Args:
@@ -140,7 +140,7 @@ def capture_snapshots_with_timing(
     return snapshots
 
 
-def compare_detection_methods(snapshots: List[str], logger: logging.Logger | None = None) -> dict[str, Any]:
+def compare_detection_methods(snapshots: list[str], logger: logging.Logger | None = None) -> dict[str, Any]:
     """Compare different change detection methods on the same data.
 
     Args:

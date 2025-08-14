@@ -556,7 +556,19 @@ This single command:
 - If work is incomplete, DO NOT create this file - keep working!
 - The existence of this file signals successful project completion
 
-When all work is complete, create a closeout report in the planning directory:
+**🧹 MANDATORY: Root Directory Cleanup BEFORE Closeout**
+
+Before creating the closeout report, you MUST clean up the root directory:
+
+1. **Follow cleanup context**: Read `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/cleanup.md`
+2. **Delete temporary files**: Agent reports, test artifacts, build outputs
+3. **Organize misplaced files**: Move scripts to proper directories
+4. **Update .gitignore**: Prevent future accumulation
+5. **Verify git status**: Should be clean after cleanup
+
+**Root cleanup is MANDATORY for ALL projects - no exceptions!**
+
+When all work is complete AND root cleanup is done, create a closeout report in the planning directory:
 
 ```bash
 # Find your planning directory

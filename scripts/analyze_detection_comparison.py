@@ -17,7 +17,7 @@ def analyze_comparison_log(log_file: Path):
     total_comparisons = 0
     agreements = 0
     disagreements = 0
-    state_transitions = defaultdict(lambda: defaultdict(int))
+    state_transitions: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     disagreement_details = []
 
     # Read and analyze log

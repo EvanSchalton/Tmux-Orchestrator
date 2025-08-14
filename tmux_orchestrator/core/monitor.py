@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitor_helpers import (
@@ -65,9 +65,9 @@ class IdleMonitor:
         self._session_agents: dict[str, set[str]] = {}  # Track high-water mark of agents per session
         self._missing_agent_grace: dict[str, datetime] = {}  # Track when agents were first identified as missing
         self._missing_agent_notifications: dict[str, datetime] = {}  # Track when we last notified about missing agents
-        self._team_idle_at: Dict[str, Optional[datetime]] = {}  # Track when entire team becomes idle per session
-        self._pm_escalation_history: Dict[str, Dict[int, datetime]] = {}  # Track escalation history per PM
-        self._session_loggers: Dict[str, logging.Logger] = {}  # Cache session-specific loggers
+        self._team_idle_at: dict[str, datetime | None] = {}  # Track when entire team becomes idle per session
+        self._pm_escalation_history: dict[str, dict[int, datetime]] = {}  # Track escalation history per PM
+        self._session_loggers: dict[str, logging.Logger] = {}  # Cache session-specific loggers
 
     def is_running(self) -> bool:
         """Check if monitor daemon is running."""
@@ -1402,7 +1402,7 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
     ) -> None:
         """Check if entire team is idle and handle PM escalations."""
         # Group agents by session to track team idleness per session
-        session_agents: Dict[str, list[str]] = {}
+        session_agents: dict[str, list[str]] = {}
         for agent in agents:
             session = agent.split(":")[0]
             if session not in session_agents:

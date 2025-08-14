@@ -1,7 +1,6 @@
 """Context endpoints for standardized agent briefings."""
 
 from pathlib import Path
-from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -29,7 +28,7 @@ class ContextResponse(BaseModel):
 class ContextListResponse(BaseModel):
     """Response model for listing available contexts."""
 
-    contexts: List[Dict[str, str]]
+    contexts: list[dict[str, str]]
     note: str = (
         "Only system roles (orchestrator, pm) have standard contexts. Other agents should have custom briefings."
     )

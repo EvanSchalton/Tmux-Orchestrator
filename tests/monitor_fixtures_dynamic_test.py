@@ -6,7 +6,6 @@ that the detection algorithms correctly identify their states.
 """
 
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import pytest
 
@@ -38,9 +37,9 @@ MIXED_CONTENT_STATES = {"starting"}
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "monitor_states"
 
 
-def discover_all_fixtures() -> Dict[str, List[Path]]:
+def discover_all_fixtures() -> dict[str, list[Path]]:
     """Discover all fixture files."""
-    fixtures: Dict[str, List[Path]] = {}
+    fixtures: dict[str, list[Path]] = {}
 
     # Discover all state directories
     for state_dir in FIXTURES_DIR.iterdir():
@@ -53,7 +52,7 @@ def discover_all_fixtures() -> Dict[str, List[Path]]:
     return fixtures
 
 
-def get_all_state_fixtures() -> List[Tuple[str, Path]]:
+def get_all_state_fixtures() -> list[tuple[str, Path]]:
     """Generate test parameters for all state fixtures."""
     fixtures = discover_all_fixtures()
     params = []
@@ -101,7 +100,7 @@ def test_state_detection_for_fixture(state_name, fixture_path) -> None:
         )
 
 
-def get_message_queued_fixtures() -> List[Path]:
+def get_message_queued_fixtures() -> list[Path]:
     """Get message_queued fixtures for testing."""
     fixtures = discover_all_fixtures()
     if "message_queued" not in fixtures:
@@ -118,7 +117,7 @@ def test_message_queued_fixtures_have_unsubmitted_messages(fixture_path) -> None
     assert has_unsubmitted_message(content), f"File {fixture_path.name} should have unsubmitted message"
 
 
-def get_idle_fixtures() -> List[Path]:
+def get_idle_fixtures() -> list[Path]:
     """Get idle fixtures for testing."""
     fixtures = discover_all_fixtures()
     if "idle" not in fixtures:
@@ -135,7 +134,7 @@ def test_idle_fixtures_have_no_unsubmitted_messages(fixture_path) -> None:
     assert not has_unsubmitted_message(content), f"File {fixture_path.name} should not have unsubmitted message"
 
 
-def get_crashed_fixtures() -> List[Path]:
+def get_crashed_fixtures() -> list[Path]:
     """Get crashed fixtures for testing."""
     fixtures = discover_all_fixtures()
     if "crashed" not in fixtures:
@@ -152,7 +151,7 @@ def test_crashed_fixtures_have_no_claude_interface(fixture_path) -> None:
     assert not is_claude_interface_present(content), f"File {fixture_path.name} should not have Claude interface"
 
 
-def get_active_interface_fixtures() -> List[Tuple[str, Path]]:
+def get_active_interface_fixtures() -> list[tuple[str, Path]]:
     """Get fixtures that should have Claude interface."""
     fixtures = discover_all_fixtures()
     params = []

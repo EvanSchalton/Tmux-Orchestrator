@@ -1,7 +1,6 @@
 """Context commands for standardized agent briefings."""
 
 from pathlib import Path
-from typing import Dict
 
 import click
 import pkg_resources  # noqa: E402
@@ -19,7 +18,7 @@ except Exception:
     CONTEXTS_DIR = Path(__file__).parent.parent / "data" / "contexts"
 
 
-def get_available_contexts() -> Dict[str, Path]:
+def get_available_contexts() -> dict[str, Path]:
     """Get list of available context files."""
     if not CONTEXTS_DIR.exists():
         return {}

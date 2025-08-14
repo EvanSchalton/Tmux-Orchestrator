@@ -82,7 +82,7 @@ def get_all_test_files() -> List[Path]:
 
 def analyze_test_organization(file_analysis: Dict) -> Dict[str, List[str]]:
     """Analyze how tests are organized (by feature, by method, etc)."""
-    organization = {"by_feature": [], "by_method": [], "mixed": [], "unclear": []}
+    organization: dict[str, list[str]] = {"by_feature": [], "by_method": [], "mixed": [], "unclear": []}
 
     for file_info in file_analysis:
         if file_info.get("error"):

@@ -10,7 +10,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any
 
 
 class ConversionMonitor:
@@ -22,11 +22,12 @@ class ConversionMonitor:
         self.monitoring_log = "conversion_monitoring_log.txt"
         self.patterns_learned = self.load_patterns()
 
-    def load_patterns(self) -> Dict:
+    def load_patterns(self) -> dict[Any, Any]:
         """Load previously learned conversion patterns."""
         try:
             with open(self.patterns_file) as f:
-                return json.load(f)
+                data: dict[Any, Any] = json.load(f)
+                return data
         except FileNotFoundError:
             return {"fixture_patterns": {}, "naming_patterns": {}, "common_conversions": []}
 
@@ -35,7 +36,7 @@ class ConversionMonitor:
         with open(self.patterns_file, "w") as f:
             json.dump(self.patterns_learned, f, indent=2)
 
-    def check_file_status(self, filepath: Path) -> Dict:
+    def check_file_status(self, filepath: Path) -> dict:
         """Check current status of a test file."""
         if not filepath.exists():
             return {"exists": False}
@@ -67,9 +68,9 @@ class ConversionMonitor:
             "size": len(content.splitlines()),
         }
 
-    def analyze_conversion(self, before: Dict, after: Dict, filepath: str) -> Dict:
+    def analyze_conversion(self, before: dict, after: dict, filepath: str) -> dict:
         """Analyze a conversion and extract patterns."""
-        analysis = {
+        analysis: dict[str, Any] = {
             "file": filepath,
             "timestamp": datetime.now().isoformat(),
             "changes": {
@@ -104,7 +105,7 @@ class ConversionMonitor:
 
         return analysis
 
-    def run_tests(self, filepath: str) -> Tuple[bool, int, List[str]]:
+    def run_tests(self, filepath: str) -> tuple[bool, int, list[str]]:
         """Run tests for the converted file."""
         try:
             result = subprocess.run(
@@ -123,7 +124,7 @@ class ConversionMonitor:
         except Exception as e:
             return False, 0, [f"Error running tests: {e}"]
 
-    def generate_feedback(self, analysis: Dict, test_results: Tuple) -> List[str]:
+    def generate_feedback(self, analysis: dict, test_results: tuple) -> list[str]:
         """Generate immediate feedback for the developer."""
         feedback = []
         success, test_count, errors = test_results
@@ -214,7 +215,7 @@ class ConversionMonitor:
         except KeyboardInterrupt:
             print("\n\nMonitoring stopped.")
 
-    def log_conversion(self, analysis: Dict, feedback: List[str]):
+    def log_conversion(self, analysis: dict, feedback: list[str]):
         """Log conversion details for analysis."""
         with open(self.monitoring_log, "a") as f:
             f.write(f"\n{'='*60}\n")

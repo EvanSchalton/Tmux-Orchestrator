@@ -191,7 +191,10 @@ def test_kill_agent_unexpected_error(mock_tmux) -> None:
 
     # Assert
     assert not result.success
-    assert "Unexpected error killing agent: Unexpected tmux error" in result.error_message
+    assert (
+        result.error_message is not None
+        and "Unexpected error killing agent: Unexpected tmux error" in result.error_message
+    )
 
 
 def test_kill_agent_no_pm_found(mock_tmux, mock_logger) -> None:
