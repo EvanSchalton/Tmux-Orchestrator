@@ -1,5 +1,6 @@
 """Spawn command group for creating orchestrators, PMs, and agents."""
 
+import re
 from pathlib import Path
 
 import click
@@ -94,7 +95,11 @@ def pm(session: str, extend: str | None = None) -> None:
 @click.argument("target")
 @click.option("--briefing", required=True, help="Agent briefing/system prompt")
 @click.option("--working-dir", help="Working directory for the agent")
-def agent(name: str, target: str, briefing: str, working_dir: str | None = None) -> None:
+@click.option("--json", is_flag=True, help="Output in JSON format")
+@click.pass_context
+def agent(
+    ctx: click.Context, name: str, target: str, briefing: str, working_dir: str | None = None, json: bool = False
+) -> None:
     """Spawn a custom agent into a specific session and window.
 
     This command creates a new Claude agent with complete customization.
@@ -123,15 +128,67 @@ def agent(name: str, target: str, briefing: str, working_dir: str | None = None)
     # Import agent spawn functionality
     from tmux_orchestrator.cli.agent import spawn as agent_spawn
 
-    # Create a mock context object that matches what agent spawn expects
-    class MockContext:
-        def __init__(self):
-            self.obj = {"tmux": TMUXManager()}
+    # Validate target format
+    if not re.match(r"^[^:]+:\d+$", target):
+        error_msg = f"Invalid target format '{target}'. Use session:window (e.g., 'myproject:3')"
+        if json:
+            import json as json_module
 
-    ctx = MockContext()
+            result = {"success": False, "name": name, "target": target, "error": error_msg}
+            console.print(json_module.dumps(result, indent=2))
+            return
+        console.print(f"[red]✗ {error_msg}[/red]")
+        raise click.Abort()
 
-    # Call the existing implementation
-    agent_spawn.callback(ctx, name, target, briefing, working_dir or str(Path.cwd()), False)
+    # Validate working directory if provided
+    if working_dir:
+        working_path = Path(working_dir)
+        if not working_path.exists():
+            error_msg = f"Working directory '{working_dir}' does not exist"
+            if json:
+                import json as json_module
+
+                result = {"success": False, "name": name, "target": target, "error": error_msg}
+                console.print(json_module.dumps(result, indent=2))
+                return
+            console.print(f"[red]✗ {error_msg}[/red]")
+            raise click.Abort()
+        if not working_path.is_dir():
+            error_msg = f"Working directory '{working_dir}' is not a directory"
+            if json:
+                import json as json_module
+
+                result = {"success": False, "name": name, "target": target, "error": error_msg}
+                console.print(json_module.dumps(result, indent=2))
+                return
+            console.print(f"[red]✗ {error_msg}[/red]")
+            raise click.Abort()
+
+    # Ensure context has tmux manager
+    if ctx.obj is None:
+        ctx.obj = {}
+    if "tmux" not in ctx.obj:
+        ctx.obj["tmux"] = TMUXManager()
+
+    try:
+        # Call the existing implementation using Click's invoke
+        ctx.invoke(
+            agent_spawn,
+            name=name,
+            target=target,
+            briefing=briefing,
+            working_dir=working_dir or str(Path.cwd()),
+            json=json,
+        )
+    except Exception as e:
+        if json:
+            import json as json_module
+
+            result = {"success": False, "name": name, "target": target, "error": str(e)}
+            console.print(json_module.dumps(result, indent=2))
+        else:
+            console.print(f"[red]✗ Failed to spawn agent: {str(e)}[/red]")
+        raise click.Abort()
 
 
 if __name__ == "__main__":

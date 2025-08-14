@@ -106,6 +106,24 @@ fi
 8. Monitor progress and handle escalations
 9. Report results back to human
 
+## 🚨 CRITICAL: Always Use tmux-orc Commands, NEVER Raw tmux 🚨
+
+**The #1 cause of PM spawning failures is using raw tmux commands!**
+
+### ❌ WRONG (Messages Won't Submit):
+```bash
+# These commands will TYPE text but NOT submit it to Claude:
+tmux new-session -d -s project
+tmux send-keys -t project:1 "message"  # FAILS TO SUBMIT!
+```
+
+### ✅ CORRECT (Guaranteed Delivery):
+```bash
+# Use tmux-orc commands that handle message submission properly:
+tmux-orc spawn pm --session project:1
+tmux-orc agent send project:1 "message"
+```
+
 ## ❌ Examples of What NOT to Do
 
 **WRONG - Orchestrator doing implementation:**
@@ -141,10 +159,19 @@ Orchestrator: "I'll spawn a PM with a QA engineer to handle testing..."
 - The daemon's PM auto-recovery is meant for crashed PMs, not initial setup
 - Race conditions between spawning and monitoring can cause false alerts
 
-**🚨 NEVER MANUALLY SPAWN PMs! 🚨**
-Always use: `tmux-orc context spawn pm --session project:1`
+**🚨 ALWAYS USE tmux-orc FOR PM SPAWNING! 🚨**
 
-Manual spawning creates agents that don't know they're PMs!
+### Primary Method (Recommended):
+```bash
+tmux-orc spawn pm --session project:1
+```
+
+### Alternative (if spawn pm fails):
+```bash
+tmux-orc context spawn pm --session project:1
+```
+
+**NEVER use raw tmux commands - they create agents that don't know they're PMs!**
 
 ## Complete CLI Command Reference
 
