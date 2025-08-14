@@ -59,11 +59,18 @@ jobs:
     - name: Commit version bump
       run: |
         git add pyproject.toml tmux_orchestrator/__init__.py
-        git commit -m "chore: Auto-bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]
+
+        # Create commit message using heredoc to handle special characters
+        cat > commit_msg.txt << 'EOF'
+        chore: Auto-bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]
 
         Automated version bump from ${{ steps.get_version.outputs.current_version }} to ${{ steps.bump_version.outputs.new_version }}
 
-        Triggered by: ${{ github.event.head_commit.message }}"
+        Triggered by: ${{ github.event.head_commit.message }}
+        EOF
+
+        git commit -F commit_msg.txt
+        rm commit_msg.txt
 
     - name: Push changes
       run: |
