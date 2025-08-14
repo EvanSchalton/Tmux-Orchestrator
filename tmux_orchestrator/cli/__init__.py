@@ -36,7 +36,7 @@ def cli(ctx: click.Context, config_file: str | None, json: bool, verbose: bool) 
         tmux-orc team deploy frontend 3          # Deploy 3-agent frontend team
         tmux-orc agent restart session:0         # Restart specific agent
         tmux-orc monitor start --interval 15     # Start monitoring daemon
-        tmux-orc setup-vscode ./my-project       # Setup VS Code integration
+        tmux-orc setup vscode ./my-project       # Setup VS Code integration
 
     For detailed command help, use: tmux-orc COMMAND --help
     """
@@ -342,13 +342,7 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # spawn_orc.py module for orchestrator launch
 
-        # Add VS Code setup commands
-        try:
-            from tmux_orchestrator.cli import setup
-
-            cli.add_command(setup.vscode_setup)
-        except ImportError:
-            pass  # setup.py module for VS Code integration
+        # Note: VS Code setup moved to setup_claude.py as 'tmux-orc setup vscode'
 
         # Add recovery commands
         try:

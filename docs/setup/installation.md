@@ -55,7 +55,7 @@ tmux-message --help
 tmux-schedule --help
 
 # Start orchestrator
-.tmux-orchestrator/commands/start-orchestrator.sh
+tmux-orc orchestrator start
 ```
 
 ## Manual Setup (Non-Devcontainer)
@@ -274,7 +274,7 @@ Enable debug output:
 export TMUX_ORCHESTRATOR_DEBUG=1
 
 # Run with verbose output
-bash -x .tmux-orchestrator/commands/start-orchestrator.sh
+bash -x tmux-orc orchestrator start
 ```
 
 ### Log Files

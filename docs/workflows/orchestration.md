@@ -80,9 +80,9 @@ Agent examples in `tmux_orchestrator/data/agent_examples/` provide starting poin
 
 ```bash
 # PM reads the team plan and spawns each agent:
-tmux-orc agent spawn project-session backend-dev --briefing "From team plan..."
-tmux-orc agent spawn project-session qa-engineer --briefing "From team plan..."
-tmux-orc agent spawn project-session custom-role --briefing "Novel agent type..."
+tmux-orc spawn agent project-session backend-dev --briefing "From team plan..."
+tmux-orc spawn agent project-session qa-engineer --briefing "From team plan..."
+tmux-orc spawn agent project-session custom-role --briefing "Novel agent type..."
 ```
 
 ## CLI/MCP Communication Layer

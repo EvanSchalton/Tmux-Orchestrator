@@ -182,21 +182,41 @@ def detect_claude_state(content: str) -> str:
         'idle' - No input, no placeholder
     """
 
-    # Check for fresh Claude placeholder patterns first
-    fresh_patterns = [
-        r'Try "help" for more information',
-        r'Try ".*" for more information',
-        r"Welcome to Claude Code",
-        r"^>\s*$",  # Empty prompt line
-    ]
-
-    for pattern in fresh_patterns:
-        if re.search(pattern, content):
-            return "fresh"
-
-    # Check for actual unsubmitted content
+    # CRITICAL: Check for actual unsubmitted content FIRST
+    # This prevents auto-submit on messages that look like placeholders
     if has_unsubmitted_message(content):
         return "unsubmitted"
+
+    # Now check for fresh Claude instance indicators
+    # Only check if the prompt is truly empty or has specific placeholder text
+    lines = content.strip().split("\n")
+
+    # Look for the actual Claude prompt box
+    prompt_content = None
+    for i, line in enumerate(lines):
+        if "│ >" in line or "│\xa0>" in line:
+            # Extract content after the prompt marker
+            if "│ >" in line:
+                prompt_content = line.split("│ >", 1)[1]
+            elif "│\xa0>" in line:
+                prompt_content = line.split("│\xa0>", 1)[1]
+
+            # Remove closing │ if present
+            if prompt_content and "│" in prompt_content:
+                prompt_content = prompt_content.rsplit("│", 1)[0]
+            if prompt_content:
+                prompt_content = prompt_content.replace("\xa0", " ").strip()
+            break
+
+    # Check if we have a truly fresh instance
+    if prompt_content is not None and prompt_content == "":
+        # Empty prompt - check for fresh welcome message
+        if "Welcome to Claude Code" in content and "What would you like me to help you with" in content:
+            return "fresh"
+
+    # More specific fresh patterns - only match exact help message
+    if prompt_content == 'Try "help" for more information':
+        return "fresh"
 
     # Check for active conversation
     if is_claude_interface_present(content):
@@ -257,7 +277,11 @@ def has_unsubmitted_message(content: str) -> bool:
                 # Also handle non-breaking spaces in content
                 prompt_content = prompt_content.replace("\xa0", " ")
 
-                if prompt_content.strip():
+                # Get the stripped content
+                stripped_content = prompt_content.strip()
+
+                # Check if this is actual user input or just placeholder text
+                if stripped_content and stripped_content != 'Try "help" for more information':
                     return True
 
     return False

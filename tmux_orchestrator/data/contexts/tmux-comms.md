@@ -95,7 +95,7 @@ SESSION_NAME=$(tmux display-message -p '#S')
 echo "Spawning agent in session: $SESSION_NAME"
 
 # 3. Spawn the agent
-tmux-orc agent spawn $SESSION_NAME:2 developer --briefing "Your role..."
+tmux-orc spawn agent developer $SESSION_NAME:2 --briefing "Your role..."
 
 # 4. Wait for agent to be fully ready
 sleep 8

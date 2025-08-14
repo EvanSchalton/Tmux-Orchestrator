@@ -127,8 +127,9 @@ def agent(
     The orchestrator typically uses this command to create custom agents
     tailored to specific project needs, as defined in the team composition plan.
     """
-    # Import agent spawn functionality
-    from tmux_orchestrator.cli.agent import spawn as agent_spawn
+    import time
+
+    tmux: TMUXManager = ctx.obj["tmux"] if ctx.obj and "tmux" in ctx.obj else TMUXManager()
 
     # Validate target format
     if not re.match(r"^[^:]+:\d+$", target):
@@ -166,31 +167,150 @@ def agent(
             console.print(f"[red]✗ {error_msg}[/red]")
             raise click.Abort()
 
-    # Ensure context has tmux manager
-    if ctx.obj is None:
-        ctx.obj = {}
-    if "tmux" not in ctx.obj:
-        ctx.obj["tmux"] = TMUXManager()
+    session_name, window_idx = target.split(":")
 
-    try:
-        # Call the existing implementation using Click's invoke
-        ctx.invoke(
-            agent_spawn,
-            name=name,
-            target=target,
-            briefing=briefing,
-            working_dir=working_dir or str(Path.cwd()),
-            json=json,
-        )
-    except Exception as e:
+    # Check if session exists
+    if not tmux.has_session(session_name):
+        # Create new session
+        if not tmux.create_session(session_name):
+            error_msg = f"Failed to create session '{session_name}'"
+            if json:
+                import json as json_module
+
+                result = {
+                    "success": False,
+                    "name": name,
+                    "target": target,
+                    "error": error_msg,
+                }
+                console.print(json_module.dumps(result, indent=2))
+                return
+            console.print(f"[red]✗ {error_msg}[/red]")
+            raise click.Abort()
+
+    # Check for duplicate roles in the session
+    existing_windows = tmux.list_windows(session_name)
+
+    for window in existing_windows:
+        window_name = window.get("name", "").lower()
+        name_lower = name.lower()
+
+        # Check for role conflicts (case-insensitive)
+        role_conflicts = [
+            (name_lower in window_name or window_name in name_lower) and len(name_lower) > 2,
+            # Specific role aliases
+            (
+                name_lower in ["pm", "manager", "project-manager"]
+                and any(pm in window_name for pm in ["pm", "manager", "project"])
+            ),
+            (name_lower in ["dev", "developer", "engineer"] and any(dev in window_name for dev in ["dev", "engineer"])),
+            (
+                name_lower in ["qa", "tester", "test", "quality"]
+                and any(qa in window_name for qa in ["qa", "test", "quality"])
+            ),
+            (
+                name_lower in ["devops", "ops", "deploy"]
+                and any(ops in window_name for ops in ["devops", "ops", "deploy"])
+            ),
+            (name_lower in ["reviewer", "review", "code-review"] and any(rev in window_name for rev in ["review"])),
+        ]
+
+        if any(role_conflicts):
+            error_msg = (
+                f"Role conflict: '{name}' conflicts with existing window '{window['name']}' in session '{session_name}'"
+            )
+            if json:
+                import json as json_module
+
+                result = {
+                    "success": False,
+                    "name": name,
+                    "target": target,
+                    "error": error_msg,
+                    "conflict_window": f"{session_name}:{window['index']}",
+                    "validation_failed": "duplicate_role",
+                }
+                console.print(json_module.dumps(result, indent=2))
+                return
+            console.print(f"[red]✗ {error_msg}[/red]")
+            console.print(f"[yellow]Existing window: {session_name}:{window['index']} - {window['name']}[/yellow]")
+            console.print("[dim]Each role should have only ONE agent per session[/dim]")
+            raise click.Abort()
+
+    # Create window with custom name
+    window_name = f"Claude-{name}"
+    success = tmux.create_window(session_name, window_name, working_dir)
+
+    if not success:
+        error_msg = "Failed to create window"
         if json:
             import json as json_module
 
-            result = {"success": False, "name": name, "target": target, "error": str(e)}
+            result = {
+                "success": False,
+                "name": name,
+                "target": target,
+                "error": error_msg,
+            }
             console.print(json_module.dumps(result, indent=2))
-        else:
-            console.print(f"[red]✗ Failed to spawn agent: {str(e)}[/red]")
+            return
+        console.print(f"[red]✗ {error_msg}[/red]")
         raise click.Abort()
+
+    # Get the actual window index (might differ from requested)
+    windows = tmux.list_windows(session_name)
+    actual_window_idx = None
+    for window in windows:
+        if window["name"] == window_name:
+            actual_window_idx = window["index"]
+            break
+
+    if actual_window_idx is None:
+        error_msg = "Window created but not found"
+        if json:
+            import json as json_module
+
+            result = {
+                "success": False,
+                "name": name,
+                "target": target,
+                "error": error_msg,
+            }
+            console.print(json_module.dumps(result, indent=2))
+            return
+        console.print(f"[red]✗ {error_msg}[/red]")
+        raise click.Abort()
+
+    # Start Claude in the new window
+    actual_target = f"{session_name}:{actual_window_idx}"
+    tmux.send_text(actual_target, "claude --dangerously-skip-permissions")
+    tmux.press_enter(actual_target)
+
+    # CRITICAL: Wait for Claude to fully initialize to prevent Ctrl+C interruption
+    time.sleep(8)  # Give Claude sufficient time to load completely
+
+    # Send briefing (required in this new implementation)
+    tmux.send_message(actual_target, briefing)
+
+    # Prepare result
+    result_data = {
+        "success": True,
+        "name": name,
+        "target": actual_target,
+        "window_name": window_name,
+        "briefing_sent": True,
+    }
+
+    if json:
+        import json as json_module
+
+        console.print(json_module.dumps(result_data, indent=2))
+    else:
+        console.print(f"[green]✓ Spawned custom agent '{name}' at {actual_target}[/green]")
+        console.print(f"  Window name: {window_name}")
+        console.print("  Custom briefing: ✓ Sent")
+        if working_dir:
+            console.print(f"  Working directory: {working_dir}")
 
 
 if __name__ == "__main__":

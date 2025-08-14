@@ -182,7 +182,7 @@ tmux-orc context spawn pm --session project:1
 - `tmux-orc context spawn pm --session project:1` - Spawn PM with standard context
 
 ### Agent Management
-- `tmux-orc agent spawn <session:window> <name> --briefing "..."` - Spawn custom agents
+- `tmux-orc spawn agent <name> <session:window> --briefing "..."` - Spawn custom agents
 - `tmux-orc agent list` - View all active agents
 - `tmux-orc agent status <target>` - Detailed agent status
 - `tmux-orc agent send <target> "message"` - Send messages (uses C-Enter)

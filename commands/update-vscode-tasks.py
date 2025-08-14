@@ -89,7 +89,8 @@ def create_base_tasks(project_name):
         {
             "label": "📊 List All Agents",
             "type": "shell",
-            "command": "${workspaceFolder}/.tmux-orchestrator/commands/list-agents.sh",
+            "command": "tmux-orc",
+            "args": ["list"],
             "group": "test",
             "presentation": {"reveal": "always", "panel": "shared", "focus": True},
             "problemMatcher": [],
@@ -97,7 +98,8 @@ def create_base_tasks(project_name):
         {
             "label": "🎯 Agent Status Dashboard",
             "type": "shell",
-            "command": "${workspaceFolder}/.tmux-orchestrator/commands/agent-status.sh",
+            "command": "tmux-orc",
+            "args": ["agent", "status"],
             "group": "test",
             "presentation": {"reveal": "always", "panel": "shared", "focus": True},
             "problemMatcher": [],
@@ -129,7 +131,8 @@ def create_base_tasks(project_name):
         {
             "label": "🚀 Start Orchestrator",
             "type": "shell",
-            "command": "${workspaceFolder}/.tmux-orchestrator/commands/start-orchestrator.sh",
+            "command": "tmux-orc",
+            "args": ["orchestrator", "start"],
             "group": "build",
             "presentation": {"reveal": "always", "panel": "shared", "focus": True},
             "problemMatcher": [],
@@ -137,8 +140,8 @@ def create_base_tasks(project_name):
         {
             "label": "🤖 Deploy Individual Agent",
             "type": "shell",
-            "command": "${workspaceFolder}/.tmux-orchestrator/commands/deploy-agent.sh",
-            "args": ["${input:agentComponent}", "${input:agentRole}"],
+            "command": "tmux-orc",
+            "args": ["agent", "deploy", "${input:agentComponent}", "${input:agentRole}"],
             "group": "build",
             "presentation": {"reveal": "always", "panel": "shared", "focus": True},
             "problemMatcher": [],

@@ -89,30 +89,22 @@ class TMUXManager:
         """Send literal text to the target pane (properly escaped)."""
         return self.send_keys(target, text, literal=True)
 
-    def send_message(self, target: str, message: str) -> bool:
-        """Send a message to a Claude agent using the proven CLI method."""
+    def send_message(self, target: str, message: str, delay: float = 0.5) -> bool:
+        """Send a message to a Claude agent using the proven CLI method.
+
+        This implementation matches the working CLI agent send command.
+
+        Args:
+            target: Target pane (session:window or session:window.pane)
+            message: Message text to send
+            delay: Delay between operations (default 0.5s)
+
+        Returns:
+            bool: True if message was sent successfully
+        """
         import time
 
-        # Use the exact same method as the working CLI command
         try:
-            delay = 0.5  # Standard delay from CLI
-
-            # Safety check: Wait if Claude is still initializing to prevent Ctrl+C interruption
-            max_wait = 15  # Maximum wait time in seconds
-            wait_count = 0
-            while wait_count < max_wait:
-                content = self.capture_pane(target)
-                if content and ("│ >" in content or "Bypassing Permissions" in content):
-                    # Claude is ready
-                    break
-                elif "Downloading" in content or "Installing" in content or content.strip() == "":
-                    # Claude is still initializing
-                    time.sleep(1)
-                    wait_count += 1
-                else:
-                    # Claude appears ready
-                    break
-
             # Clear any existing input first
             self.press_ctrl_c(target)
             time.sleep(delay)

@@ -327,7 +327,7 @@ def _generate_team_composition(project_name: str, agents: list[dict], output_pat
 
         # Create deployment command
         deploy_cmd = (
-            f'tmux-orc agent spawn {agent["template"]} {project_name}:{agent["window"]} --briefing "{system_prompt}"'
+            f'tmux-orc spawn agent {agent["template"]} {project_name}:{agent["window"]} --briefing "{system_prompt}"'
         )
         deployment_commands.append(deploy_cmd)
 

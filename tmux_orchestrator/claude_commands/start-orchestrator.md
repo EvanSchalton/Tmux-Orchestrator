@@ -43,7 +43,7 @@ The human orchestrator should:
 1. Create a team plan document in `.tmux_orchestrator/planning/`
 2. Define required agents based on project needs
 3. Include agent briefings and interaction diagrams
-4. Spawn PM agent with: `tmux-orc agent spawn [session]:1 pm --briefing "..."`
+4. Spawn PM agent with: `tmux-orc spawn agent pm [session]:1 --briefing "..."`
 
 ### 4. Document-Driven Workflow
 The system follows a document-driven approach where:

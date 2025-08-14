@@ -35,7 +35,8 @@
     {
       "label": "📊 List All Agents",
       "type": "shell",
-      "command": "${workspaceFolder}/.tmux-orchestrator/commands/list-agents.sh",
+      "command": "tmux-orc",
+      "args": ["list"],
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -47,7 +48,8 @@
     {
       "label": "🎯 Agent Status Dashboard",
       "type": "shell",
-      "command": "${workspaceFolder}/.tmux-orchestrator/commands/agent-status.sh",
+      "command": "tmux-orc",
+      "args": ["agent", "status"],
       "group": "test",
       "presentation": {
         "reveal": "always",

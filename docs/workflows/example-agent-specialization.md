@@ -12,31 +12,31 @@ Instead of generic agents, deploy specialists:
 
 ```bash
 # Deploy API Design Specialist
-tmux-orc agent spawn api-specialist \
+tmux-orc spawn agent api-specialist \
   --role "API Designer" \
   --skills "REST,GraphQL,OpenAPI,API versioning" \
   --prompt "You are an expert API designer focused on creating intuitive, scalable APIs"
 
 # Deploy Database Optimization Expert
-tmux-orc agent spawn db-expert \
+tmux-orc spawn agent db-expert \
   --role "Database Architect" \
   --skills "PostgreSQL,query optimization,indexing,sharding" \
   --prompt "You specialize in database design and optimization for high-performance applications"
 
 # Deploy Security Specialist
-tmux-orc agent spawn security-expert \
+tmux-orc spawn agent security-expert \
   --role "Security Engineer" \
   --skills "OWASP,penetration testing,encryption,auth systems" \
   --prompt "You are a security expert focused on identifying and fixing vulnerabilities"
 
 # Deploy Performance Engineer
-tmux-orc agent spawn perf-engineer \
+tmux-orc spawn agent perf-engineer \
   --role "Performance Engineer" \
   --skills "profiling,caching,load testing,optimization" \
   --prompt "You optimize application performance and scalability"
 
 # Deploy UI/UX Specialist
-tmux-orc agent spawn ui-expert \
+tmux-orc spawn agent ui-expert \
   --role "UI/UX Designer" \
   --skills "React,design systems,accessibility,user research" \
   --prompt "You create beautiful, intuitive user interfaces with excellent UX"
@@ -47,7 +47,7 @@ tmux-orc agent spawn ui-expert \
 Deploy a PM who understands how to leverage specialist skills:
 
 ```bash
-tmux-orc agent spawn saas-pm \
+tmux-orc spawn agent saas-pm \
   --role "Project Manager" \
   --prompt "You coordinate specialist agents, matching tasks to their expertise.
   You understand: API design, database architecture, security, performance, and UI/UX.

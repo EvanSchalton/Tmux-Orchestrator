@@ -115,7 +115,7 @@ tmux-orc code-owner spawn project:0          # Create code-owner agent
 tmux-orc code-owner assign developer-1 /auth # Assign subtree
 tmux-orc code-owner status                   # Show all assignments
 tmux-orc code-owner merge developer-1        # Merge completed work
-tmux-orc agent spawn developer project:2 --use-code-owners --subtree /auth
+tmux-orc spawn agent developer project:2 --use-code-owners --subtree /auth
 ```
 
 ### **Agent Context Updates**

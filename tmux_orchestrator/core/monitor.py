@@ -664,7 +664,10 @@ class IdleMonitor:
             del self._last_submission_time[target]
 
     def _try_auto_submit(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
-        """Try auto-submitting stuck messages with cooldown."""
+        """Try auto-submitting stuck messages with cooldown.
+
+        CRITICAL: Never auto-submit on fresh Claude instances to prevent breaking them.
+        """
         current_time = time.time()
         last_attempt = self._last_submission_time.get(target, 0)
 
@@ -675,6 +678,14 @@ class IdleMonitor:
             return
 
         if current_time - last_attempt >= 10:  # 10 second cooldown
+            # SAFETY CHECK: Verify this isn't a fresh Claude instance before submitting
+            content = tmux.capture_pane(target, lines=50)
+            claude_state = detect_claude_state(content)
+
+            if claude_state == "fresh":
+                logger.warning(f"PREVENTED auto-submit on fresh Claude instance at {target}")
+                return
+
             logger.info(f"Auto-submitting stuck message for {target} (attempt #{attempts + 1})")
 
             # Try different submission methods

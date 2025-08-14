@@ -34,7 +34,7 @@ The system is designed for Claude-driven orchestration, NOT automatic parsing:
    - May follow template patterns or be completely novel
    - Mermaid diagram showing team interactions
 4. **Claude spawns agents** - Using CLI/MCP tools to create each custom agent:
-   - `tmux-orc agent spawn <custom-name> <session:window> --briefing "..."`
+   - `tmux-orc spawn agent <custom-name> <session:window> --briefing "..."`
    - Every agent is custom, even if inspired by templates
    - Or via MCP: `spawn_agent` tool with custom briefing
 5. **Agents coordinate** - Using MCP tools for communication and task management
@@ -74,7 +74,7 @@ This is a **human-in-the-loop** system where Claude acts as the intelligent orch
   - Spawn individual agent into specific session:window
   - Accept ANY custom agent name (not restricted to types)
   - Accept full system prompt/briefing via --briefing flag
-  - Example: `tmux-orc agent spawn api-specialist myproject:3 --briefing "You are a specialized..."`
+  - Example: `tmux-orc spawn agent api-specialist myproject:3 --briefing "You are a specialized..."`
   - No type validation - Claude decides all agent characteristics
   - File: `tmux_orchestrator/cli/agent.py`
 

@@ -193,7 +193,7 @@ echo "✅ \$PROJECT_NAME team restarted successfully!"
 echo ""
 echo "💡 Next Steps:"
 echo "  Monitor: ./scripts/monitor-\$PROJECT_NAME-team.sh"
-echo "  Status:  ./.tmux-orchestrator/commands/agent-status.sh"
+echo "  Status:  tmux-orc agent status"
 echo "  VS Code: Ctrl+Shift+P → Tasks: Run Task → Open All Agents"
 EOF
 
@@ -318,7 +318,7 @@ This project is integrated with the TMUX Orchestrator for autonomous development
 ### Monitor Team
 \`\`\`bash
 # Check agent status
-.tmux-orchestrator/commands/agent-status.sh
+tmux-orc agent status
 
 # Attach to specific agent
 tmux attach -t $PROJECT_NAME-frontend
@@ -356,7 +356,7 @@ See \`references/Tmux-Orchestrator/\` for complete documentation:
 1. **Customize tasks.md** for your project needs
 2. **Rebuild devcontainer** to install TMUX Orchestrator
 3. **Deploy team**: \`./scripts/deploy-$PROJECT_NAME-team.sh\`
-4. **Monitor progress**: \`.tmux-orchestrator/commands/agent-status.sh\`
+4. **Monitor progress**: \`tmux-orc agent status\`
 EOF
 
 echo "   ✓ Documentation created: TMUX_ORCHESTRATOR_README.md"
@@ -387,8 +387,8 @@ echo ""
 echo -e "${GREEN}Quick Commands:${NC}"
 echo -e "  Deploy: ${YELLOW}./scripts/deploy.sh tasks.md${NC}"
 echo -e "  Restart: ${YELLOW}./scripts/restart.sh tasks.md${NC}"
-echo -e "  Monitor: ${YELLOW}.tmux-orchestrator/commands/agent-status.sh${NC}"
-echo -e "  List agents: ${YELLOW}.tmux-orchestrator/commands/list-agents.sh${NC}"
+echo -e "  Monitor: ${YELLOW}tmux-orc agent status${NC}"
+echo -e "  List agents: ${YELLOW}tmux-orc list${NC}"
 echo -e "  Force PM check-in: ${YELLOW}.tmux-orchestrator/commands/force-pm-checkin.sh${NC}"
 echo ""
 echo -e "${GREEN}VS Code Integration:${NC}"

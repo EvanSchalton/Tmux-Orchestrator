@@ -37,7 +37,7 @@ Every agent should have:
 
 ```bash
 # Spawn a developer agent
-tmux-orc agent spawn backend-dev orchestrator:2 --briefing "
+tmux-orc spawn agent backend-dev orchestrator:2 --briefing "
 You are a Senior Backend Developer specializing in Python and FastAPI.
 
 **Core Responsibilities:**
@@ -74,7 +74,7 @@ You are a Senior Backend Developer specializing in Python and FastAPI.
 
 ```bash
 # Spawn a PM agent
-tmux-orc agent spawn project-manager orchestrator:5 --briefing "
+tmux-orc spawn agent project-manager orchestrator:5 --briefing "
 You are an experienced Agile Project Manager focused on quality and delivery.
 
 **Core Responsibilities:**
@@ -110,7 +110,7 @@ You are an experienced Agile Project Manager focused on quality and delivery.
 
 ```bash
 # Spawn a QA agent
-tmux-orc agent spawn qa-engineer orchestrator:4 --briefing "
+tmux-orc spawn agent qa-engineer orchestrator:4 --briefing "
 You are a Senior QA Engineer specializing in automated testing.
 
 **Core Responsibilities:**
@@ -148,7 +148,7 @@ You are a Senior QA Engineer specializing in automated testing.
 
 ```bash
 # Spawn a DevOps agent
-tmux-orc agent spawn devops-engineer orchestrator:3 --briefing "
+tmux-orc spawn agent devops-engineer orchestrator:3 --briefing "
 You are a Senior DevOps Engineer focusing on automation and reliability.
 
 **Core Responsibilities:**
@@ -186,7 +186,7 @@ You are a Senior DevOps Engineer focusing on automation and reliability.
 
 ```bash
 # Spawn a frontend developer
-tmux-orc agent spawn frontend-dev orchestrator:2 --briefing "
+tmux-orc spawn agent frontend-dev orchestrator:2 --briefing "
 You are a Senior Frontend Developer specializing in React and TypeScript.
 
 **Core Responsibilities:**
@@ -224,7 +224,7 @@ You are a Senior Frontend Developer specializing in React and TypeScript.
 
 ```bash
 # Spawn a backend developer
-tmux-orc agent spawn backend-dev orchestrator:2 --briefing "
+tmux-orc spawn agent backend-dev orchestrator:2 --briefing "
 You are a Senior Backend Developer specializing in Node.js and microservices.
 
 **Core Responsibilities:**
@@ -262,7 +262,7 @@ You are a Senior Backend Developer specializing in Node.js and microservices.
 
 ```bash
 # Spawn a code reviewer
-tmux-orc agent spawn code-reviewer orchestrator:3 --briefing "
+tmux-orc spawn agent code-reviewer orchestrator:3 --briefing "
 You are a Senior Code Reviewer focused on quality and security.
 
 **Review Responsibilities:**
@@ -299,7 +299,7 @@ You are a Senior Code Reviewer focused on quality and security.
 
 ```bash
 # Spawn a documentation writer
-tmux-orc agent spawn docs-writer orchestrator:4 --briefing "
+tmux-orc spawn agent docs-writer orchestrator:4 --briefing "
 You are a Technical Documentation Specialist.
 
 **Documentation Responsibilities:**
@@ -338,7 +338,7 @@ You are a Technical Documentation Specialist.
 
 ```bash
 # Spawn an API designer
-tmux-orc agent spawn api-designer orchestrator:2 --briefing "
+tmux-orc spawn agent api-designer orchestrator:2 --briefing "
 You are an API Design Specialist focusing on RESTful and GraphQL APIs.
 
 **Design Responsibilities:**
@@ -368,7 +368,7 @@ You are an API Design Specialist focusing on RESTful and GraphQL APIs.
 
 ```bash
 # Spawn a database architect
-tmux-orc agent spawn db-architect orchestrator:3 --briefing "
+tmux-orc spawn agent db-architect orchestrator:3 --briefing "
 You are a Database Architect specializing in scalable data solutions.
 
 **Architecture Responsibilities:**
@@ -398,7 +398,7 @@ You are a Database Architect specializing in scalable data solutions.
 
 ```bash
 # Spawn a security engineer
-tmux-orc agent spawn security-engineer orchestrator:4 --briefing "
+tmux-orc spawn agent security-engineer orchestrator:4 --briefing "
 You are a Security Engineer focused on application and infrastructure security.
 
 **Security Responsibilities:**
@@ -428,7 +428,7 @@ You are a Security Engineer focused on application and infrastructure security.
 
 ```bash
 # Spawn a performance engineer
-tmux-orc agent spawn performance-engineer orchestrator:3 --briefing "
+tmux-orc spawn agent performance-engineer orchestrator:3 --briefing "
 You are a Performance Engineer optimizing system efficiency.
 
 **Performance Responsibilities:**
@@ -581,19 +581,19 @@ You are contributing to an open-source project.
 
 ```bash
 # Simple spawn with role template
-tmux-orc agent spawn my-developer orchestrator:2 --role developer
+tmux-orc spawn agent my-developer orchestrator:2 --role developer
 
 # Spawn with custom briefing file
-tmux-orc agent spawn my-pm orchestrator:5 --briefing-file ./briefings/pm-briefing.md
+tmux-orc spawn agent my-pm orchestrator:5 --briefing-file ./briefings/pm-briefing.md
 
 # Spawn with inline custom briefing
-tmux-orc agent spawn my-qa orchestrator:4 --briefing "You are a QA specialist focusing on API testing..."
+tmux-orc spawn agent my-qa orchestrator:4 --briefing "You are a QA specialist focusing on API testing..."
 
 # Spawn with working directory
-tmux-orc agent spawn frontend-dev orchestrator:3 --working-dir ./frontend --role frontend
+tmux-orc spawn agent frontend-dev orchestrator:3 --working-dir ./frontend --role frontend
 
 # Spawn into specific session/window with full customization
-tmux-orc agent spawn security-expert security-project:2 \
+tmux-orc spawn agent security-expert security-project:2 \
   --briefing "You are a security expert..." \
   --working-dir ./security-audit
 ```

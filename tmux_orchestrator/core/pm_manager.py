@@ -24,8 +24,8 @@ Your responsibilities:
 - Send message to any agent: tmux-message <session:window> 'your message'
 - Available agents:
 {agent_list}
-- Check agent status: .tmux-orchestrator/commands/agent-status.sh
-- List all agents: .tmux-orchestrator/commands/list-agents.sh
+- Check agent status: tmux-orc agent status
+- List all agents: tmux-orc list
 
 ⚠️ IMPORTANT - MESSAGE SUBMISSION:
 - After typing tmux-message command, press Enter

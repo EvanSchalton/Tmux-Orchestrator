@@ -57,7 +57,7 @@ To use these examples when spawning agents:
 cat tmux_orchestrator/data/agent_examples/developer.md
 
 # Create a custom agent based on the example
-tmux-orc agent spawn my-developer orchestrator:2 \
+tmux-orc spawn agent my-developer orchestrator:2 \
   --briefing "You are a developer specializing in..."
 
 # Or reference the example when asking Claude to create agents
@@ -109,7 +109,7 @@ ls tmux_orchestrator/data/agent_examples/*.md
 cat tmux_orchestrator/data/agent_examples/security-engineer.md
 
 # Create a custom agent based on an example
-tmux-orc agent spawn my-security-expert orchestrator:4 \
+tmux-orc spawn agent my-security-expert orchestrator:4 \
   --briefing "Based on security-engineer example but focused on AWS..."
 ```
 
