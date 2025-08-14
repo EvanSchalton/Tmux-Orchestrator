@@ -47,16 +47,17 @@ class TestSpawnOrc:
         runner = CliRunner()
 
         with patch("time.sleep"):
-            with patch("subprocess.run") as mock_run:
+            with patch("subprocess.Popen") as mock_popen:
                 result = runner.invoke(spawn_orc, ["--no-gui"])
 
         assert result.exit_code == 0
         assert "Running orchestrator in current terminal..." in result.output
-        mock_run.assert_called_once()
+        mock_popen.assert_called_once()
 
-        # Check the script was executed
-        call_args = mock_run.call_args[0][0]
-        assert "/tmp/tmux-orc-startup.sh" in call_args[0]
+        # Check the claude command was executed
+        call_args = mock_popen.call_args[0][0]
+        assert "claude" in call_args
+        assert "--dangerously-skip-permissions" in call_args
 
     def test_spawn_orc_with_profile(self):
         """Test --profile option is passed to claude command."""

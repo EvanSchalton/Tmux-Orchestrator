@@ -90,9 +90,19 @@ rm -f "$INSTRUCTION_FILE"
         console.print("[dim]Starting in 3 seconds...[/dim]")
         time.sleep(3)
 
-        # Run the script directly
+        # Run claude directly without temp file
+        instruction = """Welcome! You are being launched as the Tmux Orchestrator.
+
+Please run the following command to load your orchestrator context:
+
+tmux-orc context show orchestrator
+
+This will provide you with your role, responsibilities, and workflow for managing AI agent teams."""
+
         try:
-            subprocess.run([str(script_path)], check=True)
+            # Launch Claude and send instruction via stdin
+            process = subprocess.Popen(claude_cmd, stdin=subprocess.PIPE, text=True)
+            process.communicate(input=instruction)
         except subprocess.CalledProcessError as e:
             console.print(f"[red]Error running orchestrator: {e}[/red]")
             sys.exit(1)

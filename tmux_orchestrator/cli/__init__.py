@@ -326,7 +326,15 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # setup_claude.py module for environment setup
 
-        # Add spawn-orc command
+        # Add spawn command group
+        try:
+            from tmux_orchestrator.cli import spawn
+
+            cli.add_command(spawn.spawn)
+        except ImportError:
+            pass  # spawn.py module for spawning agents
+
+        # Add spawn-orc command for orchestrator launch
         try:
             from tmux_orchestrator.cli import spawn_orc
 

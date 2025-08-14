@@ -33,7 +33,7 @@ tmux-orc setup all
 ### 2. Launch Claude as Orchestrator
 ```bash
 # In a new terminal, spawn Claude Code as the orchestrator
-tmux-orc spawn-orc
+tmux-orc spawn orc
 ```
 
 This opens a new terminal with Claude Code and automatically loads the orchestrator context.
@@ -89,7 +89,7 @@ tmux-orc agent status project:1
 
 ```bash
 # 1. Launch orchestrator (automatically loads context)
-tmux-orc spawn-orc
+tmux-orc spawn orc
 
 # 2. Create your feature request
 echo "# Feature: API Rate Limiting
@@ -327,11 +327,11 @@ Claude Code acts as orchestrator, creating bespoke teams through planning docume
 # Claude Code orchestrator workflow:
 # 1. Creates team plan in .tmux_orchestrator/planning/
 # 2. Spawns PM with plan reference
-tmux-orc agent spawn project:1 pm --briefing "Read plan at .tmux_orchestrator/planning/..."
+tmux-orc spawn pm --session project:1 --extend "Read plan at .tmux_orchestrator/planning/..."
 
 # 3. PM reads plan and spawns team:
-tmux-orc agent spawn project:2 backend-dev --briefing "..."
-tmux-orc agent spawn project:3 custom-role --briefing "..."
+tmux-orc spawn agent backend-dev project:2 --briefing "..."
+tmux-orc spawn agent custom-role project:3 --briefing "..."
 ```
 
 ### 📋 Task Management System (NEW!)
@@ -720,7 +720,7 @@ tmux-orc execute data-tasks.md --project analytics-pipeline
 ### Custom Agent Briefings
 ```bash
 # Spawn agents with custom briefings
-tmux-orc agent spawn my-developer orchestrator:2 --briefing "Custom developer briefing..."
+tmux-orc spawn agent my-developer orchestrator:2 --briefing "Custom developer briefing..."
 ```
 
 ### Integration Hooks

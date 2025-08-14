@@ -18,13 +18,13 @@ As the Claude Code orchestrator, you are the interface between the human and the
 2. **Execution Phase**: You spawn the PM and guide them to build the team:
    ```bash
    # You can use standardized context for PM
-   tmux-orc context spawn pm --session session-name:1
+   tmux-orc spawn pm --session session-name:1
    # Or with custom extensions:
-   tmux-orc agent spawn session-name:1 pm --briefing "$(tmux-orc context show pm --raw)\n\nProject specific: ..."
+   tmux-orc spawn pm --session session-name:1 --extend "Project specific: ..."
 
    # The PM then spawns other agents based on your plan
-   tmux-orc agent spawn session-name:2 backend-dev --briefing "..."
-   tmux-orc agent spawn session-name:3 qa-engineer --briefing "..."
+   tmux-orc spawn agent backend-dev session-name:2 --briefing "..."
+   tmux-orc spawn agent qa-engineer session-name:3 --briefing "..."
    ```
 
 3. **Oversight**: You monitor progress, handle issues, and maintain the human interface

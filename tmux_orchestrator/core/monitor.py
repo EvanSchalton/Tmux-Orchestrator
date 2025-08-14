@@ -19,8 +19,8 @@ from tmux_orchestrator.core.monitor_helpers import (
     AgentState,
     DaemonAction,
     calculate_sleep_duration,
+    detect_claude_state,
     extract_rate_limit_reset_time,
-    has_unsubmitted_message,
     is_claude_interface_present,
     should_notify_pm,
 )
@@ -606,8 +606,19 @@ class IdleMonitor:
                 self._notify_recovery_needed(tmux, target, session_logger)
                 return
 
-            # Step 4: Check for unsubmitted messages
-            if has_unsubmitted_message(content):
+            # Step 4: Check Claude state (fresh vs unsubmitted vs active)
+            claude_state = detect_claude_state(content)
+
+            if claude_state == "fresh":
+                state = AgentState.FRESH
+                session_logger.info(f"Agent {target} is FRESH - needs context/briefing")
+                # Check if should notify PM about fresh agent
+                if should_notify_pm(state, target, self._idle_notifications):
+                    self._notify_fresh_agent(tmux, target, session_logger, pm_notifications)
+                    # Track notification time with fresh prefix
+                    self._idle_notifications[f"fresh_{target}"] = datetime.now()
+                return
+            elif claude_state == "unsubmitted":
                 state = AgentState.MESSAGE_QUEUED
                 session_logger.info(f"Agent {target} has unsubmitted message - attempting auto-submit")
                 self._try_auto_submit(tmux, target, session_logger)
@@ -937,6 +948,49 @@ class IdleMonitor:
         except Exception as e:
             session_logger.error(f"Failed to collect crash notification: {e}")
 
+    def _notify_fresh_agent(
+        self, tmux: TMUXManager, target: str, logger: logging.Logger, pm_notifications: dict[str, list[str]]
+    ) -> None:
+        """Notify PM about fresh agent that needs context/briefing."""
+        try:
+            session_name = target.split(":")[0]
+            session_logger = self._get_session_logger(session_name)
+
+            session_logger.debug(f"_notify_fresh_agent called for {target}")
+
+            # Find PM target IN THE SAME SESSION
+            pm_target = self._find_pm_in_session(tmux, session_name)
+            if not pm_target:
+                logger.warning(f"No PM found in session {session_name} to notify about fresh agent {target}")
+                return
+
+            # Don't notify PM about themselves being fresh
+            if pm_target == target:
+                logger.debug(f"Skipping self-notification - PM at {pm_target} is the fresh agent")
+                return
+
+            # Get window name from target
+            session, window = target.split(":")
+            window_name = self._get_window_name(tmux, session, window)
+
+            # Send fresh agent notification
+            message = (
+                f"🆕 FRESH AGENT ALERT:\n\n"
+                f"Agent {target} ({window_name}) is a fresh Claude instance that needs context and direction.\n\n"
+                f"**ACTIONS NEEDED**:\n"
+                f"1. Provide agent role context/briefing\n"
+                f"2. Assign initial tasks\n"
+                f"3. Verify agent understands their role\n\n"
+                f"This agent is ready to work but needs proper initialization."
+            )
+
+            # Collect notification instead of sending directly
+            self._collect_notification(pm_notifications, session_name, message, tmux)
+            logger.info(f"Collected fresh agent notification for {target}")
+
+        except Exception as e:
+            logger.error(f"Failed to collect fresh agent notification: {e}")
+
     def _check_idle_notification(
         self, tmux: TMUXManager, target: str, logger: logging.Logger, pm_notifications: dict[str, list[str]]
     ) -> None:
@@ -995,6 +1049,21 @@ class IdleMonitor:
 
         except Exception as e:
             logger.error(f"Failed to collect idle notification: {e}")
+
+    def _is_agent_fresh_or_idle(self, tmux: TMUXManager, target: str) -> bool:
+        """Check if agent is fresh (needs context) or idle (not actively working).
+
+        This is used for team idleness detection to determine if escalation is needed.
+        """
+        try:
+            content = tmux.capture_pane(target, lines=50)
+            claude_state = detect_claude_state(content)
+
+            # Fresh and idle agents count as "not working" for escalation purposes
+            return claude_state in ["fresh", "idle"]
+        except Exception:
+            # If we can't check, assume they're active
+            return False
 
     def _find_pm_target(self, tmux: TMUXManager) -> str | None:
         """Find PM session dynamically - just use the better implementation."""
@@ -1342,20 +1411,22 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
 
         # Check each session/team
         for session, team_agents in session_agents.items():
-            # Check if ALL agents in this session are idle
-            all_idle = all(agent in self._idle_agents for agent in team_agents)
+            # Check if ALL agents in this session are idle or fresh (not actively working)
+            # Fresh agents count as "not working" for escalation purposes
+            all_idle = all(
+                agent in self._idle_agents or self._is_agent_fresh_or_idle(tmux, agent) for agent in team_agents
+            )
 
             if all_idle and team_agents:  # Ensure we have agents to check
-                # Find PM for this session
-                pm_target = None
-                for agent in team_agents:
-                    if "pm" in agent.lower() or ":0" in agent:  # PM usually in window 0
-                        pm_target = agent
-                        break
+                # Find PM for this session - MUST be in the same session!
+                pm_target = self._find_pm_in_session(tmux, session)
 
+                # Only if no PM found in session, check if agent is PM by window name
                 if not pm_target:
-                    # Try to find PM more broadly
-                    pm_target = self._find_pm_agent(tmux)
+                    for agent in team_agents:
+                        if self._is_pm_agent(tmux, agent):
+                            pm_target = agent
+                            break
 
                 if pm_target:
                     now = datetime.now()
@@ -1439,6 +1510,7 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
 
             # Group messages by type
             crashed_agents = []
+            fresh_agents = []
             idle_agents = []
             missing_agents = []
             other_messages = []
@@ -1446,6 +1518,8 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
             for msg in messages:
                 if "CRASH" in msg or "FAILURE" in msg:
                     crashed_agents.append(msg)
+                elif "FRESH AGENT ALERT" in msg:
+                    fresh_agents.append(msg)
                 elif "IDLE" in msg:
                     idle_agents.append(msg)
                 elif "MISSING" in msg or "TEAM MEMBER ALERT" in msg:
@@ -1469,6 +1543,17 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
                         match = re.search(r"agent at ([^\s]+)", msg)
                         if match:
                             report_parts.append(f"- {match.group(1)}")
+
+            if fresh_agents:
+                report_parts.append("\n🆕 FRESH AGENTS (Need Context):")
+                for msg in fresh_agents:
+                    # Extract agent info
+                    if "Agent " in msg and " (" in msg:
+                        import re
+
+                        match = re.search(r"Agent ([^\s]+) \(([^)]+)\)", msg)
+                        if match:
+                            report_parts.append(f"- {match.group(1)} ({match.group(2)})")
 
             if idle_agents:
                 report_parts.append("\n⚠️ IDLE AGENTS:")

@@ -676,6 +676,11 @@ def spawn(ctx: click.Context, name: str, target: str, briefing: str, working_dir
     The orchestrator typically uses this command to create custom agents
     tailored to specific project needs, as defined in the team composition plan.
     """
+    # Show deprecation warning
+    if not json:
+        console.print("[yellow]⚠️  Warning: 'tmux-orc agent spawn' is deprecated.[/yellow]")
+        console.print("[yellow]   Please use 'tmux-orc spawn agent' instead.[/yellow]\n")
+
     tmux: TMUXManager = ctx.obj["tmux"]
 
     # Validate target format

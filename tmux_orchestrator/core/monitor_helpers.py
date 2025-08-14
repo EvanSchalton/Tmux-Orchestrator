@@ -28,6 +28,7 @@ class AgentState(Enum):
     ACTIVE = "active"  # Working normally (was healthy/active/starting)
     CRASHED = "crashed"  # Claude not running
     ERROR = "error"  # Has error indicators
+    FRESH = "fresh"  # Fresh Claude instance (needs context/direction)
     IDLE = "idle"  # Claude running but not doing anything
     MESSAGE_QUEUED = "message_queued"  # Has unsubmitted message
     RATE_LIMITED = "rate_limited"  # Claude API rate limit reached
@@ -158,16 +159,56 @@ def detect_agent_state(content: str) -> AgentState:
     if _has_error_indicators(content):
         return AgentState.ERROR
 
-    # Check for queued messages
-    if has_unsubmitted_message(content):
+    # Use the new Claude state detection to handle fresh instances
+    claude_state = detect_claude_state(content)
+
+    if claude_state == "fresh":
+        return AgentState.FRESH
+    elif claude_state == "unsubmitted":
         return AgentState.MESSAGE_QUEUED
 
     # Default to active (idle detection needs snapshots)
     return AgentState.ACTIVE
 
 
+def detect_claude_state(content: str) -> str:
+    """Detect the state of Claude interface.
+
+    Returns:
+        'fresh' - Fresh Claude instance with placeholder text
+        'active' - Claude with context/conversation
+        'unsubmitted' - Has actual unsubmitted user input
+        'idle' - No input, no placeholder
+    """
+
+    # Check for fresh Claude placeholder patterns first
+    fresh_patterns = [
+        r'Try "help" for more information',
+        r'Try ".*" for more information',
+        r"Welcome to Claude Code",
+        r"^>\s*$",  # Empty prompt line
+    ]
+
+    for pattern in fresh_patterns:
+        if re.search(pattern, content):
+            return "fresh"
+
+    # Check for actual unsubmitted content
+    if has_unsubmitted_message(content):
+        return "unsubmitted"
+
+    # Check for active conversation
+    if is_claude_interface_present(content):
+        return "active"
+
+    return "idle"
+
+
 def has_unsubmitted_message(content: str) -> bool:
     """Check if agent has unsubmitted message in Claude prompt.
+
+    This function now works with detect_claude_state() to avoid false positives
+    from fresh Claude instances.
 
     Args:
         content: Terminal content to analyze
@@ -274,6 +315,16 @@ def should_notify_pm(state: AgentState, target: str, notification_history: Dict[
         if last_notified:
             time_since = datetime.now() - last_notified
             if time_since < timedelta(minutes=5):
+                return False
+        return True
+
+    # Notify for fresh agents that need context/briefing
+    if state == AgentState.FRESH:
+        # 10 minute cooldown for fresh agent notifications
+        last_notified = notification_history.get(f"fresh_{target}")
+        if last_notified:
+            time_since = datetime.now() - last_notified
+            if time_since < timedelta(minutes=10):
                 return False
         return True
 
