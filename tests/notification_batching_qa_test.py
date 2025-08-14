@@ -85,7 +85,8 @@ class TestNotificationBatchingSystem:
         assert len(pm_notifications) == 1  # Only one PM target
         pm_target = list(pm_notifications.keys())[0]
         assert pm_target == "dev-session:1"
-        assert len(pm_notifications[pm_target]) == 3  # Three crash notifications
+        # Three crash notifications
+        assert len(pm_notifications[pm_target]) == 3
 
     def test_mixed_notification_types_consolidation(self, idle_monitor, mock_tmux):
         """Test consolidation of different notification types."""
@@ -154,7 +155,7 @@ class TestNotificationBatchingSystem:
         assert "🚨 CRASHED AGENTS:" in message
         assert "⚠️ IDLE AGENTS:" in message
         assert "📍 MISSING AGENTS:" in message
-        assert "Please review and take appropriate action." in message
+        assert "As the PM, please review and take appropriate action." in message
 
     def test_no_pm_edge_case(self, idle_monitor, mock_tmux):
         """Test behavior when no PM is available."""

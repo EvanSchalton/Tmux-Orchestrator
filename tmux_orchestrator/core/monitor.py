@@ -1585,7 +1585,7 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
                     if first_line:
                         report_parts.append(f"- {first_line}")
 
-            report_parts.append("\nPlease review and take appropriate action.")
+            report_parts.append("\nAs the PM, please review and take appropriate action.")
 
             # Send consolidated report
             consolidated_message = "\n".join(report_parts)
