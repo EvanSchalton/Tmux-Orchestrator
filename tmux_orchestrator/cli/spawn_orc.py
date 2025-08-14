@@ -5,6 +5,7 @@ TODO: Consider refactoring this to be under an 'orchestrator' command group
       nested commands like 'agent spawn' and 'context spawn'.
 """
 
+import shlex
 import subprocess
 import sys
 import time
@@ -67,10 +68,13 @@ This will provide you with your role, responsibilities, and workflow for managin
 EOF
 
 # Launch Claude with the instruction
-{' '.join(claude_cmd)} "$INSTRUCTION_FILE"
+{shlex.join(claude_cmd)} "$INSTRUCTION_FILE"
 
 # Clean up
 rm -f "$INSTRUCTION_FILE"
+
+# Self-delete this startup script
+rm -f "$0"
 """
 
     # Write temporary startup script
@@ -139,6 +143,8 @@ This will provide you with your role, responsibilities, and workflow for managin
         console.print("4. The orchestrator will spawn a PM with the PRD")
         console.print("5. The PM will use `/generate-tasks` to create task list")
         console.print("6. The PM will spawn the team and begin work")
+
+        # Note: The script self-deletes after execution, so no cleanup needed here
 
     except Exception as e:
         console.print(f"[red]Error launching terminal: {e}[/red]")

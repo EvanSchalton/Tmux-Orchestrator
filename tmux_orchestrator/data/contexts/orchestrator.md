@@ -93,18 +93,28 @@ fi
 ## Workflow
 
 1. Receive requirements from human
-2. Create project directory in `.tmux_orchestrator/planning/[iso-timestamp]-[project-name]/` and team plan within it
-3. **Stop daemon to prevent race conditions**: `tmux-orc monitor stop`
-4. **🚨 CRITICAL: Spawn PM using instruction file pattern**:
+2. **🚨 CRITICAL: Use ISO timestamp format**: Create project directory in `.tmux_orchestrator/planning/YYYY-MM-DDTHH-MM-SS-[project-name]/`
+   - ✅ CORRECT: `2025-01-14T16-30-00-daemon-fixes`
+   - ❌ WRONG: `daemon-fixes-2025-01-14` or `code-review-2025-01-14`
+3. **Create requirements briefing file**: Save the human's request as `briefing.md` in the project directory for permanent record
+4. **Create team plan**: Generate `team-plan.md` based on requirements in the briefing
+5. **Stop daemon to prevent race conditions**: `tmux-orc monitor stop`
+6. **🚨 CRITICAL: Kill any existing PM windows first**:
+   ```bash
+   # Prevent multiple PM conflicts - clean up any existing PMs
+   SESSION_NAME="your-project-session"
+   tmux list-windows -t $SESSION_NAME | grep -i pm | cut -d: -f1 | xargs -I {} tmux kill-window -t $SESSION_NAME:{} 2>/dev/null || true
+   ```
+7. **🚨 CRITICAL: Spawn PM using instruction file pattern**:
    - Create instruction file telling PM to run `tmux-orc context show pm`
    - Launch Claude in tmux with the instruction file
    - This ensures PM knows they ARE the PM!
    - See detailed example below in "CORRECT WAY to spawn PM"
-5. **Wait for PM to load context and review team plan**
-6. **Wait for PM to fully initialize and complete initial team spawning**
-7. **Start monitoring daemon**: `tmux-orc monitor start` (only after all agents ready)
-8. Monitor progress and handle escalations
-9. Report results back to human
+7. **Wait for PM to load context and review team plan**
+8. **Wait for PM to fully initialize and complete initial team spawning**
+9. **Start monitoring daemon**: `tmux-orc monitor start` (only after all agents ready)
+10. Monitor progress and handle escalations
+11. Report results back to human
 
 ## 🚨 CRITICAL: Always Use tmux-orc Commands, NEVER Raw tmux 🚨
 
@@ -204,6 +214,20 @@ tmux-orc context spawn pm --session project:1
 - `tmux-orc monitor logs -f` - Follow monitor logs
 - `tmux-orc monitor stop` - Stop monitoring
 
+**🚨 CRITICAL: Keep the Daemon Running!**
+The monitoring daemon is ESSENTIAL for system health. It:
+- Detects idle/crashed agents
+- Sends notifications to PMs
+- Tracks system-wide agent health
+
+**Always ensure the daemon is running:**
+```bash
+tmux-orc monitor status  # Check if running
+tmux-orc monitor start   # Start if not running
+```
+
+The daemon should run continuously during all operations. Only stop it for maintenance.
+
 ### Task Management
 - `tmux-orc tasks create <project>` - Create task structure
 - `tmux-orc tasks list` - View all tasks
@@ -230,11 +254,6 @@ The MCP server provides REST API access for integrations:
 - `GET /monitor/dashboard` - Dashboard data
 - `POST /monitor/start` - Start monitoring
 
-## Known Issues Being Fixed
-
-1. **Monitor doesn't auto-submit stuck messages** - Being addressed
-2. **Agent discovery shows "Unknown" type** - Being fixed
-3. **Bulk agent commands missing** - Coming soon
 
 ## Important Notes
 

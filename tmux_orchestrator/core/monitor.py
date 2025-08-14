@@ -12,7 +12,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
+
 from tmux_orchestrator.core.config import Config
+from tmux_orchestrator.core.daemon_supervisor import DaemonSupervisor
 from tmux_orchestrator.core.monitor_helpers import (
     DAEMON_CONTROL_LOOP_COOLDOWN_SECONDS,
     NONRESPONSIVE_PM_ESCALATIONS_MINUTES,
@@ -22,9 +25,50 @@ from tmux_orchestrator.core.monitor_helpers import (
     detect_claude_state,
     extract_rate_limit_reset_time,
     is_claude_interface_present,
+    should_notify_continuously_idle,
     should_notify_pm,
 )
+from tmux_orchestrator.utils.string_utils import efficient_change_score, levenshtein_distance
 from tmux_orchestrator.utils.tmux import TMUXManager
+
+
+class TerminalCache(BaseModel):
+    """Intelligent terminal content caching for idle detection."""
+
+    early_value: str | None = None
+    later_value: str | None = None
+    max_distance: int = 10
+    use_levenshtein: bool = False  # Toggle between Levenshtein and efficient scoring
+
+    @property
+    def status(self) -> str:
+        """Get the current idle status based on content changes."""
+        if self.early_value is None or self.later_value is None:
+            return "unknown"
+
+        if self.match():
+            return "continuously_idle"  # No significant changes
+        else:
+            return "newly_idle"  # Significant changes detected
+
+    def match(self) -> bool:
+        """Check if terminal content matches (minimal changes)."""
+        if self.early_value is None or self.later_value is None:
+            return False
+
+        if self.use_levenshtein:
+            # Use proper Levenshtein distance for precise change detection
+            distance = levenshtein_distance(self.early_value, self.later_value)
+            return distance <= self.max_distance
+        else:
+            # Use efficient change scoring optimized for terminal content
+            score = efficient_change_score(self.early_value, self.later_value)
+            return score <= self.max_distance
+
+    def update(self, value: str) -> None:
+        """Update cache with new terminal content."""
+        self.early_value = self.later_value
+        self.later_value = value
 
 
 @dataclass
@@ -56,18 +100,41 @@ class IdleMonitor:
         self.pid_file = project_dir / "idle-monitor.pid"
         self.log_file = logs_dir / "idle-monitor.log"
         self.logs_dir = logs_dir  # Store for multi-log system
+        self.graceful_stop_file = project_dir / "idle-monitor.graceful"  # File-based flag for graceful stop
         self.daemon_process: multiprocessing.Process | None = None
         self._crash_notifications: dict[str, datetime] = {}
         self._idle_notifications: dict[str, datetime] = {}
         self._idle_agents: dict[str, datetime] = {}
         self._submission_attempts: dict[str, int] = {}
         self._last_submission_time: dict[str, float] = {}
-        self._session_agents: dict[str, set[str]] = {}  # Track high-water mark of agents per session
+        self._session_agents: dict[str, dict[str, dict[str, str]]] = {}  # Track agents with names: {session: {target: {name, type}}}
         self._missing_agent_grace: dict[str, datetime] = {}  # Track when agents were first identified as missing
         self._missing_agent_notifications: dict[str, datetime] = {}  # Track when we last notified about missing agents
         self._team_idle_at: dict[str, datetime | None] = {}  # Track when entire team becomes idle per session
         self._pm_escalation_history: dict[str, dict[int, datetime]] = {}  # Track escalation history per PM
         self._session_loggers: dict[str, logging.Logger] = {}  # Cache session-specific loggers
+
+        # Activity tracking for intelligent idle detection
+        self._terminal_caches: dict[str, TerminalCache] = {}  # Terminal content caches per agent
+
+        # Self-healing daemon flag - only set True by tmux-orc stop command
+        self.__allow_cleanup = False
+
+        # Initialize daemon supervisor for proper self-healing
+        self.supervisor = DaemonSupervisor("idle-monitor")
+
+    # COMMENTED OUT: __del__ method causing multiple daemon spawning issues
+    # The file-based graceful stop mechanism is sufficient for daemon management
+    # This destructor was being called by every Python process that imports IdleMonitor,
+    # including test processes, causing multiple daemon instances to spawn
+    #
+    # def __del__(self) -> None:
+    #     """Destructor that implements self-healing daemon behavior.
+    #
+    #     If the daemon is killed by any method other than tmux-orc stop,
+    #     it will automatically respawn itself to ensure continuous monitoring.
+    #     """
+    #     # Implementation commented out to prevent multiple daemon spawning
 
     def is_running(self) -> bool:
         """Check if monitor daemon is running."""
@@ -93,13 +160,9 @@ class IdleMonitor:
         # Fork to create daemon (proper daemonization to prevent early exit)
         pid = os.fork()
         if pid > 0:
-            # Parent process - wait for daemon to start
-            for _ in range(50):  # Wait up to 5 seconds
-                if self.pid_file.exists():
-                    with open(self.pid_file) as f:
-                        return int(f.read().strip())
-                time.sleep(0.1)
-            raise RuntimeError("Monitor daemon started but PID file not found")
+            # Parent process - return immediately without waiting to avoid blocking
+            # The daemon will write its PID file asynchronously
+            return pid
 
         # Child process - become daemon
         os.setsid()  # Create new session
@@ -119,39 +182,92 @@ class IdleMonitor:
         self._run_monitoring_daemon(interval)
         os._exit(0)  # Should never reach here
 
-    def stop(self) -> bool:
-        """Stop the idle monitor daemon."""
+    def start_supervised(self, interval: int = 10) -> bool:
+        """Start the daemon with supervision for proper self-healing.
+
+        This method starts the daemon under supervision which provides:
+        - Automatic restart on unexpected failure
+        - Exponential backoff to prevent restart storms
+        - Heartbeat-based health monitoring
+        - Proper cleanup on graceful shutdown
+
+        Args:
+            interval: Monitoring interval in seconds
+
+        Returns:
+            bool: True if supervision started successfully
+        """
+        if self.supervisor.is_daemon_running():
+            return True
+
+        # Prepare daemon command that supervisor will manage
+        daemon_command = [
+            sys.executable,
+            "-c",
+            f"""
+import sys
+sys.path.insert(0, '/workspaces/Tmux-Orchestrator')
+from tmux_orchestrator.core.monitor import IdleMonitor
+from tmux_orchestrator.utils.tmux import TMUXManager
+
+tmux = TMUXManager()
+monitor = IdleMonitor(tmux)
+monitor._run_monitoring_daemon({interval})
+""",
+        ]
+
+        return self.supervisor.start_daemon(daemon_command)
+
+    def stop(self, allow_cleanup: bool = True) -> bool:
+        """Stop the idle monitor daemon.
+
+        Args:
+            allow_cleanup: If True, allows the daemon to be permanently stopped.
+                          Only the tmux-orc CLI should set this to True.
+        """
+        logger = logging.getLogger("idle_monitor_stop")
+
+        # Try supervisor-based stop first
+        if self.supervisor.is_daemon_running():
+            logger.info("[STOP] Stopping supervised daemon")
+            return self.supervisor.stop_daemon(graceful=allow_cleanup)
+
+        # Fallback to direct process stop for legacy daemons
         if not self.is_running():
+            logger.debug("[STOP] Daemon not running - nothing to stop")
             return False
 
         try:
             with open(self.pid_file) as f:
                 pid = int(f.read().strip())
 
+            logger.info(f"[STOP] Stopping daemon PID {pid} (allow_cleanup={allow_cleanup})")
+
+            # Set the cleanup flag if this is an authorized stop
+            if allow_cleanup:
+                # Create graceful stop file to signal daemon this is an authorized stop
+                self.graceful_stop_file.touch()
+                logger.debug("[STOP] Created graceful stop file for authorized stop")
+
             # Send SIGTERM for graceful shutdown
             os.kill(pid, signal.SIGTERM)
+            logger.debug(f"[STOP] Sent SIGTERM to PID {pid}")
 
-            # Wait up to 5 seconds for graceful shutdown
-            for _ in range(50):
-                try:
-                    os.kill(pid, 0)  # Check if still running
-                    time.sleep(0.1)
-                except OSError:
-                    # Process has stopped
-                    break
-            else:
-                # Force kill if still running
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                except OSError:
-                    pass
+            # Don't wait for process to stop - return immediately for CLI responsiveness
+            # The daemon will handle cleanup gracefully in the background
 
-            # Clean up PID file
+            # Clean up PID file with proper error handling
             if self.pid_file.exists():
-                self.pid_file.unlink()
+                try:
+                    self.pid_file.unlink()
+                    logger.debug("[STOP] PID file removed")
+                except OSError as e:
+                    logger.warning(f"[STOP] Failed to remove PID file: {e}")
 
+            logger.info("[STOP] Daemon stopped successfully")
             return True
-        except (OSError, ValueError, FileNotFoundError):
+        except (OSError, ValueError, FileNotFoundError) as e:
+            logger.error(f"[STOP] Failed to stop daemon: {e}")
             return False
 
     def status(self) -> None:
@@ -162,8 +278,12 @@ class IdleMonitor:
         console = Console()
 
         if self.is_running():
-            with open(self.pid_file) as f:
-                pid = int(f.read().strip())
+            try:
+                with open(self.pid_file) as f:
+                    pid = int(f.read().strip())
+            except (OSError, ValueError) as e:
+                console.print(Panel(f"❌ Monitor daemon PID file corrupted: {e}", title="Daemon Status"))
+                return
 
             # Get log info if available
             log_info = ""
@@ -203,22 +323,40 @@ class IdleMonitor:
 
     def _run_monitoring_daemon(self, interval: int) -> None:
         """Run the monitoring daemon in a separate process."""
+        # Set up logging first so we can use it immediately
+        logger = self._setup_daemon_logging()
+        logger.info(
+            f"[DAEMON START] Native Python monitoring daemon starting (PID: {os.getpid()}, interval: {interval}s)"
+        )
+        logger.debug(f"[DAEMON START] Log file: {self.log_file}")
+        logger.debug(f"[DAEMON START] PID file: {self.pid_file}")
 
         # Set up signal handlers for graceful shutdown
         def signal_handler(signum: int, frame: Any) -> None:
-            self._cleanup_daemon()
+            logger.debug(f"[SIGNAL] Received signal {signum} in PID {os.getpid()}")
+            # Check if this is a graceful stop by looking for the graceful stop file
+            is_graceful = self.graceful_stop_file.exists()
+            if is_graceful:
+                logger.info("[SIGNAL] Graceful stop detected - daemon will not respawn")
+                # Clean up the graceful stop file
+                try:
+                    self.graceful_stop_file.unlink()
+                except Exception:
+                    pass
+            else:
+                logger.warning("[SIGNAL] Unexpected termination - daemon may respawn if self-healing is enabled")
+            self._cleanup_daemon(signum=signum, is_graceful=is_graceful)
+            logger.debug(f"[SIGNAL] Exiting after signal {signum}")
             exit(0)
 
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
+        logger.debug(f"[SIGNAL] Signal handlers installed for PID {os.getpid()}")
 
         # Write PID file
         with open(self.pid_file, "w") as f:
             f.write(str(os.getpid()))
-
-        # Set up logging
-        logger = self._setup_daemon_logging()
-        logger.info(f"Native Python monitoring daemon started (PID: {os.getpid()}, interval: {interval}s)")
+        logger.debug(f"[DAEMON START] PID file written: {self.pid_file}")
 
         # Initialize restart attempts tracking for the daemon process
         self._restart_attempts: dict[str, datetime] = {}
@@ -230,6 +368,16 @@ class IdleMonitor:
         # Create TMUXManager instance for this process
         tmux = TMUXManager()
 
+        # Initialize heartbeat for supervisor monitoring
+        heartbeat_file = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator/idle-monitor.heartbeat")
+
+        def update_heartbeat():
+            """Update heartbeat file to signal daemon is alive."""
+            try:
+                heartbeat_file.touch()
+            except Exception as e:
+                logger.warning(f"[HEARTBEAT] Failed to update heartbeat: {e}")
+
         # Main monitoring loop
         cycle_count = 0
         try:
@@ -237,8 +385,13 @@ class IdleMonitor:
                 cycle_count += 1
                 start_time = time.time()
 
-                # Log cycle start
-                logger.debug(f"Starting monitoring cycle #{cycle_count}")
+                # Update heartbeat for supervisor
+                update_heartbeat()
+
+                # Log cycle start with timestamp
+                logger.debug(
+                    f"[CYCLE {cycle_count}] Starting monitoring cycle at {datetime.now().strftime('%H:%M:%S')}"
+                )
 
                 # Discover and monitor agents
                 self._monitor_cycle(tmux, logger)
@@ -247,15 +400,15 @@ class IdleMonitor:
                 elapsed = time.time() - start_time
                 sleep_time = max(0, interval - elapsed)
 
-                logger.debug(f"Cycle #{cycle_count} completed in {elapsed:.2f}s, next check in {sleep_time:.2f}s")
+                logger.debug(f"[CYCLE {cycle_count}] Completed in {elapsed:.2f}s, sleeping for {sleep_time:.2f}s")
 
                 if sleep_time > 0:
                     time.sleep(sleep_time)
 
         except KeyboardInterrupt:
-            logger.info("Monitoring daemon interrupted")
+            logger.info("[DAEMON STOP] Monitoring daemon interrupted by KeyboardInterrupt")
         except Exception as e:
-            logger.error(f"Monitoring daemon error: {e}", exc_info=True)
+            logger.error(f"[DAEMON ERROR] Monitoring daemon error: {e}", exc_info=True)
             # Try to write error to a debug file
             try:
                 error_log = self.log_file.parent / "monitor-daemon-error.log"
@@ -267,19 +420,21 @@ class IdleMonitor:
             except Exception:
                 pass
         finally:
+            logger.info(f"[DAEMON STOP] Daemon shutting down (PID: {os.getpid()})")
             self._cleanup_daemon()
 
     def _setup_daemon_logging(self) -> logging.Logger:
         """Set up logging for the daemon process."""
         logger = logging.getLogger("idle_monitor_daemon")
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)  # Changed to DEBUG for troubleshooting
 
         # Clear existing handlers
         logger.handlers.clear()
 
         # File handler for general log (keeping for backward compatibility)
         handler = logging.FileHandler(self.log_file)
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        # Include PID in log format for better debugging
+        formatter = logging.Formatter(f"%(asctime)s - PID:{os.getpid()} - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -289,7 +444,7 @@ class IdleMonitor:
         general_handler.setFormatter(formatter)
 
         general_logger = logging.getLogger("idle_monitor_general")
-        general_logger.setLevel(logging.INFO)
+        general_logger.setLevel(logging.DEBUG)  # Changed to DEBUG for troubleshooting
         general_logger.handlers.clear()
         general_logger.addHandler(general_handler)
 
@@ -319,7 +474,7 @@ class IdleMonitor:
         # Create session-specific log file
         log_file = self.logs_dir / f"idle-monitor-{session_name}.log"
         handler = logging.FileHandler(log_file)
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter(f"%(asctime)s - PID:{os.getpid()} - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         session_logger.addHandler(handler)
 
@@ -328,12 +483,61 @@ class IdleMonitor:
 
         return session_logger
 
-    def _cleanup_daemon(self) -> None:
-        """Clean up daemon resources."""
-        if self.pid_file.exists():
+    def _cleanup_daemon(self, signum: int | None = None, is_graceful: bool = False) -> None:
+        """Clean up daemon resources.
+
+        Args:
+            signum: Signal number if called from signal handler
+            is_graceful: Whether this is a graceful stop (from tmux-orc monitor stop)
+        """
+        try:
+            # Get logger for cleanup logging
+            logger = logging.getLogger("idle_monitor_daemon")
+            logger.debug(
+                f"[CLEANUP] Starting daemon cleanup for PID {os.getpid()}, signal={signum}, graceful={is_graceful}"
+            )
+
+            if self.pid_file.exists():
+                logger.debug(f"[CLEANUP] Removing PID file: {self.pid_file}")
+                try:
+                    self.pid_file.unlink()
+                    logger.debug("[CLEANUP] PID file removed successfully")
+                except OSError as e:
+                    logger.error(f"[CLEANUP] Failed to remove PID file: {e}")
+            else:
+                logger.debug("[CLEANUP] No PID file to remove")
+
+            # Clean up graceful stop file if it exists
+            if self.graceful_stop_file.exists():
+                try:
+                    self.graceful_stop_file.unlink()
+                    logger.debug("[CLEANUP] Graceful stop file removed")
+                except Exception:
+                    pass
+
+            # Log cleanup reason
+            if signum == signal.SIGTERM:
+                if is_graceful:
+                    logger.info("[CLEANUP] Daemon terminated by SIGTERM (graceful stop from tmux-orc)")
+                else:
+                    logger.warning("[CLEANUP] Daemon terminated by SIGTERM (unexpected termination)")
+            elif signum == signal.SIGINT:
+                logger.info("[CLEANUP] Daemon terminated by SIGINT (interrupt)")
+            elif signum == signal.SIGKILL:
+                logger.warning("[CLEANUP] Daemon terminated by SIGKILL (force kill)")
+            else:
+                logger.info(f"[CLEANUP] Daemon cleanup called (signal={signum})")
+
+            # Self-healing is disabled to prevent multiple daemon spawning issues
+            if not is_graceful and signum is not None:
+                logger.warning("[CLEANUP] Daemon was terminated unexpectedly - self-healing is disabled")
+
+            logger.debug("[CLEANUP] Daemon cleanup completed")
+        except Exception as e:
+            # Try to log even if logger fails
             try:
-                self.pid_file.unlink()
-            except OSError:
+                print(f"[CLEANUP ERROR] Exception during cleanup: {e}")
+            except Exception:
                 pass
 
     def _monitor_cycle(self, tmux: TMUXManager, logger: logging.Logger) -> None:
@@ -394,18 +598,25 @@ class IdleMonitor:
                             # Try to notify PM (may also be rate limited)
                             pm_target = self._find_pm_agent(tmux)
                             if pm_target:
-                                message = (
-                                    f"🚨 RATE LIMIT REACHED: All Claude agents are rate limited.\n"
-                                    f"Will reset at {reset_time} UTC.\n\n"
-                                    f"The monitoring daemon will pause and resume at {resume_time.strftime('%H:%M')} UTC "
-                                    f"(2 minutes after reset for safety).\n"
-                                    f"All agents will become responsive after the rate limit resets."
-                                )
-                                try:
-                                    tmux.send_message(pm_target, message)
-                                    logger.info(f"PM {pm_target} notified about rate limit")
-                                except Exception:
-                                    logger.warning("Could not notify PM - may also be rate limited")
+                                # Check if PM has active Claude interface before sending message
+                                pm_content = tmux.capture_pane(pm_target, lines=10)
+                                if is_claude_interface_present(pm_content):
+                                    message = (
+                                        f"🚨 RATE LIMIT REACHED: All Claude agents are rate limited.\n"
+                                        f"Will reset at {reset_time} UTC.\n\n"
+                                        f"The monitoring daemon will pause and resume at {resume_time.strftime('%H:%M')} UTC "
+                                        f"(2 minutes after reset for safety).\n"
+                                        f"All agents will become responsive after the rate limit resets."
+                                    )
+                                    try:
+                                        tmux.send_message(pm_target, message)
+                                        logger.info(f"PM {pm_target} notified about rate limit")
+                                    except Exception:
+                                        logger.warning("Could not notify PM - may also be rate limited")
+                                else:
+                                    logger.debug(
+                                        f"PM {pm_target} does not have active Claude interface - skipping rate limit notification"
+                                    )
 
                             # Log and sleep
                             logger.debug(
@@ -416,13 +627,20 @@ class IdleMonitor:
                             # After waking up, notify that monitoring has resumed
                             logger.info("Rate limit period ended, resuming monitoring")
                             if pm_target:
-                                try:
-                                    tmux.send_message(
-                                        pm_target,
-                                        "🎉 Rate limit reset! Monitoring resumed. All agents should now be responsive.",
+                                # Check if PM has active Claude interface before sending resume message
+                                pm_content = tmux.capture_pane(pm_target, lines=10)
+                                if is_claude_interface_present(pm_content):
+                                    try:
+                                        tmux.send_message(
+                                            pm_target,
+                                            "🎉 Rate limit reset! Monitoring resumed. All agents should now be responsive.",
+                                        )
+                                    except Exception:
+                                        pass
+                                else:
+                                    logger.debug(
+                                        f"PM {pm_target} does not have active Claude interface - skipping resume notification"
                                     )
-                                except Exception:
-                                    pass
 
                             # Return to restart the monitoring cycle
                             return
@@ -632,17 +850,35 @@ class IdleMonitor:
                 self._reset_agent_tracking(target)
             else:
                 state = AgentState.IDLE
-                session_logger.info(f"Agent {target} is IDLE")
 
-                # Check if should notify PM about idle agent
-                if should_notify_pm(state, target, self._idle_notifications):
-                    session_logger.info(f"Agent {target} is idle without active work - notifying PM")
+                # Intelligent idle detection: newly idle vs continuously idle
+                idle_type = self._detect_idle_type(target, content, session_logger)
+
+                if idle_type == "newly_idle":
+                    session_logger.info(f"Agent {target} is NEWLY IDLE (just completed work) - notifying PM")
+                    # Always notify PM about newly idle agents (they just finished work)
                     self._check_idle_notification(tmux, target, session_logger, pm_notifications)
-                    # Track notification time
+                    self._idle_notifications[target] = datetime.now()
+                elif idle_type == "continuously_idle":
+                    session_logger.debug(f"Agent {target} is CONTINUOUSLY IDLE (no recent activity)")
+                    # Use cooldown logic for continuously idle agents to prevent spam
+                    if should_notify_continuously_idle(target, self._idle_notifications):
+                        session_logger.info(f"Agent {target} continuously idle - notifying PM (with 5min cooldown)")
+                        self._check_idle_notification(tmux, target, session_logger, pm_notifications)
+                        self._idle_notifications[target] = datetime.now()
+                    else:
+                        session_logger.debug(f"Agent {target} continuously idle - notification in cooldown")
+                else:  # "unknown" fallback
+                    session_logger.info(f"Agent {target} is IDLE (type unknown) - notifying PM")
+                    self._check_idle_notification(tmux, target, session_logger, pm_notifications)
                     self._idle_notifications[target] = datetime.now()
 
         except Exception as e:
-            session_logger.error(f"Failed to check agent {target}: {e}")
+            # Use the main logger if session logger is not available
+            try:
+                session_logger.error(f"Failed to check agent {target}: {e}")
+            except NameError:
+                logger.error(f"Failed to check agent {target}: {e}")
 
     def _capture_snapshots(self, tmux: TMUXManager, target: str, count: int, interval: float) -> list[str]:
         """Capture multiple snapshots of terminal content."""
@@ -662,6 +898,57 @@ class IdleMonitor:
             self._submission_attempts[target] = 0
         if target in self._last_submission_time:
             del self._last_submission_time[target]
+        # Reset terminal cache when agent becomes active (fresh start)
+        if target in self._terminal_caches:
+            del self._terminal_caches[target]
+
+    def _detect_idle_type(self, target: str, current_content: str, logger: logging.Logger) -> str:
+        """Detect if agent is newly idle (just finished work) or continuously idle.
+
+        Uses TerminalCache class for efficient change detection to distinguish between:
+        - newly_idle: Agent just completed work and became idle (notify immediately)
+        - continuously_idle: Agent has been idle with no activity (use cooldown)
+
+        Args:
+            target: Agent target identifier
+            current_content: Current terminal content
+            logger: Logger instance
+
+        Returns:
+            "newly_idle", "continuously_idle", or "unknown"
+        """
+        try:
+            # Performance optimization: configurable line count for terminal sampling
+            terminal_sample_lines = 10  # Reduced from 100 for better performance
+
+            # Get last N lines for efficiency (terminal activity usually at the end)
+            current_lines = current_content.strip().split("\n")
+            current_sample = (
+                "\n".join(current_lines[-terminal_sample_lines:])
+                if len(current_lines) >= terminal_sample_lines
+                else current_content
+            )
+
+            # Get or create terminal cache for this agent
+            if target not in self._terminal_caches:
+                self._terminal_caches[target] = TerminalCache()
+                logger.debug(f"Created new terminal cache for {target}")
+
+            cache = self._terminal_caches[target]
+
+            # Update cache with current content
+            cache.update(current_sample)
+
+            # Get intelligent status from cache
+            status = cache.status
+            logger.debug(f"Terminal cache status for {target}: {status}")
+
+            return status
+
+        except Exception as e:
+            logger.error(f"Error in idle type detection for {target}: {e}")
+            # Fallback to unknown on error
+            return "unknown"
 
     def _try_auto_submit(self, tmux: TMUXManager, target: str, logger: logging.Logger) -> None:
         """Try auto-submitting stuck messages with cooldown.
@@ -737,7 +1024,16 @@ class IdleMonitor:
                 logger.info(f"Agent failure detected for {target}. Notifying PM with one-command fix.")
                 failure_reason = "Agent crash/failure"
 
-            # Step 2: Send PM notification with ready-to-copy-paste command
+            # Step 2: Kill the crashed window to clean up resources
+            try:
+                logger.info(f"Killing crashed window {target} before notifying PM")
+                tmux.kill_window(target)
+                logger.info(f"Successfully killed crashed window {target}")
+            except Exception as kill_error:
+                logger.error(f"Failed to kill crashed window {target}: {kill_error}")
+                # Continue with notification even if kill fails
+
+            # Step 3: Send PM notification with ready-to-copy-paste command
             self._send_simple_restart_notification(tmux, target, failure_reason, logger)
 
             # Track notification time
@@ -836,6 +1132,12 @@ class IdleMonitor:
                 f"Please restart this agent and provide the appropriate role prompt."
             )
 
+            # Check if PM has active Claude interface before sending message
+            pm_content = tmux.capture_pane(pm_target, lines=10)
+            if not is_claude_interface_present(pm_content):
+                logger.debug(f"PM {pm_target} does not have active Claude interface - skipping restart notification")
+                return
+
             # Send notification
             success_sent = tmux.send_message(pm_target, message)
 
@@ -853,6 +1155,12 @@ class IdleMonitor:
         session_name = target.split(":")[0]
         pm_target = self._find_pm_in_session(tmux, session_name)
         if pm_target:
+            # Check if PM has active Claude interface before sending message
+            pm_content = tmux.capture_pane(pm_target, lines=10)
+            if not is_claude_interface_present(pm_content):
+                logger.debug(f"PM {pm_target} does not have active Claude interface - skipping recovery notification")
+                return
+
             message = f"🔴 AGENT RECOVERY NEEDED: {target} is idle and Claude interface is not responding. Please restart this agent."
             try:
                 tmux.send_message(pm_target, message)
@@ -1103,6 +1411,30 @@ class IdleMonitor:
         pm_target = f"{target_session}:{window_index}"
 
         try:
+            # CRITICAL: Kill ALL existing PM windows before spawning new PM
+            try:
+                windows = tmux.list_windows(target_session)
+                pm_windows_killed = 0
+                for window in windows:
+                    window_name = window.get("name", "").lower()
+                    window_idx = window.get("index", "")
+                    window_target = f"{target_session}:{window_idx}"
+
+                    # Kill any window that could be a PM (by name pattern or is the target index)
+                    if "pm" in window_name or "manager" in window_name or str(window_idx) == str(window_index):
+                        logger.info(
+                            f"Killing existing PM/target window {window_target} ({window.get('name', 'Unknown')}) before spawning new PM"
+                        )
+                        tmux.kill_window(window_target)
+                        pm_windows_killed += 1
+
+                if pm_windows_killed > 0:
+                    logger.info(f"Killed {pm_windows_killed} existing PM windows before spawning new PM")
+
+            except Exception as kill_error:
+                logger.warning(f"Error killing existing PM windows: {kill_error}")
+                # Continue anyway - we'll try to create the new PM
+
             # Create new window for PM using subprocess
             import subprocess
 
@@ -1129,12 +1461,18 @@ class IdleMonitor:
             if recovery_context:
                 message += f"\n\n## Recovery Context\n\n{recovery_context}"
 
-            success = tmux.send_message(pm_target, message)
-            if success:
-                logger.info(f"Successfully spawned PM at {pm_target} with instruction")
-                return pm_target
+            # Wait a moment for Claude to fully initialize before checking interface
+            time.sleep(2)
+            pm_content = tmux.capture_pane(pm_target, lines=10)
+            if is_claude_interface_present(pm_content):
+                success = tmux.send_message(pm_target, message)
+                if success:
+                    logger.info(f"Successfully spawned PM at {pm_target} with instruction")
+                    return pm_target
+                else:
+                    logger.error(f"Failed to send instruction to PM at {pm_target}")
             else:
-                logger.error(f"Failed to send instruction to PM at {pm_target}")
+                logger.warning(f"PM at {pm_target} does not have active Claude interface after spawning")
 
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to create PM window: {e}")
@@ -1197,27 +1535,45 @@ Please assess the current situation and resume project management."""
         logger: logging.Logger,
         pm_notifications: dict[str, list[str]],
     ) -> None:
-        """Track agents per session and notify PM when agents disappear."""
+        """Track agents per session and notify PM when non-PM agents disappear."""
         try:
             # Import the constant here to avoid circular imports
             from tmux_orchestrator.core.monitor_helpers import MISSING_AGENT_GRACE_MINUTES
 
-            # Group current agents by session
-            current_by_session: dict[str, set[str]] = {}
+            # Group current agents by session and cache their info
+            current_by_session: dict[str, dict[str, dict[str, str]]] = {}
             for agent in current_agents:
                 session_name = agent.split(":")[0]
                 if session_name not in current_by_session:
-                    current_by_session[session_name] = set()
-                current_by_session[session_name].add(agent)
+                    current_by_session[session_name] = {}
+                
+                # Get agent info and determine if it's a PM
+                window_name = self._get_window_name(tmux, session_name, agent.split(":")[1])
+                is_pm = self._is_pm_agent(tmux, agent)
+                
+                # Only track non-PM agents to avoid false positives
+                if not is_pm:
+                    current_by_session[session_name][agent] = {
+                        "name": window_name,
+                        "type": "worker"  # Non-PM agents are workers
+                    }
 
             # Check each session for missing agents
-            for session_name, current_agents_set in current_by_session.items():
-                # Update high-water mark (union with existing)
+            for session_name, current_agents_dict in current_by_session.items():
+                # Initialize session tracking if needed
                 if session_name not in self._session_agents:
-                    self._session_agents[session_name] = set()
+                    self._session_agents[session_name] = {}
 
-                previous_agents = self._session_agents[session_name].copy()
-                self._session_agents[session_name] = self._session_agents[session_name].union(current_agents_set)
+                # Cache new agent info (preserves names even after windows are deleted)
+                for agent, info in current_agents_dict.items():
+                    if agent not in self._session_agents[session_name]:
+                        self._session_agents[session_name][agent] = info
+                        logger.info(f"Tracking new agent {agent} ({info['name']}) in session {session_name}")
+
+                # Check for missing agents (only non-PM agents)
+                previous_agents = set(self._session_agents[session_name].keys())
+                current_agents_set = set(current_agents_dict.keys())
+                missing_agents = previous_agents - current_agents_set
 
                 # Check for missing agents (set subtraction)
                 missing_agents = previous_agents - current_agents_set
@@ -1365,7 +1721,10 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
                 window_idx = str(window.get("index", ""))
                 target = f"{session}:{window_idx}"
                 if self._is_pm_agent(tmux, target):
-                    return target
+                    # Verify PM has active Claude interface before returning
+                    content = tmux.capture_pane(target, lines=10)
+                    if is_claude_interface_present(content):
+                        return target
             return None
         except Exception:
             return None
@@ -1598,6 +1957,12 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
 
             report_parts.append("\nAs the PM, please review and take appropriate action.")
 
+            # Check if PM has active Claude interface before sending consolidated report
+            pm_content = tmux.capture_pane(pm_target, lines=10)
+            if not is_claude_interface_present(pm_content):
+                logger.debug(f"PM {pm_target} does not have active Claude interface - skipping consolidated report")
+                continue
+
             # Send consolidated report
             consolidated_message = "\n".join(report_parts)
             try:
@@ -1648,7 +2013,7 @@ class AgentMonitor:
         # Log to file
         log_file = self.log_file
         handler = logging.FileHandler(log_file)
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter(f"%(asctime)s - PID:{os.getpid()} - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
