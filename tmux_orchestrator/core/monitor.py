@@ -423,58 +423,68 @@ class IdleMonitor:
                 lock_file.parent.mkdir(parents=True, exist_ok=True)
 
                 # Open lock file with create flag for atomic operation
-                with open(lock_file, "w") as f:
-                    try:
-                        # Try to acquire exclusive lock (non-blocking)
-                        fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                lock_fd = os.open(str(lock_file), os.O_CREAT | os.O_RDWR)
 
-                        # Write our PID to lock file for debugging
-                        f.write(f"{os.getpid()}\n")
-                        f.flush()
-                        os.fsync(f.fileno())  # Force write to disk
+                try:
+                    # Try to acquire exclusive lock (non-blocking)
+                    fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
-                        logger.debug(f"[SINGLETON] Acquired startup lock (attempt {attempt + 1})")
+                    # Write our PID to lock file for debugging
+                    os.write(lock_fd, f"{os.getpid()}\n".encode())
+                    os.fsync(lock_fd)  # Force write to disk
 
-                        # CRITICAL SECTION: Check for existing daemon while holding lock
+                    logger.debug(f"[SINGLETON] Acquired startup lock (attempt {attempt + 1})")
+
+                    # CRITICAL SECTION: Check for existing daemon while holding lock
+                    existing_pid = self._check_existing_daemon()
+                    if existing_pid:
+                        logger.info(f"[SINGLETON] Found existing daemon {existing_pid} while holding lock")
+                        return False
+
+                    # ATOMIC CHECK: Verify PID file doesn't exist before proceeding
+                    if self.pid_file.exists():
+                        logger.warning("[SINGLETON] PID file appeared during lock - race condition detected")
+                        return False
+
+                    # We have the lock and no existing daemon - proceed with startup
+                    logger.debug("[SINGLETON] No existing daemon found - proceeding with startup")
+
+                    # IMPORTANT: Keep the lock file and file descriptor open!
+                    # Store it so it stays alive during daemon startup
+                    self._startup_lock_fd = lock_fd
+                    self._startup_lock_file = lock_file
+
+                    # Don't close the FD here - it will be closed after PID file is written
+                    return True
+
+                except BlockingIOError:
+                    # Another process has the lock - wait and retry
+                    logger.debug(f"[SINGLETON] Startup lock held by another process (attempt {attempt + 1})")
+                    os.close(lock_fd)  # Close FD since we didn't get the lock
+
+                    if attempt < max_retries - 1:
+                        # Exponential backoff for retries
+                        sleep_time = retry_delay * (2**attempt)
+                        logger.debug(f"[SINGLETON] Waiting {sleep_time:.2f}s before retry")
+                        time.sleep(sleep_time)
+                        continue
+                    else:
+                        # Final attempt - check if other daemon succeeded
+                        logger.info("[SINGLETON] Max retries reached - checking if other daemon started")
+                        time.sleep(0.5)  # Give other process time to complete
+
                         existing_pid = self._check_existing_daemon()
                         if existing_pid:
-                            logger.info(f"[SINGLETON] Found existing daemon {existing_pid} while holding lock")
+                            logger.info(f"[SINGLETON] Other daemon startup completed (PID {existing_pid})")
                             return False
-
-                        # ATOMIC CHECK: Verify PID file doesn't exist before proceeding
-                        if self.pid_file.exists():
-                            logger.warning("[SINGLETON] PID file appeared during lock - race condition detected")
-                            return False
-
-                        # We have the lock and no existing daemon - proceed with startup
-                        logger.debug("[SINGLETON] No existing daemon found - proceeding with startup")
-
-                        # Keep the lock file until daemon writes PID file
-                        # The lock will be released when this function exits
-                        return True
-
-                    except BlockingIOError:
-                        # Another process has the lock - wait and retry
-                        logger.debug(f"[SINGLETON] Startup lock held by another process (attempt {attempt + 1})")
-
-                        if attempt < max_retries - 1:
-                            # Exponential backoff for retries
-                            sleep_time = retry_delay * (2**attempt)
-                            logger.debug(f"[SINGLETON] Waiting {sleep_time:.2f}s before retry")
-                            time.sleep(sleep_time)
-                            continue
                         else:
-                            # Final attempt - check if other daemon succeeded
-                            logger.info("[SINGLETON] Max retries reached - checking if other daemon started")
-                            time.sleep(0.5)  # Give other process time to complete
+                            logger.warning("[SINGLETON] No daemon found after lock contention - allowing startup")
+                            return True
 
-                            existing_pid = self._check_existing_daemon()
-                            if existing_pid:
-                                logger.info(f"[SINGLETON] Other daemon startup completed (PID {existing_pid})")
-                                return False
-                            else:
-                                logger.warning("[SINGLETON] No daemon found after lock contention - allowing startup")
-                                return True
+                except Exception:
+                    # Error occurred - close FD and re-raise
+                    os.close(lock_fd)
+                    raise
 
             except OSError as e:
                 logger.warning(f"[SINGLETON] Lock file operation failed (attempt {attempt + 1}): {e}")
@@ -488,15 +498,6 @@ class IdleMonitor:
                     existing_pid = self._check_existing_daemon()
                     return existing_pid is None
 
-            finally:
-                # Clean up lock file on exit (will be called when with block exits)
-                try:
-                    if lock_file.exists():
-                        lock_file.unlink()
-                        logger.debug("[SINGLETON] Cleaned up startup lock file")
-                except OSError as e:
-                    logger.debug(f"[SINGLETON] Could not clean up lock file: {e}")
-
         # Should not reach here, but handle gracefully
         logger.error("[SINGLETON] Unexpected end of race condition handling")
         return False
@@ -508,26 +509,53 @@ class IdleMonitor:
             DaemonAlreadyRunningError: If a valid daemon is already running
             RuntimeError: If daemon startup fails for other reasons
         """
-        # Check for existing daemon first - raise exception if found
-        existing_pid = self._check_existing_daemon()
-        if existing_pid:
-            raise DaemonAlreadyRunningError(existing_pid, self.pid_file)
-
-        # Handle race conditions for concurrent startup attempts
+        # CRITICAL: Acquire startup lock BEFORE any checks or forking
+        # This ensures atomic singleton enforcement
         if not self._handle_startup_race_condition():
-            # Check again after race condition handling
+            # Another process is starting or daemon already exists
             existing_pid = self._check_existing_daemon()
             if existing_pid:
                 raise DaemonAlreadyRunningError(existing_pid, self.pid_file)
             else:
-                # This shouldn't happen, but handle gracefully
+                # Race condition - another process won the lock
                 raise RuntimeError("Daemon startup failed - another process may have started concurrently")
+
+        # We have the lock - double-check no daemon exists
+        existing_pid = self._check_existing_daemon()
+        if existing_pid:
+            # Release lock before raising exception
+            if hasattr(self, "_startup_lock_fd"):
+                try:
+                    import fcntl
+
+                    fcntl.flock(self._startup_lock_fd, fcntl.LOCK_UN)
+                    os.close(self._startup_lock_fd)
+                except Exception:
+                    pass
+            raise DaemonAlreadyRunningError(existing_pid, self.pid_file)
 
         # Fork to create daemon (proper daemonization to prevent early exit)
         pid = os.fork()
         if pid > 0:
-            # Parent process - return immediately without waiting to avoid blocking
-            # The daemon will write its PID file asynchronously
+            # Parent process - keep lock until child writes PID file
+            # Wait briefly for child to write PID file
+            for _ in range(50):  # 5 second timeout
+                if self.pid_file.exists():
+                    break
+                time.sleep(0.1)
+
+            # Release lock in parent after PID file is written
+            if hasattr(self, "_startup_lock_fd"):
+                try:
+                    import fcntl
+
+                    fcntl.flock(self._startup_lock_fd, fcntl.LOCK_UN)
+                    os.close(self._startup_lock_fd)
+                    if hasattr(self, "_startup_lock_file") and self._startup_lock_file.exists():
+                        self._startup_lock_file.unlink()
+                except Exception:
+                    pass
+
             return pid
 
         # Child process - become daemon
@@ -566,10 +594,10 @@ class IdleMonitor:
 
         Returns:
             bool: True if supervision started successfully
-        """
-        if self.supervisor.is_daemon_running():
-            return True
 
+        Raises:
+            DaemonAlreadyRunningError: If a daemon is already running
+        """
         # Prepare daemon command that supervisor will manage
         daemon_command = [
             sys.executable,
@@ -586,7 +614,12 @@ monitor._run_monitoring_daemon({interval})
 """,
         ]
 
-        return self.supervisor.start_daemon(daemon_command)
+        # Let supervisor handle all the locking and checking
+        success = self.supervisor.start_daemon(daemon_command)
+        if not success:
+            raise RuntimeError("Failed to start daemon under supervision")
+
+        return success
 
     def stop(self, allow_cleanup: bool = True) -> bool:
         """Stop the idle monitor daemon.
@@ -701,6 +734,18 @@ monitor._run_monitoring_daemon({interval})
         logger.debug(f"[DAEMON START] Log file: {self.log_file}")
         logger.debug(f"[DAEMON START] PID file: {self.pid_file}")
 
+        # CRITICAL: Check for existing daemon BEFORE writing PID file
+        # This prevents race condition where multiple daemons write PID files
+        existing_pid = self._check_existing_daemon()
+        if existing_pid:
+            logger.error(f"[DAEMON START] Another daemon already running with PID {existing_pid} - exiting")
+            os._exit(1)
+
+        # Acquire startup lock to ensure atomic PID file creation
+        if not self._handle_startup_race_condition():
+            logger.error("[DAEMON START] Failed to acquire startup lock - another daemon may be starting")
+            os._exit(1)
+
         # Set up signal handlers for graceful shutdown
         def signal_handler(signum: int, frame: Any) -> None:
             logger.debug(f"[SIGNAL] Received signal {signum} in PID {os.getpid()}")
@@ -727,8 +772,37 @@ monitor._run_monitoring_daemon({interval})
         current_pid = os.getpid()
         if not self._write_pid_file_atomic(current_pid):
             logger.error("[DAEMON START] Failed to write PID file atomically - daemon may not start properly")
+            # Release the lock before exiting
+            if hasattr(self, "_startup_lock_fd"):
+                try:
+                    import fcntl
+
+                    fcntl.flock(self._startup_lock_fd, fcntl.LOCK_UN)
+                    os.close(self._startup_lock_fd)
+                except Exception:
+                    pass
+            os._exit(1)
         else:
             logger.debug(f"[DAEMON START] PID file written atomically: {self.pid_file}")
+
+        # Release the startup lock now that PID file is written
+        if hasattr(self, "_startup_lock_fd"):
+            try:
+                import fcntl
+
+                fcntl.flock(self._startup_lock_fd, fcntl.LOCK_UN)
+                os.close(self._startup_lock_fd)
+                logger.debug("[DAEMON START] Released startup lock")
+
+                # Clean up lock file
+                if hasattr(self, "_startup_lock_file") and self._startup_lock_file.exists():
+                    try:
+                        self._startup_lock_file.unlink()
+                        logger.debug("[DAEMON START] Cleaned up startup lock file")
+                    except OSError as e:
+                        logger.debug(f"[DAEMON START] Could not clean up lock file: {e}")
+            except Exception as e:
+                logger.warning(f"[DAEMON START] Error releasing startup lock: {e}")
 
         # Initialize restart attempts tracking for the daemon process
         self._restart_attempts: dict[str, datetime] = {}
@@ -1564,6 +1638,39 @@ monitor._run_monitoring_daemon({interval})
         except Exception:
             return None
 
+    def _check_pm_health(self, tmux: TMUXManager, pm_target: str, logger: logging.Logger) -> bool:
+        """Check if PM is responsive and healthy."""
+        try:
+            # Capture recent content to check for Claude interface
+            content = tmux.capture_pane(pm_target, lines=20)
+
+            # Check if Claude interface is present
+            if not is_claude_interface_present(content):
+                logger.warning(f"PM {pm_target} missing Claude interface")
+                return False
+
+            # Check for error states or unresponsive patterns
+            content_lower = content.lower()
+            error_indicators = [
+                "connection lost",
+                "session expired",
+                "rate limited",
+                "authentication failed",
+                "network error",
+                "timeout",
+            ]
+
+            if any(indicator in content_lower for indicator in error_indicators):
+                logger.warning(f"PM {pm_target} showing error indicators: {content_lower}")
+                return False
+
+            logger.debug(f"PM {pm_target} health check passed")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to check PM health for {pm_target}: {e}")
+            return False
+
     def is_agent_idle(self, target: str) -> bool:
         """Check if agent is idle using the improved 4-snapshot method."""
         try:
@@ -1856,7 +1963,7 @@ monitor._run_monitoring_daemon({interval})
         return None
 
     def _check_pm_recovery(self, tmux: TMUXManager, agents: list[str], logger: logging.Logger) -> None:
-        """Check if PM needs to be auto-spawned when other agents exist but PM is missing."""
+        """Check if PM needs to be auto-spawned when other agents exist but PM is missing or unhealthy."""
         try:
             # Skip if no agents exist
             if not agents:
@@ -1865,10 +1972,21 @@ monitor._run_monitoring_daemon({interval})
             # Check if PM exists
             pm_target = self._find_pm_agent(tmux)
             if pm_target:
-                return  # PM exists, no recovery needed
+                # PM exists, but check if it's healthy
+                if self._check_pm_health(tmux, pm_target, logger):
+                    return  # PM exists and is healthy, no recovery needed
+                else:
+                    logger.warning(f"PM {pm_target} exists but is unhealthy. Triggering recovery.")
+                    # Kill the unhealthy PM before spawning new one
+                    try:
+                        tmux.kill_window(pm_target)
+                        logger.info(f"Killed unhealthy PM at {pm_target}")
+                    except Exception as e:
+                        logger.error(f"Failed to kill unhealthy PM {pm_target}: {e}")
+            else:
+                logger.warning(f"PM missing but {len(agents)} agents exist. Auto-spawning PM for recovery.")
 
-            # PM missing but other agents exist - auto-spawn PM
-            logger.warning(f"PM missing but {len(agents)} agents exist. Auto-spawning PM for recovery.")
+            # PM missing or unhealthy - auto-spawn PM
 
             # Find the session with the most agents
             session_counts: dict[str, int] = {}
@@ -1896,6 +2014,14 @@ Please assess the current situation and resume project management."""
             pm_target = self._spawn_pm(tmux, target_session, new_window_index, logger, recovery_context)
             if pm_target:
                 logger.info(f"PM auto-recovery successful at {pm_target}")
+                # Verify the new PM is actually working
+                import time
+
+                time.sleep(3)  # Wait for PM to initialize
+                if self._check_pm_health(tmux, pm_target, logger):
+                    logger.info(f"PM recovery verified: {pm_target} is healthy")
+                else:
+                    logger.error(f"PM recovery failed: {pm_target} spawned but not healthy")
             else:
                 logger.error("PM auto-recovery failed")
 

@@ -153,82 +153,25 @@ def start(ctx: click.Context, interval: int, supervised: bool) -> None:
             monitor.status()
         except Exception as e:
             console.print(f"[red]Error starting supervised monitor: {e}[/red]")
-        return
-
-    # Legacy mode - first try direct start to get proper exception handling
-    try:
-        pid = monitor.start(interval)
-        console.print(f"[green]✓ Idle monitor started (PID: {pid})[/green]")
-        console.print(f"  Check interval: {interval} seconds")
-        console.print("  Self-healing: Disabled (use --supervised for auto-restart)")
-        console.print(f"  Log file: {LOG_FILE}")
-        return
-    except DaemonAlreadyRunningError as e:
-        console.print("[yellow]Monitor daemon is already running[/yellow]")
-        console.print(f"[dim]{e}[/dim]")
-        monitor.status()
-        return
-    except Exception as e:
-        # If direct start fails for other reasons, fall back to subprocess method
-        console.print(f"[yellow]Direct start failed ({e}), trying subprocess method...[/yellow]")
-
-        # Legacy mode - start daemon in background using subprocess to avoid blocking
-        import sys
-
-        cmd = [
-            sys.executable,
-            "-c",
-            f"""
-import sys
-sys.path.insert(0, '{os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))}')
-from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError, IdleMonitor
-from tmux_orchestrator.utils.tmux import TMUXManager
-try:
-    tmux = TMUXManager()
-    monitor = IdleMonitor(tmux)
-    pid = monitor.start({interval})
-    print(f"SUCCESS:{{pid}}")
-except DaemonAlreadyRunningError as e:
-    print(f"ALREADY_RUNNING:{{e}}")
-except Exception as e:
-    print(f"ERROR:{{e}}")
-""",
-        ]
-
+            return  # Exit here without attempting fallback
+    else:
+        # Legacy mode - direct start with proper exception handling
         try:
-            # Run and capture output to handle exceptions properly
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-
-            if result.stdout:
-                output = result.stdout.strip()
-                if output.startswith("SUCCESS:"):
-                    pid = int(output.split(":")[1])
-                    console.print(f"[green]✓ Idle monitor started (PID: {pid})[/green]")
-                    console.print(f"  Check interval: {interval} seconds")
-                    console.print("  Self-healing: Disabled (use --supervised for auto-restart)")
-                    console.print(f"  Log file: {LOG_FILE}")
-                elif output.startswith("ALREADY_RUNNING:"):
-                    error_msg = ":".join(output.split(":")[1:])
-                    console.print("[yellow]Monitor daemon is already running[/yellow]")
-                    console.print(f"[dim]{error_msg}[/dim]")
-                    monitor.status()
-                elif output.startswith("ERROR:"):
-                    error_msg = ":".join(output.split(":")[1:])
-                    console.print(f"[red]Error starting monitor: {error_msg}[/red]")
-                else:
-                    console.print("[yellow]Monitor daemon is starting in background...[/yellow]")
-                    console.print("  Check status with: tmux-orc monitor status")
-                    console.print("  View logs with: tmux-orc monitor logs")
-            else:
-                console.print("[yellow]Monitor daemon is starting in background...[/yellow]")
-                console.print("  Check status with: tmux-orc monitor status")
-                console.print("  View logs with: tmux-orc monitor logs")
-
-        except subprocess.TimeoutExpired:
-            console.print("[yellow]Monitor daemon startup taking longer than expected...[/yellow]")
-            console.print("  Check status with: tmux-orc monitor status")
+            pid = monitor.start(interval)
+            console.print(f"[green]✓ Idle monitor started (PID: {pid})[/green]")
+            console.print(f"  Check interval: {interval} seconds")
+            console.print("  Self-healing: Disabled (use --supervised for auto-restart)")
+            console.print(f"  Log file: {LOG_FILE}")
+            return
+        except DaemonAlreadyRunningError as e:
+            console.print("[yellow]Monitor daemon is already running[/yellow]")
+            console.print(f"[dim]{e}[/dim]")
+            monitor.status()
+            return
         except Exception as e:
+            # No fallback - daemon startup failed for a real reason
             console.print(f"[red]Error starting monitor: {e}[/red]")
+            return
 
 
 @monitor.command()

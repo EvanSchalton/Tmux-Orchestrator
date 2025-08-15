@@ -20,6 +20,7 @@ This context is organized into focused sections. Read the sections relevant to y
 ### 🔧 Shared Resources
 - **Git Discipline**: `tmux_orchestrator/data/contexts/shared/git-discipline.md`
 - **CLI Reference**: `tmux_orchestrator/data/contexts/shared/cli-reference.md`
+- **Coordination Patterns**: `tmux_orchestrator/data/contexts/shared/coordination-patterns.md`
 
 ## Quick Start Checklist
 
@@ -90,6 +91,13 @@ fi
 7. **Status Reporting**: Update orchestrator on progress
 8. **Project Closeout**: Create project-closeout.md when complete
 9. **Resource Cleanup**: Kill agents and sessions per procedures
+
+## Working Across Multiple Sessions
+
+When managing work across multiple sessions:
+- **See Coordination Patterns**: `tmux_orchestrator/data/contexts/shared/coordination-patterns.md`
+- **Key Pattern**: Administrative Assistants for non-intrusive monitoring
+- **Never interrupt** technical teams directly - use assistants for visibility
 
 ## 🚨 Most Critical Rules
 

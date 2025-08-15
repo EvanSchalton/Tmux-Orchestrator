@@ -107,43 +107,113 @@ class DaemonSupervisor:
             return False
 
     def start_daemon(self, daemon_command: list[str]) -> bool:
-        """Start the daemon process with proper supervision setup."""
+        """Start the daemon process with proper supervision setup and file locking."""
+        import fcntl
+
+        # First check if daemon is already running before acquiring lock
         if self.is_daemon_running():
             self.logger.info("Daemon already running")
-            return True
+            from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError
+
+            existing_pid = None
+            if self.pid_file.exists():
+                try:
+                    with open(self.pid_file) as f:
+                        existing_pid = int(f.read().strip())
+                except Exception:
+                    pass
+            raise DaemonAlreadyRunningError(existing_pid or 0, self.pid_file)
+
+        # Use a lock file to prevent concurrent starts
+        lock_file_path = self.pid_file.parent / f"{self.daemon_name}.start.lock"
 
         try:
-            self.logger.info(f"Starting daemon: {' '.join(daemon_command)}")
+            # Create/open lock file
+            lock_fd = os.open(str(lock_file_path), os.O_CREAT | os.O_RDWR)
 
-            # Start daemon process
-            subprocess.Popen(
-                daemon_command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+            try:
+                # Try to acquire exclusive lock (non-blocking)
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
-            # Wait briefly for daemon to initialize and write PID file
+                # Double-check if daemon is running while holding the lock
+                if self.is_daemon_running():
+                    self.logger.info("Daemon already running (checked under lock)")
+                    from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError
+
+                    existing_pid = None
+                    if self.pid_file.exists():
+                        try:
+                            with open(self.pid_file) as f:
+                                existing_pid = int(f.read().strip())
+                        except Exception:
+                            pass
+                    raise DaemonAlreadyRunningError(existing_pid or 0, self.pid_file)
+
+                self.logger.info(f"Starting daemon: {' '.join(daemon_command)}")
+
+                # Start daemon process
+                subprocess.Popen(
+                    daemon_command,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    stdin=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+
+                # Wait briefly for daemon to initialize and write PID file
+                for _ in range(50):  # 5 second timeout
+                    if self.pid_file.exists():
+                        break
+                    time.sleep(0.1)
+                else:
+                    self.logger.error("Daemon failed to create PID file within timeout")
+                    return False
+
+                # Verify daemon started successfully
+                if self.is_daemon_running():
+                    self.logger.info("Daemon started successfully with PID from file")
+                    self.restart_attempts = 0  # Reset on successful start
+                    return True
+                else:
+                    self.logger.error("Daemon process failed to start properly")
+                    return False
+
+            finally:
+                # Always release the lock
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                os.close(lock_fd)
+
+        except BlockingIOError:
+            # Another process has the lock
+            self.logger.info("Another process is starting the daemon, waiting...")
+
+            # Wait for the other process to finish, then raise exception since daemon already exists
             for _ in range(50):  # 5 second timeout
-                if self.pid_file.exists():
-                    break
-                time.sleep(0.1)
-            else:
-                self.logger.error("Daemon failed to create PID file within timeout")
-                return False
+                if self.is_daemon_running():
+                    self.logger.info("Daemon started by another process")
+                    # Import and raise the exception to indicate daemon already exists
+                    from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError
 
-            # Verify daemon started successfully
-            if self.is_daemon_running():
-                self.logger.info("Daemon started successfully with PID from file")
-                self.restart_attempts = 0  # Reset on successful start
-                return True
-            else:
-                self.logger.error("Daemon process failed to start properly")
-                return False
+                    existing_pid = None
+                    if self.pid_file.exists():
+                        try:
+                            with open(self.pid_file) as f:
+                                existing_pid = int(f.read().strip())
+                        except Exception:
+                            pass
+                    raise DaemonAlreadyRunningError(existing_pid or 0, self.pid_file)
+                time.sleep(0.1)
+
+            self.logger.error("Timeout waiting for daemon to start by another process")
+            return False
 
         except Exception as e:
             self.logger.error(f"Failed to start daemon: {e}")
+            if "lock_fd" in locals():
+                try:
+                    os.close(lock_fd)
+                except Exception:
+                    pass
             return False
 
     def stop_daemon(self, graceful: bool = True) -> bool:

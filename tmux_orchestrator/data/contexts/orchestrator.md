@@ -25,6 +25,7 @@ This context is organized into focused sections. Read the sections relevant to y
 - **TMUX Commands**: `tmux_orchestrator/data/contexts/shared/tmux-commands.md`
 - **CLI Reference**: `tmux_orchestrator/data/contexts/shared/cli-reference.md`
 - **Git Discipline**: `tmux_orchestrator/data/contexts/shared/git-discipline.md`
+- **Coordination Patterns**: `tmux_orchestrator/data/contexts/shared/coordination-patterns.md`
 
 ### 📡 Communication
 - **TMUX Comms**: Run `tmux-orc context show tmux-comms` for detailed messaging guide
@@ -119,6 +120,13 @@ This framework works for ANY domain:
 - **Any other**: Legal, education, culinary, etc.
 
 Create agents with expertise appropriate to your project's needs.
+
+## Working Across Multiple Sessions
+
+When coordinating work across multiple sessions, see:
+- **Coordination Patterns**: `tmux_orchestrator/data/contexts/shared/coordination-patterns.md`
+
+Key pattern: Use Administrative Assistants for non-intrusive cross-session monitoring.
 
 ## Common Mistakes to Avoid
 
