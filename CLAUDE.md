@@ -54,38 +54,11 @@ As the Claude Code orchestrator, you are the interface between the human and the
 
 ## 🔐 Git Discipline - MANDATORY FOR ALL AGENTS
 
-[... existing content remains the same ...]
+### Git Commit Guidelines
+- **Commit Identity Guidance**:
+  - Don't commit as Claude Code / Anthropic, commit as "tmux-orc"
 
-## Coordination Guidelines
-
-### Project Manager Coordination
-
-- Instructions for project coordination should be documented in a separate `coordination.md` file to be used in prompt templating
-- The coordination file will help standardize communication and workflow protocols across different projects
-- Ensures consistent project management approach regardless of the specific project or team composition
-
-### PRD-Driven Development Workflow
-
-- **Comprehensive workflow documentation**: See `/workspaces/Tmux-Orchestrator/orchestration-workflow.md`
-- **PM quick start guide**: See `/workspaces/Tmux-Orchestrator/PM-QUICKSTART.md`
-- **Workflow**: Feature Request → PRD → Task List → Distributed Execution → QA → Test Automation
-- **Key principle**: PMs enforce quality gates at every step (tests/linting/formatting must pass)
-
-## Continuous Improvement
-
-### Dogfooding and Issue Tracking
-- While dogfooding you might come across other issues, you should note those for future enhancement/bug fixing
-
-### System Resilience and Recovery
-- As the orchestrator, you should periodically disrupt the agents to test system resilience:
-  - Periodically kill Claude within an agent
-  - Kill entire agents to verify recovery mechanisms
-  - Monitor and identify why an agent fails to recover
-  - Implement fixes for any detected recovery failures
-
-### Test Case Management
-- As we identify new agent terminal failure cases we should add them to the relevant parameterized tests e.g. tests/fixtures/monitor_states/*
-- **Test Capture Guideline**: Don't make up test cases for the daemon, copy actual terminal screens at the time of failure
+[... rest of existing content remains the same ...]
 
 ## Recent Monitoring Enhancements Completed: 2025-08-12
 - **Rate Limit Handling**: Daemon now auto-pauses during rate limits and resumes after reset

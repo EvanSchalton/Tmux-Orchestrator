@@ -31,6 +31,20 @@ from tmux_orchestrator.utils.string_utils import efficient_change_score, levensh
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
+class DaemonAlreadyRunningError(Exception):
+    """Exception raised when trying to start a daemon that is already running."""
+
+    def __init__(self, pid: int, pid_file: Path):
+        self.pid = pid
+        self.pid_file = pid_file
+        super().__init__(
+            f"Monitor daemon is already running with PID {pid}. "
+            f"PID file: {pid_file}. "
+            f"Use 'tmux-orc monitor stop' to stop the existing daemon first, "
+            f"or 'tmux-orc monitor status' to check daemon status."
+        )
+
+
 class TerminalCache(BaseModel):
     """Intelligent terminal content caching for idle detection."""
 
@@ -88,7 +102,7 @@ class AgentHealthStatus:
 class IdleMonitor:
     """Monitor with 100% accurate idle detection using native Python daemon."""
 
-    def __init__(self, tmux: TMUXManager, config: Config = None):
+    def __init__(self, tmux: TMUXManager, config: Config | None = None):
         self.tmux = tmux
         # Use configurable directory for storage
         if config is None:
@@ -140,25 +154,374 @@ class IdleMonitor:
     #     # Implementation commented out to prevent multiple daemon spawning
 
     def is_running(self) -> bool:
-        """Check if monitor daemon is running."""
+        """Check if monitor daemon is running with robust validation."""
         if not self.pid_file.exists():
             return False
 
         try:
             with open(self.pid_file) as f:
-                pid = int(f.read().strip())
-            os.kill(pid, 0)  # Check if process exists
-            return True
+                pid_str = f.read().strip()
+                if not pid_str:
+                    # Empty PID file
+                    self._cleanup_stale_pid_file()
+                    return False
+
+                pid = int(pid_str)
+
+            # Use robust validation from singleton enforcement
+            if self._is_valid_daemon_process(pid):
+                return True
+            else:
+                # Clean up stale PID file
+                self._cleanup_stale_pid_file()
+                return False
+
         except (OSError, ValueError, FileNotFoundError):
+            # Handle permissions errors, corrupted files, etc.
             if self.pid_file.exists():
-                self.pid_file.unlink()
+                self._cleanup_stale_pid_file()
             return False
 
-    def start(self, interval: int = 10) -> int:
-        """Start the native Python monitor daemon."""
-        if self.is_running():
+    def _check_existing_daemon(self) -> int | None:
+        """Check for existing daemon without killing it.
+
+        Returns:
+            PID of existing valid daemon, None if no valid daemon exists
+        """
+        logger = logging.getLogger("idle_monitor_singleton")
+        logger.setLevel(logging.DEBUG)
+
+        # Set up handler if none exists and stderr is available
+        if not logger.handlers:
+            try:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+                handler.setFormatter(formatter)
+                logger.addHandler(handler)
+            except (ValueError, OSError):
+                # stderr may be closed in daemon process, use file logging instead
+                log_file = self.pid_file.parent / "singleton.log"
+                file_handler = logging.FileHandler(log_file)
+                formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+                file_handler.setFormatter(formatter)
+                logger.addHandler(file_handler)
+
+        logger.debug("[SINGLETON] Checking for existing daemon")
+
+        # Check for PID file
+        if not self.pid_file.exists():
+            logger.debug("[SINGLETON] No PID file found - no existing daemon")
+            return None
+
+        # Read PID from file with error handling
+        try:
             with open(self.pid_file) as f:
-                return int(f.read().strip())
+                pid_str = f.read().strip()
+                if not pid_str:
+                    logger.warning("[SINGLETON] PID file is empty - removing stale file")
+                    self._cleanup_stale_pid_file()
+                    return None
+
+                pid = int(pid_str)
+                logger.debug(f"[SINGLETON] Found PID file with PID {pid}")
+
+        except (OSError, ValueError) as e:
+            logger.warning(f"[SINGLETON] Could not read PID file: {e} - removing stale file")
+            self._cleanup_stale_pid_file()
+            return None
+
+        # Validate the process actually exists and is our daemon
+        if self._is_valid_daemon_process(pid):
+            logger.info(f"[SINGLETON] Valid daemon already running with PID {pid}")
+            return pid
+        else:
+            logger.warning(f"[SINGLETON] Stale/invalid daemon process {pid} - cleaning up stale PID file")
+            # Only clean up PID file, don't kill process (might not be ours)
+            self._cleanup_stale_pid_file()
+            return None
+
+    def _is_valid_daemon_process(self, pid: int) -> bool:
+        """Check if PID corresponds to a valid monitor daemon process.
+
+        Args:
+            pid: Process ID to validate
+
+        Returns:
+            True if process exists and appears to be our daemon
+        """
+        logger = logging.getLogger("idle_monitor_singleton")
+
+        try:
+            # Check if process exists
+            os.kill(pid, 0)
+            logger.debug(f"[SINGLETON] Process {pid} exists")
+
+            # Additional validation: check process command line to ensure it's our daemon
+            try:
+                with open(f"/proc/{pid}/cmdline") as f:
+                    cmdline = f.read()
+                    # Look for Python process running monitor-related code
+                    # The cmdline is null-separated, so split it
+                    cmdline_parts = cmdline.split("\0")
+                    cmdline_str = " ".join(cmdline_parts)
+
+                    # Check for monitor daemon indicators
+                    monitor_indicators = [
+                        "_run_monitoring_daemon",  # Direct daemon method
+                        "idle-monitor",  # PID file name
+                        "IdleMonitor",  # Class name
+                        "monitor start",  # CLI command
+                        "monitor.py",  # Module name
+                    ]
+
+                    if any(indicator in cmdline_str for indicator in monitor_indicators):
+                        logger.debug(f"[SINGLETON] Process {pid} appears to be a monitor daemon: {cmdline_str}")
+                        return True
+                    else:
+                        logger.debug(f"[SINGLETON] Process {pid} doesn't appear to be our daemon: {cmdline_str}")
+                        return False
+            except OSError:
+                # Can't read cmdline (permissions/etc) - assume it's valid if process exists
+                logger.debug(f"[SINGLETON] Cannot verify process {pid} cmdline - assuming valid")
+                return True
+
+        except OSError:
+            # Process doesn't exist
+            logger.debug(f"[SINGLETON] Process {pid} does not exist")
+            return False
+
+    def _cleanup_stale_pid_file(self) -> None:
+        """Clean up stale PID file with proper error handling.
+
+        Uses atomic operations to prevent race conditions.
+        """
+        logger = logging.getLogger("idle_monitor_singleton")
+
+        try:
+            if self.pid_file.exists():
+                # Atomic removal
+                self.pid_file.unlink()
+                logger.debug("[SINGLETON] Removed stale PID file")
+            else:
+                logger.debug("[SINGLETON] No PID file to clean up")
+        except OSError as e:
+            logger.error(f"[SINGLETON] Could not remove stale PID file: {e}")
+
+    def _write_pid_file_atomic(self, pid: int) -> bool:
+        """Write PID file atomically with enhanced race condition protection.
+
+        Uses atomic file operations and additional safety checks to ensure
+        exactly one daemon can successfully write its PID file.
+
+        Args:
+            pid: Process ID to write
+
+        Returns:
+            True if successful, False otherwise
+        """
+        logger = logging.getLogger("idle_monitor_singleton")
+
+        try:
+            # Ensure parent directory exists and is writable
+            self.pid_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Check write permissions early
+            if not os.access(self.pid_file.parent, os.W_OK):
+                logger.error(f"[SINGLETON] No write permission to directory {self.pid_file.parent}")
+                return False
+
+            # Use process-specific temporary file name to avoid conflicts
+            temp_file = self.pid_file.with_suffix(f".tmp.{pid}")
+
+            try:
+                # ATOMIC OPERATION 1: Write to temporary file
+                with open(temp_file, "w") as f:
+                    f.write(str(pid))
+                    f.flush()
+                    os.fsync(f.fileno())  # Force write to disk
+
+                logger.debug(f"[SINGLETON] Wrote PID {pid} to temporary file {temp_file}")
+
+                # ATOMIC OPERATION 2: Check for existing PID file just before move
+                if self.pid_file.exists():
+                    logger.warning("[SINGLETON] PID file exists just before atomic move - race condition detected")
+                    # Double-check if it's a valid daemon
+                    try:
+                        with open(self.pid_file) as f:
+                            existing_pid = int(f.read().strip())
+                        if self._is_valid_daemon_process(existing_pid):
+                            logger.warning(f"[SINGLETON] Valid daemon {existing_pid} already running - aborting write")
+                            return False
+                        else:
+                            logger.warning("[SINGLETON] Stale PID file detected - proceeding with atomic move")
+                    except (OSError, ValueError):
+                        logger.warning("[SINGLETON] Corrupted PID file detected - proceeding with atomic move")
+
+                # ATOMIC OPERATION 3: Atomic move (this is the critical moment)
+                temp_file.rename(self.pid_file)
+                logger.debug(f"[SINGLETON] Atomically moved temp file to {self.pid_file}")
+
+                # VERIFICATION: Confirm the write was successful and not overwritten
+                try:
+                    with open(self.pid_file) as f:
+                        written_pid_str = f.read().strip()
+                        if not written_pid_str:
+                            logger.error("[SINGLETON] PID file is empty after write")
+                            return False
+
+                        written_pid = int(written_pid_str)
+                        if written_pid != pid:
+                            logger.error(f"[SINGLETON] PID file verification failed: expected {pid}, got {written_pid}")
+                            # Another process may have overwritten our file
+                            return False
+
+                    logger.debug(f"[SINGLETON] PID file verification successful: {pid}")
+                    return True
+
+                except (OSError, ValueError) as e:
+                    logger.error(f"[SINGLETON] PID file verification failed: {e}")
+                    return False
+
+            finally:
+                # Clean up temporary file if it still exists
+                try:
+                    if temp_file.exists():
+                        temp_file.unlink()
+                        logger.debug(f"[SINGLETON] Cleaned up temporary file {temp_file}")
+                except OSError as e:
+                    logger.debug(f"[SINGLETON] Could not clean up temp file: {e}")
+
+        except PermissionError as e:
+            logger.error(f"[SINGLETON] Permission denied writing PID file: {e}")
+            return False
+        except OSError as e:
+            logger.error(f"[SINGLETON] Failed to write PID file atomically: {e}")
+            return False
+
+    def _handle_startup_race_condition(self) -> bool:
+        """Handle race conditions with atomic file locking for daemon startup.
+
+        Uses a combination of file locking and atomic PID file creation to ensure
+        only one daemon can start at a time, even with concurrent startup attempts.
+
+        Returns:
+            True if this process should proceed with daemon startup, False otherwise
+        """
+        logger = logging.getLogger("idle_monitor_singleton")
+
+        # Use file locking with atomic operations to prevent race conditions
+        import fcntl
+        import time
+
+        lock_file = self.pid_file.with_suffix(".startup.lock")
+        max_retries = 3
+        retry_delay = 0.1  # 100ms between retries
+
+        for attempt in range(max_retries):
+            try:
+                # Ensure lock directory exists
+                lock_file.parent.mkdir(parents=True, exist_ok=True)
+
+                # Open lock file with create flag for atomic operation
+                with open(lock_file, "w") as f:
+                    try:
+                        # Try to acquire exclusive lock (non-blocking)
+                        fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+                        # Write our PID to lock file for debugging
+                        f.write(f"{os.getpid()}\n")
+                        f.flush()
+                        os.fsync(f.fileno())  # Force write to disk
+
+                        logger.debug(f"[SINGLETON] Acquired startup lock (attempt {attempt + 1})")
+
+                        # CRITICAL SECTION: Check for existing daemon while holding lock
+                        existing_pid = self._check_existing_daemon()
+                        if existing_pid:
+                            logger.info(f"[SINGLETON] Found existing daemon {existing_pid} while holding lock")
+                            return False
+
+                        # ATOMIC CHECK: Verify PID file doesn't exist before proceeding
+                        if self.pid_file.exists():
+                            logger.warning("[SINGLETON] PID file appeared during lock - race condition detected")
+                            return False
+
+                        # We have the lock and no existing daemon - proceed with startup
+                        logger.debug("[SINGLETON] No existing daemon found - proceeding with startup")
+
+                        # Keep the lock file until daemon writes PID file
+                        # The lock will be released when this function exits
+                        return True
+
+                    except BlockingIOError:
+                        # Another process has the lock - wait and retry
+                        logger.debug(f"[SINGLETON] Startup lock held by another process (attempt {attempt + 1})")
+
+                        if attempt < max_retries - 1:
+                            # Exponential backoff for retries
+                            sleep_time = retry_delay * (2**attempt)
+                            logger.debug(f"[SINGLETON] Waiting {sleep_time:.2f}s before retry")
+                            time.sleep(sleep_time)
+                            continue
+                        else:
+                            # Final attempt - check if other daemon succeeded
+                            logger.info("[SINGLETON] Max retries reached - checking if other daemon started")
+                            time.sleep(0.5)  # Give other process time to complete
+
+                            existing_pid = self._check_existing_daemon()
+                            if existing_pid:
+                                logger.info(f"[SINGLETON] Other daemon startup completed (PID {existing_pid})")
+                                return False
+                            else:
+                                logger.warning("[SINGLETON] No daemon found after lock contention - allowing startup")
+                                return True
+
+            except OSError as e:
+                logger.warning(f"[SINGLETON] Lock file operation failed (attempt {attempt + 1}): {e}")
+
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    # Fallback to simple check without locking
+                    logger.warning("[SINGLETON] File locking failed - using fallback check")
+                    existing_pid = self._check_existing_daemon()
+                    return existing_pid is None
+
+            finally:
+                # Clean up lock file on exit (will be called when with block exits)
+                try:
+                    if lock_file.exists():
+                        lock_file.unlink()
+                        logger.debug("[SINGLETON] Cleaned up startup lock file")
+                except OSError as e:
+                    logger.debug(f"[SINGLETON] Could not clean up lock file: {e}")
+
+        # Should not reach here, but handle gracefully
+        logger.error("[SINGLETON] Unexpected end of race condition handling")
+        return False
+
+    def start(self, interval: int = 10) -> int:
+        """Start the native Python monitor daemon with strict singleton enforcement.
+
+        Raises:
+            DaemonAlreadyRunningError: If a valid daemon is already running
+            RuntimeError: If daemon startup fails for other reasons
+        """
+        # Check for existing daemon first - raise exception if found
+        existing_pid = self._check_existing_daemon()
+        if existing_pid:
+            raise DaemonAlreadyRunningError(existing_pid, self.pid_file)
+
+        # Handle race conditions for concurrent startup attempts
+        if not self._handle_startup_race_condition():
+            # Check again after race condition handling
+            existing_pid = self._check_existing_daemon()
+            if existing_pid:
+                raise DaemonAlreadyRunningError(existing_pid, self.pid_file)
+            else:
+                # This shouldn't happen, but handle gracefully
+                raise RuntimeError("Daemon startup failed - another process may have started concurrently")
 
         # Fork to create daemon (proper daemonization to prevent early exit)
         pid = os.fork()
@@ -176,10 +539,14 @@ class IdleMonitor:
             os._exit(0)  # Exit first child
 
         # Grandchild - the actual daemon
-        # Close file descriptors
-        sys.stdin.close()
-        sys.stdout.close()
-        sys.stderr.close()
+        # Redirect file descriptors to /dev/null instead of closing them
+        # This prevents issues with logging in the daemon process
+        dev_null = os.open("/dev/null", os.O_RDWR)
+        os.dup2(dev_null, 0)  # stdin
+        os.dup2(dev_null, 1)  # stdout
+        os.dup2(dev_null, 2)  # stderr
+        if dev_null > 2:
+            os.close(dev_null)
 
         # Run the monitoring daemon
         self._run_monitoring_daemon(interval)
@@ -356,10 +723,12 @@ monitor._run_monitoring_daemon({interval})
         signal.signal(signal.SIGINT, signal_handler)
         logger.debug(f"[SIGNAL] Signal handlers installed for PID {os.getpid()}")
 
-        # Write PID file
-        with open(self.pid_file, "w") as f:
-            f.write(str(os.getpid()))
-        logger.debug(f"[DAEMON START] PID file written: {self.pid_file}")
+        # Write PID file atomically
+        current_pid = os.getpid()
+        if not self._write_pid_file_atomic(current_pid):
+            logger.error("[DAEMON START] Failed to write PID file atomically - daemon may not start properly")
+        else:
+            logger.debug(f"[DAEMON START] PID file written atomically: {self.pid_file}")
 
         # Initialize restart attempts tracking for the daemon process
         self._restart_attempts: dict[str, datetime] = {}
