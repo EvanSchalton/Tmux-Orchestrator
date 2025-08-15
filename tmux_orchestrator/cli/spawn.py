@@ -1,6 +1,5 @@
 """Spawn command group for creating orchestrators, PMs, and agents."""
 
-import re
 from pathlib import Path
 
 import click
@@ -17,12 +16,12 @@ def spawn() -> None:
 
     This is the primary entry point for creating Claude agents in tmux sessions.
     Use these commands to spawn various types of agents with appropriate contexts
-    and configurations.
+    and configurations. New windows are automatically added to the end of sessions.
 
     Examples:
-        tmux-orc spawn orc                    # Spawn orchestrator (human entry point)
-        tmux-orc spawn pm --session proj:1    # Spawn PM with standard context
-        tmux-orc spawn agent api-dev proj:2 --briefing "..."  # Custom agent
+        tmux-orc spawn orc                      # Spawn orchestrator (human entry point)
+        tmux-orc spawn pm --session proj        # Spawn PM with standard context
+        tmux-orc spawn agent api-dev proj --briefing "..."  # Custom agent
 
     Agent Types:
         - orc: Orchestrator for human interaction (launches new terminal)
@@ -66,14 +65,14 @@ def orc(ctx: click.Context, profile: str | None, terminal: str, no_launch: bool,
 
 
 @spawn.command()
-@click.option("--session", required=True, help="Target session:window")
+@click.option("--session", required=True, help="Target session name or session:window (legacy)")
 @click.option("--extend", help="Additional project-specific context")
 @click.pass_context
 def pm(ctx: click.Context, session: str, extend: str | None = None) -> None:
     """Spawn a Project Manager with standardized context.
 
     This command creates a complete PM agent setup:
-    1. Creates the window if needed
+    1. Creates a new window at the end of the session
     2. Starts Claude with appropriate permissions
     3. Waits for initialization
     4. Sends the PM context
@@ -82,14 +81,15 @@ def pm(ctx: click.Context, session: str, extend: str | None = None) -> None:
     which includes quality-focused coordination guidelines and workflow patterns.
 
     Examples:
-        tmux-orc spawn pm --session project:1
-        tmux-orc spawn pm --session main:0 --extend "Working on API refactoring"
+        tmux-orc spawn pm --session project
+        tmux-orc spawn pm --session main --extend "Working on API refactoring"
+        tmux-orc spawn pm --session project:1  # Legacy format (index ignored)
     """
     # Import context functionality
     from tmux_orchestrator.cli.context import spawn as context_spawn
 
     # Call the existing implementation
-    ctx.invoke(context_spawn, name="pm", session=session, extend=extend)
+    ctx.invoke(context_spawn, role="pm", session=session, extend=extend)
 
 
 @spawn.command()
@@ -102,25 +102,26 @@ def pm(ctx: click.Context, session: str, extend: str | None = None) -> None:
 def agent(
     ctx: click.Context, name: str, target: str, briefing: str, working_dir: str | None = None, json: bool = False
 ) -> None:
-    """Spawn a custom agent into a specific session and window.
+    """Spawn a custom agent into a specific session.
 
     This command creates a new Claude agent with complete customization.
     Allows ANY agent name and custom system prompts for maximum flexibility.
+    The new window will be automatically added to the end of the session.
 
     NAME: Custom agent name (e.g., 'api-specialist', 'ui-architect')
-    TARGET: Target location in format session:window (e.g., 'myproject:3')
+    TARGET: Target session name (e.g., 'myproject') or session:window for legacy compatibility
 
     Examples:
-        # Spawn a custom API specialist
-        tmux-orc spawn agent api-specialist myproject:2 \\
+        # Spawn a custom API specialist (recommended)
+        tmux-orc spawn agent api-specialist myproject \\
             --briefing "You are an API design specialist focused on RESTful principles..."
 
         # Spawn a performance engineer
-        tmux-orc spawn agent perf-engineer backend:3 \\
+        tmux-orc spawn agent perf-engineer backend \\
             --working-dir /workspaces/backend \\
             --briefing "You are a performance optimization engineer..."
 
-        # Spawn from a briefing file
+        # Legacy format (window index will be ignored)
         tmux-orc spawn agent researcher project:4 \\
             --briefing "$(cat .tmux_orchestrator/planning/researcher-briefing.md)"
 
@@ -131,17 +132,16 @@ def agent(
 
     tmux: TMUXManager = ctx.obj["tmux"] if ctx.obj and "tmux" in ctx.obj else TMUXManager()
 
-    # Validate target format
-    if not re.match(r"^[^:]+:\d+$", target):
-        error_msg = f"Invalid target format '{target}'. Use session:window (e.g., 'myproject:3')"
-        if json:
-            import json as json_module
-
-            result = {"success": False, "name": name, "target": target, "error": error_msg}
-            console.print(json_module.dumps(result, indent=2))
-            return
-        console.print(f"[red]✗ {error_msg}[/red]")
-        raise click.Abort()
+    # Parse target - now accepting session name only or session:window (for compatibility)
+    if ":" in target:
+        # Legacy format with window index - we'll ignore the index
+        session_name, _ = target.split(":", 1)
+        console.print(
+            f"[yellow]Note: Window index in '{target}' will be ignored. New window will be added to end of session.[/yellow]"
+        )
+    else:
+        # New format - just session name
+        session_name = target
 
     # Validate working directory if provided
     if working_dir:
@@ -166,8 +166,6 @@ def agent(
                 return
             console.print(f"[red]✗ {error_msg}[/red]")
             raise click.Abort()
-
-    session_name, window_idx = target.split(":")
 
     # Check if session exists
     if not tmux.has_session(session_name):

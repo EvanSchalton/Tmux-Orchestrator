@@ -106,13 +106,13 @@ def list() -> None:
 
 @context.command()
 @click.argument("role")
-@click.option("--session", required=True, help="Target session:window")
+@click.option("--session", required=True, help="Target session name or session:window (legacy)")
 @click.option("--extend", help="Additional project-specific context")
 def spawn(role: str, session: str, extend: str | None = None) -> None:
     """Spawn an agent with standardized context (orchestrator/pm only).
 
     This command creates a complete agent setup:
-    1. Creates the window if needed
+    1. Creates a new window at the end of the session
     2. Starts Claude with appropriate permissions
     3. Waits for initialization
     4. Sends the role context
@@ -120,8 +120,9 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
     For other agent types, use custom briefings from your team plan.
 
     Examples:
-        tmux-orc context spawn pm --session project:1
-        tmux-orc context spawn orchestrator --session main:0 --extend "Working on API project"
+        tmux-orc context spawn pm --session project
+        tmux-orc context spawn orchestrator --session main --extend "Working on API project"
+        tmux-orc context spawn pm --session project:1  # Legacy format (index ignored)
     """
     import subprocess
     import time
@@ -138,13 +139,16 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
 
     tmux = TMUXManager()
 
-    # Parse session:window format
-    try:
-        session_name, window_idx_str = session.split(":")
-        window_idx = int(window_idx_str)
-    except ValueError:
-        console.print(f"[red]Error: Invalid session format '{session}'. Use 'session:window' (e.g., project:1)[/red]")
-        return
+    # Parse session - now accepting session name only or session:window (for compatibility)
+    if ":" in session:
+        # Legacy format with window index - we'll ignore the index
+        session_name, _ = session.split(":", 1)
+        console.print(
+            f"[yellow]Note: Window index in '{session}' will be ignored. New window will be added to end of session.[/yellow]"
+        )
+    else:
+        # New format - just session name
+        session_name = session
 
     # Check if session exists, create if needed
     sessions = tmux.list_sessions()
@@ -152,29 +156,34 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
         console.print(f"[yellow]Creating new session: {session_name}[/yellow]")
         subprocess.run(["tmux", "new-session", "-d", "-s", session_name], check=True)
 
-    # Create window with appropriate name
+    # Create window with appropriate name (always append to end)
     window_name = f"Claude-{role}"
     try:
-        # Check if window already exists
-        windows = tmux.list_windows(session_name)
-        window_exists = any(w.get("index") == str(window_idx) for w in windows)
+        # Create new window at the end of the session
+        subprocess.run(["tmux", "new-window", "-t", session_name, "-n", window_name], check=True)
 
-        if window_exists:
-            console.print(f"[yellow]Window {session} already exists - using existing window[/yellow]")
-            # Rename the window to match our convention
-            subprocess.run(["tmux", "rename-window", "-t", session, window_name], check=False)
-        else:
-            # Create new window
-            subprocess.run(["tmux", "new-window", "-t", session, "-n", window_name], check=True)
-            console.print(f"[green]Created window: {session} ({window_name})[/green]")
+        # Get the actual window index that was created
+        windows = tmux.list_windows(session_name)
+        actual_window_idx = None
+        for window in windows:
+            if window["name"] == window_name:
+                actual_window_idx = window["index"]
+                break
+
+        if actual_window_idx is None:
+            console.print("[red]Error: Window created but not found[/red]")
+            return
+
+        actual_target = f"{session_name}:{actual_window_idx}"
+        console.print(f"[green]Created window: {actual_target} ({window_name})[/green]")
     except subprocess.CalledProcessError as e:
         console.print(f"[red]Error creating window: {e}[/red]")
         return
 
     # Start Claude in the window
-    console.print(f"[blue]Starting Claude in {session}...[/blue]")
-    tmux.send_keys(session, "claude --dangerously-skip-permissions", literal=True)
-    tmux.send_keys(session, "Enter")
+    console.print(f"[blue]Starting Claude in {actual_target}...[/blue]")
+    tmux.send_keys(actual_target, "claude --dangerously-skip-permissions", literal=True)
+    tmux.send_keys(actual_target, "Enter")
 
     # Wait for Claude to initialize
     console.print("[dim]Waiting for Claude to initialize...[/dim]")
@@ -193,10 +202,10 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
         message += f"\n\n## Additional Instructions\n\n{extend}"
 
     console.print(f"[blue]Sending {role} instruction...[/blue]")
-    success = tmux.send_message(session, message)
+    success = tmux.send_message(actual_target, message)
 
     if success:
-        console.print(f"[green]✓ Successfully spawned {role} agent at {session}[/green]")
+        console.print(f"[green]✓ Successfully spawned {role} agent at {actual_target}[/green]")
         console.print(f"  Window name: {window_name}")
         console.print("  Claude started: Yes")
         console.print("  Context sent: Yes")
