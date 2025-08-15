@@ -203,8 +203,8 @@ def agent(
             ),
             (name_lower in ["dev", "developer", "engineer"] and any(dev in window_name for dev in ["dev", "engineer"])),
             (
-                name_lower in ["qa", "tester", "test", "quality"]
-                and any(qa in window_name for qa in ["qa", "test", "quality"])
+                name_lower in ["qa", "tester", "test", "quality", "testing", "qa-engineer", "test-engineer"]
+                and any(qa in window_name for qa in ["qa", "tester", "testing", "quality"])
             ),
             (
                 name_lower in ["devops", "ops", "deploy"]
