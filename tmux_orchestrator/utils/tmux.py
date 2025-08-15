@@ -1,6 +1,7 @@
 """TMUX utility functions and manager."""
 
 import re
+import shlex
 import subprocess
 
 
@@ -10,10 +11,81 @@ class TMUXManager:
     def __init__(self) -> None:
         self.tmux_cmd = "tmux"
 
+    def _validate_input(self, value: str, field_name: str = "input") -> str:
+        """Validate input to prevent command injection vulnerabilities.
+
+        This provides defense-in-depth validation without breaking tmux functionality.
+        Since we use subprocess with list arguments (not shell=True), we focus on
+        preventing the most dangerous injection patterns.
+
+        Args:
+            value: Input to validate
+            field_name: Name of the field for error messages
+
+        Returns:
+            Validated input (unchanged if safe)
+
+        Raises:
+            ValueError: If input contains dangerous patterns
+        """
+        if not isinstance(value, str):
+            raise ValueError(f"{field_name} must be string, got {type(value)}")
+
+        # Check for null bytes (can cause issues with subprocess)
+        if "\x00" in value:
+            raise ValueError(f"{field_name} contains null byte")
+
+        # For local CLI usage, only check for null bytes which can break subprocess
+        # Newlines and carriage returns are safe in tmux literal mode (-l flag)
+        # and this is a local developer tool, not a network service
+
+        return value
+
+    def _sanitize_input(self, value: str) -> str:
+        """Sanitize input for shell contexts using shlex.quote().
+
+        This should only be used when we need to pass arguments to shell contexts.
+        For normal tmux commands using subprocess with lists, _validate_input is sufficient.
+
+        Args:
+            value: The input string to sanitize
+
+        Returns:
+            Safely quoted string for shell contexts
+        """
+        if not isinstance(value, str):
+            raise ValueError(f"Input must be string, got {type(value)}")
+
+        # Use shlex.quote for comprehensive protection in shell contexts
+        return shlex.quote(value)
+
     def _run_tmux(self, args: list[str], check: bool = True) -> subprocess.CompletedProcess:
-        """Run a tmux command."""
-        cmd = [self.tmux_cmd] + args
-        return subprocess.run(cmd, capture_output=True, text=True, check=check)
+        """Run a tmux command with security safeguards.
+
+        SECURITY: This method ensures all arguments are passed safely to subprocess
+        without shell interpretation. Never use shell=True with user input.
+        """
+        # Validate that args is a list to prevent accidental string passing
+        if not isinstance(args, list):
+            raise ValueError("args must be a list")
+
+        # Validate each argument
+        validated_args = []
+        for i, arg in enumerate(args):
+            if not isinstance(arg, str):
+                raise ValueError(f"Argument {i} must be string, got {type(arg)}")
+            validated_args.append(self._validate_input(arg, f"argument {i}"))
+
+        cmd = [self.tmux_cmd] + validated_args
+
+        # SECURITY: Explicitly set shell=False to prevent shell injection
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=check,
+            shell=False,  # CRITICAL: Never use shell=True with user input
+        )
 
     def has_session(self, session_name: str) -> bool:
         """Check if a session exists."""
@@ -223,56 +295,15 @@ class TMUXManager:
                     "developer",
                     "qa",
                 ]:
-                    # Determine agent type
-                    agent_type = "Unknown"
-                    window_lower = window["name"].lower()
+                    # Determine agent type directly from window name
+                    window_name = window["name"]
 
-                    # Remove "claude-" prefix if present for better matching
-                    if window_lower.startswith("claude-"):
-                        window_lower = window_lower[7:]  # Remove "claude-" (7 chars)
+                    # Remove "claude-" prefix if present
+                    if window_name.lower().startswith("claude-"):
+                        window_name = window_name[7:]  # Remove "claude-" (7 chars)
 
-                    # Check session name first for initial type
-                    session_lower = session["name"].lower()
-                    if "frontend" in session_lower:
-                        agent_type = "Frontend"
-                    elif "backend" in session_lower:
-                        agent_type = "Backend"
-                    elif "testing" in session_lower:
-                        agent_type = "QA"
-                    elif "orchestrator" in session_lower:
-                        agent_type = "Orchestrator"
-
-                    # Then check window name for more specific types (can override session type)
-                    if "pm" in window_lower or "project-manager" in window_lower:
-                        agent_type = "PM"
-                    elif "developer" in window_lower or "dev" in window_lower:
-                        agent_type = "Developer"
-                    elif "devops" in window_lower or "ops" in window_lower:
-                        agent_type = "DevOps"
-                    elif "qa" in window_lower or "test" in window_lower or "quality" in window_lower:
-                        agent_type = "QA"
-                    elif "frontend" in window_lower or "ui" in window_lower:
-                        agent_type = "Frontend"
-                    elif "backend" in window_lower or "api" in window_lower:
-                        agent_type = "Backend"
-                    elif "refactor" in window_lower or "engineer" in window_lower:
-                        agent_type = "Engineer"
-                    elif "review" in window_lower or "code-review" in window_lower:
-                        agent_type = "Reviewer"
-                    elif "researcher" in window_lower or "research" in window_lower:
-                        agent_type = "Researcher"
-                    elif "writer" in window_lower or "docs" in window_lower or "documentation" in window_lower:
-                        agent_type = "Writer"
-                    elif "architect" in window_lower:
-                        agent_type = "Architect"
-                    elif "security" in window_lower:
-                        agent_type = "Security"
-                    elif "data" in window_lower or "database" in window_lower or "db" in window_lower:
-                        agent_type = "Database"
-                    # If still unknown, extract the core name
-                    elif agent_type == "Unknown" and window_lower:
-                        # Use the window name as a fallback, capitalizing first letter
-                        agent_type = window_lower.replace("-", " ").replace("_", " ").title()
+                    # Use window name directly, capitalizing appropriately
+                    agent_type = window_name.replace("-", " ").replace("_", " ").title()
 
                     # Check if idle
                     pane_content = self.capture_pane(f"{session['name']}:{window['index']}")

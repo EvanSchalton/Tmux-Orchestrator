@@ -218,7 +218,7 @@ class ConversionMonitor:
     def log_conversion(self, analysis: dict, feedback: list[str]):
         """Log conversion details for analysis."""
         with open(self.monitoring_log, "a") as f:
-            f.write(f"\n{'='*60}\n")
+            f.write(f"\n{'=' * 60}\n")
             f.write(f"File: {analysis['file']}\n")
             f.write(f"Time: {analysis['timestamp']}\n")
             f.write(f"Changes: {json.dumps(analysis['changes'], indent=2)}\n")

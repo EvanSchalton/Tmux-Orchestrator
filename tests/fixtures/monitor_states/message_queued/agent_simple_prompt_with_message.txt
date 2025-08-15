@@ -1,4 +1,4 @@
-vscode ➜ /workspaces/Tmux-Orchestrator (main) $ tmux-orc spawn agent agent monitor-fixes:4 --briefing "Test agent"
+vscode ➜ /workspaces/Tmux-Orchestrator (main) $ tmux-orc spawn agent test-monitor monitor-fixes:4 --briefing "Test agent"
 
 Claude Code 1.0.51
 A conversational AI agent that collaborates using a tmux session

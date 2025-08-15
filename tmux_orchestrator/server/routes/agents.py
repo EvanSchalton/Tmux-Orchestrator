@@ -72,7 +72,7 @@ async def tmux_spawn_agent(request: AgentSpawnRequest, background_tasks: Backgro
     )
 
     # Execute business logic
-    result = spawn_agent(tmux, tool_request)
+    result = await spawn_agent(tmux, tool_request)
 
     if not result.success:
         raise HTTPException(status_code=500, detail=result.error_message)

@@ -155,7 +155,7 @@ def test_truly_idle_without_compacting(mock_tmux_manager, mock_sleep) -> None:
         logger = MagicMock()
         mock_logger.return_value = logger
 
-        tmux.capture_pane.side_effect = [idle_content] * 4
+        tmux.capture_pane.side_effect = [idle_content] * 10  # Increased for additional capture_pane calls
         monitor._find_pm_agent = MagicMock(return_value="pm-session:0")
         monitor._find_pm_in_session = MagicMock(return_value="test-session:0")
 
@@ -169,7 +169,7 @@ def test_truly_idle_without_compacting(mock_tmux_manager, mock_sleep) -> None:
         # Verify it was marked as idle (no compacting detected)
         info_calls = [call.args[0] for call in logger.info.call_args_list]
         assert any("is IDLE" in msg for msg in info_calls)
-        assert any("is idle without active work" in msg for msg in info_calls)
+        assert any("notifying PM" in msg for msg in info_calls)
 
         # Verify notification was collected
         assert len(pm_notifications) > 0, f"Expected notifications to be collected, but got: {pm_notifications}"

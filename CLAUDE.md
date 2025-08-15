@@ -92,7 +92,11 @@ As the Claude Code orchestrator, you are the interface between the human and the
 - **Compaction Detection**: Fixed false idle alerts during agent compaction states
 - See closeout report at `.tmux_orchestrator/planning/completed/20250812/MONITORING_FEATURES_CLOSEOUT.md`
 
+## System Notifications and Status Messages
 
+### Known Status Updates
+- "Bypassing Permissions" is not an error, and is simply a system status update
+- "Auto-update failed" is a routine status message and not indicative of a critical issue
 
 # ROLES
 

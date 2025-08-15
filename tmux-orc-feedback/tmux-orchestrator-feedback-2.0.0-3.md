@@ -74,7 +74,7 @@ Successfully spawned backend developer suggests possible workaround:
 # This sequence reproduces the issue
 tmux-orc team deploy agent-kanban fullstack  # Reports success
 tmux-orc agent list                          # Shows empty
-tmux-orc spawn agent kanban-frontend developer:0 --briefing "Test"  # Historical reference updated
+tmux-orc spawn agent kanban-frontend developer:0 --briefing "Test"  # Updated command format
 ```
 
 ---

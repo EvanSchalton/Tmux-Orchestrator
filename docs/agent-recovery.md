@@ -447,14 +447,6 @@ The daemon tracks and reports performance statistics:
 
 ### Integration with Monitoring Systems
 
-**Prometheus Metrics** (planned):
-```
-recovery_daemon_cycles_total
-recovery_attempts_total{status="success|failed"}
-recovery_duration_seconds
-agent_health_status{agent="target",status="healthy|failed"}
-```
-
 **JSON API for Monitoring:**
 ```bash
 tmux-orc recovery status --json | jq '.daemon_running'

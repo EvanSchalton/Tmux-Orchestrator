@@ -3,8 +3,10 @@
 import os
 import signal
 import subprocess
+from pathlib import Path
 
 import click
+from pydantic import BaseModel, validator
 from rich.console import Console
 
 from tmux_orchestrator.core.performance_optimizer import (
@@ -14,6 +16,48 @@ from tmux_orchestrator.core.performance_optimizer import (
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 console: Console = Console()
+
+
+class ConfigPath(BaseModel):
+    """Pydantic model to validate config file paths against path traversal."""
+
+    path: str
+
+    @validator("path")
+    def validate_config_path(cls, v):  # noqa: N805
+        """Validate config file path to prevent path traversal attacks."""
+        if not v:
+            return v
+
+        config_path = Path(v).resolve()
+
+        # Allow only specific safe directories for config files
+        allowed_dirs = [
+            Path.cwd().resolve(),  # Current working directory
+            Path.home().resolve() / ".config" / "tmux-orchestrator",  # User config dir
+            Path.home().resolve() / ".tmux-orchestrator",  # User home config
+            Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator").resolve(),  # Project config
+        ]
+
+        # Check if the config file is within any allowed directory
+        for allowed_dir in allowed_dirs:
+            try:
+                config_path.relative_to(allowed_dir)
+                # If we get here, the path is within an allowed directory
+                break
+            except ValueError:
+                continue
+        else:
+            # Path is not within any allowed directory
+            raise ValueError(f"Config file path not allowed: {v}. Must be within allowed directories.")
+
+        # Additional security: ensure it's a .yml, .yaml, or .conf file
+        if config_path.suffix.lower() not in [".yml", ".yaml", ".conf", ".json"]:
+            raise ValueError(f"Config file must have .yml, .yaml, .conf, or .json extension: {v}")
+
+        return str(config_path)
+
+
 # Use project directory for storage
 PROJECT_DIR = "/workspaces/Tmux-Orchestrator/.tmux_orchestrator"
 LOGS_DIR = f"{PROJECT_DIR}/logs"
@@ -54,8 +98,9 @@ def monitor() -> None:
 
 @monitor.command()
 @click.option("--interval", default=10, help="Check interval in seconds")
+@click.option("--supervised", is_flag=True, help="Start with self-healing supervision (recommended)")
 @click.pass_context
-def start(ctx: click.Context, interval: int) -> None:
+def start(ctx: click.Context, interval: int, supervised: bool) -> None:
     """Start the intelligent idle detection and monitoring daemon.
 
     Launches a background service that continuously monitors all Claude agents
@@ -92,10 +137,66 @@ def start(ctx: click.Context, interval: int) -> None:
         monitor.status()
         return
 
-    pid = monitor.start(interval)
-    console.print(f"[green]✓ Idle monitor started (PID: {pid})[/green]")
-    console.print(f"  Check interval: {interval} seconds")
-    console.print(f"  Log file: {LOG_FILE}")
+    if supervised:
+        # Use new supervised mode with proper self-healing
+        console.print("[blue]Starting monitoring daemon with self-healing supervision...[/blue]")
+
+        try:
+            success = monitor.start_supervised(interval)
+
+            if success:
+                console.print("[green]✓ Supervised monitor started successfully[/green]")
+                console.print(f"  Check interval: {interval} seconds")
+                console.print("  Self-healing: Enabled")
+                console.print("  Automatic restart: On failure")
+                console.print(f"  Log file: {LOG_FILE}")
+            else:
+                console.print("[red]✗ Failed to start supervised monitor[/red]")
+        except Exception as e:
+            console.print(f"[red]Error starting supervised monitor: {e}[/red]")
+        return
+
+    # Legacy mode - start daemon in background using subprocess to avoid blocking
+    import sys
+
+    cmd = [
+        sys.executable,
+        "-c",
+        f"""
+import sys
+sys.path.insert(0, '{os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))}')
+from tmux_orchestrator.core.monitor import IdleMonitor
+from tmux_orchestrator.utils.tmux import TMUXManager
+tmux = TMUXManager()
+monitor = IdleMonitor(tmux)
+pid = monitor.start({interval})
+print(pid)
+""",
+    ]
+
+    try:
+        # Run in background with new session - don't wait for output
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+        # Give it a brief moment to start
+        import time
+
+        time.sleep(0.2)
+
+        # Check if daemon started
+        if monitor.is_running():
+            with open(PID_FILE) as f:
+                pid = int(f.read().strip())
+            console.print(f"[green]✓ Idle monitor started (PID: {pid})[/green]")
+            console.print(f"  Check interval: {interval} seconds")
+            console.print("  Self-healing: Disabled (use --supervised for auto-restart)")
+            console.print(f"  Log file: {LOG_FILE}")
+        else:
+            console.print("[yellow]Monitor daemon is starting in background...[/yellow]")
+            console.print("  Check status with: tmux-orc monitor status")
+            console.print("  View logs with: tmux-orc monitor logs")
+    except Exception as e:
+        console.print(f"[red]Error starting monitor: {e}[/red]")
 
 
 @monitor.command()
@@ -128,17 +229,56 @@ def stop(ctx: click.Context) -> None:
     continued system reliability.
     """
     from tmux_orchestrator.core.monitor import IdleMonitor
+    from tmux_orchestrator.utils.tmux import TMUXManager
 
-    monitor = IdleMonitor(ctx.obj["tmux"])
+    tmux = TMUXManager()
+    monitor = IdleMonitor(tmux)
 
-    if not monitor.is_running():
+    # Try supervised stop first
+    if monitor.supervisor.is_daemon_running():
+        console.print("[blue]Stopping supervised daemon...[/blue]")
+        success = monitor.stop(allow_cleanup=True)
+        if success:
+            console.print("[green]✓ Supervised monitor stopped successfully[/green]")
+        else:
+            console.print("[red]✗ Failed to stop supervised monitor[/red]")
+        return
+
+    # Fallback to legacy stop
+    if not os.path.exists(PID_FILE):
         console.print("[yellow]Monitor is not running[/yellow]")
         return
 
-    if monitor.stop():
-        console.print("[green]✓ Monitor stopped successfully[/green]")
-    else:
-        console.print("[red]✗ Failed to stop monitor[/red]")
+    try:
+        with open(PID_FILE) as f:
+            pid = int(f.read().strip())
+
+        # Create graceful stop file to signal this is an authorized stop
+        from pathlib import Path
+
+        graceful_stop_file = Path(PROJECT_DIR) / "idle-monitor.graceful"
+        graceful_stop_file.touch()
+
+        # Send SIGTERM to daemon
+        os.kill(pid, signal.SIGTERM)
+        console.print(f"[green]✓ Monitor stop signal sent to PID {pid}[/green]")
+
+        # Clean up PID file immediately (daemon might be slow)
+        try:
+            os.unlink(PID_FILE)
+        except Exception:
+            pass
+
+    except ProcessLookupError:
+        console.print("[yellow]Monitor process not found, cleaning up PID file[/yellow]")
+        try:
+            os.unlink(PID_FILE)
+        except Exception:
+            pass
+    except ValueError:
+        console.print("[red]Invalid PID file format[/red]")
+    except Exception as e:
+        console.print(f"[red]✗ Failed to stop monitor: {e}[/red]")
 
 
 @monitor.command()
@@ -272,7 +412,18 @@ def recovery_start(ctx: click.Context, config: str | None) -> None:
     Essential for production environments where 24/7 agent availability
     is critical and manual intervention isn't feasible.
     """
+    from pydantic import ValidationError
+
     from tmux_orchestrator.core.recovery_daemon import RecoveryDaemon
+
+    # Validate config path to prevent path traversal attacks
+    if config:
+        try:
+            validated_config = ConfigPath(path=config)
+            config = validated_config.path
+        except ValidationError as e:
+            console.print(f"[red]Invalid config file path: {e}[/red]")
+            return
 
     daemon = RecoveryDaemon(config)
 

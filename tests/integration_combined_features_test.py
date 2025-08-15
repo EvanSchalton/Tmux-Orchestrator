@@ -243,7 +243,7 @@ def test_multiple_agents_different_states(mock_tmux, monitor, logger) -> None:
     ]
 
     # Mock agent discovery
-    mock_sessions = [{"name": f"session{i+1}"} for i in range(3)]
+    mock_sessions = [{"name": f"session{i + 1}"} for i in range(3)]
 
     mock_tmux.list_sessions.return_value = mock_sessions
 

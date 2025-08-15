@@ -185,7 +185,7 @@ def main(action: str = "monitor"):
 
         print(f"Total files: {progress['total_files']}")
         print(
-            f"Files converted: {progress['files_converted']} ({progress['files_converted']*100/progress['total_files']:.1f}%)"
+            f"Files converted: {progress['files_converted']} ({progress['files_converted'] * 100 / progress['total_files']:.1f}%)"
         )
         print(f"Files with classes: {progress['files_with_classes']}")
         print(f"Total classes remaining: {progress['total_classes_remaining']}")

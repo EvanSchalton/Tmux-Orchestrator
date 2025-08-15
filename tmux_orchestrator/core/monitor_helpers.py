@@ -353,12 +353,32 @@ def should_notify_pm(state: AgentState, target: str, notification_history: dict[
                 return False
         return True
 
-    # Notify for idle agents (no cooldown - PM should know immediately)
+    # Notify for idle agents (immediate for newly idle, cooldown for continuously idle)
     if state == AgentState.IDLE:
+        # This will be handled by the caller - newly idle always notifies, continuously idle uses cooldown
         return True
 
     # Don't notify for healthy/active agents or messages queued
     return False
+
+
+def should_notify_continuously_idle(target: str, notification_history: dict[str, datetime]) -> bool:
+    """Check if continuously idle agent should trigger notification (with cooldown).
+
+    Args:
+        target: Agent target identifier
+        notification_history: History of notifications sent
+
+    Returns:
+        True if notification should be sent, False if in cooldown
+    """
+    # 5 minute cooldown for continuously idle agents to prevent spam
+    last_notified = notification_history.get(target)
+    if last_notified:
+        time_since = datetime.now() - last_notified
+        if time_since < timedelta(minutes=5):
+            return False
+    return True
 
 
 # Private helper functions

@@ -295,7 +295,7 @@ class TestNotificationBatchingSystem:
         # Create large batch of notifications
         large_pm_notifications = {}
         for i in range(50):  # 50 notifications
-            target = f"dev-session:{i+2}"
+            target = f"dev-session:{i + 2}"
             if target not in large_pm_notifications:
                 large_pm_notifications[target] = []
             large_pm_notifications[target].append(f"Test notification {i}")

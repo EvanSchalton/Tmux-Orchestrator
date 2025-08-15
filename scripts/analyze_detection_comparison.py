@@ -55,8 +55,8 @@ def analyze_comparison_log(log_file: Path):
     print("\n=== Detection Method Comparison Analysis ===")
     print(f"Log file: {log_file}")
     print(f"Total comparisons: {total_comparisons}")
-    print(f"Agreements: {agreements} ({agreements/total_comparisons*100:.1f}%)")
-    print(f"Disagreements: {disagreements} ({disagreements/total_comparisons*100:.1f}%)")
+    print(f"Agreements: {agreements} ({agreements / total_comparisons * 100:.1f}%)")
+    print(f"Disagreements: {disagreements} ({disagreements / total_comparisons * 100:.1f}%)")
 
     # Print confusion matrix
     print("\n=== Confusion Matrix ===")

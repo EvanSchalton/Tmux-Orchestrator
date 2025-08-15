@@ -111,7 +111,7 @@ Enhanced monitor supports:
 ## Known Limitations
 
 1. **PM Notifications**: Still subject to Claude message submission issues
-2. **Auto-Recovery**: Not yet implemented (planned for next version)
+2. **Auto-Recovery**: Not implemented
 3. **Config File**: No persistent configuration yet
 
 ## Test Results

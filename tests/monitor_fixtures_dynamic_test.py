@@ -91,13 +91,14 @@ def test_state_detection_for_fixture(state_name, fixture_path) -> None:
     elif state_name in SNAPSHOT_DEPENDENT_STATES:
         # For snapshot-dependent states, we can't accurately detect
         # from a single fixture, so we skip strict checking
-        assert detected_state in [AgentState.ACTIVE, AgentState.ERROR], (
-            f"File {fixture_path.name} in {state_name}/ should be " f"ACTIVE or ERROR (single snapshot limitation)"
-        )
+        assert detected_state in [
+            AgentState.ACTIVE,
+            AgentState.ERROR,
+        ], f"File {fixture_path.name} in {state_name}/ should be ACTIVE or ERROR (single snapshot limitation)"
     else:
-        assert detected_state == expected_state, (
-            f"File {fixture_path.name} in {state_name}/ detected as " f"{detected_state} instead of {expected_state}"
-        )
+        assert (
+            detected_state == expected_state
+        ), f"File {fixture_path.name} in {state_name}/ detected as {detected_state} instead of {expected_state}"
 
 
 def get_message_queued_fixtures() -> list[Path]:

@@ -25,7 +25,6 @@ from tmux_orchestrator.core.monitor_helpers import (
     detect_claude_state,
     extract_rate_limit_reset_time,
     is_claude_interface_present,
-    should_notify_continuously_idle,
     should_notify_pm,
 )
 from tmux_orchestrator.utils.string_utils import efficient_change_score, levenshtein_distance
@@ -89,11 +88,13 @@ class AgentHealthStatus:
 class IdleMonitor:
     """Monitor with 100% accurate idle detection using native Python daemon."""
 
-    def __init__(self, tmux: TMUXManager):
+    def __init__(self, tmux: TMUXManager, config: Config = None):
         self.tmux = tmux
-        # Use project directory for storage as per user preference
-        project_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
-        project_dir.mkdir(exist_ok=True)
+        # Use configurable directory for storage
+        if config is None:
+            config = Config.load()
+        project_dir = config.orchestrator_base_dir
+        project_dir.mkdir(parents=True, exist_ok=True)
         logs_dir = project_dir / "logs"
         logs_dir.mkdir(exist_ok=True)
 
@@ -107,7 +108,9 @@ class IdleMonitor:
         self._idle_agents: dict[str, datetime] = {}
         self._submission_attempts: dict[str, int] = {}
         self._last_submission_time: dict[str, float] = {}
-        self._session_agents: dict[str, dict[str, dict[str, str]]] = {}  # Track agents with names: {session: {target: {name, type}}}
+        self._session_agents: dict[
+            str, dict[str, dict[str, str]]
+        ] = {}  # Track agents with names: {session: {target: {name, type}}}
         self._missing_agent_grace: dict[str, datetime] = {}  # Track when agents were first identified as missing
         self._missing_agent_notifications: dict[str, datetime] = {}  # Track when we last notified about missing agents
         self._team_idle_at: dict[str, datetime | None] = {}  # Track when entire team becomes idle per session
@@ -862,6 +865,8 @@ monitor._run_monitoring_daemon({interval})
                 elif idle_type == "continuously_idle":
                     session_logger.debug(f"Agent {target} is CONTINUOUSLY IDLE (no recent activity)")
                     # Use cooldown logic for continuously idle agents to prevent spam
+                    from tmux_orchestrator.core.monitor_helpers import should_notify_continuously_idle
+
                     if should_notify_continuously_idle(target, self._idle_notifications):
                         session_logger.info(f"Agent {target} continuously idle - notifying PM (with 5min cooldown)")
                         self._check_idle_notification(tmux, target, session_logger, pm_notifications)
@@ -1546,16 +1551,16 @@ Please assess the current situation and resume project management."""
                 session_name = agent.split(":")[0]
                 if session_name not in current_by_session:
                     current_by_session[session_name] = {}
-                
+
                 # Get agent info and determine if it's a PM
                 window_name = self._get_window_name(tmux, session_name, agent.split(":")[1])
                 is_pm = self._is_pm_agent(tmux, agent)
-                
+
                 # Only track non-PM agents to avoid false positives
                 if not is_pm:
                     current_by_session[session_name][agent] = {
                         "name": window_name,
-                        "type": "worker"  # Non-PM agents are workers
+                        "type": "worker",  # Non-PM agents are workers
                     }
 
             # Check each session for missing agents

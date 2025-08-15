@@ -8,12 +8,13 @@ from tmux_orchestrator.server.tools.spawn_agent import SpawnAgentRequest, spawn_
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-def test_spawn_agent_empty_session_name() -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_empty_session_name() -> None:
     """Test spawn_agent with empty session name returns error."""
     tmux = Mock(spec=TMUXManager)
     request = SpawnAgentRequest(session_name="", agent_type="developer")
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert not result.success
     assert result.error_message is not None
@@ -23,12 +24,13 @@ def test_spawn_agent_empty_session_name() -> None:
     assert result.target == ""
 
 
-def test_spawn_agent_invalid_agent_type() -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_invalid_agent_type() -> None:
     """Test spawn_agent with invalid agent type returns error."""
     tmux = Mock(spec=TMUXManager)
     request = SpawnAgentRequest(session_name="test-session", agent_type="invalid-type")
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert not result.success
     assert result.error_message is not None
@@ -36,7 +38,8 @@ def test_spawn_agent_invalid_agent_type() -> None:
     assert "developer, pm, qa, devops, reviewer, researcher, docs" in result.error_message
 
 
-def test_spawn_agent_new_session_success() -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_new_session_success() -> None:
     """Test successful agent spawn in new session."""
     tmux = Mock(spec=TMUXManager)
     tmux.has_session.return_value = False
@@ -49,7 +52,7 @@ def test_spawn_agent_new_session_success() -> None:
         project_path="/test/path",
     )
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert result.success
     assert result.session == "test-session"
@@ -63,7 +66,8 @@ def test_spawn_agent_new_session_success() -> None:
     assert tmux.send_keys.call_count == 2  # Claude command + Enter
 
 
-def test_spawn_agent_existing_session_success() -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_existing_session_success() -> None:
     """Test successful agent spawn in existing session."""
     tmux = Mock(spec=TMUXManager)
     tmux.has_session.return_value = True
@@ -72,7 +76,7 @@ def test_spawn_agent_existing_session_success() -> None:
 
     request = SpawnAgentRequest(session_name="existing-session", agent_type="pm")
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert result.success
     assert result.session == "existing-session"
@@ -83,7 +87,8 @@ def test_spawn_agent_existing_session_success() -> None:
     tmux.create_window.assert_called_once_with("existing-session", "Claude-pm", None)
 
 
-def test_spawn_agent_session_creation_fails() -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_session_creation_fails() -> None:
     """Test agent spawn fails when session creation fails."""
     tmux = Mock(spec=TMUXManager)
     tmux.has_session.return_value = False
@@ -91,14 +96,15 @@ def test_spawn_agent_session_creation_fails() -> None:
 
     request = SpawnAgentRequest(session_name="test-session", agent_type="developer")
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert not result.success
     assert result.error_message is not None
     assert "Failed to create new session" in result.error_message
 
 
-def test_spawn_agent_window_creation_fails() -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_window_creation_fails() -> None:
     """Test agent spawn fails when window creation fails."""
     tmux = Mock(spec=TMUXManager)
     tmux.has_session.return_value = True
@@ -106,14 +112,15 @@ def test_spawn_agent_window_creation_fails() -> None:
 
     request = SpawnAgentRequest(session_name="existing-session", agent_type="qa")
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert not result.success
     assert result.error_message is not None
     assert "Failed to create window in existing session" in result.error_message
 
 
-def test_spawn_agent_send_keys_fails() -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_send_keys_fails() -> None:
     """Test agent spawn fails when sending keys fails."""
     tmux = Mock(spec=TMUXManager)
     tmux.has_session.return_value = False
@@ -122,7 +129,7 @@ def test_spawn_agent_send_keys_fails() -> None:
 
     request = SpawnAgentRequest(session_name="test-session", agent_type="developer")
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert not result.success
     assert result.error_message is not None
@@ -130,14 +137,15 @@ def test_spawn_agent_send_keys_fails() -> None:
     assert result.target == "test-session:Claude-developer"
 
 
-def test_spawn_agent_exception_handling() -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_exception_handling() -> None:
     """Test agent spawn handles unexpected exceptions."""
     tmux = Mock(spec=TMUXManager)
     tmux.has_session.side_effect = Exception("Unexpected error")
 
     request = SpawnAgentRequest(session_name="test-session", agent_type="developer")
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert not result.success
     assert result.error_message is not None
@@ -149,7 +157,8 @@ def test_spawn_agent_exception_handling() -> None:
     "agent_type",
     ["developer", "pm", "qa", "devops", "reviewer", "researcher", "docs"],
 )
-def test_spawn_agent_all_valid_types(agent_type: str) -> None:
+@pytest.mark.asyncio
+async def test_spawn_agent_all_valid_types(agent_type: str) -> None:
     """Test spawn_agent accepts all valid agent types."""
     tmux = Mock(spec=TMUXManager)
     tmux.has_session.return_value = False
@@ -158,7 +167,7 @@ def test_spawn_agent_all_valid_types(agent_type: str) -> None:
 
     request = SpawnAgentRequest(session_name="test-session", agent_type=agent_type)
 
-    result = spawn_agent(tmux, request)
+    result = await spawn_agent(tmux, request)
 
     assert result.success
     assert result.window == f"Claude-{agent_type}"

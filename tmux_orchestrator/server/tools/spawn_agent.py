@@ -1,5 +1,6 @@
 """Business logic for spawning new Claude agents."""
 
+import asyncio
 from dataclasses import dataclass
 from typing import Optional
 
@@ -27,7 +28,7 @@ class SpawnAgentResult:
     error_message: Optional[str] = None
 
 
-def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResult:
+async def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResult:
     """
     Spawn a new Claude agent in a tmux session.
 
@@ -119,9 +120,7 @@ def spawn_agent(tmux: TMUXManager, request: SpawnAgentRequest) -> SpawnAgentResu
 
         # CRITICAL: Wait for Claude to fully initialize before allowing messages
         # This prevents Ctrl+C interruption during startup
-        import time
-
-        time.sleep(8)  # Give Claude sufficient time to load completely
+        await asyncio.sleep(8)  # Give Claude sufficient time to load completely
 
         return SpawnAgentResult(
             success=True,

@@ -175,7 +175,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> Any:
                 project_path=arguments.get("project_path"),
                 briefing_message=arguments.get("briefing_message"),
             )
-            result = core_spawn_agent(tmux, request)
+            result = await core_spawn_agent(tmux, request)
 
             if result.success:
                 # If briefing message provided, send it after spawning

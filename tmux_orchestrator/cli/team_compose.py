@@ -840,10 +840,9 @@ def deploy(project_name: str, custom: bool) -> None:
         console.print(f"[blue]Deploying custom team for: {project_name}[/blue]")
         console.print(f"Team composition: {team_comp}")
 
-        # Parse team composition and deploy
-        # (This would read the markdown and extract agent configs)
-        console.print("[yellow]Custom deployment from composition document coming soon[/yellow]")
-        console.print("For now, use: tmux-orc team deploy-standard")
+        # Custom team composition deployment not yet implemented
+        console.print("[yellow]Custom team composition files are not yet supported.[/yellow]")
+        console.print("Please use manual agent spawning or tmux-orc team deploy-standard instead.")
     else:
         # Fall back to standard deployment
         from tmux_orchestrator.cli.team import team as team_cli

@@ -105,7 +105,7 @@ def main():
     print("\n=== Naming Pattern Progress ===")
     print(f"Files with old pattern (test_*.py): {len(old_pattern)}")
     print(f"Files with new pattern (*_test.py): {len(new_pattern)}")
-    print(f"Progress: {len(new_pattern)}/{len(fs_files)} ({len(new_pattern)*100/len(fs_files):.1f}%)")
+    print(f"Progress: {len(new_pattern)}/{len(fs_files)} ({len(new_pattern) * 100 / len(fs_files):.1f}%)")
 
     # Show first few files of each pattern
     if old_pattern:

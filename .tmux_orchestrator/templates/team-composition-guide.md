@@ -510,7 +510,7 @@ Here's a complete example of deploying a web application team:
 tmux-orc setup session ecommerce-platform
 
 # Step 2: Deploy the PM first
-tmux-orc agent spawn project-manager ecommerce-platform:5 --briefing "
+tmux-orc spawn agent project-manager ecommerce-platform:5 --briefing "
 You are the Project Manager for an e-commerce platform.
 Coordinate a team of 5 agents to build a modern online store.
 Focus on quality, timely delivery, and team health.
@@ -518,27 +518,27 @@ Technologies: React, Node.js, PostgreSQL, Redis, Stripe
 "
 
 # Step 3: Deploy developers
-tmux-orc agent spawn frontend-dev ecommerce-platform:2 --briefing "
+tmux-orc spawn agent frontend-dev ecommerce-platform:2 --briefing "
 You are a Senior Frontend Developer building an e-commerce UI.
 Use React, TypeScript, and Tailwind CSS.
 Focus on responsive design and excellent UX.
 "
 
-tmux-orc agent spawn backend-dev ecommerce-platform:3 --briefing "
+tmux-orc spawn agent backend-dev ecommerce-platform:3 --briefing "
 You are a Senior Backend Developer building e-commerce APIs.
 Use Node.js, Express, PostgreSQL, and Redis.
 Implement secure payment processing with Stripe.
 "
 
 # Step 4: Deploy QA
-tmux-orc agent spawn qa-engineer ecommerce-platform:4 --briefing "
+tmux-orc spawn agent qa-engineer ecommerce-platform:4 --briefing "
 You are a QA Engineer for an e-commerce platform.
 Test all critical user flows: browsing, cart, checkout, payments.
 Focus on security, performance, and usability.
 "
 
 # Step 5: Deploy DevOps
-tmux-orc agent spawn devops ecommerce-platform:6 --briefing "
+tmux-orc spawn agent devops ecommerce-platform:6 --briefing "
 You are a DevOps Engineer for an e-commerce platform.
 Set up CI/CD, manage deployments, ensure high availability.
 Implement monitoring and alerting for critical systems.

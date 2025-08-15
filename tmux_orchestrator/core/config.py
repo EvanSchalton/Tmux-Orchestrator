@@ -123,6 +123,22 @@ class Config:
         return Path(path) if path else None
 
     @property
+    def orchestrator_base_dir(self) -> Path:
+        """Get the base directory for orchestrator files."""
+        # Check environment variable first
+        env_path = os.environ.get("TMUX_ORCHESTRATOR_BASE_DIR")
+        if env_path:
+            return Path(env_path)
+
+        # Use project-specific directory if available
+        project_path = self.project_path
+        if project_path and project_path.exists():
+            return project_path / ".tmux_orchestrator"
+
+        # Fall back to current working directory
+        return Path.cwd() / ".tmux_orchestrator"
+
+    @property
     def monitoring_interval(self) -> int:
         """Get monitoring interval."""
         return int(self._config["monitoring"]["idle_check_interval"])
