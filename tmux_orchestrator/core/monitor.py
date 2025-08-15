@@ -125,14 +125,20 @@ class IdleMonitor:
         self._session_agents: dict[
             str, dict[str, dict[str, str]]
         ] = {}  # Track agents with names: {session: {target: {name, type}}}
-        self._missing_agent_grace: dict[str, datetime] = {}  # Track when agents were first identified as missing
-        self._missing_agent_notifications: dict[str, datetime] = {}  # Track when we last notified about missing agents
-        self._team_idle_at: dict[str, datetime | None] = {}  # Track when entire team becomes idle per session
-        self._pm_escalation_history: dict[str, dict[int, datetime]] = {}  # Track escalation history per PM
-        self._session_loggers: dict[str, logging.Logger] = {}  # Cache session-specific loggers
+        # Track when agents were first identified as missing
+        self._missing_agent_grace: dict[str, datetime] = {}
+        # Track when we last notified about missing agents
+        self._missing_agent_notifications: dict[str, datetime] = {}
+        # Track when entire team becomes idle per session
+        self._team_idle_at: dict[str, datetime | None] = {}
+        # Track escalation history per PM
+        self._pm_escalation_history: dict[str, dict[int, datetime]] = {}
+        # Cache session-specific loggers
+        self._session_loggers: dict[str, logging.Logger] = {}
 
         # Activity tracking for intelligent idle detection
-        self._terminal_caches: dict[str, TerminalCache] = {}  # Terminal content caches per agent
+        # Terminal content caches per agent
+        self._terminal_caches: dict[str, TerminalCache] = {}
 
         # Self-healing daemon flag - only set True by tmux-orc stop command
         self.__allow_cleanup = False
@@ -890,7 +896,8 @@ monitor._run_monitoring_daemon({interval})
         general_handler.setFormatter(formatter)
 
         general_logger = logging.getLogger("idle_monitor_general")
-        general_logger.setLevel(logging.DEBUG)  # Changed to DEBUG for troubleshooting
+        # Changed to DEBUG for troubleshooting
+        general_logger.setLevel(logging.DEBUG)
         general_logger.handlers.clear()
         general_logger.addHandler(general_handler)
 
@@ -1609,7 +1616,7 @@ monitor._run_monitoring_daemon({interval})
                 logger.debug(f"PM {pm_target} does not have active Claude interface - skipping recovery notification")
                 return
 
-            message = f"🔴 AGENT RECOVERY NEEDED: {target} is idle and Claude interface is not responding. Please restart this agent."
+            message = f"🔴 AGENT RECOVERY MAY BE NEEDED: {target} is idle and Claude interface is not responding. Please restart this agent if it wasn't intentionally released from duty."
             try:
                 tmux.send_message(pm_target, message)
                 logger.info(f"Sent recovery notification to PM at {pm_target}")
@@ -1638,38 +1645,236 @@ monitor._run_monitoring_daemon({interval})
         except Exception:
             return None
 
-    def _check_pm_health(self, tmux: TMUXManager, pm_target: str, logger: logging.Logger) -> bool:
-        """Check if PM is responsive and healthy."""
+    def _find_pm_window(self, tmux: TMUXManager, session_name: str | None = None) -> str | None:
+        """Find PM window by name pattern, regardless of Claude interface status.
+
+        This is used for recovery detection - finds ANY PM window, healthy or crashed.
+
+        Args:
+            tmux: TMUXManager instance
+            session_name: Optional session to search in. If None, searches all sessions.
+
+        Returns:
+            Target string (session:window) if PM window found, None otherwise
+        """
         try:
-            # Capture recent content to check for Claude interface
-            content = tmux.capture_pane(pm_target, lines=20)
+            if session_name:
+                # Search specific session
+                sessions = [{"name": session_name}]
+            else:
+                # Search all sessions
+                sessions = tmux.list_sessions()
+
+            for session in sessions:
+                windows = tmux.list_windows(session["name"])
+                for window in windows:
+                    window_name = window.get("name", "").lower()
+
+                    # Check for PM window patterns
+                    # Claude-pm, Claude-PM, pm, project-manager, etc.
+                    pm_patterns = ["claude-pm", "pm", "manager", "project-manager"]
+                    if any(pattern in window_name for pattern in pm_patterns):
+                        target = f"{session['name']}:{window['index']}"
+                        return target
+
+            return None
+        except Exception as e:
+            logger = self._get_session_logger(session_name or "general")
+            logger.error(f"Error finding PM window: {e}")
+            return None
+
+    def _detect_pm_crash(self, tmux: TMUXManager, session_name: str, logger: logging.Logger) -> tuple[bool, str | None]:
+        """Detect if PM has crashed in the given session.
+
+        Returns:
+            Tuple of (crashed: bool, pm_target: str | None)
+            - crashed: True if PM crashed or is unhealthy
+            - pm_target: The target string if PM window exists (crashed or healthy)
+        """
+        try:
+            logger.debug(f"Detecting PM crash in session {session_name}")
+
+            # First, check if there's any PM window
+            pm_window = self._find_pm_window(tmux, session_name)
+
+            if not pm_window:
+                logger.info(f"No PM window found in session {session_name}")
+                return (True, None)  # PM is missing entirely
+
+            logger.debug(f"Found PM window at {pm_window}, checking health...")
+
+            # Check if PM has Claude interface
+            content = tmux.capture_pane(pm_window, lines=20)
+
+            # Enhanced crash indicators with more comprehensive detection
+            crash_indicators = [
+                "command not found",
+                "segmentation fault",
+                "core dumped",
+                "killed",
+                "terminated",
+                "fatal error",
+                "panic:",
+                "bash-",  # Just bash prompt, no Claude
+                "zsh:",  # Just shell prompt
+                "$",  # Generic shell prompt
+                "traceback",
+                "error:",
+                "exception:",
+                "failed",
+                "connection refused",
+                "timeout",
+                "critical error",
+                "abort",
+                "permission denied",
+                "no such file",
+                "exit code",
+                "signal",
+            ]
+
+            content_lower = content.lower()
+            for indicator in crash_indicators:
+                if indicator in content_lower:
+                    logger.warning(f"PM crash indicator found: '{indicator}' in {pm_window}")
+                    return (True, pm_window)
 
             # Check if Claude interface is present
             if not is_claude_interface_present(content):
-                logger.warning(f"PM {pm_target} missing Claude interface")
-                return False
+                logger.warning(f"PM at {pm_window} missing Claude interface - likely crashed")
+                return (True, pm_window)
 
-            # Check for error states or unresponsive patterns
-            content_lower = content.lower()
-            error_indicators = [
-                "connection lost",
-                "session expired",
-                "rate limited",
-                "authentication failed",
-                "network error",
-                "timeout",
-            ]
+            # Enhanced health checks with retry mechanism for reliability
+            health_check_attempts = 0
+            max_health_attempts = 2
 
-            if any(indicator in content_lower for indicator in error_indicators):
-                logger.warning(f"PM {pm_target} showing error indicators: {content_lower}")
-                return False
+            while health_check_attempts < max_health_attempts:
+                if self._check_pm_health(tmux, pm_window, logger):
+                    logger.debug(f"PM at {pm_window} passed health check")
+                    break
 
-            logger.debug(f"PM {pm_target} health check passed")
-            return True
+                health_check_attempts += 1
+                if health_check_attempts < max_health_attempts:
+                    logger.debug("PM health check failed, retrying in 1 second...")
+                    time.sleep(1)
+            else:
+                logger.warning(f"PM at {pm_window} failed {max_health_attempts} health checks")
+                return (True, pm_window)
+
+            logger.debug(f"PM at {pm_window} appears healthy")
+            return (False, pm_window)
 
         except Exception as e:
-            logger.error(f"Failed to check PM health for {pm_target}: {e}")
-            return False
+            logger.error(f"Error detecting PM crash: {e}")
+            return (True, None)  # Assume crash on error
+
+    def _check_pm_health(
+        self, tmux: TMUXManager, pm_target: str, logger: logging.Logger, retry_for_new_pm: bool = False
+    ) -> bool:
+        """Check if PM is responsive and healthy.
+
+        Args:
+            tmux: TMUXManager instance
+            pm_target: Target PM window to check
+            logger: Logger instance
+            retry_for_new_pm: If True, retry with delays for newly spawned PMs
+        """
+        max_retries = 5 if retry_for_new_pm else 1  # Increased retries for new PMs
+        retry_delay = 4 if retry_for_new_pm else 0  # Increased delay for startup time
+
+        for attempt in range(max_retries):
+            try:
+                # Capture more content to get better view of terminal state
+                content = tmux.capture_pane(pm_target, lines=30)
+                content_lower = content.lower()
+
+                # Enhanced Claude interface detection - check both strict and lenient patterns
+                has_claude_interface = is_claude_interface_present(content)
+
+                # For new PMs, also check for broader indicators of Claude presence
+                if retry_for_new_pm and not has_claude_interface:
+                    # Additional patterns that indicate Claude is present but starting up
+                    claude_startup_patterns = [
+                        "loading",
+                        "initializing",
+                        "starting",
+                        "claude --dangerously-skip-permissions",
+                        "bypassing permissions",
+                        "connecting",
+                        "human:",  # Conversation indicators
+                        "assistant:",  # Response indicators
+                        "claude code",  # Product name
+                        "anthropic",  # Company name
+                    ]
+
+                    # Check if any startup patterns are present
+                    has_startup_indicators = any(pattern in content_lower for pattern in claude_startup_patterns)
+
+                    # If we see startup indicators, treat as potentially healthy and continue retrying
+                    if has_startup_indicators and attempt < max_retries - 1:
+                        logger.info(
+                            f"PM {pm_target} shows Claude startup indicators, retrying in {retry_delay}s (attempt {attempt + 1}/{max_retries})"
+                        )
+                        time.sleep(retry_delay)
+                        continue
+                    elif has_startup_indicators:
+                        # On the last attempt, if we see startup indicators, consider it healthy
+                        logger.info(f"PM {pm_target} has Claude startup indicators - considering healthy")
+                        has_claude_interface = True
+
+                # Check if Claude interface is present
+                if not has_claude_interface:
+                    if retry_for_new_pm and attempt < max_retries - 1:
+                        logger.info(
+                            f"PM {pm_target} Claude interface not ready yet, retrying in {retry_delay}s (attempt {attempt + 1}/{max_retries})"
+                        )
+                        time.sleep(retry_delay)
+                        continue
+                    else:
+                        logger.warning(f"PM {pm_target} missing Claude interface after {attempt + 1} attempts")
+                        return False
+
+                # Differentiate error checking based on PM state
+                if retry_for_new_pm:
+                    # For new PMs, only fail on critical errors during startup
+                    critical_errors = [
+                        "authentication failed",
+                        "network error",
+                        "connection refused",
+                        "command not found",
+                        "permission denied",
+                    ]
+
+                    if any(error in content_lower for error in critical_errors):
+                        logger.error(f"PM {pm_target} has critical startup error")
+                        return False
+                else:
+                    # Standard error checking for established PMs
+                    error_indicators = [
+                        "connection lost",
+                        "session expired",
+                        "rate limited",
+                        "authentication failed",
+                        "network error",
+                        "timeout",
+                    ]
+
+                    if any(indicator in content_lower for indicator in error_indicators):
+                        logger.warning(f"PM {pm_target} showing error indicators")
+                        return False
+
+                logger.debug(f"PM {pm_target} health check passed on attempt {attempt + 1}")
+                return True
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Health check attempt {attempt + 1} failed for {pm_target}: {e}, retrying...")
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    logger.error(f"Failed to check PM health for {pm_target} after {max_retries} attempts: {e}")
+                    return False
+
+        return False
 
     def is_agent_idle(self, target: str) -> bool:
         """Check if agent is idle using the improved 4-snapshot method."""
@@ -1969,64 +2174,392 @@ monitor._run_monitoring_daemon({interval})
             if not agents:
                 return
 
-            # Check if PM exists
-            pm_target = self._find_pm_agent(tmux)
-            if pm_target:
-                # PM exists, but check if it's healthy
-                if self._check_pm_health(tmux, pm_target, logger):
-                    return  # PM exists and is healthy, no recovery needed
-                else:
-                    logger.warning(f"PM {pm_target} exists but is unhealthy. Triggering recovery.")
-                    # Kill the unhealthy PM before spawning new one
-                    try:
-                        tmux.kill_window(pm_target)
-                        logger.info(f"Killed unhealthy PM at {pm_target}")
-                    except Exception as e:
-                        logger.error(f"Failed to kill unhealthy PM {pm_target}: {e}")
-            else:
-                logger.warning(f"PM missing but {len(agents)} agents exist. Auto-spawning PM for recovery.")
-
-            # PM missing or unhealthy - auto-spawn PM
-
-            # Find the session with the most agents
+            # Group agents by session to focus recovery
             session_counts: dict[str, int] = {}
             for agent in agents:
                 session_name = agent.split(":")[0]
                 session_counts[session_name] = session_counts.get(session_name, 0) + 1
 
-            target_session = max(session_counts.keys(), key=lambda k: session_counts[k])
+            # Check each session with agents for PM health
+            for session_name, agent_count in session_counts.items():
+                session_logger = self._get_session_logger(session_name)
+                session_logger.debug(f"🔍 Checking PM health in session {session_name} with {agent_count} agents")
 
-            # Find available window number in that session
-            windows = tmux.list_windows(target_session)
+                # Use the new crash detection method
+                crashed, pm_target = self._detect_pm_crash(tmux, session_name, session_logger)
+
+                if not crashed:
+                    session_logger.debug(f"✅ PM in session {session_name} is healthy, no recovery needed")
+                    continue
+
+                # PM has crashed or is missing - trigger recovery
+                session_logger.warning(f"🚨 PM crash detected in session {session_name}")
+
+                # Log detailed recovery context
+                session_logger.info("🔧 Initiating PM recovery process:")
+                session_logger.info(f"   - Crashed PM target: {pm_target or 'Missing entirely'}")
+                session_logger.info(f"   - Active agents requiring coordination: {agent_count}")
+                session_logger.info("   - Recovery mode: Automatic with enhanced retry logic")
+                logger.info(f"Session has {agent_count} agents that need a PM")
+
+                # Use the new recovery orchestration method
+                recovery_success = self._recover_crashed_pm(
+                    tmux=tmux,
+                    session_name=session_name,
+                    crashed_pm_target=pm_target,
+                    logger=session_logger,
+                    max_retries=3,
+                    retry_delay=2,
+                )
+
+                if recovery_success:
+                    session_logger.info(f"🎉 Successfully recovered PM for session {session_name}")
+                    session_logger.info("📈 Recovery metrics:")
+                    session_logger.info(f"   - Session agents preserved: {agent_count}")
+                    session_logger.info("   - Recovery process completed successfully")
+                    session_logger.info("   - PM is healthy and ready for coordination")
+                else:
+                    logger.error(f"Failed to recover PM for session {session_name} - manual intervention required")
+
+        except Exception as e:
+            logger.error(f"Failed to auto-spawn PM: {e}")
+
+    def _recover_crashed_pm(
+        self,
+        tmux: TMUXManager,
+        session_name: str,
+        crashed_pm_target: str | None,
+        logger: logging.Logger,
+        max_retries: int = 3,
+        retry_delay: int = 2,
+    ) -> bool:
+        """Orchestrate PM recovery with retries and comprehensive error handling.
+
+        Args:
+            tmux: TMUXManager instance
+            session_name: Session where PM crashed
+            crashed_pm_target: Target of crashed PM window (if exists)
+            logger: Logger instance
+            max_retries: Maximum recovery attempts
+            retry_delay: Delay between retries in seconds
+
+        Returns:
+            bool: True if recovery successful, False otherwise
+        """
+        logger.info(f"Starting PM recovery for session {session_name}")
+        logger.info(f"Crashed PM target: {crashed_pm_target or 'None (missing entirely)'}")
+
+        # Step 1: Clean up crashed PM if it exists
+        if crashed_pm_target:
+            logger.info(f"Cleaning up crashed PM at {crashed_pm_target}")
+            try:
+                tmux.kill_window(crashed_pm_target)
+                logger.info(f"Successfully killed crashed PM window {crashed_pm_target}")
+                time.sleep(1)  # Allow cleanup to complete
+            except Exception as e:
+                logger.error(f"Failed to kill crashed PM: {e}")
+                # Continue with recovery attempt anyway
+
+        # Step 2: Find suitable window index for new PM
+        try:
+            windows = tmux.list_windows(session_name)
             used_indices = {int(w["index"]) for w in windows}
             new_window_index = 1
             while new_window_index in used_indices:
                 new_window_index += 1
+            logger.info(f"Selected window index {new_window_index} for new PM")
+        except Exception as e:
+            logger.error(f"Failed to find suitable window index: {e}")
+            return False
 
-            # Create recovery context message
-            recovery_context = f"""AUTO-RECOVERY NOTIFICATION:
-You have been automatically spawned as PM because the previous PM failed but other agents still exist.
-Your session: {target_session}
-Active agents: {", ".join(agents)}
-Please assess the current situation and resume project management."""
+        # Step 3: Attempt recovery with enhanced retry logic and progressive delays
+        progressive_delays = [2, 5, 10]  # Progressive backoff
 
-            # Use the reusable spawn_pm function
-            pm_target = self._spawn_pm(tmux, target_session, new_window_index, logger, recovery_context)
-            if pm_target:
-                logger.info(f"PM auto-recovery successful at {pm_target}")
-                # Verify the new PM is actually working
-                import time
+        for attempt in range(1, max_retries + 1):
+            logger.info(f"PM recovery attempt {attempt}/{max_retries}")
 
-                time.sleep(3)  # Wait for PM to initialize
-                if self._check_pm_health(tmux, pm_target, logger):
-                    logger.info(f"PM recovery verified: {pm_target} is healthy")
+            try:
+                # Get active agents for context with enhanced session analysis
+                agents = self._discover_agents(tmux)
+                session_agents = [a for a in agents if a.startswith(f"{session_name}:")]
+
+                # Enhanced recovery context with more detail
+                recovery_context = f"""🔄 PM RECOVERY NOTIFICATION:
+You are being spawned as the Project Manager after a PM failure was detected and resolved.
+
+📊 SESSION STATUS:
+- Session: {session_name}
+- Active agents in session: {len(session_agents)}
+- Agent targets: {', '.join(session_agents) if session_agents else 'None'}
+- Recovery attempt: {attempt}/{max_retries}
+
+🎯 YOUR MISSION:
+1. Verify the status of all active agents in this session
+2. Check for any pending tasks or blockers
+3. Resume project coordination and maintain team momentum
+4. Report any issues that need immediate attention
+
+The monitoring daemon has automatically handled the technical recovery.
+Please focus on project continuity and team coordination."""
+
+                # Spawn new PM with better error handling
+                pm_target = self._spawn_pm(tmux, session_name, new_window_index, logger, recovery_context)
+
+                if pm_target:
+                    logger.info(f"PM spawned at {pm_target}, verifying health...")
+
+                    # Give PM extra time to fully initialize before health checks
+                    init_wait = min(5 + (attempt - 1) * 2, 12)  # 5s to 12s based on attempt
+                    logger.info(f"Waiting {init_wait}s for PM initialization...")
+                    time.sleep(init_wait)
+
+                    # Single health check with internal retry logic (more efficient)
+                    health_verified = self._check_pm_health(tmux, pm_target, logger, retry_for_new_pm=True)
+
+                    if health_verified:
+                        logger.info(f"✅ PM recovery SUCCESSFUL at {pm_target} after {attempt} attempts")
+
+                        # Enhanced team notification
+                        try:
+                            self._notify_team_of_pm_recovery(session_name, pm_target)
+                            logger.info(f"Team notification sent for recovered PM at {pm_target}")
+                        except Exception as notify_error:
+                            logger.warning(f"Team notification failed: {notify_error}")
+
+                        # Additional validation: verify PM can receive messages
+                        try:
+                            test_message = "🔄 PM recovery complete. You are now active."
+                            tmux.send_message(pm_target, test_message)
+                            logger.debug("Successfully sent test message to recovered PM")
+                        except Exception as msg_error:
+                            logger.warning(f"Failed to send test message to PM: {msg_error}")
+
+                        return True
+                    else:
+                        logger.warning(f"❌ Spawned PM at {pm_target} failed all health checks")
+                        # Try to clean up failed PM attempt
+                        try:
+                            tmux.kill_window(pm_target)
+                            logger.debug(f"Cleaned up failed PM attempt at {pm_target}")
+                        except Exception:
+                            pass
                 else:
-                    logger.error(f"PM recovery failed: {pm_target} spawned but not healthy")
-            else:
-                logger.error("PM auto-recovery failed")
+                    logger.error(f"❌ Failed to spawn PM on attempt {attempt}")
+
+            except Exception as e:
+                logger.error(f"Recovery attempt {attempt} failed with error: {e}")
+                import traceback
+
+                logger.debug(f"Recovery attempt traceback: {traceback.format_exc()}")
+
+            # Progressive retry delay (except on last attempt)
+            if attempt < max_retries:
+                delay = progressive_delays[min(attempt - 1, len(progressive_delays) - 1)]
+                logger.info(f"Waiting {delay} seconds before retry (progressive backoff)...")
+                time.sleep(delay)
+
+        logger.error(f"PM recovery FAILED after {max_retries} attempts for session {session_name}")
+        return False
+
+    def _notify_team_of_pm_recovery(self, session_name: str, pm_target: str) -> None:
+        """Notify team agents about PM recovery.
+
+        Args:
+            session_name: Session where recovery occurred
+            pm_target: Target of new PM
+        """
+        logger = self._get_session_logger(session_name)
+        try:
+            # Get all agents in session
+            agents = self._discover_agents(self.tmux)
+            team_agents = [a for a in agents if a.startswith(f"{session_name}:") and a != pm_target]
+
+            if not team_agents:
+                logger.debug("No team agents to notify about PM recovery")
+                return
+
+            logger.info(f"Notifying {len(team_agents)} team agents about PM recovery")
+
+            notification = f"""🔄 PM RECOVERY NOTIFICATION:
+The Project Manager has been automatically recovered and is now active at {pm_target}.
+
+📋 RECOVERY STATUS:
+- PM failure was detected and resolved by the monitoring daemon
+- New PM has been spawned and verified as healthy
+- All session agents have been preserved during recovery
+
+🎯 NEXT STEPS:
+- Continue with your current tasks
+- Report any blockers or status updates to the PM
+- No action required from you regarding the recovery
+
+The recovery process is complete and project coordination has resumed."""
+
+            for agent in team_agents:
+                try:
+                    # Check if agent has Claude interface before notifying
+                    content = self.tmux.capture_pane(agent, lines=10)
+                    if is_claude_interface_present(content):
+                        self.tmux.send_message(agent, notification)
+                        logger.debug(f"Notified {agent} about PM recovery")
+                    else:
+                        logger.debug(f"Skipped {agent} - no Claude interface")
+                except Exception as e:
+                    logger.warning(f"Failed to notify {agent}: {e}")
 
         except Exception as e:
-            logger.error(f"Failed to auto-spawn PM: {e}")
+            logger.error(f"Failed to notify team of PM recovery: {e}")
+
+    def _handle_pm_crash(self, pm_target: str) -> None:
+        """Handle detected PM crash.
+
+        Args:
+            pm_target: Target of crashed PM
+        """
+        session_name = pm_target.split(":")[0]
+        logger = self._get_session_logger(session_name)
+
+        logger.warning(f"Handling PM crash at {pm_target}")
+
+        # Use the full recovery process
+        crashed, _ = self._detect_pm_crash(self.tmux, session_name, logger)
+        if crashed:
+            self._recover_crashed_pm(
+                tmux=self.tmux, session_name=session_name, crashed_pm_target=pm_target, logger=logger
+            )
+
+    def _spawn_replacement_pm(self, crashed_target: str, max_retries: int = 3) -> bool:
+        """Spawn replacement PM for crashed PM.
+
+        Args:
+            crashed_target: Target of crashed PM
+            max_retries: Maximum spawn attempts
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        session_name = crashed_target.split(":")[0]
+        logger = self._get_session_logger(session_name)
+
+        return self._recover_crashed_pm(
+            tmux=self.tmux,
+            session_name=session_name,
+            crashed_pm_target=crashed_target,
+            logger=logger,
+            max_retries=max_retries,
+        )
+
+    def _detect_pane_corruption(self, target: str) -> bool:
+        """Detect if pane content is corrupted.
+
+        Args:
+            target: Target pane to check
+
+        Returns:
+            bool: True if corruption detected
+        """
+        try:
+            content = self.tmux.capture_pane(target, lines=50)
+
+            # Check for binary content or corruption indicators
+            corruption_indicators = [
+                "\x00",  # Null bytes
+                "\xff\xfe",  # BOM markers
+                "\x01\x02",  # Control characters
+                "\\x",  # Escaped hex in output
+            ]
+
+            for indicator in corruption_indicators:
+                if indicator in content:
+                    return True
+
+            # Check for excessive binary characters
+            binary_chars = sum(1 for c in content if ord(c) < 32 and c not in "\n\t\r")
+            if len(content) > 0 and binary_chars / len(content) > 0.1:  # >10% binary
+                return True
+
+            return False
+
+        except Exception:
+            return True  # Assume corruption on error
+
+    def _reset_terminal(self, target: str) -> bool:
+        """Reset corrupted terminal.
+
+        Args:
+            target: Target pane to reset
+
+        Returns:
+            bool: True if reset successful
+        """
+        try:
+            logger = self._get_session_logger(target.split(":")[0])
+            logger.info(f"Resetting corrupted terminal at {target}")
+
+            # Send terminal reset sequence
+            self.tmux.send_keys(target, "C-c")  # Cancel any running command
+            time.sleep(0.5)
+            self.tmux.send_keys(target, "reset", literal=True)
+            self.tmux.send_keys(target, "Enter")
+            time.sleep(2)
+
+            # Check if reset worked
+            if not self._detect_pane_corruption(target):
+                logger.info(f"Terminal reset successful for {target}")
+                return True
+            else:
+                logger.warning(f"Terminal reset failed for {target}")
+                return False
+
+        except Exception as e:
+            logger = self._get_session_logger(target.split(":")[0] if ":" in target else "general")
+            logger.error(f"Failed to reset terminal {target}: {e}")
+            return False
+
+    def _get_active_agents(self) -> list[dict[str, str]]:
+        """Get list of active agents for tests.
+
+        Returns:
+            List of agent dictionaries with type, session, etc.
+        """
+        try:
+            agents = self._discover_agents(self.tmux)
+            result = []
+
+            for agent in agents:
+                session_name, window_idx = agent.split(":")
+                windows = self.tmux.list_windows(session_name)
+
+                for window in windows:
+                    if str(window.get("index", "")) == window_idx:
+                        window_name = window.get("name", "").lower()
+
+                        # Determine agent type from window name
+                        agent_type = "unknown"
+                        if "pm" in window_name or "manager" in window_name:
+                            agent_type = "pm"
+                        elif "dev" in window_name:
+                            agent_type = "developer"
+                        elif "qa" in window_name:
+                            agent_type = "qa"
+                        elif "devops" in window_name:
+                            agent_type = "devops"
+
+                        result.append(
+                            {
+                                "target": agent,
+                                "session": session_name,
+                                "window": window_idx,
+                                "name": window_name,
+                                "type": agent_type,
+                            }
+                        )
+                        break
+
+            return result
+
+        except Exception:
+            return []
 
     def _check_missing_agents(
         self,
@@ -2214,17 +2747,21 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
             return "Unknown"
 
     def _find_pm_in_session(self, tmux: TMUXManager, session: str) -> str | None:
-        """Find PM agent in a specific session."""
+        """Find healthy PM agent in a specific session."""
         try:
-            windows = tmux.list_windows(session)
-            for window in windows:
-                window_idx = str(window.get("index", ""))
-                target = f"{session}:{window_idx}"
-                if self._is_pm_agent(tmux, target):
-                    # Verify PM has active Claude interface before returning
-                    content = tmux.capture_pane(target, lines=10)
-                    if is_claude_interface_present(content):
-                        return target
+            # First try to find any PM window in the session
+            pm_window = self._find_pm_window(tmux, session)
+            if not pm_window:
+                return None
+
+            # Check if it has active Claude interface
+            content = tmux.capture_pane(pm_window, lines=10)
+            if is_claude_interface_present(content):
+                return pm_window
+
+            # PM window exists but no Claude interface
+            logger = self._get_session_logger(session)
+            logger.debug(f"PM window {pm_window} exists but has no active Claude interface")
             return None
         except Exception:
             return None
