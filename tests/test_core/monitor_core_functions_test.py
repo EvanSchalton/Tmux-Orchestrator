@@ -279,7 +279,7 @@ class TestIdleMonitorDaemonOperations:
 
             # Call start with mocked subprocess
             with patch.object(self.monitor, "_run_monitoring_daemon"):
-                result = self.monitor.start()
+                self.monitor.start()
 
         # Verify daemon start was attempted
         assert mock_popen.called
@@ -290,7 +290,7 @@ class TestIdleMonitorDaemonOperations:
         self.monitor.pid_file.write_text(str(os.getpid()))
 
         with patch("os.kill"), patch("subprocess.Popen") as mock_popen:
-            result = self.monitor.start()
+            self.monitor.start()
 
         # Should not attempt to start new process
         mock_popen.assert_not_called()
@@ -303,7 +303,7 @@ class TestIdleMonitorDaemonOperations:
 
         # Mock that process exists initially, then stops
         with patch.object(self.monitor, "is_running", side_effect=[True, False]):
-            result = self.monitor.stop()
+            self.monitor.stop()
 
         # Should attempt to kill the process
         mock_kill.assert_called_with(12345, 15)  # SIGTERM
@@ -312,7 +312,7 @@ class TestIdleMonitorDaemonOperations:
         """Test daemon stop when not running."""
         # No PID file exists
         with patch("os.kill") as mock_kill:
-            result = self.monitor.stop()
+            self.monitor.stop()
 
         # Should not attempt to kill anything
         mock_kill.assert_not_called()
@@ -359,7 +359,7 @@ class TestIdleMonitorErrorHandling:
 
         # Should handle error gracefully
         try:
-            agents = self.tmux.list_agents()
+            _ = self.tmux.list_agents()  # Call should raise exception
         except Exception as e:
             assert "Tmux communication error" in str(e)
 

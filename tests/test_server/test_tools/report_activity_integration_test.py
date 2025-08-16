@@ -386,7 +386,7 @@ def test_get_activity_history_tags_filter(mock_tmux, temp_activity_file) -> None
 
     assert result.success
     assert len(result.records) == 2  # Records with "backend" tag
-    assert all("backend" in record.tags for record in result.records)
+    assert all(record.tags and "backend" in record.tags for record in result.records)
 
 
 def test_get_activity_history_combined_filters(mock_tmux, temp_activity_file) -> None:
@@ -431,4 +431,4 @@ def test_get_activity_history_combined_filters(mock_tmux, temp_activity_file) ->
     assert result.records[0].agent_id == "agent-0"
     assert result.records[0].activity_type == ActivityType.WORKING
     assert result.records[0].team_id == "team-alpha"
-    assert "urgent" in result.records[0].tags
+    assert result.records[0].tags and "urgent" in result.records[0].tags

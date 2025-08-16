@@ -318,7 +318,7 @@ config:
 
         try:
             # Run trailing whitespace fix
-            result = subprocess.run(
+            subprocess.run(
                 ["pre-commit", "run", "trailing-whitespace", "--files", str(temp_file)],
                 capture_output=True,
                 text=True,
@@ -348,7 +348,7 @@ config:
 
         try:
             # Run end-of-file fix
-            result = subprocess.run(
+            subprocess.run(
                 ["pre-commit", "run", "end-of-file-fixer", "--files", str(temp_file)],
                 capture_output=True,
                 text=True,

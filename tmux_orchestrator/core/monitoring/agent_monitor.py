@@ -194,7 +194,7 @@ class AgentMonitor(AgentMonitorInterface):
 
             # Use last snapshot for state detection
             content = snapshots[-1]
-            content_hash = hashlib.md5(content.encode()).hexdigest()
+            content_hash = hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
 
             # Step 2: Detect if terminal is actively changing
             is_active = False

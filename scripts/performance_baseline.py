@@ -11,6 +11,7 @@ import json
 import os
 import statistics
 import subprocess
+import sys
 import tempfile
 import time
 import tracemalloc
@@ -133,8 +134,8 @@ class PerformanceBenchmark:
     def get_system_info(self) -> Dict[str, Any]:
         """Collect system information for context."""
         return {
-            "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
-            "platform": os.sys.platform,
+            "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            "platform": sys.platform,
             "cpu_count": psutil.cpu_count(),
             "memory_total": psutil.virtual_memory().total,
             "memory_available": psutil.virtual_memory().available,
@@ -167,13 +168,13 @@ class MonitorPerformanceBenchmark(PerformanceBenchmark):
             tmux.list_agents.return_value = self.create_mock_agents(5)
             tmux.capture_pane.return_value = "Sample agent output content for testing"
 
-            monitor = IdleMonitor(tmux)
+            _ = IdleMonitor(tmux)  # Create instance for performance measurement
 
             # Simulate the core monitoring logic
             agents = tmux.list_agents()
             for agent in agents:
                 target = f"{agent['session']}:{agent['window']}"
-                content = tmux.capture_pane(target)
+                _ = tmux.capture_pane(target)  # Capture for performance measurement
                 # Simulate processing
                 time.sleep(0.001)  # Minimal processing time
 
@@ -186,8 +187,8 @@ class MonitorPerformanceBenchmark(PerformanceBenchmark):
             tmux = TMUXManager()
             # This will work with actual tmux or fail gracefully
             try:
-                agents = tmux.list_agents()
-            except:
+                _ = tmux.list_agents()  # Call for performance measurement
+            except Exception:
                 # Mock if tmux not available
                 pass
 
@@ -246,7 +247,7 @@ class ServerPerformanceBenchmark(PerformanceBenchmark):
 
             with patch("time.sleep"):  # Skip actual sleep
                 try:
-                    result = await spawn_agent(tmux, request)
+                    _ = await spawn_agent(tmux, request)  # Call for performance measurement
                 except Exception:
                     pass  # May fail due to mocking
 
@@ -262,7 +263,7 @@ class ServerPerformanceBenchmark(PerformanceBenchmark):
             ]
 
             try:
-                result = get_agent_status(tmux, None)
+                _ = get_agent_status(tmux, None)  # Call for performance measurement
             except Exception:
                 pass  # May fail due to mocking
 

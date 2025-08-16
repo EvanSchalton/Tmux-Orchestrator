@@ -82,7 +82,7 @@ class StateTracker(StateTrackerInterface):
             Updated AgentState
         """
         session, window = target.split(":", 1)
-        content_hash = hashlib.md5(content.encode()).hexdigest()
+        content_hash = hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
 
         # Get or create agent state
         if target not in self._agent_states:
@@ -343,6 +343,8 @@ class StateTracker(StateTrackerInterface):
             return None
 
         idle_start = self._team_idle_at[session]
+        if idle_start is None:
+            return None
         return (datetime.now() - idle_start).total_seconds()
 
     def track_missing_agent(self, target: str) -> None:

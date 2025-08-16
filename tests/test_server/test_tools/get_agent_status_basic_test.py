@@ -188,7 +188,7 @@ def test_get_agent_status_invalid_no_criteria(mock_tmux, temp_activity_file) -> 
         result = get_agent_status(mock_tmux, request)
 
     assert result.success is False
-    assert "Must specify agent_id, target, or team_id" in result.error_message
+    assert result.error_message and "Must specify agent_id, target, or team_id" in result.error_message
 
 
 def test_get_agent_status_invalid_multiple_criteria(mock_tmux, temp_activity_file) -> None:
@@ -201,7 +201,7 @@ def test_get_agent_status_invalid_multiple_criteria(mock_tmux, temp_activity_fil
         result = get_agent_status(mock_tmux, request)
 
     assert result.success is False
-    assert "Only one of" in result.error_message
+    assert result.error_message and "Only one of" in result.error_message
 
 
 def test_get_agent_status_invalid_agent_id_empty(mock_tmux, temp_activity_file) -> None:
@@ -214,7 +214,7 @@ def test_get_agent_status_invalid_agent_id_empty(mock_tmux, temp_activity_file) 
         result = get_agent_status(mock_tmux, request)
 
     assert result.success is False
-    assert "Agent ID cannot be empty" in result.error_message
+    assert result.error_message and "Agent ID cannot be empty" in result.error_message
 
 
 def test_get_agent_status_invalid_target_format(mock_tmux, temp_activity_file) -> None:
@@ -227,4 +227,4 @@ def test_get_agent_status_invalid_target_format(mock_tmux, temp_activity_file) -
         result = get_agent_status(mock_tmux, request)
 
     assert result.success is False
-    assert "Target must be in format 'session:window'" in result.error_message
+    assert result.error_message and "Target must be in format 'session:window'" in result.error_message

@@ -126,7 +126,7 @@ def test_recovery_notification(mock_tmux, monitor, logger) -> None:
     mock_tmux.send_message.assert_called_once()
     call_args = mock_tmux.send_message.call_args
     assert call_args[0][0] == pm_target
-    assert "AGENT RECOVERY NEEDED" in call_args[0][1]
+    assert "AGENT RECOVERY MAY BE NEEDED" in call_args[0][1]
     assert target in call_args[0][1]
 
 

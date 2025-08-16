@@ -1730,6 +1730,12 @@ monitor._run_monitoring_daemon({interval})
                 "no such file",
                 "exit code",
                 "signal",
+                "claude: not found",  # Claude binary missing
+                "process does not exist",  # Process killed
+                "no process found",  # Process terminated
+                "connection lost",  # Network issues
+                "broken pipe",  # Communication failure
+                "resource temporarily unavailable",  # Resource exhaustion
             ]
 
             content_lower = content.lower()
@@ -2162,8 +2168,13 @@ monitor._run_monitoring_daemon({interval})
 
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to create PM window: {e}")
+            logger.error(f"Command returncode: {e.returncode}")
+            logger.error(f"Command stderr: {e.stderr if hasattr(e, 'stderr') else 'N/A'}")
         except Exception as e:
             logger.error(f"Failed to spawn PM: {e}")
+            import traceback
+
+            logger.debug(f"PM spawn traceback: {traceback.format_exc()}")
 
         return None
 
@@ -2195,11 +2206,12 @@ monitor._run_monitoring_daemon({interval})
                 # PM has crashed or is missing - trigger recovery
                 session_logger.warning(f"🚨 PM crash detected in session {session_name}")
 
-                # Log detailed recovery context
+                # Log detailed recovery context with timestamps
                 session_logger.info("🔧 Initiating PM recovery process:")
                 session_logger.info(f"   - Crashed PM target: {pm_target or 'Missing entirely'}")
                 session_logger.info(f"   - Active agents requiring coordination: {agent_count}")
                 session_logger.info("   - Recovery mode: Automatic with enhanced retry logic")
+                session_logger.info(f"   - Recovery initiated at: {time.strftime('%Y-%m-%d %H:%M:%S')}")
                 logger.info(f"Session has {agent_count} agents that need a PM")
 
                 # Use the new recovery orchestration method
@@ -2395,20 +2407,43 @@ The Project Manager has been automatically recovered and is now active at {pm_ta
 
 The recovery process is complete and project coordination has resumed."""
 
+            successful_notifications = 0
+            failed_notifications = 0
+            skipped_notifications = 0
+
             for agent in team_agents:
                 try:
                     # Check if agent has Claude interface before notifying
                     content = self.tmux.capture_pane(agent, lines=10)
                     if is_claude_interface_present(content):
-                        self.tmux.send_message(agent, notification)
-                        logger.debug(f"Notified {agent} about PM recovery")
+                        result = self.tmux.send_message(agent, notification)
+                        if result:
+                            logger.debug(f"✅ Notified {agent} about PM recovery")
+                            successful_notifications += 1
+                        else:
+                            logger.warning(f"❌ Failed to send message to {agent} (no result)")
+                            failed_notifications += 1
                     else:
-                        logger.debug(f"Skipped {agent} - no Claude interface")
+                        logger.debug(f"⏭️  Skipped {agent} - no Claude interface")
+                        skipped_notifications += 1
                 except Exception as e:
-                    logger.warning(f"Failed to notify {agent}: {e}")
+                    logger.warning(f"❌ Failed to notify {agent}: {e}")
+                    failed_notifications += 1
+
+            # Log comprehensive summary of notification results
+            logger.info("📤 Team notification summary:")
+            logger.info(f"   - Successfully notified: {successful_notifications} agents")
+            logger.info(f"   - Failed notifications: {failed_notifications} agents")
+            logger.info(f"   - Skipped (no Claude interface): {skipped_notifications} agents")
+
+            if failed_notifications > 0:
+                logger.warning(f"⚠️  {failed_notifications} agents did not receive PM recovery notification")
 
         except Exception as e:
             logger.error(f"Failed to notify team of PM recovery: {e}")
+            import traceback
+
+            logger.debug(f"Team notification traceback: {traceback.format_exc()}")
 
     def _handle_pm_crash(self, pm_target: str) -> None:
         """Handle detected PM crash.

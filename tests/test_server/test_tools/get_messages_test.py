@@ -102,7 +102,7 @@ def test_get_messages_exception_handling(mock_tmux) -> None:
     mock_tmux.capture_pane.side_effect = Exception("Tmux error")
     result = get_messages(mock_tmux, request)
     assert not result.success
-    assert "Unexpected error retrieving messages" in result.error_message
+    assert result.error_message and "Unexpected error retrieving messages" in result.error_message
 
 
 def test_get_messages_limited_lines(mock_tmux) -> None:

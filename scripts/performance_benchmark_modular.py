@@ -31,7 +31,7 @@ def create_mock_scenario(num_sessions: int = 2, agents_per_session: int = 3) -> 
 
     # Mock windows for each session
     def mock_list_windows(session_name):
-        session_id = int(session_name.split("-")[1])
+        _ = session_name  # Acknowledge parameter
         windows = []
         for i in range(agents_per_session):
             if i == 0:
@@ -78,7 +78,7 @@ def benchmark_monitoring_cycle(component_manager: ComponentManager, iterations: 
         start_time = time.perf_counter()
 
         # Execute monitoring cycle
-        result = component_manager.execute_monitoring_cycle()
+        _ = component_manager.execute_monitoring_cycle()  # Execute for performance measurement
 
         end_time = time.perf_counter()
         cycle_time = end_time - start_time
@@ -135,7 +135,7 @@ def benchmark_component_initialization(tmux: Mock, config: Config, iterations: i
 
 def benchmark_scalability(config: Config, max_agents: int = 20) -> Dict[str, List[float]]:
     """Benchmark performance scaling with number of agents."""
-    results = {"agent_counts": [], "avg_cycle_times": [], "max_cycle_times": []}
+    results: Dict[str, List[float]] = {"agent_counts": [], "avg_cycle_times": [], "max_cycle_times": []}
 
     print(f"Benchmarking scalability up to {max_agents} agents...")
 

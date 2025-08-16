@@ -111,7 +111,7 @@ class TestAgentStateTracking:
         """Test updating state when content changes."""
         # First update
         content1 = "Initial content"
-        state1 = self.state_tracker.update_agent_state("test:1", content1)
+        self.state_tracker.update_agent_state("test:1", content1)
 
         # Second update with different content
         content2 = "Changed content"
@@ -127,7 +127,7 @@ class TestAgentStateTracking:
         content = "Static content"
 
         # First update
-        state1 = self.state_tracker.update_agent_state("test:1", content)
+        self.state_tracker.update_agent_state("test:1", content)
 
         # Second update with same content
         state2 = self.state_tracker.update_agent_state("test:1", content)
@@ -612,7 +612,7 @@ class TestContentCaching:
     def test_content_hash_computation(self):
         """Test that content hashes are computed correctly."""
         content = "Test content for hashing"
-        expected_hash = hashlib.md5(content.encode()).hexdigest()
+        expected_hash = hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
 
         state = self.state_tracker.update_agent_state("test:1", content)
 

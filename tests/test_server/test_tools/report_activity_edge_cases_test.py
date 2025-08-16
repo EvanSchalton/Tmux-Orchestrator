@@ -49,7 +49,7 @@ def test_report_activity_file_permission_error(mock_tmux, temp_activity_file) ->
             result = report_activity(mock_tmux, request)
 
     assert not result.success
-    assert "Permission denied" in result.error_message
+    assert result.error_message and "Permission denied" in result.error_message
 
 
 def test_report_activity_json_decode_error(mock_tmux, temp_activity_file) -> None:
@@ -68,7 +68,7 @@ def test_report_activity_json_decode_error(mock_tmux, temp_activity_file) -> Non
         result = report_activity(mock_tmux, request)
 
     assert not result.success
-    assert "Invalid JSON" in result.error_message or "JSON" in result.error_message
+    assert result.error_message and "Invalid JSON" in result.error_message or "JSON" in result.error_message
 
 
 def test_report_activity_unexpected_error(mock_tmux, temp_activity_file) -> None:
@@ -88,7 +88,7 @@ def test_report_activity_unexpected_error(mock_tmux, temp_activity_file) -> None
             result = report_activity(mock_tmux, request)
 
     assert not result.success
-    assert "Unexpected error" in result.error_message
+    assert result.error_message and "Unexpected error" in result.error_message
 
 
 def test_get_activity_history_empty_file(mock_tmux, temp_activity_file) -> None:
@@ -135,7 +135,7 @@ def test_get_activity_history_json_error(mock_tmux, temp_activity_file) -> None:
         result = get_activity_history(mock_tmux, request)
 
     assert not result.success
-    assert "Invalid JSON" in result.error_message or "JSON" in result.error_message
+    assert result.error_message and "Invalid JSON" in result.error_message or "JSON" in result.error_message
 
 
 def test_get_activity_history_permission_error(mock_tmux, temp_activity_file) -> None:
@@ -149,7 +149,7 @@ def test_get_activity_history_permission_error(mock_tmux, temp_activity_file) ->
             result = get_activity_history(mock_tmux, request)
 
     assert not result.success
-    assert "Permission denied" in result.error_message
+    assert result.error_message and "Permission denied" in result.error_message
 
 
 def test_get_activity_history_unexpected_error(mock_tmux, temp_activity_file) -> None:
@@ -166,4 +166,4 @@ def test_get_activity_history_unexpected_error(mock_tmux, temp_activity_file) ->
             result = get_activity_history(mock_tmux, request)
 
     assert not result.success
-    assert "Unexpected error" in result.error_message
+    assert result.error_message and "Unexpected error" in result.error_message

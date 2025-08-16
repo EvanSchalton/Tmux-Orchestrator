@@ -17,7 +17,7 @@ class TestSpawnOrcSecurity:
         # Attempt shell injection via profile parameter
         malicious_profile = 'test"; rm -rf /tmp/*; echo "pwned'
 
-        with patch("tmux_orchestrator.cli.spawn_orc.subprocess.run") as mock_run:
+        with patch("tmux_orchestrator.cli.spawn_orc.subprocess.run"):
             spawn_orc(profile=malicious_profile, terminal="gnome-terminal", no_launch=True, no_gui=False)
 
             # Verify the script was written
@@ -51,7 +51,7 @@ class TestSpawnOrcSecurity:
         for profile in test_profiles:
             mock_write.reset_mock()
 
-            with patch("tmux_orchestrator.cli.spawn_orc.subprocess.run") as mock_run:
+            with patch("tmux_orchestrator.cli.spawn_orc.subprocess.run"):
                 spawn_orc(profile=profile, terminal="gnome-terminal", no_launch=True, no_gui=False)
 
                 written_script = mock_write.call_args[0][0]
@@ -67,7 +67,7 @@ class TestSpawnOrcSecurity:
         """Test that normal profiles work correctly."""
         safe_profile = "test-profile"
 
-        with patch("tmux_orchestrator.cli.spawn_orc.subprocess.run") as mock_run:
+        with patch("tmux_orchestrator.cli.spawn_orc.subprocess.run"):
             spawn_orc(profile=safe_profile, terminal="gnome-terminal", no_launch=True, no_gui=False)
 
             written_script = mock_write.call_args[0][0]

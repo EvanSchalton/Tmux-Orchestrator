@@ -135,7 +135,7 @@ class TestEndToEndMonitoringWorkflow:
         component_manager = ComponentManager(self.tmux, self.config)
 
         with patch("time.sleep"):  # Speed up polling
-            result = component_manager.execute_monitoring_cycle()
+            component_manager.execute_monitoring_cycle()
 
         # Verify team idle detection
         assert component_manager.state_tracker.is_team_idle("idle-team") is True
@@ -162,7 +162,7 @@ class TestEndToEndMonitoringWorkflow:
         component_manager = ComponentManager(self.tmux, self.config)
 
         with patch("time.sleep"):  # Speed up polling
-            result = component_manager.execute_monitoring_cycle()
+            component_manager.execute_monitoring_cycle()
 
         # Verify fresh agent notification was queued
         notification_stats = component_manager.notification_manager.get_notification_stats()
@@ -179,12 +179,6 @@ class TestEndToEndMonitoringWorkflow:
         ]
 
         # Mock mixed content to generate notifications
-        content_responses = [
-            "PM working...",  # PM active
-            "Static content",  # Developer idle
-            "Error: Connection timeout",  # QA error
-        ]
-
         call_count = 0
 
         def mock_capture_pane(target, lines=50):
@@ -204,7 +198,7 @@ class TestEndToEndMonitoringWorkflow:
 
         with patch("time.sleep"):  # Speed up polling
             # Execute cycle to queue notifications
-            result = component_manager.execute_monitoring_cycle()
+            component_manager.execute_monitoring_cycle()
 
             # Send notifications
             sent_count = component_manager.notification_manager.send_queued_notifications()
@@ -443,7 +437,6 @@ class TestPerformanceValidation:
 
         # Execute cycles and verify no memory leaks in component state
         initial_cache_size = len(component_manager.agent_monitor._agent_cache)
-        initial_history_size = len(component_manager._performance_history)
 
         with patch("time.sleep"):  # Speed up polling
             for _ in range(20):
