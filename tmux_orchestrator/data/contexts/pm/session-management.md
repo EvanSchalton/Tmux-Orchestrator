@@ -1,5 +1,7 @@
 # Session Management Guidelines
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or use `--help` flags
+
 ## ⚠️ CRITICAL: Session Management
 
 **YOU MUST SPAWN ALL AGENTS IN YOUR CURRENT SESSION**

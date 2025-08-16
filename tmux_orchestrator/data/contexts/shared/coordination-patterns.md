@@ -1,5 +1,7 @@
 # Cross-Session Coordination Patterns
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or use `--help` flags
+
 ## Administrative Assistant Pattern
 
 **Use Case**: When a PM needs to govern work across multiple sessions without directly interrupting technical teams.

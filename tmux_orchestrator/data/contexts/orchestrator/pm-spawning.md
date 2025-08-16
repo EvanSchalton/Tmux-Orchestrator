@@ -1,5 +1,7 @@
 # PM Spawning Guide
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or use `--help` flags
+
 ## 🚨 CRITICAL: Always Use tmux-orc Commands 🚨
 
 **The #1 cause of PM spawning failures is using raw tmux commands!**

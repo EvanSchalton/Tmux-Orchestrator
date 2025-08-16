@@ -1,5 +1,7 @@
 # Orchestrator Workflow
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or use `--help` flags
+
 ## Complete Workflow Process
 
 ### 1. Receive Requirements

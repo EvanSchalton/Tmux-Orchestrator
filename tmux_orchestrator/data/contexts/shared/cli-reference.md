@@ -4,6 +4,23 @@
 
 **DO NOT rely on hardcoded command examples below.** The tmux-orc CLI is actively evolving. Instead:
 
+### 🎯 **NEW: Dynamic CLI Discovery**
+
+Use the `reflect` command for always-current CLI structure:
+
+```bash
+# Tree view of all commands and subcommands
+tmux-orc reflect
+
+# JSON format for automation tools
+tmux-orc reflect --format json
+
+# Markdown format for documentation
+tmux-orc reflect --format markdown
+```
+
+This command automatically discovers all available commands, options, and help text without requiring manual updates.
+
 ### 🔍 **ALWAYS start with `--help` flags:**
 
 ```bash
@@ -50,6 +67,15 @@ Most commands use `session:window` format (e.g., `myproject:1`, `dev:0`)
 ### ⚡ **Quick Discovery Examples:**
 
 ```bash
+# Get complete CLI structure overview
+tmux-orc reflect
+
+# Get JSON structure for tools/automation
+tmux-orc reflect --format json
+
+# Generate markdown documentation
+tmux-orc reflect --format markdown
+
 # What agent commands exist?
 tmux-orc agent --help
 

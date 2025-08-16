@@ -1,5 +1,7 @@
 # Communication Protocols and Status Updates
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
+
 ## Standard Communication Formats
 
 ### STATUS UPDATE Format

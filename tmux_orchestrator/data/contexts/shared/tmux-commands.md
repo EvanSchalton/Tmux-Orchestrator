@@ -1,5 +1,7 @@
 # TMUX Command Guidelines
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or use `--help` flags
+
 ## 🚨 **ALWAYS USE TMUX-ORC COMMANDS - NEVER RAW TMUX!** 🚨
 
 **CORRECT**: `tmux-orc agent send session:window "message"`

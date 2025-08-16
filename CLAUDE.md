@@ -72,6 +72,27 @@ As the Claude Code orchestrator, you are the interface between the human and the
 - **3-minute grace period**: PMs are protected from health checks immediately after recovery
 - See closeout report at `.tmux_orchestrator/planning/daemon-recovery-fixes-closeout.md`
 
+## CLI Command Discovery
+
+### Dynamic CLI Reference
+For always-current CLI commands and options, use the built-in discovery tools:
+
+```bash
+# Complete CLI structure overview
+tmux-orc reflect
+
+# JSON format for automation
+tmux-orc reflect --format json
+
+# Markdown format for documentation
+tmux-orc reflect --format markdown
+
+# Help for specific commands
+tmux-orc [COMMAND] --help
+```
+
+**Important**: Never rely on hardcoded CLI examples in documentation. Always use `tmux-orc reflect` or `--help` flags for current syntax.
+
 ## System Notifications and Status Messages
 
 ### Known Status Updates
