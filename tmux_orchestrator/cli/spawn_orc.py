@@ -5,6 +5,7 @@ TODO: Consider refactoring this to be under an 'orchestrator' command group
       nested commands like 'agent spawn' and 'context spawn'.
 """
 
+import re
 import shlex
 import subprocess
 import sys
@@ -36,6 +37,17 @@ def spawn_orc(profile: str | None, terminal: str, no_launch: bool, no_gui: bool)
     After launching, you'll be ready to create feature requests and use /create-prd
     to generate PRDs that will spawn autonomous agent teams.
     """
+
+    # Validate profile parameter to prevent injection
+    if profile:
+        if not re.match(r"^[a-zA-Z0-9_-]+$", profile):
+            console.print(
+                "[red]Error: Invalid profile name. Profile must contain only alphanumeric characters, hyphens, and underscores.[/red]"
+            )
+            raise click.BadParameter("Profile name contains invalid characters")
+        if len(profile) > 50:
+            console.print("[red]Error: Profile name too long (max 50 characters).[/red]")
+            raise click.BadParameter("Profile name too long")
 
     # Build Claude command
     claude_cmd = ["claude"]
@@ -187,7 +199,11 @@ def _get_terminal_command(terminal: str, script_path: str) -> list[str] | None:
         if terminal in terminal_commands:
             return terminal_commands[terminal]
         else:
-            # Try generic command
+            # Try generic command - sanitize terminal parameter
+            # Validate terminal name to prevent injection
+            if not terminal.replace("-", "").replace("_", "").isalnum():
+                console.print(f"[red]Invalid terminal name: {terminal}[/red]")
+                return None
             return [terminal, "-e", script_path]
 
     # Auto-detect terminal

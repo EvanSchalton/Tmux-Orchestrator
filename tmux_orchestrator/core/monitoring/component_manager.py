@@ -14,6 +14,7 @@ from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 from .agent_monitor import AgentMonitor
+from .crash_detector import CrashDetector
 from .notification_manager import NotificationManager
 from .state_tracker import StateTracker
 from .types import AgentInfo, IdleAnalysis, IdleType, MonitorStatus
@@ -62,6 +63,7 @@ class ComponentManager:
         self.agent_monitor = AgentMonitor(tmux, config, self.logger)
         self.notification_manager = NotificationManager(tmux, config, self.logger)
         self.state_tracker = StateTracker(tmux, config, self.logger)
+        self.crash_detector = CrashDetector(tmux, self.logger)
 
         # Monitoring state
         self._is_running = False
@@ -187,6 +189,9 @@ class ComponentManager:
 
             # Step 2: Analyze each agent
             self._analyze_agents(agents, result)
+
+            # Step 2.5: Check for PM crashes across all sessions
+            self._check_pm_health(result)
 
             # Step 3: Send queued notifications
             result.notifications_sent = self.notification_manager.send_queued_notifications()
@@ -391,3 +396,44 @@ class ComponentManager:
     def force_notification_send(self) -> int:
         """Force sending of queued notifications."""
         return self.notification_manager.send_queued_notifications()
+
+    def _check_pm_health(self, result: MonitorCycleResult) -> None:
+        """Check PM health across all active sessions."""
+        try:
+            # Get all sessions with agents
+            sessions = set()
+            for agent in self.agent_monitor.get_all_cached_agents():
+                sessions.add(agent.session)
+
+            # Check PM health in each session
+            for session_name in sessions:
+                try:
+                    crashed, pm_target = self.crash_detector.detect_pm_crash(session_name)
+
+                    if crashed:
+                        if pm_target:
+                            self.logger.error(f"PM crash detected in session {session_name} at {pm_target}")
+                            self.notification_manager.notify_agent_crash(
+                                target=pm_target,
+                                error_type="PM crash detected",
+                                session=session_name,
+                                metadata={"component": "PM", "recovery_needed": True},
+                            )
+                        else:
+                            self.logger.error(f"PM missing entirely in session {session_name}")
+                            self.notification_manager.notify_recovery_needed(
+                                target=f"{session_name}:0",  # Assume PM should be at window 0
+                                issue="PM missing from session",
+                                session=session_name,
+                                metadata={"component": "PM", "recovery_type": "respawn"},
+                            )
+                    else:
+                        self.logger.debug(f"PM health check passed for session {session_name}")
+
+                except Exception as e:
+                    self.logger.error(f"Error checking PM health in session {session_name}: {e}")
+                    result.add_error(f"PM health check failed for {session_name}: {e}")
+
+        except Exception as e:
+            self.logger.error(f"Error during PM health check: {e}")
+            result.add_error(f"PM health check failed: {e}")

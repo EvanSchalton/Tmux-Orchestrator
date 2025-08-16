@@ -8,18 +8,23 @@ You're building a microservices-based e-commerce platform with separate services
 
 ## Architecture Overview
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   User Service  │     │ Product Service │     │  Order Service  │
-│   (Team Alpha)  │     │  (Team Beta)    │     │  (Team Gamma)   │
-└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
-         │                       │                         │
-         └───────────────────────┴─────────────────────────┘
-                                 │
-                        ┌────────┴────────┐
-                        │ Payment Service │
-                        │  (Team Delta)   │
-                        └─────────────────┘
+```mermaid
+graph TD
+    US[User Service<br/>Team Alpha] --> PS[Product Service<br/>Team Beta]
+    US --> OS[Order Service<br/>Team Gamma]
+    PS --> OS
+    OS --> PAYS[Payment Service<br/>Team Delta]
+
+    US -.-> PC[Platform Coordination<br/>Hub Team]
+    PS -.-> PC
+    OS -.-> PC
+    PAYS -.-> PC
+
+    classDef service fill:#e3f2fd
+    classDef coordination fill:#e8f5e8
+
+    class US,PS,OS,PAYS service
+    class PC coordination
 ```
 
 ## Step 1: Deploy Service Teams

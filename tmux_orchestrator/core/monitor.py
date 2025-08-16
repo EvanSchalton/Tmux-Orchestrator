@@ -3,9 +3,11 @@
 import logging
 import multiprocessing
 import os
+import re
 import signal
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -100,9 +102,29 @@ class AgentHealthStatus:
 
 
 class IdleMonitor:
-    """Monitor with 100% accurate idle detection using native Python daemon."""
+    """Monitor with 100% accurate idle detection using native Python daemon.
+
+    This class implements a singleton pattern to prevent multiple monitor instances
+    from being created, which could lead to multiple daemons running concurrently.
+    """
+
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls, tmux: TMUXManager, config: Config | None = None):
+        """Ensure only one instance of IdleMonitor exists (singleton pattern)."""
+        if cls._instance is None:
+            with cls._lock:
+                # Double-check locking pattern
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(self, tmux: TMUXManager, config: Config | None = None):
+        # Only initialize once
+        if hasattr(self, "_initialized"):
+            return
+        self._initialized = True
         self.tmux = tmux
         # Use configurable directory for storage
         if config is None:
@@ -117,6 +139,16 @@ class IdleMonitor:
         self.logs_dir = logs_dir  # Store for multi-log system
         self.graceful_stop_file = project_dir / "idle-monitor.graceful"  # File-based flag for graceful stop
         self.daemon_process: multiprocessing.Process | None = None
+
+        # PM recovery grace period tracking
+        self._pm_recovery_timestamps: dict[str, datetime] = {}  # Track when PMs were recovered
+        self._grace_period_minutes = config.get(
+            "monitoring.pm_recovery_grace_period_minutes", 3
+        )  # Configurable grace period
+
+        # PM crash observation tracking for pre-kill confirmation
+        self._pm_crash_observations: dict[str, list[datetime]] = {}  # Track crash observations
+        self._crash_observation_window = 30  # 30-second observation period before killing PM
         self._crash_notifications: dict[str, datetime] = {}
         self._idle_notifications: dict[str, datetime] = {}
         self._idle_agents: dict[str, datetime] = {}
@@ -137,8 +169,13 @@ class IdleMonitor:
         self._session_loggers: dict[str, logging.Logger] = {}
 
         # Activity tracking for intelligent idle detection
-        # Terminal content caches per agent
+        # Terminal content caches per agent with resource limits
         self._terminal_caches: dict[str, TerminalCache] = {}
+        self._cache_access_times: dict[str, float] = {}  # Track last access time for LRU cleanup
+        self._max_cache_entries = config.get("monitoring.max_cache_entries", 100)  # Max agents to track
+        self._max_cache_age_hours = config.get("monitoring.max_cache_age_hours", 24)  # Max cache age
+        self._cache_cleanup_interval = 3600  # Clean up caches every hour
+        self._last_cache_cleanup = time.time()
 
         # Self-healing daemon flag - only set True by tmux-orc stop command
         self.__allow_cleanup = False
@@ -608,8 +645,7 @@ class IdleMonitor:
         daemon_command = [
             sys.executable,
             "-c",
-            f"""
-import sys
+            f"""import sys
 sys.path.insert(0, '/workspaces/Tmux-Orchestrator')
 from tmux_orchestrator.core.monitor import IdleMonitor
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -626,6 +662,179 @@ monitor._run_monitoring_daemon({interval})
             raise RuntimeError("Failed to start daemon under supervision")
 
         return success
+
+    def _check_claude_interface(self, target: str, content: str) -> bool:
+        """Check if Claude interface is present in pane content.
+
+        Args:
+            target: Window target
+            content: Pane content
+
+        Returns:
+            bool: True if Claude interface is present
+        """
+        # Import crash detector for interface checking
+        from tmux_orchestrator.core.monitoring.crash_detector import CrashDetector
+
+        detector = CrashDetector(self.tmux, self.logger)
+        return detector._is_claude_interface_present(content)
+
+    def _log_error(self, message: str) -> None:
+        """Log an error message.
+
+        Args:
+            message: Error message to log
+        """
+        self.logger.error(message)
+
+    def _resume_incomplete_recoveries(self) -> None:
+        """Resume incomplete PM recoveries after daemon restart."""
+        # This would check for incomplete recoveries and resume them
+        # For now, just a placeholder
+        self.logger.info("Checking for incomplete PM recoveries")
+
+    def _handle_corrupted_pm(self, target: str) -> None:
+        """Handle corrupted PM terminal.
+
+        Args:
+            target: PM target
+        """
+        self.logger.warning(f"Handling corrupted PM at {target}")
+        self._reset_terminal(target)
+
+    def _get_team_agents(self, session: str) -> list[dict]:
+        """Get team agents in a session.
+
+        Args:
+            session: Session name
+
+        Returns:
+            List of agent info dicts
+        """
+        agents = []
+        try:
+            windows = self.tmux.list_windows(session)
+            for window in windows:
+                window_name = window.get("name", "").lower()
+                window_idx = window.get("index", "0")
+
+                # Skip PM windows
+                if "pm" in window_name or "manager" in window_name:
+                    continue
+
+                agents.append(
+                    {
+                        "target": f"{session}:{window_idx}",
+                        "name": window_name,
+                        "type": self._determine_agent_type(window_name),
+                    }
+                )
+        except Exception as e:
+            self.logger.error(f"Error getting team agents: {e}")
+
+        return agents
+
+    def _determine_agent_type(self, window_name: str) -> str:
+        """Determine agent type from window name.
+
+        Args:
+            window_name: Window name
+
+        Returns:
+            Agent type string
+        """
+        name_lower = window_name.lower()
+        if "dev" in name_lower:
+            return "developer"
+        elif "qa" in name_lower or "test" in name_lower:
+            return "qa"
+        elif "devops" in name_lower or "ops" in name_lower:
+            return "devops"
+        elif "review" in name_lower:
+            return "reviewer"
+        else:
+            return "agent"
+
+    def _notify_agent(self, target: str, message: str) -> None:
+        """Send notification to an agent.
+
+        Args:
+            target: Agent target
+            message: Message to send
+        """
+        try:
+            self.tmux.send_keys(target, message, literal=True)
+            self.tmux.send_keys(target, "Enter")
+        except Exception as e:
+            self.logger.error(f"Failed to notify agent {target}: {e}")
+
+    def _detect_pane_corruption(self, target: str) -> bool:
+        """Detect if pane content is corrupted.
+
+        Args:
+            target: Window target
+
+        Returns:
+            bool: True if corrupted
+        """
+        try:
+            content = self.tmux.capture_pane(target)
+            # Check for binary/control characters
+            non_printable_count = sum(1 for c in content if ord(c) < 32 and c not in "\n\r\t")
+            return non_printable_count > len(content) * 0.1  # More than 10% non-printable
+        except Exception:
+            return False
+
+    def _reset_terminal(self, target: str) -> bool:
+        """Reset terminal in target window.
+
+        Args:
+            target: Window target
+
+        Returns:
+            bool: True if successful
+        """
+        try:
+            self.tmux.send_keys(target, "C-c")  # Cancel
+            time.sleep(0.5)
+            self.tmux.send_keys(target, "reset", literal=True)
+            self.tmux.send_keys(target, "Enter")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to reset terminal {target}: {e}")
+            return False
+
+    def _check_recovery_state(self, state_file: Path) -> None:
+        """Check recovery state file and resume incomplete recoveries.
+
+        Args:
+            state_file: Path to state file
+        """
+        if state_file.exists():
+            try:
+                import json
+
+                with open(state_file) as f:
+                    state = json.load(f)
+                if state.get("recovering"):
+                    self._resume_incomplete_recoveries()
+            except Exception as e:
+                self.logger.error(f"Error checking recovery state: {e}")
+
+    def _notify_team_of_pm_recovery(self, pm_target: str) -> None:
+        """Notify team members that PM has been recovered.
+
+        Args:
+            pm_target: PM target
+        """
+        session = pm_target.split(":")[0]
+        team_agents = self._get_team_agents(session)
+
+        for agent in team_agents:
+            message = "NOTICE: PM has been recovered after a crash. Please continue with your current tasks."
+            self._notify_agent(agent["target"], message)
+
+        return True  # Fixed undefined variable
 
     def stop(self, allow_cleanup: bool = True) -> bool:
         """Stop the idle monitor daemon.
@@ -847,6 +1056,11 @@ monitor._run_monitoring_daemon({interval})
 
                 # Discover and monitor agents
                 self._monitor_cycle(tmux, logger)
+
+                # Periodic cache cleanup to prevent unbounded growth
+                if time.time() - self._last_cache_cleanup > self._cache_cleanup_interval:
+                    self._cleanup_terminal_caches(logger)
+                    self._last_cache_cleanup = time.time()
 
                 # Calculate sleep time to maintain interval
                 elapsed = time.time() - start_time
@@ -1683,6 +1897,148 @@ monitor._run_monitoring_daemon({interval})
             logger.error(f"Error finding PM window: {e}")
             return None
 
+    def _should_ignore_crash_indicator(self, indicator: str, content: str, content_lower: str) -> bool:
+        """Determine if a crash indicator should be ignored based on context.
+
+        This prevents false positives when PMs are discussing failures/errors
+        in normal conversation or reporting status.
+
+        Args:
+            indicator: The crash indicator that was found
+            content: Full terminal content (original case)
+            content_lower: Lowercase version of content
+
+        Returns:
+            True if the indicator should be ignored (false positive)
+        """
+        # Regex patterns that indicate normal PM output, not crashes
+        # As recommended in status report lines 99-104
+        regex_ignore_contexts = [
+            r"test.*failed",
+            r"tests?\s+failed",
+            r"check.*failed",
+            r"Tests failed:",
+            r"Build failed:",
+            r"unit\s+test.*failed",
+            r"integration\s+test.*failed",
+            r"test\s+suite.*failed",
+            r"failing\s+test",
+            r"deployment.*failed",
+            r"pipeline.*failed",
+            r"job.*failed",
+            r"Task failed:",
+            r"Failed:",
+            r"FAILED:",
+            r"\d+\s+tests?\s+failed",  # "3 tests failed"
+            r"failed\s+\d+\s+tests?",  # "failed 3 tests"
+        ]
+
+        # Check regex patterns for more flexible matching
+        for pattern in regex_ignore_contexts:
+            if re.search(pattern, content, re.IGNORECASE):
+                return True
+
+        # Additional substring patterns for non-regex matches
+        safe_contexts = [
+            # PM analyzing or reporting errors
+            "error occurred",
+            "error was",
+            "error has been",
+            "previous error",
+            "fixed the error",
+            "resolving error",
+            "error in the",
+            # Status reports and discussions
+            "reported killed",
+            "was killed by",
+            "process was terminated",
+            "has been terminated",
+            "connection was lost",
+            # Historical references
+            "previously failed",
+            "had failed",
+            "which failed",
+            "that failed",
+            # Tool output patterns
+            "⎿",  # Tool output boundary
+            "│",  # Tool output formatting
+            "└",  # Tool output formatting
+            "├",  # Tool output formatting
+        ]
+
+        # Check if indicator appears in a safe context
+        for safe_context in safe_contexts:
+            if safe_context.lower() in content_lower:
+                # Found in safe context - this is likely normal PM output
+                return True
+
+        # Additional checks for specific indicators
+        if indicator == "killed":
+            # Check if it's discussing a killed process vs being killed itself
+            kill_contexts = ["process killed", "killed the", "killed by", "was killed", "been killed"]
+            for context in kill_contexts:
+                if context in content_lower:
+                    return True
+
+        if indicator == "terminated":
+            # Check if discussing termination vs being terminated
+            term_contexts = ["was terminated", "been terminated", "process terminated", "terminated the"]
+            for context in term_contexts:
+                if context in content_lower:
+                    return True
+
+        # FIRST: Check for shell prompts at the very end of content (indicates actual crash)
+        # This takes precedence over other patterns
+        lines = content.strip().split("\n")
+        if lines:
+            last_line = lines[-1].strip()
+            # Shell prompts that indicate actual crashes
+            shell_prompt_patterns = [
+                ("bash-", True),  # bash-5.1$ format
+                ("zsh:", True),  # zsh: format
+                ("$", False),  # Generic $ prompt (check if standalone)
+                ("%", False),  # Generic % prompt
+                ("#", False),  # Root prompt
+            ]
+
+            for pattern, prefix_check in shell_prompt_patterns:
+                if prefix_check:
+                    # Check if line starts with this pattern (e.g., "bash-5.1$")
+                    if last_line.startswith(pattern) and last_line.endswith("$"):
+                        return False  # This is a crash
+                else:
+                    # Check if it's just the prompt character
+                    if last_line == pattern:
+                        return False  # This is a crash
+
+            # Also check if the specific crash indicator is in a crash line
+            if indicator in ["bash-", "$ "] and last_line.startswith("bash-") and "$" in last_line:
+                return False  # bash prompt after crash
+
+        # Check if content has active Claude interface markers
+        claude_active_patterns = [
+            "Human:",
+            "Assistant:",
+            "You:",
+            "I'll",
+            "I will",
+            "Let me",
+            "I can",
+            "I understand",
+            "tmux-orc",  # PM using tmux-orc commands
+            "Checking",  # PM actively checking something
+            "Running",  # PM running commands
+            "Executing",  # PM executing tasks
+        ]
+
+        # If we see active conversation patterns, it's likely not crashed
+        for pattern in claude_active_patterns:
+            if pattern in content:
+                return True
+
+        # Default: don't ignore the indicator
+        return False
+
     def _detect_pm_crash(self, tmux: TMUXManager, session_name: str, logger: logging.Logger) -> tuple[bool, str | None]:
         """Detect if PM has crashed in the given session.
 
@@ -1706,42 +2062,76 @@ monitor._run_monitoring_daemon({interval})
             # Check if PM has Claude interface
             content = tmux.capture_pane(pm_window, lines=20)
 
-            # Enhanced crash indicators with more comprehensive detection
+            # Focused crash indicators - only actual process crashes, not tool output
             crash_indicators = [
-                "command not found",
-                "segmentation fault",
-                "core dumped",
-                "killed",
-                "terminated",
-                "fatal error",
-                "panic:",
-                "bash-",  # Just bash prompt, no Claude
-                "zsh:",  # Just shell prompt
-                "$",  # Generic shell prompt
-                "traceback",
-                "error:",
-                "exception:",
-                "failed",
-                "connection refused",
-                "timeout",
-                "critical error",
-                "abort",
-                "permission denied",
-                "no such file",
-                "exit code",
-                "signal",
-                "claude: not found",  # Claude binary missing
+                "claude: command not found",  # Claude binary missing
+                "segmentation fault",  # Process crash
+                "core dumped",  # Process crash
+                "killed",  # Process killed
+                "terminated",  # Process terminated
+                "panic:",  # System panic
+                "bash-",  # Shell prompt (Claude gone)
+                "zsh:",  # Shell prompt (Claude gone)
+                "$ ",  # Generic shell prompt (Claude gone)
+                "traceback (most recent call last)",  # Python crash
+                "modulenotfounderror",  # Import failure
+                "process finished with exit code",  # Process died
+                "[process completed]",  # Process ended
                 "process does not exist",  # Process killed
                 "no process found",  # Process terminated
-                "connection lost",  # Network issues
                 "broken pipe",  # Communication failure
-                "resource temporarily unavailable",  # Resource exhaustion
+                "connection lost",  # Connection failure (not tool output)
             ]
 
             content_lower = content.lower()
+            crash_indicator_found = False
+            found_indicator = None
+
             for indicator in crash_indicators:
                 if indicator in content_lower:
+                    # Context-aware check to prevent false positives
+                    if self._should_ignore_crash_indicator(indicator, content, content_lower):
+                        logger.debug(f"Ignoring crash indicator '{indicator}' - appears to be normal output")
+                        continue
                     logger.warning(f"PM crash indicator found: '{indicator}' in {pm_window}")
+                    crash_indicator_found = True
+                    found_indicator = indicator
+                    break
+
+            # Implement observation period before declaring crash
+            if crash_indicator_found:
+                current_time = datetime.now()
+
+                # Initialize observation list if needed
+                if pm_window not in self._pm_crash_observations:
+                    self._pm_crash_observations[pm_window] = []
+
+                # Clean up old observations outside the window
+                self._pm_crash_observations[pm_window] = [
+                    obs
+                    for obs in self._pm_crash_observations[pm_window]
+                    if current_time - obs < timedelta(seconds=self._crash_observation_window)
+                ]
+
+                # Add current observation
+                self._pm_crash_observations[pm_window].append(current_time)
+
+                # Check if we have multiple observations within the window
+                observation_count = len(self._pm_crash_observations[pm_window])
+
+                if observation_count < 3:  # Require 3 observations before declaring crash
+                    logger.info(
+                        f"PM crash indicator '{found_indicator}' observed ({observation_count}/3) "
+                        f"in {pm_window} - monitoring for {self._crash_observation_window}s"
+                    )
+                    return (False, pm_window)  # Don't declare crash yet
+                else:
+                    logger.error(
+                        f"PM crash confirmed after {observation_count} observations "
+                        f"within {self._crash_observation_window}s window"
+                    )
+                    # Clear observations for this PM
+                    del self._pm_crash_observations[pm_window]
                     return (True, pm_window)
 
             # Check if Claude interface is present
@@ -1881,6 +2271,48 @@ monitor._run_monitoring_daemon({interval})
                     return False
 
         return False
+
+    def _cleanup_terminal_caches(self, logger: logging.Logger) -> None:
+        """Clean up old or excessive terminal caches to prevent memory growth.
+
+        Args:
+            logger: Logger instance for diagnostics
+        """
+        try:
+            _current_time = datetime.now()
+
+            # Remove caches older than max age
+            aged_targets = []
+            for target in list(self._terminal_caches.keys()):
+                # Check if cache is stale (no recent updates)
+                cache = self._terminal_caches[target]
+                if cache.early_value is None and cache.later_value is None:
+                    aged_targets.append(target)
+
+            for target in aged_targets:
+                del self._terminal_caches[target]
+                self._cache_access_times.pop(target, None)
+
+            if aged_targets:
+                logger.info(f"Cleaned up {len(aged_targets)} stale terminal caches")
+
+            # If still over limit, remove least recently used entries
+            if len(self._terminal_caches) > self._max_cache_entries:
+                # Sort by access time (least recently used first)
+                sorted_targets = sorted(self._terminal_caches.keys(), key=lambda t: self._cache_access_times.get(t, 0))
+                excess_count = len(self._terminal_caches) - self._max_cache_entries
+
+                for i in range(excess_count):
+                    target = sorted_targets[i]
+                    del self._terminal_caches[target]
+                    self._cache_access_times.pop(target, None)
+
+                logger.info(
+                    f"Removed {excess_count} least recently used terminal caches (limit: {self._max_cache_entries})"
+                )
+
+        except Exception as e:
+            logger.error(f"Error during terminal cache cleanup: {e}")
 
     def is_agent_idle(self, target: str) -> bool:
         """Check if agent is idle using the improved 4-snapshot method."""
@@ -2196,6 +2628,27 @@ monitor._run_monitoring_daemon({interval})
                 session_logger = self._get_session_logger(session_name)
                 session_logger.debug(f"🔍 Checking PM health in session {session_name} with {agent_count} agents")
 
+                # Check if any PM in this session is in grace period
+                pm_in_grace_period = False
+                for pm_target_key, recovery_time in list(self._pm_recovery_timestamps.items()):
+                    if pm_target_key.startswith(session_name + ":"):
+                        time_since_recovery = datetime.now() - recovery_time
+                        if time_since_recovery < timedelta(minutes=self._grace_period_minutes):
+                            session_logger.debug(
+                                f"PM {pm_target_key} in grace period ({time_since_recovery.total_seconds():.0f}s since recovery)"
+                            )
+                            pm_in_grace_period = True
+                            break
+                        else:
+                            # Grace period expired, remove from tracking
+                            del self._pm_recovery_timestamps[pm_target_key]
+                            session_logger.debug(f"Grace period expired for PM {pm_target_key}")
+
+                # Skip health checks if PM is in grace period
+                if pm_in_grace_period:
+                    session_logger.debug(f"Skipping PM health check for session {session_name} - in grace period")
+                    continue
+
                 # Use the new crash detection method
                 crashed, pm_target = self._detect_pm_crash(tmux, session_name, session_logger)
 
@@ -2330,6 +2783,10 @@ Please focus on project continuity and team coordination."""
 
                     if health_verified:
                         logger.info(f"✅ PM recovery SUCCESSFUL at {pm_target} after {attempt} attempts")
+
+                        # Record recovery timestamp for grace period
+                        self._pm_recovery_timestamps[pm_target] = datetime.now()
+                        logger.info(f"PM {pm_target} entered {self._grace_period_minutes}-minute grace period")
 
                         # Enhanced team notification
                         try:
@@ -3045,6 +3502,177 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
                     logger.error(f"Failed to send consolidated report to PM at {pm_target}")
             except Exception as e:
                 logger.error(f"Error sending consolidated report to {pm_target}: {e}")
+
+    def _check_claude_interface(self, target: str, content: str) -> bool:
+        """Check if Claude interface is present in pane content.
+
+        Args:
+            target: Window target
+            content: Pane content
+
+        Returns:
+            bool: True if Claude interface is present
+        """
+        # Import crash detector for interface checking
+        from tmux_orchestrator.core.monitoring.crash_detector import CrashDetector
+
+        detector = CrashDetector(self.tmux, self.logger)
+        return detector._is_claude_interface_present(content)
+
+    def _log_error(self, message: str) -> None:
+        """Log an error message.
+
+        Args:
+            message: Error message to log
+        """
+        self.logger.error(message)
+
+    def _resume_incomplete_recoveries(self) -> None:
+        """Resume incomplete PM recoveries after daemon restart."""
+        # This would check for incomplete recoveries and resume them
+        # For now, just a placeholder
+        self.logger.info("Checking for incomplete PM recoveries")
+
+    def _handle_corrupted_pm(self, target: str) -> None:
+        """Handle corrupted PM terminal.
+
+        Args:
+            target: PM target
+        """
+        self.logger.warning(f"Handling corrupted PM at {target}")
+        self._reset_terminal(target)
+
+    def _get_team_agents(self, session: str) -> list[dict]:
+        """Get team agents in a session.
+
+        Args:
+            session: Session name
+
+        Returns:
+            List of agent info dicts
+        """
+        agents = []
+        try:
+            windows = self.tmux.list_windows(session)
+            for window in windows:
+                window_name = window.get("name", "").lower()
+                window_idx = window.get("index", "0")
+
+                # Skip PM windows
+                if "pm" in window_name or "manager" in window_name:
+                    continue
+
+                agents.append(
+                    {
+                        "target": f"{session}:{window_idx}",
+                        "name": window_name,
+                        "type": self._determine_agent_type(window_name),
+                    }
+                )
+        except Exception as e:
+            self.logger.error(f"Error getting team agents: {e}")
+
+        return agents
+
+    def _determine_agent_type(self, window_name: str) -> str:
+        """Determine agent type from window name.
+
+        Args:
+            window_name: Window name
+
+        Returns:
+            Agent type string
+        """
+        name_lower = window_name.lower()
+        if "dev" in name_lower:
+            return "developer"
+        elif "qa" in name_lower or "test" in name_lower:
+            return "qa"
+        elif "devops" in name_lower or "ops" in name_lower:
+            return "devops"
+        elif "review" in name_lower:
+            return "reviewer"
+        else:
+            return "agent"
+
+    def _notify_agent(self, target: str, message: str) -> None:
+        """Send notification to an agent.
+
+        Args:
+            target: Agent target
+            message: Message to send
+        """
+        try:
+            self.tmux.send_keys(target, message, literal=True)
+            self.tmux.send_keys(target, "Enter")
+        except Exception as e:
+            self.logger.error(f"Failed to notify agent {target}: {e}")
+
+    def _detect_pane_corruption(self, target: str) -> bool:
+        """Detect if pane content is corrupted.
+
+        Args:
+            target: Window target
+
+        Returns:
+            bool: True if corrupted
+        """
+        try:
+            content = self.tmux.capture_pane(target)
+            # Check for binary/control characters
+            non_printable_count = sum(1 for c in content if ord(c) < 32 and c not in "\n\r\t")
+            return non_printable_count > len(content) * 0.1  # More than 10% non-printable
+        except Exception:
+            return False
+
+    def _reset_terminal(self, target: str) -> bool:
+        """Reset terminal in target window.
+
+        Args:
+            target: Window target
+
+        Returns:
+            bool: True if successful
+        """
+        try:
+            self.tmux.send_keys(target, "C-c")  # Cancel
+            time.sleep(0.5)
+            self.tmux.send_keys(target, "reset", literal=True)
+            self.tmux.send_keys(target, "Enter")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to reset terminal {target}: {e}")
+            return False
+
+    def _check_recovery_state(self, state_file: Path) -> None:
+        """Check recovery state file and resume incomplete recoveries.
+
+        Args:
+            state_file: Path to state file
+        """
+        if state_file.exists():
+            try:
+                import json
+
+                with open(state_file) as f:
+                    state = json.load(f)
+                if state.get("recovering"):
+                    self._resume_incomplete_recoveries()
+            except Exception as e:
+                self.logger.error(f"Error checking recovery state: {e}")
+
+    def _notify_team_of_pm_recovery(self, pm_target: str) -> None:
+        """Notify team members that PM has been recovered.
+
+        Args:
+            pm_target: PM target
+        """
+        session = pm_target.split(":")[0]
+        team_agents = self._get_team_agents(session)
+
+        for agent in team_agents:
+            message = "NOTICE: PM has been recovered after a crash. Please continue with your current tasks."
+            self._notify_agent(agent["target"], message)
 
 
 class AgentMonitor:

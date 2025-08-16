@@ -16,6 +16,7 @@ from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 from .monitoring import ComponentManager
+from .monitoring.monitor_service import MonitorService
 
 
 class ModularIdleMonitor:
@@ -51,6 +52,8 @@ class ModularIdleMonitor:
 
         # Component manager for monitoring logic
         self.component_manager: Optional[ComponentManager] = None
+        # New monitor service facade
+        self.monitor_service: Optional[MonitorService] = None
 
         # Monitoring statistics
         self._cycle_count = 0
@@ -151,7 +154,13 @@ class ModularIdleMonitor:
 
     def is_agent_idle(self, target: str) -> bool:
         """Check if specific agent is idle (legacy compatibility)."""
-        if self.component_manager:
+        if self.monitor_service:
+            health = self.monitor_service.check_health(
+                target.split(":")[0], target.split(":")[1] if ":" in target else None
+            )
+            if isinstance(health, dict) and "is_idle" in health:
+                return health["is_idle"]
+        elif self.component_manager:
             return self.component_manager.is_agent_idle(target)
         return False
 
@@ -170,55 +179,78 @@ class ModularIdleMonitor:
         logger.info(f"Starting modular monitoring daemon (PID: {os.getpid()})")
 
         try:
-            # Initialize component manager
-            self.component_manager = ComponentManager(self.tmux, self.config)
+            # Initialize monitor service (new facade)
+            self.monitor_service = MonitorService(self.tmux, self.config, logger)
+            self.monitor_service.set_idle_monitor(self)  # For backward compatibility
 
-            if not self.component_manager.start_monitoring():
-                logger.error("Failed to start component manager")
+            if not self.monitor_service.start():
+                logger.error("Failed to start monitor service")
                 return
 
+            # Keep component manager for backward compatibility
+            self.component_manager = ComponentManager(self.tmux, self.config)
+            self.component_manager.start_monitoring()
+
             logger.info(f"Monitoring started with {interval}s interval")
+
+            # Startup protection: use longer intervals for first few cycles to prevent tmux server crashes
+            startup_cycles = 3
+            startup_interval = max(interval * 3, 30)  # 3x normal interval or 30s minimum
+            current_cycle = 0
+
+            logger.info(f"Using startup protection: {startup_interval}s interval for first {startup_cycles} cycles")
 
             # Main monitoring loop
             while not self.graceful_stop_file.exists():
                 cycle_start = time.perf_counter()
 
                 try:
-                    # Execute monitoring cycle
-                    result = self.component_manager.execute_monitoring_cycle()
+                    # Execute monitoring cycle through service
+                    self.monitor_service.run_monitoring_cycle()
                     self._cycle_count += 1
 
+                    # Get status for logging
+                    status = self.monitor_service.status()
+                    cycle_duration = self.monitor_service.last_cycle_time
+
                     # Log cycle results
-                    if result.success:
-                        logger.debug(
-                            f"Cycle {self._cycle_count}: {result.agents_discovered} agents, "
-                            f"{result.idle_agents} idle, {result.notifications_sent} notifications, "
-                            f"{result.cycle_duration:.3f}s"
-                        )
-                    else:
-                        self._total_errors += len(result.errors)
-                        logger.warning(
-                            f"Cycle {self._cycle_count} had {len(result.errors)} errors: "
-                            f"{'; '.join(result.errors[:3])}"  # Log first 3 errors
-                        )
+                    logger.debug(
+                        f"Cycle {self._cycle_count}: {status.active_agents + status.idle_agents} agents, "
+                        f"{status.idle_agents} idle, {cycle_duration:.3f}s"
+                    )
+
+                    if status.errors_detected > self._total_errors:
+                        new_errors = status.errors_detected - self._total_errors
+                        self._total_errors = status.errors_detected
+                        logger.warning(f"Cycle {self._cycle_count} had {new_errors} new errors")
 
                     # Performance warning if cycle is slow
-                    if result.cycle_duration > 0.05:  # 50ms threshold
-                        logger.warning(f"Slow monitoring cycle: {result.cycle_duration:.3f}s " f"(target: <0.01s)")
+                    if cycle_duration > 0.05:  # 50ms threshold
+                        logger.warning(f"Slow monitoring cycle: {cycle_duration:.3f}s (target: <0.01s)")
 
                 except Exception as e:
                     self._total_errors += 1
                     logger.error(f"Monitoring cycle failed: {e}")
 
-                # Calculate sleep time to maintain interval
+                # Calculate sleep time to maintain interval (adaptive during startup)
                 cycle_end = time.perf_counter()
                 cycle_duration = cycle_end - cycle_start
-                sleep_time = max(0, interval - cycle_duration)
+                current_cycle += 1
+
+                # Use startup interval for first few cycles to prevent tmux server overload
+                effective_interval = startup_interval if current_cycle <= startup_cycles else interval
+                sleep_time = max(0, effective_interval - cycle_duration)
 
                 if sleep_time > 0:
                     time.sleep(sleep_time)
                 else:
-                    logger.warning(f"Monitoring cycle took {cycle_duration:.3f}s, " f"longer than {interval}s interval")
+                    logger.warning(
+                        f"Monitoring cycle took {cycle_duration:.3f}s, " f"longer than {effective_interval}s interval"
+                    )
+
+                # Log transition from startup to normal intervals
+                if current_cycle == startup_cycles:
+                    logger.info(f"Startup protection complete - switching to normal {interval}s intervals")
 
         except Exception as e:
             logger.error(f"Daemon error: {e}")
@@ -251,6 +283,10 @@ class ModularIdleMonitor:
     def _cleanup_daemon(self, signum: Optional[int] = None, is_graceful: bool = False) -> None:
         """Clean up daemon resources."""
         try:
+            # Stop monitor service
+            if self.monitor_service:
+                self.monitor_service.stop()
+
             # Stop component manager
             if self.component_manager:
                 self.component_manager.stop_monitoring()
@@ -270,13 +306,32 @@ class ModularIdleMonitor:
 
     def get_performance_stats(self) -> dict:
         """Get performance statistics."""
-        if self.component_manager:
+        if self.monitor_service:
+            status = self.monitor_service.status()
+            return {
+                "cycle_count": status.cycle_count,
+                "avg_cycle_time": status.last_cycle_time,
+                "active_agents": status.active_agents,
+                "idle_agents": status.idle_agents,
+            }
+        elif self.component_manager:
             return self.component_manager.get_performance_stats()
         return {}
 
     def get_status_info(self) -> dict:
         """Get detailed status information."""
-        if self.component_manager:
+        if self.monitor_service:
+            status = self.monitor_service.status()
+            return {
+                "is_running": status.is_running,
+                "active_agents": status.active_agents,
+                "idle_agents": status.idle_agents,
+                "cycle_count": status.cycle_count,
+                "last_cycle_time": status.last_cycle_time,
+                "errors_detected": status.errors_detected,
+                "uptime": str(status.uptime),
+            }
+        elif self.component_manager:
             status = self.component_manager.get_status()
             return {
                 "is_running": status.is_running,

@@ -1,0 +1,107 @@
+{
+  "configuration": {
+    "test": "grace_period_configuration",
+    "success": true,
+    "default_grace_seconds": 180,
+    "default_grace_minutes": 3.0,
+    "config_valid": true,
+    "env_var_set": false
+  },
+  "tracking": {
+    "test": "grace_period_tracking",
+    "success": false,
+    "has_tracking": false,
+    "note": "Implementation pending from developer"
+  },
+  "logic": {
+    "test": "grace_period_logic",
+    "success": true,
+    "scenarios_passed": 3,
+    "total_scenarios": 3,
+    "results": [
+      {
+        "scenario": "Fresh recovery - within grace period",
+        "time_since_recovery": 60.000003,
+        "grace_period": 180,
+        "within_grace_period": true,
+        "expected_skip": true,
+        "test_passed": true
+      },
+      {
+        "scenario": "Old recovery - outside grace period",
+        "time_since_recovery": 300.000004,
+        "grace_period": 180,
+        "within_grace_period": false,
+        "expected_skip": false,
+        "test_passed": true
+      },
+      {
+        "scenario": "Edge case - exactly at grace period boundary",
+        "time_since_recovery": 180.000003,
+        "grace_period": 180,
+        "within_grace_period": false,
+        "expected_skip": false,
+        "test_passed": true
+      }
+    ]
+  },
+  "multiple_recoveries": {
+    "test": "multiple_pm_recoveries",
+    "success": true,
+    "expected_in_grace": 2,
+    "actual_in_grace": 2,
+    "pm_results": {
+      "session1:1": {
+        "recovery_time": "2025-08-16T03:04:55.571791",
+        "time_since_recovery": 30.0,
+        "within_grace_period": true,
+        "expected_behavior": "skip health check"
+      },
+      "session2:1": {
+        "recovery_time": "2025-08-16T03:03:25.571791",
+        "time_since_recovery": 120.0,
+        "within_grace_period": true,
+        "expected_behavior": "skip health check"
+      },
+      "session3:1": {
+        "recovery_time": "2025-08-16T03:01:25.571791",
+        "time_since_recovery": 240.0,
+        "within_grace_period": false,
+        "expected_behavior": "normal monitoring"
+      }
+    }
+  },
+  "edge_cases": {
+    "test": "grace_period_edge_cases",
+    "success": true,
+    "edge_cases": [
+      {
+        "case": "Zero grace period",
+        "input_grace_period": 0,
+        "effective_grace_period": 0,
+        "handled_correctly": true,
+        "expected": "No grace period, immediate health checks"
+      },
+      {
+        "case": "Negative grace period",
+        "input_grace_period": -60,
+        "effective_grace_period": 0,
+        "handled_correctly": true,
+        "expected": "Should handle gracefully, no grace period"
+      },
+      {
+        "case": "Very long grace period",
+        "input_grace_period": 3600,
+        "effective_grace_period": 3600,
+        "handled_correctly": true,
+        "expected": "Should work but may be impractical"
+      }
+    ]
+  },
+  "summary": {
+    "total_tests": 5,
+    "successful_tests": 4,
+    "success_rate": "80.0%",
+    "implementation_status": "Pending developer implementation"
+  }
+}

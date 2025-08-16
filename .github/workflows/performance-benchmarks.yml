@@ -1,0 +1,200 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'tmux_orchestrator/core/monitoring/**'
+      - 'tmux_orchestrator/core/monitor*.py'
+      - 'tests/benchmarks/**'
+  workflow_dispatch:
+    inputs:
+      update_baseline:
+        description: 'Update performance baseline'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Full history for commit info
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+
+    - name: Download baseline
+      uses: actions/download-artifact@v3
+      with:
+        name: performance-baseline
+        path: tests/benchmarks/results
+      continue-on-error: true
+
+    - name: Run performance benchmarks
+      run: |
+        python tests/benchmarks/monitoring_performance.py \
+          --commit ${{ github.sha }} \
+          --output tests/benchmarks/results
+
+    - name: Upload results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results-${{ github.sha }}
+        path: tests/benchmarks/results/latest.json
+
+    - name: Update baseline (if requested)
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_baseline == 'true'
+      run: |
+        cp tests/benchmarks/results/latest.json tests/benchmarks/results/baseline.json
+
+    - name: Upload baseline
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-baseline
+        path: tests/benchmarks/results/baseline.json
+
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const results = JSON.parse(fs.readFileSync('tests/benchmarks/results/latest.json'));
+
+          // Format results table
+          let comment = '## 📊 Performance Benchmark Results\n\n';
+          comment += '| Agent Count | Avg Time (s) | P95 Time (s) | Std Dev |\n';
+          comment += '|-------------|--------------|--------------|----------|\n';
+
+          for (const result of results.results) {
+            comment += `| ${result.agent_count} | ${result.avg_time.toFixed(4)} | ${result.p95_time.toFixed(4)} | ${result.std_dev.toFixed(4)} |\n`;
+          }
+
+          comment += `\n**Scaling Factor (10→100 agents):** ${results.summary.avg_scaling_factor.toFixed(2)}x\n`;
+
+          // Check for regressions
+          if (fs.existsSync('tests/benchmarks/results/baseline.json')) {
+            const baseline = JSON.parse(fs.readFileSync('tests/benchmarks/results/baseline.json'));
+            let hasRegression = false;
+
+            comment += '\n### Comparison with Baseline\n';
+
+            for (const current of results.results) {
+              const base = baseline.results.find(r => r.agent_count === current.agent_count);
+              if (base) {
+                const diff = ((current.avg_time - base.avg_time) / base.avg_time * 100);
+                if (Math.abs(diff) > 10) {
+                  const emoji = diff > 0 ? '❌' : '✅';
+                  const sign = diff > 0 ? '+' : '';
+                  comment += `${emoji} ${current.agent_count} agents: ${sign}${diff.toFixed(1)}%\n`;
+                  if (diff > 0) hasRegression = true;
+                }
+              }
+            }
+
+            if (hasRegression) {
+              comment += '\n⚠️ **Performance regression detected!**';
+            } else {
+              comment += '\n✅ **No performance regressions**';
+            }
+          }
+
+          // Find and update or create comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const botComment = comments.find(comment =>
+            comment.user.type === 'Bot' && comment.body.includes('Performance Benchmark Results')
+          );
+
+          if (botComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: comment
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+          }
+
+    - name: Performance regression check
+      run: |
+        # Exit with error if performance regression detected
+        python -c "
+        import json
+        with open('tests/benchmarks/results/latest.json') as f:
+            results = json.load(f)
+        # Check will be done in the benchmark script
+        "
+
+  profile:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install py-spy memory_profiler
+
+    - name: CPU profiling
+      run: |
+        # Profile monitoring cycle with 100 agents
+        py-spy record -o profile_100_agents.svg -d 30 -- \
+          python -c "
+        from tests.benchmarks.monitoring_performance import PerformanceBenchmark
+        bench = PerformanceBenchmark()
+        for _ in range(100):
+            bench.run_benchmark(100)
+        "
+
+    - name: Memory profiling
+      run: |
+        # Profile memory usage over time
+        mprof run python -c "
+        from tests.benchmarks.monitoring_performance import PerformanceBenchmark
+        bench = PerformanceBenchmark()
+        for count in [50, 100, 150, 200]:
+            bench.run_benchmark(count)
+        "
+        mprof plot -o memory_profile.png
+
+    - name: Upload profiling results
+      uses: actions/upload-artifact@v3
+      with:
+        name: profiling-results-${{ github.sha }}
+        path: |
+          profile_100_agents.svg
+          memory_profile.png

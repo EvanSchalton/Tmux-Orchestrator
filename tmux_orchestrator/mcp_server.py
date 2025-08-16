@@ -41,6 +41,16 @@ from tmux_orchestrator.server.tools.spawn_agent import (
 from tmux_orchestrator.server.tools.spawn_agent import (
     spawn_agent as core_spawn_agent,
 )
+from tmux_orchestrator.utils.exceptions import RateLimitExceededError, ValidationError
+from tmux_orchestrator.utils.input_sanitizer import (
+    sanitize_input,
+    validate_agent_type,
+    validate_integer_range,
+    validate_team_type,
+)
+
+# Security imports
+from tmux_orchestrator.utils.rate_limiter import RateLimitConfig, RateLimiter
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 # Additional imports for comprehensive functionality would go here if needed
@@ -51,6 +61,20 @@ logger = logging.getLogger(__name__)
 
 # Create server instance
 mcp_server = Server("tmux-orchestrator")
+
+# Initialize rate limiter with security-focused configuration
+rate_limiter = RateLimiter(
+    RateLimitConfig(
+        max_requests=100,  # 100 requests per minute
+        window_seconds=60.0,  # 1 minute window
+        burst_size=10,  # Allow burst of 10 requests
+        block_on_limit=False,  # Raise exception instead of blocking
+        error_message="Rate limit exceeded. Please wait before making more requests.",
+    )
+)
+
+# Track request origins for rate limiting
+request_origins: dict[str, str] = {}
 
 
 @mcp_server.list_tools()
@@ -498,12 +522,95 @@ async def list_tools() -> list[Tool]:
     ]
 
 
-@mcp_server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> Any:
-    """Handle tool calls from the MCP client."""
-    logger.info(f"Tool called: {name} with arguments: {arguments}")
+async def sanitize_tool_arguments(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize tool arguments based on tool requirements.
+
+    Args:
+        tool_name: Name of the tool being called
+        arguments: Raw arguments from client
+
+    Returns:
+        Sanitized arguments
+
+    Raises:
+        ValidationError: If arguments are invalid
+    """
+    sanitized = arguments.copy()
+
+    # Remove internal fields from sanitization
+    sanitized.pop("_origin", None)
 
     try:
+        if tool_name == "spawn_agent":
+            sanitized["session_name"] = sanitize_input(arguments["session_name"], "session")
+            sanitized["agent_type"] = validate_agent_type(arguments["agent_type"])
+            if "briefing_message" in arguments:
+                sanitized["briefing_message"] = sanitize_input(arguments["briefing_message"], "briefing")
+            if "project_path" in arguments:
+                sanitized["project_path"] = sanitize_input(arguments["project_path"], "path")
+
+        elif tool_name == "send_message":
+            sanitized["target"] = sanitize_input(arguments["target"], "target")
+            sanitized["message"] = sanitize_input(arguments["message"], "message")
+
+        elif tool_name == "restart_agent":
+            sanitized["target"] = sanitize_input(arguments["target"], "target")
+
+        elif tool_name == "deploy_team":
+            sanitized["team_name"] = sanitize_input(arguments["team_name"], "session")
+            sanitized["team_type"] = validate_team_type(arguments["team_type"])
+            if "size" in arguments:
+                sanitized["size"] = validate_integer_range(arguments["size"], 2, 10, "team size")
+
+        elif tool_name == "agent_kill":
+            sanitized["target"] = sanitize_input(arguments["target"], "target")
+
+        elif tool_name == "team_broadcast":
+            sanitized["session"] = sanitize_input(arguments["session"], "session")
+            sanitized["message"] = sanitize_input(arguments["message"], "message")
+
+        elif tool_name == "spawn_pm":
+            sanitized["session"] = sanitize_input(arguments["session"], "target")
+            if "extend" in arguments:
+                sanitized["extend"] = sanitize_input(arguments["extend"], "message")
+
+        elif tool_name == "spawn_with_context":
+            sanitized["role"] = validate_agent_type(arguments["role"])
+            sanitized["session"] = sanitize_input(arguments["session"], "target")
+            if "extend_context" in arguments:
+                sanitized["extend_context"] = sanitize_input(arguments["extend_context"], "message")
+
+    except ValidationError as e:
+        logger.error(f"Input validation failed for {tool_name}: {e}")
+        raise
+
+    return sanitized
+
+
+@mcp_server.call_tool()
+async def call_tool(name: str, arguments: dict[str, Any]) -> Any:
+    """Handle tool calls from the MCP client with rate limiting and input sanitization."""
+    # Extract request origin for rate limiting (could be session ID, user ID, etc.)
+    origin = arguments.get("_origin", "default")
+
+    try:
+        # Apply rate limiting
+        await rate_limiter.check_rate_limit(origin)
+    except RateLimitExceededError as e:
+        logger.warning(f"Rate limit exceeded for origin {origin} on tool {name}")
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": "RateLimitExceeded",
+            "retry_after": 60,  # seconds
+        }
+
+    logger.info(f"Tool called: {name} from {origin}")
+
+    try:
+        # Sanitize inputs based on tool name
+        sanitized_args = await sanitize_tool_arguments(name, arguments)
+
         tmux = TMUXManager()
 
         if name == "list_agents":
@@ -523,12 +630,12 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> Any:
             }
 
         elif name == "spawn_agent":
-            # Spawn a new agent
+            # Spawn a new agent (using sanitized arguments)
             request = SpawnAgentRequest(
-                session_name=arguments["session_name"],
-                agent_type=arguments["agent_type"],
-                project_path=arguments.get("project_path"),
-                briefing_message=arguments.get("briefing_message"),
+                session_name=sanitized_args["session_name"],
+                agent_type=sanitized_args["agent_type"],
+                project_path=sanitized_args.get("project_path"),
+                briefing_message=sanitized_args.get("briefing_message"),
             )
             result = await core_spawn_agent(tmux, request)
 

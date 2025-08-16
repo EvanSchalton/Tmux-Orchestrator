@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+from .crash_detector import CrashDetector
 from .types import AgentInfo, AgentMonitorInterface, IdleAnalysis, IdleType
 
 
@@ -25,6 +26,7 @@ class AgentMonitor(AgentMonitorInterface):
         super().__init__(tmux, config, logger)
         self._agent_cache: Dict[str, AgentInfo] = {}
         self._last_discovery_time: Optional[datetime] = None
+        self._crash_detector = CrashDetector(tmux, logger)
 
     def initialize(self) -> bool:
         """Initialize the agent monitor."""
@@ -180,13 +182,17 @@ class AgentMonitor(AgentMonitorInterface):
         try:
             self.logger.debug(f"Analyzing content for agent {target}")
 
-            # Step 1: Use polling-based active detection
+            # Step 1: Use polling-based active detection with throttling
             snapshots = []
-            poll_interval = 0.3  # 300ms
-            poll_count = 4  # 1.2s total
+            poll_interval = 0.8  # 800ms - increased from 300ms to reduce tmux server load
+            poll_count = 3  # Reduced from 4 to 3 snapshots to prevent server crashes
 
-            # Take snapshots for change detection
+            # Take snapshots for change detection with throttling
             for i in range(poll_count):
+                # Add inter-command delay to prevent tmux server overload
+                if i > 0:
+                    time.sleep(0.1)  # 100ms delay between rapid tmux commands
+
                 content = self.tmux.capture_pane(target, lines=50)
                 snapshots.append(content)
                 if i < poll_count - 1:
@@ -213,7 +219,24 @@ class AgentMonitor(AgentMonitorInterface):
             error_detected = False
             error_type = None
 
-            if not is_active:
+            # Step 3.1: Check for crashes first (applies regardless of activity state)
+            agent_info = AgentInfo(
+                target=target,
+                session=target.split(":")[0],
+                window=target.split(":")[1],
+                name="agent",  # Will be updated later if needed
+                type="agent",
+                status="unknown",
+            )
+
+            crashed, crash_reason = self._crash_detector.detect_crash(agent_info, content)
+            if crashed:
+                error_detected = True
+                error_type = crash_reason
+                idle_type = IdleType.ERROR_STATE
+                self.logger.error(f"Agent {target} crash detected: {crash_reason}")
+
+            elif not is_active:
                 content_lower = content.lower()
 
                 # Check for compaction (robust across Claude Code versions)

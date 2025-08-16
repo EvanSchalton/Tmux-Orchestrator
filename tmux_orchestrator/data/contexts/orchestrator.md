@@ -29,6 +29,7 @@ This context is organized into focused sections. Read the sections relevant to y
 
 ### 📡 Communication
 - **TMUX Comms**: Run `tmux-orc context show tmux-comms` for detailed messaging guide
+- **🚨 CLI Commands**: Always use `tmux-orc --help` and `tmux-orc [COMMAND] --help` for current syntax
 
 ## 🚨 CRITICAL: Your #1 Rule
 

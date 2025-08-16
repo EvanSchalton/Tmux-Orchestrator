@@ -1,5 +1,8 @@
 """Team composition planning commands."""
 
+import html
+import re
+import shlex
 from datetime import datetime
 from pathlib import Path
 
@@ -48,6 +51,25 @@ def team() -> None:
     pass
 
 
+def _sanitize_for_template(value: str) -> str:
+    """Sanitize user input for safe template replacement.
+
+    Args:
+        value: User input to sanitize
+
+    Returns:
+        Sanitized string safe for template replacement
+    """
+    # HTML escape to prevent injection
+    safe_value = html.escape(str(value))
+    # Remove potentially dangerous characters while preserving readability
+    safe_value = re.sub(r'[<>"\'\\`$]', "", safe_value)
+    # Limit length to prevent overflow attacks
+    if len(safe_value) > 1000:
+        safe_value = safe_value[:1000] + "..."
+    return safe_value
+
+
 @team.command()
 @click.argument("project_name")
 @click.option("--prd", help="Path to PRD for analysis")
@@ -69,6 +91,11 @@ def compose(project_name: str, prd: str | None, interactive: bool, template: str
         tmux-orc team compose my-project --prd ./prd.md
         tmux-orc team compose my-project --template api-heavy
     """
+    # SECURITY: Validate project name to prevent path traversal
+    if not project_name or ".." in project_name or "/" in project_name or "\\" in project_name:
+        console.print("[red]Invalid project name. Must not contain path separators.[/red]")
+        return
+
     project_dir = Path.home() / "workspaces" / "Tmux-Orchestrator" / ".tmux_orchestrator" / "projects" / project_name
 
     if not project_dir.exists():
@@ -325,9 +352,12 @@ def _generate_team_composition(project_name: str, agents: list[dict], output_pat
         # Generate system prompt for this agent
         system_prompt = _generate_system_prompt(agent, project_name)
 
-        # Create deployment command
+        # Create deployment command with proper escaping
+        # SECURITY: Use shlex.quote to prevent shell injection
         deploy_cmd = (
-            f'tmux-orc spawn agent {agent["template"]} {project_name}:{agent["window"]} --briefing "{system_prompt}"'
+            f'tmux-orc spawn agent {shlex.quote(agent["template"])} '
+            f'{shlex.quote(project_name)}:{shlex.quote(str(agent["window"]))} '
+            f'--briefing {shlex.quote(system_prompt)}'
         )
         deployment_commands.append(deploy_cmd)
 
@@ -348,12 +378,12 @@ def _generate_team_composition(project_name: str, agents: list[dict], output_pat
     # Create interaction model
     interaction_model = _generate_interaction_diagram(agents)
 
-    # Replace placeholders
+    # Replace placeholders with sanitized values
     content = template_content
-    content = content.replace("{Project Name}", project_name)
+    content = content.replace("{Project Name}", _sanitize_for_template(project_name))
     content = content.replace("{Date}", datetime.now().strftime("%Y-%m-%d %H:%M"))
-    content = content.replace("{PRD Location}", str(prd) if prd else "Not specified")
-    content = content.replace("{Type}", _determine_project_type(project_name, agents))
+    content = content.replace("{PRD Location}", _sanitize_for_template(str(prd) if prd else "Not specified"))
+    content = content.replace("{Type}", _sanitize_for_template(_determine_project_type(project_name, agents)))
 
     # Add team members
     members_section = "\n\n".join(team_members)
@@ -363,7 +393,7 @@ def _generate_team_composition(project_name: str, agents: list[dict], output_pat
     )
 
     # Add rationale
-    rationale = f"This team composition was selected to provide comprehensive coverage for {project_name}. "
+    rationale = f"This team composition was selected to provide comprehensive coverage for {_sanitize_for_template(project_name)}. "
     rationale += f"The team includes {len(agents)} specialized agents to handle different aspects of the project."
     content = content.replace(
         "{Explain why this specific team composition was chosen, what project aspects drove the decisions}",
@@ -398,7 +428,7 @@ Execute these commands in order to deploy the team:
 
 ```bash
 # Create the session
-tmux-orc setup session {project_name}
+tmux-orc setup session {shlex.quote(project_name)}
 
 # Deploy agents
 """
@@ -828,6 +858,11 @@ def deploy(project_name: str, custom: bool) -> None:
         tmux-orc team deploy my-project
         tmux-orc team deploy my-project --custom
     """
+    # SECURITY: Validate project name to prevent path traversal
+    if not project_name or ".." in project_name or "/" in project_name or "\\" in project_name:
+        console.print("[red]Invalid project name. Must not contain path separators.[/red]")
+        return
+
     project_dir = Path.home() / "workspaces" / "Tmux-Orchestrator" / ".tmux_orchestrator" / "projects" / project_name
     team_comp = project_dir / "team-composition.md"
 

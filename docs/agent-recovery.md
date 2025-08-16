@@ -37,27 +37,37 @@ The TMUX Orchestrator Agent Recovery System is an enterprise-grade automatic rec
 
 The recovery system follows a modular, event-driven architecture with clear separation of concerns:
 
+```mermaid
+graph TD
+    CLI[CLI Interface<br/>• start/stop<br/>• status<br/>• test] <--> RD[Recovery Daemon<br/>• Health checks<br/>• Coordination<br/>• Scheduling]
+    RD <--> ML[Monitoring Logs<br/>• Event logging<br/>• Audit trails<br/>• Metrics]
+
+    CLI --> RC[Recovery Coordinator<br/>• Health assess<br/>• Recovery plan<br/>• Verification]
+    RD --> ARE[Auto-Restart Engine<br/>• Context backup<br/>• Agent restart<br/>• Briefing resto]
+    ML --> NM[Notification Manager<br/>• Cooldown mgmt<br/>• PM alerts<br/>• State persist]
+
+    RC <--> ARE
+    ARE <--> NM
+    RC <--> NM
+
+    RC --> TS[TMUX Sessions<br/>Agent Containers]
+    ARE --> TS
+    NM --> TS
+
+    classDef interface fill:#e3f2fd
+    classDef daemon fill:#e8f5e8
+    classDef coordinator fill:#fff3e0
+    classDef engine fill:#f3e5f5
+    classDef manager fill:#fce4ec
+    classDef sessions fill:#e0f2f1
+
+    class CLI interface
+    class RD daemon
+    class ML,RC coordinator
+    class ARE engine
+    class NM manager
+    class TS sessions
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   CLI Interface │    │  Recovery Daemon │    │ Monitoring Logs │
-│                 │    │                  │    │                 │
-│ • start/stop    │◄──►│ • Health checks  │◄──►│ • Event logging │
-│ • status        │    │ • Coordination   │    │ • Audit trails  │
-│ • test          │    │ • Scheduling     │    │ • Metrics       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Recovery        │    │ Auto-Restart     │    │ Notification    │
-│ Coordinator     │◄──►│ Engine           │◄──►│ Manager         │
-│                 │    │                  │    │                 │
-│ • Health assess │    │ • Context backup │    │ • Cooldown mgmt │
-│ • Recovery plan │    │ • Agent restart  │    │ • PM alerts     │
-│ • Verification  │    │ • Briefing resto │    │ • State persist │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────────────────────────────────────────────────────┐
 │                    Core Detection Engine                        │
 │                                                                 │
 │ • Bulletproof idle detection (4-snapshot method)              │

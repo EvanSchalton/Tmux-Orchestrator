@@ -21,6 +21,15 @@ class Config:
     def __init__(self, config_dict: dict[str, Any] | None = None):
         self._config: dict[str, Any] = config_dict or self.DEFAULT_CONFIG.copy()
 
+    @property
+    def RUNTIME_DIR(self) -> str:
+        """Runtime directory for PID files and daemon logs."""
+        from pathlib import Path
+
+        runtime_dir = Path.cwd() / ".tmux_orchestrator" / "runtime"
+        runtime_dir.mkdir(parents=True, exist_ok=True)
+        return str(runtime_dir)
+
     @classmethod
     def load(cls, config_path: Path | None = None) -> "Config":
         """Load configuration from file or defaults."""

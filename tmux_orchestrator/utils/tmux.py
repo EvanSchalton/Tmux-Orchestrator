@@ -1,8 +1,10 @@
 """TMUX utility functions and manager."""
 
+import logging
 import re
 import shlex
 import subprocess
+import time
 
 
 class TMUXManager:
@@ -10,6 +12,9 @@ class TMUXManager:
 
     def __init__(self) -> None:
         self.tmux_cmd = "tmux"
+        self._last_command_time = 0.0
+        self._min_command_interval = 0.05  # 50ms minimum between commands
+        self._logger = logging.getLogger(__name__)
 
     def _validate_input(self, value: str, field_name: str = "input") -> str:
         """Validate input to prevent command injection vulnerabilities.
@@ -59,12 +64,43 @@ class TMUXManager:
         # Use shlex.quote for comprehensive protection in shell contexts
         return shlex.quote(value)
 
+    def _check_tmux_server_health(self) -> bool:
+        """Check if tmux server is responsive and healthy."""
+        try:
+            # Simple health check - list sessions should respond quickly
+            result = subprocess.run(
+                [self.tmux_cmd, "list-sessions"],
+                capture_output=True,
+                text=True,
+                check=False,
+                shell=False,
+                timeout=2.0,  # 2 second timeout for health check
+            )
+            return result.returncode in [0, 1]  # 0=sessions exist, 1=no sessions (both healthy)
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+            self._logger.warning("TMUX server health check failed - server may be overloaded")
+            return False
+
+    def _throttle_command(self) -> None:
+        """Throttle tmux commands to prevent server overload."""
+        current_time = time.time()
+        elapsed = current_time - self._last_command_time
+
+        if elapsed < self._min_command_interval:
+            sleep_time = self._min_command_interval - elapsed
+            time.sleep(sleep_time)
+
+        self._last_command_time = time.time()
+
     def _run_tmux(self, args: list[str], check: bool = True) -> subprocess.CompletedProcess:
-        """Run a tmux command with security safeguards.
+        """Run a tmux command with security safeguards and throttling.
 
         SECURITY: This method ensures all arguments are passed safely to subprocess
         without shell interpretation. Never use shell=True with user input.
         """
+        # Throttle commands to prevent server overload
+        self._throttle_command()
+
         # Validate that args is a list to prevent accidental string passing
         if not isinstance(args, list):
             raise ValueError("args must be a list")
@@ -79,13 +115,22 @@ class TMUXManager:
         cmd = [self.tmux_cmd] + validated_args
 
         # SECURITY: Explicitly set shell=False to prevent shell injection
-        return subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=check,
-            shell=False,  # CRITICAL: Never use shell=True with user input
-        )
+        # Add timeout to prevent hanging commands that could indicate server issues
+        try:
+            return subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=check,
+                shell=False,  # CRITICAL: Never use shell=True with user input
+                timeout=10.0,  # 10 second timeout to detect server issues
+            )
+        except subprocess.TimeoutExpired as e:
+            self._logger.error(f"TMUX command timed out: {' '.join(cmd)} - server may be overloaded")
+            if check:
+                raise
+            # Return a failed result for non-checking calls
+            return subprocess.CompletedProcess(cmd, 1, "", f"Command timed out: {e}")
 
     def has_session(self, session_name: str) -> bool:
         """Check if a session exists."""
@@ -220,7 +265,18 @@ class TMUXManager:
         return True
 
     def capture_pane(self, target: str, lines: int = 50) -> str:
-        """Capture pane output."""
+        """Capture pane output with defensive server health checking."""
+        # Defensive check for frequent operations - don't overwhelm server
+        if not hasattr(self, "_health_check_counter"):
+            self._health_check_counter = 0
+
+        # Check server health every 10 capture_pane calls
+        self._health_check_counter += 1
+        if self._health_check_counter % 10 == 0:
+            if not self._check_tmux_server_health():
+                self._logger.warning("TMUX server unhealthy during capture_pane - backing off")
+                time.sleep(0.5)  # Brief backoff
+
         result = self._run_tmux(["capture-pane", "-t", target, "-p"], check=False)
         if result.returncode == 0:
             output_lines = result.stdout.strip().split("\n")

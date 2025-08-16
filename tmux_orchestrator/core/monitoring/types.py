@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from tmux_orchestrator.core.config import Config
@@ -31,6 +32,15 @@ class NotificationType(Enum):
     TEAM_IDLE = "team_idle"
     RECOVERY_NEEDED = "recovery_needed"
     PM_ESCALATION = "pm_escalation"
+
+
+class PluginStatus(Enum):
+    """Status of a plugin."""
+
+    DISCOVERED = "discovered"
+    LOADED = "loaded"
+    FAILED = "failed"
+    DISABLED = "disabled"
 
 
 @dataclass
@@ -93,6 +103,8 @@ class MonitorStatus:
     uptime: timedelta
     cycle_count: int
     errors_detected: int
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
 
 
 @dataclass
@@ -111,6 +123,27 @@ class AgentState:
     is_fresh: bool = True
     error_count: int = 0
     last_error_time: Optional[datetime] = None
+
+
+@dataclass
+class PluginInfo:
+    """Information about a discovered plugin."""
+
+    name: str
+    file_path: Path
+    module_name: str
+    class_name: str
+    status: PluginStatus
+    description: Optional[str] = None
+    version: Optional[str] = None
+    author: Optional[str] = None
+    instance: Optional[Any] = None
+    error: Optional[str] = None
+    dependencies: Optional[List[str]] = None
+
+    def __post_init__(self):
+        if self.dependencies is None:
+            self.dependencies = []
 
 
 class MonitorComponent(ABC):

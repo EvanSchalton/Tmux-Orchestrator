@@ -12,24 +12,40 @@ This workflow uses planning documents to define bespoke teams for each project. 
 
 ## Workflow Architecture
 
-```
-Human Request
-    ↓
-Claude Code Orchestrator (You)
-    ├→ Analyze requirements
-    ├→ Create team plan document
-    ├→ Define agent roles & interactions
-    └→ Spawn PM with plan reference
-         ↓
-    PM Agent (Spawned by You)
-         ├→ Reads team plan
-         ├→ Spawns team agents
-         ├→ Coordinates execution
-         └→ Reports back to you
-              ↓
-         Team Agents Work
-              ↓
-         You Monitor & Report to Human
+```mermaid
+flowchart TD
+    HR[Human Request] --> CCO[Claude Code Orchestrator]
+
+    CCO --> AR[Analyze Requirements]
+    CCO --> CTP[Create Team Plan Document]
+    CCO --> DAR[Define Agent Roles & Interactions]
+    CCO --> SPM[Spawn PM with Plan Reference]
+
+    SPM --> PM[PM Agent<br/>Spawned by Orchestrator]
+
+    PM --> RTP[Read Team Plan]
+    PM --> STA[Spawn Team Agents]
+    PM --> CE[Coordinate Execution]
+    PM --> RB[Report Back to Orchestrator]
+
+    STA --> TAW[Team Agents Work]
+    CE --> TAW
+
+    TAW --> MR[Monitor & Report to Human]
+    RB --> MR
+
+    %% Styling
+    classDef humanLayer fill:#e3f2fd
+    classDef orchestratorLayer fill:#f3e5f5
+    classDef pmLayer fill:#e8f5e8
+    classDef agentLayer fill:#fff3e0
+    classDef reportLayer fill:#fce4ec
+
+    class HR humanLayer
+    class CCO,AR,CTP,DAR,SPM orchestratorLayer
+    class PM,RTP,STA,CE,RB pmLayer
+    class TAW agentLayer
+    class MR reportLayer
 ```
 
 ## Document-Driven Team Planning

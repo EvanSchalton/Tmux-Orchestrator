@@ -24,34 +24,49 @@ poetry shell
 
 ## Project Structure
 
-```
-tmux-orchestrator/
-├── tmux_orchestrator/          # Main package
-│   ├── cli/                    # CLI commands
-│   │   ├── __init__.py        # Main CLI entry point
-│   │   ├── agent.py           # Agent management commands
-│   │   ├── monitor.py         # Monitoring commands
-│   │   ├── orchestrator.py    # Orchestrator commands
-│   │   └── pm.py              # PM-specific commands
-│   ├── core/                   # Core functionality
-│   │   ├── agent_manager.py   # Agent lifecycle management
-│   │   ├── config.py          # Configuration handling
-│   │   ├── deployer.py        # Team deployment logic
-│   │   ├── monitor.py         # Idle monitoring
-│   │   └── pm_manager.py      # PM operations
-│   ├── server/                 # MCP server
-│   │   ├── __init__.py        # FastAPI app
-│   │   ├── routes/            # API endpoints
-│   │   └── models/            # Pydantic models
-│   ├── sdk/                    # Agent SDK
-│   │   └── __init__.py        # Agent class
-│   └── utils/                  # Utilities
-│       └── tmux.py            # TMUX wrapper
-├── commands/                   # Legacy bash scripts
-├── bin/                        # Generic scripts
-├── tests/                      # Test suite
-├── docs/                       # Documentation
-└── pyproject.toml             # Project configuration
+```mermaid
+graph TD
+    TO[tmux-orchestrator/] --> TP[tmux_orchestrator/<br/>Main package]
+    TO --> CMD[commands/<br/>Legacy bash scripts]
+    TO --> BIN[bin/<br/>Generic scripts]
+    TO --> TEST[tests/<br/>Test suite]
+    TO --> DOCS[docs/<br/>Documentation]
+    TO --> PY[pyproject.toml<br/>Project configuration]
+
+    TP --> CLI[cli/<br/>CLI commands]
+    TP --> CORE[core/<br/>Core functionality]
+    TP --> SERVER[server/<br/>MCP server]
+    TP --> SDK[sdk/<br/>Agent SDK]
+    TP --> UTILS[utils/<br/>Utilities]
+
+    CLI --> CLII[__init__.py<br/>Main CLI entry point]
+    CLI --> AGENT[agent.py<br/>Agent management commands]
+    CLI --> MONITOR[monitor.py<br/>Monitoring commands]
+    CLI --> ORC[orchestrator.py<br/>Orchestrator commands]
+    CLI --> PM[pm.py<br/>PM-specific commands]
+
+    CORE --> AM[agent_manager.py<br/>Agent lifecycle management]
+    CORE --> CONFIG[config.py<br/>Configuration handling]
+    CORE --> DEP[deployer.py<br/>Team deployment logic]
+    CORE --> MON[monitor.py<br/>Idle monitoring]
+    CORE --> PMM[pm_manager.py<br/>PM operations]
+
+    SERVER --> SI[__init__.py<br/>FastAPI app]
+    SERVER --> ROUTES[routes/<br/>API endpoints]
+    SERVER --> MODELS[models/<br/>Pydantic models]
+
+    SDK --> SDKI[__init__.py<br/>Agent class]
+    UTILS --> TMUX[tmux.py<br/>TMUX wrapper]
+
+    classDef root fill:#e3f2fd
+    classDef package fill:#e8f5e8
+    classDef module fill:#fff3e0
+    classDef file fill:#f3e5f5
+
+    class TO root
+    class TP,CLI,CORE,SERVER,SDK,UTILS package
+    class CMD,BIN,TEST,DOCS,ROUTES,MODELS module
+    class CLII,AGENT,MONITOR,ORC,PM,AM,CONFIG,DEP,MON,PMM,SI,SDKI,TMUX,PY file
 ```
 
 ## Development Workflow

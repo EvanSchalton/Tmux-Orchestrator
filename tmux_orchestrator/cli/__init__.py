@@ -126,6 +126,86 @@ def list(ctx: click.Context, json: bool) -> None:
 
 
 @cli.command()
+@click.option("--format", type=click.Choice(["tree", "json", "markdown"]), default="tree", help="Output format")
+@click.option("--include-hidden", is_flag=True, help="Include hidden commands")
+@click.pass_context
+def reflect(ctx: click.Context, format: str, include_hidden: bool) -> None:
+    """Generate complete CLI command structure via introspection.
+
+    Examples:
+        tmux-orc reflect                     # Tree view of all commands
+        tmux-orc reflect --format json      # JSON structure for tools
+        tmux-orc reflect --format markdown  # Markdown documentation
+    """
+    import json
+    import sys
+
+    # Direct output to stdout
+    try:
+        # Get root CLI group
+        root_group = ctx.find_root().command
+
+        # Simple command listing
+        if format == "tree":
+            sys.stdout.write("tmux-orc CLI Commands:\n")
+            sys.stdout.write("=" * 30 + "\n\n")
+
+            for name, command in root_group.commands.items():
+                if not include_hidden and getattr(command, "hidden", False):
+                    continue
+
+                cmd_type = "📁" if isinstance(command, click.Group) else "⚡"
+                help_text = (
+                    getattr(command, "short_help", "") or (command.help.split("\n")[0] if command.help else "")
+                ).strip()
+
+                sys.stdout.write(f"{cmd_type} {name}")
+                if help_text:
+                    sys.stdout.write(f" - {help_text}")
+                sys.stdout.write("\n")
+
+                # Show subcommands if it's a group
+                if isinstance(command, click.Group):
+                    for subname, subcmd in command.commands.items():
+                        sub_help = (
+                            getattr(subcmd, "short_help", "") or (subcmd.help.split("\n")[0] if subcmd.help else "")
+                        ).strip()
+                        sys.stdout.write(f"  └── {subname}")
+                        if sub_help:
+                            sys.stdout.write(f" - {sub_help}")
+                        sys.stdout.write("\n")
+
+            sys.stdout.write("\n💡 Use 'tmux-orc [COMMAND] --help' for detailed information\n")
+            sys.stdout.write("📁 = Command group, ⚡ = Individual command\n")
+
+        elif format == "json":
+            # Simple JSON structure
+            commands = {}
+            for name, command in root_group.commands.items():
+                if not include_hidden and getattr(command, "hidden", False):
+                    continue
+                commands[name] = {
+                    "type": "group" if isinstance(command, click.Group) else "command",
+                    "help": command.help or "",
+                    "short_help": getattr(command, "short_help", "") or "",
+                }
+            sys.stdout.write(json.dumps(commands, indent=2) + "\n")
+
+        elif format == "markdown":
+            sys.stdout.write("# tmux-orc CLI Reference\n\n")
+            for name, command in root_group.commands.items():
+                if not include_hidden and getattr(command, "hidden", False):
+                    continue
+                cmd_type = "Group" if isinstance(command, click.Group) else "Command"
+                sys.stdout.write(f"## {name} ({cmd_type})\n\n")
+                if command.help:
+                    sys.stdout.write(f"{command.help}\n\n")
+
+    except Exception as e:
+        sys.stdout.write(f"Error generating CLI reflection: {e}\n")
+
+
+@cli.command()
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def status(ctx: click.Context, json: bool) -> None:

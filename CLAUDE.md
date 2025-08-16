@@ -65,6 +65,13 @@ As the Claude Code orchestrator, you are the interface between the human and the
 - **Compaction Detection**: Fixed false idle alerts during agent compaction states
 - See closeout report at `.tmux_orchestrator/planning/completed/20250812/MONITORING_FEATURES_CLOSEOUT.md`
 
+## Daemon Recovery Improvements Status: 2025-08-16
+- **PM Recovery Grace Period**: ✅ IMPLEMENTED - Progressive delays (2-10s) and 5-minute cooldown
+- **MCP Protocol Import Fixes**: ✅ IMPLEMENTED - Circular imports resolved via local imports
+- **False Positive PM Detection**: ✅ IMPLEMENTED - Context-aware detection prevents killing healthy PMs (commit 381bf99)
+- **3-minute grace period**: PMs are protected from health checks immediately after recovery
+- See closeout report at `.tmux_orchestrator/planning/daemon-recovery-fixes-closeout.md`
+
 ## System Notifications and Status Messages
 
 ### Known Status Updates
@@ -82,3 +89,15 @@ Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md`
 ## Orchestrator
 
 Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrator.md`
+
+## Root Directory Final State
+- **Final Root Directory Confirmed**:
+  - README.md - Main project documentation
+  - DEVELOPMENT-GUIDE.md - Architecture and development guide
+  - CHANGELOG.md - Version history
+  - CLAUDE.md - Project-specific Claude context
+  - tasks.py - Main tasks utility (moved back per your request)
+
+- **Key Notes**:
+  - These files are expected to stay in the root
+  - Other tests/scripts/docs/etc are likely not and should be cleaned up before commits

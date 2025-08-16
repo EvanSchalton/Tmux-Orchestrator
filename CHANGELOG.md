@@ -1,5 +1,52 @@
 # Tmux Orchestrator Changelog
 
+## Version 2.1.25 - CRITICAL SECURITY UPDATE (Unreleased)
+
+### 🚨 Security Fixes (CRITICAL)
+- **CVE-PENDING-001**: Fixed shell injection in orchestrator spawning (CVSS 9.8)
+  - Implemented `shlex.quote()` for all shell arguments
+  - Added strict input validation for profile and terminal names
+  - Prevented arbitrary command execution via CLI parameters
+
+- **CVE-PENDING-002**: Fixed command injection in agent spawning (CVSS 7.5)
+  - Added Pydantic validation models for all inputs
+  - Implemented dangerous pattern filtering in briefings
+  - Secured daemon command construction
+
+- **CVE-PENDING-003**: Fixed template injection in team composition (CVSS 6.0)
+  - Added HTML escaping for template replacements
+  - Implemented safe string substitution
+  - Validated project names and template content
+
+### 📚 Security Documentation
+- Added comprehensive security advisory at `/docs/security/SECURITY_ADVISORY_2025_08.md`
+- Documented mitigation steps for users on vulnerable versions
+- Added exploitation scenarios and detection methods
+
+### ⚠️ Breaking Changes
+- Restricted characters in profile names, agent names, and project names
+- Limited briefing content patterns for security
+- May require updates to automation scripts using special characters
+
+**IMPORTANT**: All users should update immediately. See security advisory for mitigation steps if unable to update.
+
+## Version 2.1.24 - Context-Aware Crash Detection
+
+### 🎯 Major Feature
+- **Context-Aware PM Crash Detection**: Implemented intelligent crash detection that understands conversation context
+  - Prevents false positives when PMs discuss errors, failures, or issues
+  - Detects Claude UI presence before declaring a crash
+  - Adds 3-minute grace period after PM recovery
+  - Commit: 381bf99
+
+### 🔧 Fixed
+- **Critical**: Resolved false positive PM kills when "failed" keyword appears in normal conversation
+- **Impact**: System is now stable with monitoring enabled
+
+### 📚 Documentation
+- Added `/docs/monitoring/context-aware-crash-detection.md` with usage guide
+- Updated CLAUDE.md with daemon recovery status
+
 ## Version 2.1.14 - Monitoring System Improvements
 
 ### 🔧 Fixed
