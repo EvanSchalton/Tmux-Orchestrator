@@ -23,17 +23,20 @@ The Tmux Orchestrator uses a human-in-the-loop workflow where you act as the Orc
 
 ### 1. Install & Setup
 ```bash
-# Install from GitHub
+# Install from PyPI (coming soon)
+pip install tmux-orchestrator
+
+# Or install from GitHub
 pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
 
 # Run initial setup (configures tmux and permissions)
-tmux-orc setup all
+tmux-orc setup
 ```
 
 ### 2. Launch Claude as Orchestrator
 ```bash
 # In a new terminal, spawn Claude Code as the orchestrator
-tmux-orc spawn orc
+tmux-orc spawn-orc
 ```
 
 This opens a new terminal with Claude Code and automatically loads the orchestrator context.

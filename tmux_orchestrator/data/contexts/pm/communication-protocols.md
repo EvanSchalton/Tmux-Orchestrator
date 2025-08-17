@@ -2,6 +2,8 @@
 
 > 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
 
+> 🤖 **Daemon Coordination**: For daemon-PM pubsub integration, see `daemon-pubsub-coordination.md`
+
 ## Standard Communication Formats
 
 ### STATUS UPDATE Format

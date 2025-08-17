@@ -99,8 +99,9 @@ def monitor() -> None:
 @monitor.command()
 @click.option("--interval", default=10, help="Check interval in seconds")
 @click.option("--supervised", is_flag=True, help="Start with self-healing supervision (recommended)")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def start(ctx: click.Context, interval: int, supervised: bool) -> None:
+def start(ctx: click.Context, interval: int, supervised: bool, json: bool) -> None:
     """Start the intelligent idle detection and monitoring daemon.
 
     Launches a background service that continuously monitors all Claude agents
@@ -131,6 +132,41 @@ def start(ctx: click.Context, interval: int, supervised: bool) -> None:
     from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError, IdleMonitor
 
     monitor = IdleMonitor(ctx.obj["tmux"])
+
+    if json:
+        # JSON output mode
+        import json as json_module
+
+        result = {"command": "monitor start", "options": {"interval": interval, "supervised": supervised}}
+
+        try:
+            if supervised:
+                success = monitor.start_supervised(interval)
+                if success:
+                    result["success"] = True
+                    result["message"] = "Supervised monitor started successfully"
+                    result["pid"] = None  # PID not directly available in supervised mode
+                    result["log_file"] = LOG_FILE
+                else:
+                    result["success"] = False
+                    result["message"] = "Failed to start supervised monitor"
+            else:
+                pid = monitor.start(interval)
+                result["success"] = True
+                result["message"] = "Monitor started successfully"
+                result["pid"] = pid
+                result["log_file"] = LOG_FILE
+        except DaemonAlreadyRunningError as e:
+            result["success"] = False
+            result["message"] = "Monitor daemon is already running"
+            result["error"] = str(e)
+        except Exception as e:
+            result["success"] = False
+            result["message"] = f"Error starting monitor: {e}"
+            result["error"] = str(e)
+
+        console.print(json_module.dumps(result, indent=2))
+        return
 
     if supervised:
         # Use new supervised mode with proper self-healing
@@ -175,8 +211,9 @@ def start(ctx: click.Context, interval: int, supervised: bool) -> None:
 
 
 @monitor.command()
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def stop(ctx: click.Context) -> None:
+def stop(ctx: click.Context, json: bool) -> None:
     """Stop the monitoring daemon and disable automated health checks.
 
     Gracefully shuts down the monitoring daemon, stopping all automated
@@ -208,6 +245,71 @@ def stop(ctx: click.Context) -> None:
 
     tmux = TMUXManager()
     monitor = IdleMonitor(tmux)
+
+    if json:
+        # JSON output mode
+        import json as json_module
+
+        result = {"command": "monitor stop", "success": False, "message": ""}
+
+        # Try supervised stop first
+        if monitor.supervisor.is_daemon_running():
+            success = monitor.stop(allow_cleanup=True)
+            if success:
+                result["success"] = True
+                result["message"] = "Supervised monitor stopped successfully"
+            else:
+                result["success"] = False
+                result["message"] = "Failed to stop supervised monitor"
+            console.print(json_module.dumps(result, indent=2))
+            return
+
+        # Try legacy stop
+        if not os.path.exists(PID_FILE):
+            result["success"] = False
+            result["message"] = "Monitor is not running"
+            console.print(json_module.dumps(result, indent=2))
+            return
+
+        try:
+            with open(PID_FILE) as f:
+                pid = int(f.read().strip())
+
+            # Create graceful stop file
+            from pathlib import Path
+
+            graceful_stop_file = Path(PROJECT_DIR) / "idle-monitor.graceful"
+            graceful_stop_file.touch()
+
+            # Send SIGTERM
+            os.kill(pid, signal.SIGTERM)
+            result["success"] = True
+            result["message"] = f"Monitor stop signal sent to PID {pid}"
+            result["pid"] = pid
+
+            # Clean up PID file
+            try:
+                os.unlink(PID_FILE)
+            except Exception:
+                pass
+
+        except ProcessLookupError:
+            result["success"] = False
+            result["message"] = "Monitor process not found, cleaning up PID file"
+            try:
+                os.unlink(PID_FILE)
+            except Exception:
+                pass
+        except ValueError:
+            result["success"] = False
+            result["message"] = "Invalid PID file format"
+        except Exception as e:
+            result["success"] = False
+            result["message"] = f"Failed to stop monitor: {e}"
+            result["error"] = str(e)
+
+        console.print(json_module.dumps(result, indent=2))
+        return
 
     # Try supervised stop first
     if monitor.supervisor.is_daemon_running():

@@ -1,12 +1,65 @@
-# TMUX Orchestrator Setup Guide
+# TMUX Orchestrator Installation Guide
 
-This guide shows how to set up the TMUX Orchestrator in any project, with special focus on devcontainer integration.
+This guide shows how to install and set up the TMUX Orchestrator for AI-powered development teams.
+
+## Prerequisites
+
+Before installation, ensure you have:
+- **Python 3.8+** installed
+- **tmux** available in your system
+- **Git** for version control
+- **Claude API access** (required for agent operations)
+
+## Installation Methods
+
+### Method 1: Python Package Installation (Recommended)
+
+Install directly from PyPI:
+
+```bash
+pip install tmux-orchestrator
+```
+
+Or install from GitHub for the latest version:
+
+```bash
+pip install git+https://github.com/EvanSchalton/Tmux-Orchestrator.git
+```
+
+### Method 2: Development Installation
+
+For development or customization:
+
+```bash
+git clone https://github.com/EvanSchalton/Tmux-Orchestrator.git
+cd Tmux-Orchestrator
+pip install -e .
+```
 
 ## Quick Setup (Devcontainer Projects)
 
-### 1. Copy Orchestrator Files
+### 1. DevContainer Configuration
 
-Copy the entire `Tmux-Orchestrator/` directory to your project's `references/` folder:
+Add to your `.devcontainer/devcontainer.json`:
+
+```json
+{
+  "name": "My Project with AI Orchestrator",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": [
+    "apt-get update && apt-get install -y tmux",
+    "pip install tmux-orchestrator",
+    "tmux-orc setup"
+  ],
+  "remoteEnv": {
+    "TMUX_ORCHESTRATOR_HOME": "${localEnv:HOME}/.tmux_orchestrator"
+  }
+}
+```
+
+### 2. Alternative: Local Project Setup
+
+If not using devcontainers, copy the orchestrator to your project:
 
 ```bash
 # In your project root
@@ -14,48 +67,48 @@ mkdir -p references/
 cp -r path/to/Tmux-Orchestrator references/
 ```
 
-### 2. Create Installation Script
+## Initial Setup and Configuration
 
-Create `scripts/install-tmux-orchestrator.sh` in your project:
+### 1. System Setup
 
-```bash
-# Copy the template and customize
-cp references/Tmux-Orchestrator/install-template.sh scripts/install-tmux-orchestrator.sh
-
-# Edit the script to match your project
-sed -i 's/your-project/my-project-name/g' scripts/install-tmux-orchestrator.sh
-sed -i 's|/workspaces/your-project|/workspaces/my-project|g' scripts/install-tmux-orchestrator.sh
-```
-
-### 3. Update Devcontainer Configuration
-
-Add to `.devcontainer/devcontainer.json`:
-
-```json
-{
-  "name": "my-project-dev",
-  "postCreateCommand": "bash scripts/install-tmux-orchestrator.sh",
-  "remoteEnv": {
-    "TMUX_ORCHESTRATOR_HOME": "/workspaces/my-project/.tmux-orchestrator",
-    "TMUX_ORCHESTRATOR_REGISTRY": "/workspaces/my-project/.tmux-orchestrator/registry"
-  }
-}
-```
-
-### 4. Test Installation
-
-Rebuild your devcontainer, then test:
+After installation, run the setup command:
 
 ```bash
-# Check installation
-ls -la .tmux-orchestrator/
+# Initialize tmux-orchestrator
+tmux-orc setup
 
-# Test commands
-tmux-message --help
-tmux-schedule --help
+# Set up Claude Code integration (optional but recommended)
+tmux-orc setup claude-code
 
-# Start orchestrator
-tmux-orc orchestrator start
+# Set up VSCode integration (optional)
+tmux-orc setup vscode
+```
+
+### 2. Verify Installation
+
+Test that everything is working:
+
+```bash
+# Check CLI is available
+tmux-orc --help
+
+# Verify tmux integration
+tmux-orc status
+
+# Test basic functionality
+tmux-orc reflect
+```
+
+### 3. First Run
+
+Start your first orchestrator session:
+
+```bash
+# Start the orchestrator
+tmux-orc spawn orchestrator
+
+# Deploy a simple test team
+tmux-orc spawn pm --session test-project:1
 ```
 
 ## Manual Setup (Non-Devcontainer)

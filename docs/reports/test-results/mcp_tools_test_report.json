@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-08-17T14:18:48.440604",
+  "total_cli_commands": 0,
+  "estimated_mcp_tools": 92,
+  "key_tools_tested": 3,
+  "key_tools_passed": 3,
+  "tool_results": [
+    {
+      "tool": "agent_status",
+      "success": true,
+      "execution_time": 3.2217934131622314,
+      "json_valid": true,
+      "has_output": true,
+      "command": "tmux-orc agent status --json"
+    },
+    {
+      "tool": "monitor_start",
+      "success": true,
+      "execution_time": 2.1673409938812256,
+      "json_valid": false,
+      "has_output": false,
+      "command": "tmux-orc monitor start --dry-run"
+    },
+    {
+      "tool": "team_list",
+      "success": true,
+      "execution_time": 2.35355281829834,
+      "json_valid": true,
+      "has_output": true,
+      "command": "tmux-orc team list --json"
+    }
+  ],
+  "server_verification": true
+}

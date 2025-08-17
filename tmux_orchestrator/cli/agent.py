@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from tmux_orchestrator.core.agent_operations import restart_agent
+from tmux_orchestrator.core.agent_operations.kill_agent import kill_agent
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 console: Console = Console()
@@ -214,8 +215,8 @@ def send(ctx: click.Context, target: str, message: str, delay: float, json: bool
     # Send message using TMUXManager with custom delay handling
     try:
         # Clear any existing input first
-        tmux.press_ctrl_c(target)
-        time.sleep(delay)
+        # DISABLED: tmux.press_ctrl_c(target)  # This kills Claude when multiple messages arrive
+        # time.sleep(delay)
 
         # Clear the input line
         tmux.press_ctrl_u(target)
@@ -223,7 +224,8 @@ def send(ctx: click.Context, target: str, message: str, delay: float, json: bool
 
         # Send the actual message as literal text
         tmux.send_text(target, message)
-        time.sleep(max(delay * 6, 3.0))  # Ensure adequate time for message processing
+        # Ensure adequate time for message processing
+        time.sleep(max(delay * 6, 3.0))
 
         # Submit with Enter (Claude Code uses Enter, not Ctrl+Enter)
         tmux.press_enter(target)
@@ -290,9 +292,21 @@ def attach(ctx: click.Context, target: str) -> None:
 
 @agent.command()
 @click.argument("target")
+@click.option("--no-health-check", is_flag=True, help="Skip health check before restart")
+@click.option("--no-preserve-context", is_flag=True, help="Don't preserve agent context")
+@click.option("--custom-command", help="Custom command to start agent")
+@click.option("--timeout", type=int, default=10, help="Restart timeout in seconds")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def restart(ctx: click.Context, target: str, json: bool) -> None:
+def restart(
+    ctx: click.Context,
+    target: str,
+    no_health_check: bool,
+    no_preserve_context: bool,
+    custom_command: str,
+    timeout: int,
+    json: bool,
+) -> None:
     """Restart a specific agent that has become unresponsive.
 
     Terminates the current Claude process in the specified window and starts
@@ -322,8 +336,22 @@ def restart(ctx: click.Context, target: str, json: bool) -> None:
 
     console.print(f"[yellow]Restarting agent at {target}...[/yellow]")
 
-    # Delegate to business logic
-    success, result_message = restart_agent(tmux, target)
+    # Delegate to business logic with new parameters
+    result = restart_agent(
+        tmux,
+        target,
+        health_check=not no_health_check,
+        preserve_context=not no_preserve_context,
+        custom_command=custom_command,
+        timeout=timeout,
+    )
+
+    # Handle both old (2-tuple) and new (3-tuple) return formats
+    if len(result) == 2:
+        success, result_message = result
+        details = {}
+    else:
+        success, result_message, details = result
 
     if json:
         import json as json_module
@@ -333,6 +361,13 @@ def restart(ctx: click.Context, target: str, json: bool) -> None:
             "target": target,
             "message": result_message,
             "action": "restart",
+            "details": details,
+            "options": {
+                "health_check": not no_health_check,
+                "preserve_context": not no_preserve_context,
+                "custom_command": custom_command,
+                "timeout": timeout,
+            },
         }
         console.print(json_module.dumps(result, indent=2))
         return
@@ -395,8 +430,14 @@ def status(ctx: click.Context, json: bool) -> None:
 @agent.command()
 @click.argument("target")
 @click.option("--session", is_flag=True, help="Kill entire session (requires confirmation)")
+@click.option("--force", is_flag=True, help="Force kill without graceful shutdown")
+@click.option("--no-save-state", is_flag=True, help="Don't save agent state before killing")
+@click.option("--timeout", type=int, default=5, help="Graceful shutdown timeout in seconds")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def kill(ctx: click.Context, target: str, session: bool) -> None:
+def kill(
+    ctx: click.Context, target: str, session: bool, force: bool, no_save_state: bool, timeout: int, json: bool
+) -> None:
     """Terminate a specific agent or entire session.
 
     By default, kills only the specified agent window. Use --session flag
@@ -429,8 +470,13 @@ def kill(ctx: click.Context, target: str, session: bool) -> None:
     """
     tmux: TMUXManager = ctx.obj["tmux"]
 
-    if session:
-        # Session kill mode
+    # Handle JSON output early for non-interactive mode
+    if json and session and not force:
+        # For JSON mode with session kill, skip confirmation
+        force = True
+
+    if session and not force and not json:
+        # Session kill mode with confirmation
         console.print("\n[bold red]⚠️  WARNING: Session Kill Mode[/bold red]")
         console.print(f"This will terminate ALL agents in session '{target}'")
         console.print("All agent contexts and conversations will be lost.\n")
@@ -439,32 +485,38 @@ def kill(ctx: click.Context, target: str, session: bool) -> None:
             console.print("[yellow]Session kill cancelled.[/yellow]")
             return
 
-        console.print(f"[yellow]Killing entire session '{target}'...[/yellow]")
-        success = tmux.kill_session(target)
-
-        if success:
-            console.print(f"[green]✓ Session '{target}' killed successfully[/green]")
+    # Prepare status message
+    if not json:
+        if session:
+            console.print(f"[yellow]Killing entire session '{target}'...[/yellow]")
         else:
-            console.print(f"[red]✗ Failed to kill session '{target}'[/red]")
+            console.print(f"[yellow]Killing agent at {target}...[/yellow]")
+
+    # Use new business logic
+    success, message, details = kill_agent(
+        tmux, target, force=force, save_state=not no_save_state, kill_session=session, graceful_timeout=timeout
+    )
+
+    # Handle output
+    if json:
+        import json as json_module
+
+        output = {
+            "success": success,
+            "message": message,
+            "target": target,
+            "action": "kill_session" if session else "kill_window",
+            "options": {"force": force, "save_state": not no_save_state, "timeout": timeout},
+            "details": details,
+        }
+        console.print(json_module.dumps(output, indent=2))
     else:
-        # Window kill mode (default)
-        if ":" not in target:
-            console.print("[red]✗ Invalid target format. Use session:window for window kill[/red]")
-            console.print("[dim]Tip: Use --session flag to kill entire session[/dim]")
-            return
-
-        console.print(f"[yellow]Killing agent at {target}...[/yellow]")
-
-        try:
-            # Kill the specific window ONLY
-            success = tmux.kill_window(target)
-
-            if success:
-                console.print(f"[green]✓ Agent at {target} killed successfully[/green]")
-            else:
-                console.print(f"[red]✗ Failed to kill agent at {target}[/red]")
-        except Exception as e:
-            console.print(f"[red]✗ Error killing agent: {str(e)}[/red]")
+        if success:
+            console.print(f"[green]✓ {message}[/green]")
+            if details.get("saved_state"):
+                console.print("[dim]Agent state saved before termination[/dim]")
+        else:
+            console.print(f"[red]✗ {message}[/red]")
 
 
 @agent.command()

@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-08-17T14:15:21.338459",
+  "tool_count": 92,
+  "key_commands_tested": 3,
+  "key_commands_passed": 3,
+  "command_results": [
+    {
+      "tool": "agent_status",
+      "success": true,
+      "execution_time": 2.863525629043579,
+      "command": "tmux-orc agent status"
+    },
+    {
+      "tool": "monitor_start",
+      "success": true,
+      "execution_time": 2.120067834854126,
+      "command": "tmux-orc monitor start --help"
+    },
+    {
+      "tool": "team_list",
+      "success": true,
+      "execution_time": 2.440325975418091,
+      "command": "tmux-orc team list"
+    }
+  ],
+  "parsing_results": [
+    {
+      "group": "agent",
+      "commands_found": 10,
+      "success": true
+    },
+    {
+      "group": "monitor",
+      "commands_found": 10,
+      "success": true
+    },
+    {
+      "group": "team",
+      "commands_found": 5,
+      "success": true
+    }
+  ]
+}

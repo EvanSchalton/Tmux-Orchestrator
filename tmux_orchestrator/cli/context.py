@@ -58,7 +58,8 @@ def context() -> None:
 @context.command()
 @click.argument("role")
 @click.option("--raw", is_flag=True, help="Output raw markdown without formatting")
-def show(role: str, raw: bool) -> None:
+@click.option("--json", is_flag=True, help="Output in JSON format")
+def show(role: str, raw: bool, json: bool) -> None:
     """Display context briefing for a specific role.
 
     ROLE: The agent role to show context for
@@ -70,11 +71,34 @@ def show(role: str, raw: bool) -> None:
     try:
         content = load_context(role)
     except click.ClickException as e:
-        console.print(f"[red]Error: {e}[/red]")
-        console.print("\nUse 'tmux-orc context list' to see available contexts")
+        if json:
+            import json as json_module
+
+            result = {
+                "success": False,
+                "role": role,
+                "error": str(e),
+                "available_roles": list(get_available_contexts().keys()),
+                "timestamp": __import__("time").time(),
+            }
+            console.print(json_module.dumps(result, indent=2))
+        else:
+            console.print(f"[red]Error: {e}[/red]")
+            console.print("\nUse 'tmux-orc context list' to see available contexts")
         return
 
-    if raw:
+    if json:
+        import json as json_module
+
+        result = {
+            "success": True,
+            "role": role,
+            "content": content,
+            "content_length": len(content),
+            "timestamp": __import__("time").time(),
+        }
+        console.print(json_module.dumps(result, indent=2))
+    elif raw:
         console.print(content)
     else:
         md = Markdown(content)
@@ -82,33 +106,62 @@ def show(role: str, raw: bool) -> None:
 
 
 @context.command()
-def list() -> None:
+@click.option("--json", is_flag=True, help="Output in JSON format")
+def list(json: bool) -> None:
     """List all available context templates."""
     contexts = get_available_contexts()
 
     if not contexts:
-        console.print("[yellow]No context files found in tmux_orchestrator/data/contexts/[/yellow]")
+        if json:
+            import json as json_module
+
+            result = {
+                "success": False,
+                "contexts": [],
+                "message": "No context files found in tmux_orchestrator/data/contexts/",
+                "timestamp": __import__("time").time(),
+            }
+            console.print(json_module.dumps(result, indent=2))
+        else:
+            console.print("[yellow]No context files found in tmux_orchestrator/data/contexts/[/yellow]")
         return
 
-    console.print("\n[bold]Available System Role Contexts:[/bold]\n")
-
+    contexts_data = []
     for role, path in contexts.items():
         # Read first meaningful line as description
         content = path.read_text()
         lines = content.strip().split("\n")
         description = next((line.strip() for line in lines if line.strip() and not line.startswith("#")), "")
-        console.print(f"  [cyan]{role:15}[/cyan] {description}")
 
-    console.print("\n[dim]Use 'tmux-orc context show <role>' to view full context[/dim]")
-    console.print("\n[bold]Note:[/bold] Other agent types (developer, qa, etc.) should have")
-    console.print("custom briefings defined in your team plan documents.")
+        contexts_data.append({"role": role, "description": description, "file_path": str(path)})
+
+    if json:
+        import json as json_module
+
+        result = {
+            "success": True,
+            "contexts": contexts_data,
+            "total_contexts": len(contexts_data),
+            "timestamp": __import__("time").time(),
+        }
+        console.print(json_module.dumps(result, indent=2))
+    else:
+        console.print("\n[bold]Available System Role Contexts:[/bold]\n")
+
+        for context_info in contexts_data:
+            console.print(f"  [cyan]{context_info['role']:15}[/cyan] {context_info['description']}")
+
+        console.print("\n[dim]Use 'tmux-orc context show <role>' to view full context[/dim]")
+        console.print("\n[bold]Note:[/bold] Other agent types (developer, qa, etc.) should have")
+        console.print("custom briefings defined in your team plan documents.")
 
 
 @context.command()
 @click.argument("role")
 @click.option("--session", required=True, help="Target session name or session:window (legacy)")
 @click.option("--extend", help="Additional project-specific context")
-def spawn(role: str, session: str, extend: str | None = None) -> None:
+@click.option("--json", is_flag=True, help="Output in JSON format")
+def spawn(role: str, session: str, extend: str | None = None, json: bool = False) -> None:
     """Spawn an agent with standardized context (orchestrator/pm only).
 
     This command creates a complete agent setup:
@@ -132,6 +185,17 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
     try:
         load_context(role)
     except click.ClickException as e:
+        if json:
+            import json as json_module
+
+            result = {
+                "success": False,
+                "error": str(e),
+                "error_type": "ContextNotFound",
+                "available_roles": list(get_available_contexts().keys()),
+            }
+            console.print(json_module.dumps(result, indent=2))
+            return
         console.print(f"[red]Error: {e}[/red]")
         console.print("\n[yellow]Note:[/yellow] Only system roles (orchestrator, pm) have standard contexts.")
         console.print("Other agents should be spawned with custom briefings from your team plan.")
@@ -143,18 +207,22 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
     if ":" in session:
         # Legacy format with window index - we'll ignore the index
         session_name, _ = session.split(":", 1)
-        console.print(
-            f"[yellow]Note: Window index in '{session}' will be ignored. New window will be added to end of session.[/yellow]"
-        )
+        if not json:
+            console.print(
+                f"[yellow]Note: Window index in '{session}' will be ignored. New window will be added to end of session.[/yellow]"
+            )
     else:
         # New format - just session name
         session_name = session
 
     # Check if session exists, create if needed
     sessions = tmux.list_sessions()
+    session_created = False
     if not any(s["name"] == session_name for s in sessions):
-        console.print(f"[yellow]Creating new session: {session_name}[/yellow]")
+        if not json:
+            console.print(f"[yellow]Creating new session: {session_name}[/yellow]")
         subprocess.run(["tmux", "new-session", "-d", "-s", session_name], check=True)
+        session_created = True
 
     # Create window with appropriate name (always append to end)
     window_name = f"Claude-{role}"
@@ -171,22 +239,37 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
                 break
 
         if actual_window_idx is None:
+            if json:
+                import json as json_module
+
+                result = {"success": False, "error": "Window created but not found", "error_type": "WindowNotFound"}
+                console.print(json_module.dumps(result, indent=2))
+                return
             console.print("[red]Error: Window created but not found[/red]")
             return
 
         actual_target = f"{session_name}:{actual_window_idx}"
-        console.print(f"[green]Created window: {actual_target} ({window_name})[/green]")
+        if not json:
+            console.print(f"[green]Created window: {actual_target} ({window_name})[/green]")
     except subprocess.CalledProcessError as e:
+        if json:
+            import json as json_module
+
+            result = {"success": False, "error": f"Error creating window: {e}", "error_type": "WindowCreationError"}
+            console.print(json_module.dumps(result, indent=2))
+            return
         console.print(f"[red]Error creating window: {e}[/red]")
         return
 
     # Start Claude in the window
-    console.print(f"[blue]Starting Claude in {actual_target}...[/blue]")
+    if not json:
+        console.print(f"[blue]Starting Claude in {actual_target}...[/blue]")
     tmux.send_keys(actual_target, "claude --dangerously-skip-permissions", literal=True)
     tmux.send_keys(actual_target, "Enter")
 
     # Wait for Claude to initialize
-    console.print("[dim]Waiting for Claude to initialize...[/dim]")
+    if not json:
+        console.print("[dim]Waiting for Claude to initialize...[/dim]")
     time.sleep(8)
 
     # Send instruction message instead of full context
@@ -201,24 +284,43 @@ def spawn(role: str, session: str, extend: str | None = None) -> None:
     if extend:
         message += f"\n\n## Additional Instructions\n\n{extend}"
 
-    console.print(f"[blue]Sending {role} instruction...[/blue]")
+    if not json:
+        console.print(f"[blue]Sending {role} instruction...[/blue]")
     success = tmux.send_message(actual_target, message)
 
-    if success:
-        console.print(f"[green]✓ Successfully spawned {role} agent at {actual_target}[/green]")
-        console.print(f"  Window name: {window_name}")
-        console.print("  Claude started: Yes")
-        console.print("  Context sent: Yes")
+    if json:
+        import json as json_module
+        import time
+
+        result = {
+            "success": success,
+            "role": role,
+            "target": actual_target,
+            "window_name": window_name,
+            "session_created": session_created,
+            "claude_started": True,
+            "context_sent": success,
+            "extend": extend,
+            "timestamp": time.time(),
+        }
+        console.print(json_module.dumps(result, indent=2))
     else:
-        console.print(f"[red]✗ Failed to send context to {role} agent[/red]")
-        console.print("[yellow]Claude may have started but context sending failed[/yellow]")
+        if success:
+            console.print(f"[green]✓ Successfully spawned {role} agent at {actual_target}[/green]")
+            console.print(f"  Window name: {window_name}")
+            console.print("  Claude started: Yes")
+            console.print("  Context sent: Yes")
+        else:
+            console.print(f"[red]✗ Failed to send context to {role} agent[/red]")
+            console.print("[yellow]Claude may have started but context sending failed[/yellow]")
 
 
 @context.command()
 @click.argument("output_file", type=click.Path())
 @click.option("--role", required=True, help="System role (orchestrator/pm) to export")
 @click.option("--project", help="Project name for customization")
-def export(output_file: str, role: str, project: str | None = None) -> None:
+@click.option("--json", is_flag=True, help="Output in JSON format")
+def export(output_file: str, role: str, project: str | None = None, json: bool = False) -> None:
     """Export a system role context to a file for customization.
 
     Only orchestrator and PM have standard contexts. All other agents
@@ -229,14 +331,64 @@ def export(output_file: str, role: str, project: str | None = None) -> None:
         tmux-orc context export my-pm-briefing.md --role pm
         tmux-orc context export orchestrator-api.md --role orchestrator --project "API Service"
     """
+    import time
+
+    start_time = time.time()
+
     try:
         content = load_context(role)
     except click.ClickException as e:
-        console.print(f"[red]Error: {e}[/red]")
+        if json:
+            import json as json_module
+
+            result = {
+                "success": False,
+                "role": role,
+                "output_file": output_file,
+                "error": str(e),
+                "available_roles": list(get_available_contexts().keys()),
+                "timestamp": time.time(),
+            }
+            console.print(json_module.dumps(result, indent=2))
+        else:
+            console.print(f"[red]Error: {e}[/red]")
         return
+
+    original_content_length = len(content)
 
     if project:
         content += f"\n\n## Project: {project}\n\n[Add project-specific details here]\n"
 
-    Path(output_file).write_text(content)
-    console.print(f"[green]✓ Exported {role} context to {output_file}[/green]")
+    try:
+        Path(output_file).write_text(content)
+        success = True
+        error_message = None
+    except Exception as e:
+        success = False
+        error_message = str(e)
+
+    execution_time = (time.time() - start_time) * 1000
+
+    result_data = {
+        "success": success,
+        "role": role,
+        "output_file": output_file,
+        "project": project,
+        "content_length": len(content),
+        "original_content_length": original_content_length,
+        "execution_time_ms": execution_time,
+        "timestamp": time.time(),
+    }
+
+    if not success:
+        result_data["error"] = error_message
+
+    if json:
+        import json as json_module
+
+        console.print(json_module.dumps(result_data, indent=2))
+    else:
+        if success:
+            console.print(f"[green]✓ Exported {role} context to {output_file}[/green]")
+        else:
+            console.print(f"[red]✗ Failed to export context: {error_message}[/red]")

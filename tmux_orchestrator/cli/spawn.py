@@ -67,8 +67,9 @@ def orc(ctx: click.Context, profile: str | None, terminal: str, no_launch: bool,
 @spawn.command()
 @click.option("--session", required=True, help="Target session name or session:window (legacy)")
 @click.option("--extend", help="Additional project-specific context")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def pm(ctx: click.Context, session: str, extend: str | None = None) -> None:
+def pm(ctx: click.Context, session: str, extend: str | None = None, json: bool = False) -> None:
     """Spawn a Project Manager with standardized context.
 
     This command creates a complete PM agent setup:
@@ -89,7 +90,7 @@ def pm(ctx: click.Context, session: str, extend: str | None = None) -> None:
     from tmux_orchestrator.cli.context import spawn as context_spawn
 
     # Call the existing implementation
-    ctx.invoke(context_spawn, role="pm", session=session, extend=extend)
+    ctx.invoke(context_spawn, role="pm", session=session, extend=extend, json=json)
 
 
 @spawn.command()

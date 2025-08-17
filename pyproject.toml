@@ -1,13 +1,35 @@
 [tool.poetry]
 name = "tmux-orchestrator"
 version = "2.1.24"
-description = "AI-powered tmux session orchestrator with CLI and MCP server"
+description = "AI-powered tmux session orchestrator with CLI and MCP server featuring dynamic CLI reflection"
 authors = ["TMUX Orchestrator Team"]
 readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/EvanSchalton/Tmux-Orchestrator"
+repository = "https://github.com/EvanSchalton/Tmux-Orchestrator"
+documentation = "https://github.com/EvanSchalton/Tmux-Orchestrator/blob/main/README.md"
+keywords = ["tmux", "ai", "orchestrator", "mcp", "claude", "automation", "cli-reflection", "fastmcp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Tools",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Communications",
+    "Framework :: AsyncIO",
+]
 packages = [{include = "tmux_orchestrator"}]
 include = [
     "tmux_orchestrator/claude_commands/*.md",
-    { path = "tmux_orchestrator/data/**/*", format = ["sdist", "wheel"] }
+    "tmux_orchestrator/data/**/*",
+    "tmux_orchestrator/cli/**/*.py",
+    "tmux_orchestrator/mcp/**/*.py",
+    { path = "tmux_orchestrator/data/**/*", format = ["sdist", "wheel"] },
+    { path = "scripts/**/*", format = ["sdist"] }
 ]
 
 [tool.poetry.dependencies]
@@ -23,6 +45,7 @@ watchdog = "^3.0.0"
 psutil = "^5.9.6"
 requests = "^2.31.0"
 mcp = "^1.12.4"
+fastmcp = "^0.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
@@ -40,7 +63,7 @@ invoke = "^2.2.0"
 
 [tool.poetry.scripts]
 tmux-orc = "tmux_orchestrator.cli:cli"
-tmux-orc-server = "tmux_orchestrator.server:main"
+tmux-orc-mcp = "tmux_orchestrator.mcp_server:sync_main"
 
 [build-system]
 requires = ["poetry-core"]
@@ -72,6 +95,11 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+exclude = [
+    'tmux_orchestrator/mcp\.backup/.*',
+    'tmux_orchestrator/server_legacy_backup/.*',
+    'tmux_orchestrator/mcp_manual_legacy/.*'
+]
 
 [tool.invoke]
 # Invoke configuration

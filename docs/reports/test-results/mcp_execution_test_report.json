@@ -1,0 +1,383 @@
+{
+  "timestamp": 1755393734.3741176,
+  "summary": {
+    "total_tools": 6,
+    "successful_tools": 5,
+    "failed_tools": 1,
+    "success_rate": 83.33333333333334
+  },
+  "performance": {
+    "average_time": 2.0415576457977296,
+    "min_time": 1.4128081798553467,
+    "max_time": 2.933262825012207
+  },
+  "detailed_results": {
+    "list": {
+      "success": true,
+      "execution_time": 2.933262825012207,
+      "result": {
+        "success": true,
+        "command": "list",
+        "arguments": {
+          "args": [
+            "--json"
+          ]
+        },
+        "result": [
+          {
+            "session": "Tmux-Orchestrator-frontend",
+            "window": "2",
+            "type": "Pm",
+            "status": "Idle"
+          },
+          {
+            "session": "Tmux-Orchestrator-frontend",
+            "window": "3",
+            "type": "Performance Engineer",
+            "status": "Active"
+          },
+          {
+            "session": "Tmux-Orchestrator-frontend",
+            "window": "4",
+            "type": "Fullstack Dev",
+            "status": "Active"
+          },
+          {
+            "session": "Tmux-Orchestrator-frontend",
+            "window": "5",
+            "type": "Qa Engineer",
+            "status": "Idle"
+          },
+          {
+            "session": "Tmux-Orchestrator-frontend",
+            "window": "6",
+            "type": "Code Reviewer",
+            "status": "Active"
+          },
+          {
+            "session": "Tmux-Orchestrator-frontend",
+            "window": "7",
+            "type": "Architect",
+            "status": "Active"
+          },
+          {
+            "session": "mcp-completion",
+            "window": "2",
+            "type": "Backend Dev",
+            "status": "Active"
+          },
+          {
+            "session": "mcp-completion",
+            "window": "3",
+            "type": "Full Stack Dev",
+            "status": "Idle"
+          },
+          {
+            "session": "mcp-completion",
+            "window": "4",
+            "type": "Qa Engineer",
+            "status": "Active"
+          },
+          {
+            "session": "mcp-completion",
+            "window": "5",
+            "type": "Devops Engineer",
+            "status": "Active"
+          },
+          {
+            "session": "mcp-completion",
+            "window": "6",
+            "type": "Code Reviewer",
+            "status": "Active"
+          },
+          {
+            "session": "mcp-completion",
+            "window": "7",
+            "type": "Pm",
+            "status": "Idle"
+          },
+          {
+            "session": "mcp-completion",
+            "window": "8",
+            "type": "Architect",
+            "status": "Active"
+          },
+          {
+            "session": "test",
+            "window": "2",
+            "type": "Pm",
+            "status": "Idle"
+          },
+          {
+            "session": "test",
+            "window": "3",
+            "type": "Devops",
+            "status": "Active"
+          },
+          {
+            "session": "test",
+            "window": "4",
+            "type": "Qa Engineer",
+            "status": "Active"
+          },
+          {
+            "session": "test",
+            "window": "5",
+            "type": "Lead Developer",
+            "status": "Active"
+          },
+          {
+            "session": "test-session",
+            "window": "2",
+            "type": "Test Agent",
+            "status": "Active"
+          },
+          {
+            "session": "test-session",
+            "window": "3",
+            "type": "Pm",
+            "status": "Idle"
+          }
+        ],
+        "raw_output": "[\n  {\n    \"session\": \"Tmux-Orchestrator-frontend\",\n    \"window\": \"2\",\n    \"type\": \"Pm\",\n    \"status\": \"Idle\"\n  },\n  {\n    \"session\": \"Tmux-Orchestrator-frontend\",\n    \"window\": \"3\",\n    \"type\": \"Performance Engineer\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"Tmux-Orchestrator-frontend\",\n    \"window\": \"4\",\n    \"type\": \"Fullstack Dev\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"Tmux-Orchestrator-frontend\",\n    \"window\": \"5\",\n    \"type\": \"Qa Engineer\",\n    \"status\": \"Idle\"\n  },\n  {\n    \"session\": \"Tmux-Orchestrator-frontend\",\n    \"window\": \"6\",\n    \"type\": \"Code Reviewer\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"Tmux-Orchestrator-frontend\",\n    \"window\": \"7\",\n    \"type\": \"Architect\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"mcp-completion\",\n    \"window\": \"2\",\n    \"type\": \"Backend Dev\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"mcp-completion\",\n    \"window\": \"3\",\n    \"type\": \"Full Stack Dev\",\n    \"status\": \"Idle\"\n  },\n  {\n    \"session\": \"mcp-completion\",\n    \"window\": \"4\",\n    \"type\": \"Qa Engineer\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"mcp-completion\",\n    \"window\": \"5\",\n    \"type\": \"Devops Engineer\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"mcp-completion\",\n    \"window\": \"6\",\n    \"type\": \"Code Reviewer\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"mcp-completion\",\n    \"window\": \"7\",\n    \"type\": \"Pm\",\n    \"status\": \"Idle\"\n  },\n  {\n    \"session\": \"mcp-completion\",\n    \"window\": \"8\",\n    \"type\": \"Architect\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"test\",\n    \"window\": \"2\",\n    \"type\": \"Pm\",\n    \"status\": \"Idle\"\n  },\n  {\n    \"session\": \"test\",\n    \"window\": \"3\",\n    \"type\": \"Devops\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"test\",\n    \"window\": \"4\",\n    \"type\": \"Qa Engineer\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"test\",\n    \"window\": \"5\",\n    \"type\": \"Lead Developer\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"test-session\",\n    \"window\": \"2\",\n    \"type\": \"Test Agent\",\n    \"status\": \"Active\"\n  },\n  {\n    \"session\": \"test-session\",\n    \"window\": \"3\",\n    \"type\": \"Pm\",\n    \"status\": \"Idle\"\n  }\n]\n",
+        "execution_time": 2.932995080947876,
+        "mcp_tool": "cli_list"
+      }
+    },
+    "status": {
+      "success": true,
+      "execution_time": 2.5502750873565674,
+      "result": {
+        "success": true,
+        "command": "status",
+        "arguments": {
+          "args": [
+            "--json"
+          ]
+        },
+        "result": {
+          "sessions": [
+            {
+              "name": "Tmux-Orchestrator-frontend",
+              "created": "1755365515",
+              "attached": "0"
+            },
+            {
+              "name": "mcp-completion",
+              "created": "1755364522",
+              "attached": "1"
+            },
+            {
+              "name": "planning-session",
+              "created": "1755392225",
+              "attached": "0"
+            },
+            {
+              "name": "test",
+              "created": "1755393361",
+              "attached": "0"
+            },
+            {
+              "name": "test-session",
+              "created": "1755393332",
+              "attached": "0"
+            }
+          ],
+          "agents": [
+            {
+              "session": "Tmux-Orchestrator-frontend",
+              "window": "2",
+              "type": "Pm",
+              "status": "Idle"
+            },
+            {
+              "session": "Tmux-Orchestrator-frontend",
+              "window": "3",
+              "type": "Performance Engineer",
+              "status": "Active"
+            },
+            {
+              "session": "Tmux-Orchestrator-frontend",
+              "window": "4",
+              "type": "Qa Engineer",
+              "status": "Idle"
+            },
+            {
+              "session": "Tmux-Orchestrator-frontend",
+              "window": "5",
+              "type": "Code Reviewer",
+              "status": "Active"
+            },
+            {
+              "session": "Tmux-Orchestrator-frontend",
+              "window": "6",
+              "type": "Architect",
+              "status": "Active"
+            },
+            {
+              "session": "mcp-completion",
+              "window": "2",
+              "type": "Backend Dev",
+              "status": "Active"
+            },
+            {
+              "session": "mcp-completion",
+              "window": "3",
+              "type": "Full Stack Dev",
+              "status": "Idle"
+            },
+            {
+              "session": "mcp-completion",
+              "window": "4",
+              "type": "Qa Engineer",
+              "status": "Active"
+            },
+            {
+              "session": "mcp-completion",
+              "window": "5",
+              "type": "Devops Engineer",
+              "status": "Active"
+            },
+            {
+              "session": "mcp-completion",
+              "window": "6",
+              "type": "Code Reviewer",
+              "status": "Active"
+            },
+            {
+              "session": "mcp-completion",
+              "window": "7",
+              "type": "Pm",
+              "status": "Idle"
+            },
+            {
+              "session": "mcp-completion",
+              "window": "8",
+              "type": "Architect",
+              "status": "Active"
+            },
+            {
+              "session": "test",
+              "window": "2",
+              "type": "Pm",
+              "status": "Idle"
+            },
+            {
+              "session": "test",
+              "window": "3",
+              "type": "Devops",
+              "status": "Active"
+            },
+            {
+              "session": "test",
+              "window": "4",
+              "type": "Qa Engineer",
+              "status": "Active"
+            },
+            {
+              "session": "test",
+              "window": "5",
+              "type": "Lead Developer",
+              "status": "Active"
+            },
+            {
+              "session": "test-session",
+              "window": "2",
+              "type": "Test Agent",
+              "status": "Active"
+            },
+            {
+              "session": "test-session",
+              "window": "3",
+              "type": "Pm",
+              "status": "Idle"
+            }
+          ],
+          "summary": {
+            "total_sessions": 5,
+            "total_agents": 18,
+            "active_agents": 12
+          }
+        },
+        "raw_output": "{\n  \"sessions\": [\n    {\n      \"name\": \"Tmux-Orchestrator-frontend\",\n      \"created\": \"1755365515\",\n      \"attached\": \"0\"\n    },\n    {\n      \"name\": \"mcp-completion\",\n      \"created\": \"1755364522\",\n      \"attached\": \"1\"\n    },\n    {\n      \"name\": \"planning-session\",\n      \"created\": \"1755392225\",\n      \"attached\": \"0\"\n    },\n    {\n      \"name\": \"test\",\n      \"created\": \"1755393361\",\n      \"attached\": \"0\"\n    },\n    {\n      \"name\": \"test-session\",\n      \"created\": \"1755393332\",\n      \"attached\": \"0\"\n    }\n  ],\n  \"agents\": [\n    {\n      \"session\": \"Tmux-Orchestrator-frontend\",\n      \"window\": \"2\",\n      \"type\": \"Pm\",\n      \"status\": \"Idle\"\n    },\n    {\n      \"session\": \"Tmux-Orchestrator-frontend\",\n      \"window\": \"3\",\n      \"type\": \"Performance Engineer\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"Tmux-Orchestrator-frontend\",\n      \"window\": \"4\",\n      \"type\": \"Qa Engineer\",\n      \"status\": \"Idle\"\n    },\n    {\n      \"session\": \"Tmux-Orchestrator-frontend\",\n      \"window\": \"5\",\n      \"type\": \"Code Reviewer\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"Tmux-Orchestrator-frontend\",\n      \"window\": \"6\",\n      \"type\": \"Architect\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"mcp-completion\",\n      \"window\": \"2\",\n      \"type\": \"Backend Dev\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"mcp-completion\",\n      \"window\": \"3\",\n      \"type\": \"Full Stack Dev\",\n      \"status\": \"Idle\"\n    },\n    {\n      \"session\": \"mcp-completion\",\n      \"window\": \"4\",\n      \"type\": \"Qa Engineer\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"mcp-completion\",\n      \"window\": \"5\",\n      \"type\": \"Devops Engineer\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"mcp-completion\",\n      \"window\": \"6\",\n      \"type\": \"Code Reviewer\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"mcp-completion\",\n      \"window\": \"7\",\n      \"type\": \"Pm\",\n      \"status\": \"Idle\"\n    },\n    {\n      \"session\": \"mcp-completion\",\n      \"window\": \"8\",\n      \"type\": \"Architect\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"test\",\n      \"window\": \"2\",\n      \"type\": \"Pm\",\n      \"status\": \"Idle\"\n    },\n    {\n      \"session\": \"test\",\n      \"window\": \"3\",\n      \"type\": \"Devops\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"test\",\n      \"window\": \"4\",\n      \"type\": \"Qa Engineer\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"test\",\n      \"window\": \"5\",\n      \"type\": \"Lead Developer\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"test-session\",\n      \"window\": \"2\",\n      \"type\": \"Test Agent\",\n      \"status\": \"Active\"\n    },\n    {\n      \"session\": \"test-session\",\n      \"window\": \"3\",\n      \"type\": \"Pm\",\n      \"status\": \"Idle\"\n    }\n  ],\n  \"summary\": {\n    \"total_sessions\": 5,\n    \"total_agents\": 18,\n    \"active_agents\": 12\n  }\n}\n",
+        "execution_time": 2.549609661102295,
+        "mcp_tool": "cli_status"
+      }
+    },
+    "reflect": {
+      "success": false,
+      "execution_time": 1.5481114387512207,
+      "result": {
+        "success": false,
+        "command": "reflect",
+        "arguments": {
+          "args": [
+            "--format",
+            "json"
+          ]
+        },
+        "result": {},
+        "raw_output": "",
+        "execution_time": 1.5478849411010742,
+        "mcp_tool": "cli_reflect"
+      }
+    },
+    "quick_deploy": {
+      "success": true,
+      "execution_time": 1.4128081798553467,
+      "result": {
+        "success": true,
+        "command": "quick-deploy",
+        "arguments": {
+          "args": [
+            "--help"
+          ]
+        },
+        "result": {
+          "output": "Usage: tmux-orc quick-deploy [OPTIONS] {frontend|backend|fullstack|testing}\n                             [SIZE]\n\n  Rapidly deploy optimized team configurations for immediate productivity.\n\n  Creates a complete, ready-to-work team using battle-tested configurations\n  and role distributions. Perfect for getting projects started quickly.\n\n  TEAM_TYPE: Team specialization (frontend, backend, fullstack, testing) SIZE:\n  Number of agents (recommended: 2-6)\n\n  Examples:     tmux-orc quick-deploy frontend 3        # 3-agent frontend\n  team     tmux-orc quick-deploy backend 4         # 4-agent backend team\n  tmux-orc quick-deploy fullstack 5       # 5-agent fullstack team     tmux-\n  orc quick-deploy testing 2         # 2-agent testing team     tmux-orc\n  quick-deploy frontend 4 --project-name my-app\n\n  Optimized Team Configurations:\n\n  Frontend (2-6 agents):     2 agents: Developer + PM     3 agents: Developer\n  + UI/UX + PM     4+ agents: + Performance Expert + CSS Specialist\n\n  Backend (2-6 agents):     2 agents: API Developer + PM     3 agents: +\n  Database Engineer     4+ agents: + DevOps Engineer + Security Specialist\n\n  Fullstack (3-8 agents):     3 agents: Lead + Frontend + Backend     4\n  agents: + Project Manager     5+ agents: + QA + DevOps + Specialists\n\n  Testing (2-4 agents):     2 agents: Manual + Automation Tester     3 agents:\n  + QA Lead     4+ agents: + Performance + Security Tester\n\n  Quick Deploy Benefits:     \u2022 Instant team setup with optimized roles     \u2022\n  Pre-configured communication protocols     \u2022 Battle-tested role\n  distributions     \u2022 Immediate project context and briefings     \u2022 No\n  configuration complexity\n\n  Perfect for hackathons, quick prototypes, urgent projects, or when you need\n  a team running in under 2 minutes.\n\nOptions:\n  --project-name TEXT  Project name (defaults to current directory)\n  --json               Output in JSON format\n  --help               Show this message and exit.\n"
+        },
+        "raw_output": "Usage: tmux-orc quick-deploy [OPTIONS] {frontend|backend|fullstack|testing}\n                             [SIZE]\n\n  Rapidly deploy optimized team configurations for immediate productivity.\n\n  Creates a complete, ready-to-work team using battle-tested configurations\n  and role distributions. Perfect for getting projects started quickly.\n\n  TEAM_TYPE: Team specialization (frontend, backend, fullstack, testing) SIZE:\n  Number of agents (recommended: 2-6)\n\n  Examples:     tmux-orc quick-deploy frontend 3        # 3-agent frontend\n  team     tmux-orc quick-deploy backend 4         # 4-agent backend team\n  tmux-orc quick-deploy fullstack 5       # 5-agent fullstack team     tmux-\n  orc quick-deploy testing 2         # 2-agent testing team     tmux-orc\n  quick-deploy frontend 4 --project-name my-app\n\n  Optimized Team Configurations:\n\n  Frontend (2-6 agents):     2 agents: Developer + PM     3 agents: Developer\n  + UI/UX + PM     4+ agents: + Performance Expert + CSS Specialist\n\n  Backend (2-6 agents):     2 agents: API Developer + PM     3 agents: +\n  Database Engineer     4+ agents: + DevOps Engineer + Security Specialist\n\n  Fullstack (3-8 agents):     3 agents: Lead + Frontend + Backend     4\n  agents: + Project Manager     5+ agents: + QA + DevOps + Specialists\n\n  Testing (2-4 agents):     2 agents: Manual + Automation Tester     3 agents:\n  + QA Lead     4+ agents: + Performance + Security Tester\n\n  Quick Deploy Benefits:     \u2022 Instant team setup with optimized roles     \u2022\n  Pre-configured communication protocols     \u2022 Battle-tested role\n  distributions     \u2022 Immediate project context and briefings     \u2022 No\n  configuration complexity\n\n  Perfect for hackathons, quick prototypes, urgent projects, or when you need\n  a team running in under 2 minutes.\n\nOptions:\n  --project-name TEXT  Project name (defaults to current directory)\n  --json               Output in JSON format\n  --help               Show this message and exit.\n",
+        "execution_time": 1.412520408630371,
+        "mcp_tool": "cli_quick_deploy"
+      }
+    },
+    "spawn_orc": {
+      "success": true,
+      "execution_time": 1.5727691650390625,
+      "result": {
+        "success": true,
+        "command": "spawn-orc",
+        "arguments": {
+          "args": [
+            "--help"
+          ]
+        },
+        "result": {
+          "output": "Usage: tmux-orc spawn-orc [OPTIONS]\n\n  Launch Claude Code as an orchestrator in a new terminal.\n\n  This is the primary entry point for humans to start working with tmux-\n  orchestrator. It will: 1. Create a new terminal window 2. Launch Claude Code\n  with the --dangerously-skip-permissions flag 3. Automatically load the\n  orchestrator context\n\n  After launching, you'll be ready to create feature requests and use /create-\n  prd to generate PRDs that will spawn autonomous agent teams.\n\nOptions:\n  --profile TEXT   Claude Code profile to use (defaults to system default)\n  --terminal TEXT  Terminal to use: auto, gnome-terminal, konsole, xterm,\n                   screen, tmux, etc.\n  --no-launch      Create config but don't launch terminal\n  --no-gui         Run in current terminal (for SSH/bash environments)\n  --json           Output in JSON format\n  --help           Show this message and exit.\n"
+        },
+        "raw_output": "Usage: tmux-orc spawn-orc [OPTIONS]\n\n  Launch Claude Code as an orchestrator in a new terminal.\n\n  This is the primary entry point for humans to start working with tmux-\n  orchestrator. It will: 1. Create a new terminal window 2. Launch Claude Code\n  with the --dangerously-skip-permissions flag 3. Automatically load the\n  orchestrator context\n\n  After launching, you'll be ready to create feature requests and use /create-\n  prd to generate PRDs that will spawn autonomous agent teams.\n\nOptions:\n  --profile TEXT   Claude Code profile to use (defaults to system default)\n  --terminal TEXT  Terminal to use: auto, gnome-terminal, konsole, xterm,\n                   screen, tmux, etc.\n  --no-launch      Create config but don't launch terminal\n  --no-gui         Run in current terminal (for SSH/bash environments)\n  --json           Output in JSON format\n  --help           Show this message and exit.\n",
+        "execution_time": 1.5725011825561523,
+        "mcp_tool": "cli_spawn_orc"
+      }
+    },
+    "execute": {
+      "success": true,
+      "execution_time": 1.7386729717254639,
+      "result": {
+        "success": true,
+        "command": "execute",
+        "arguments": {
+          "args": [
+            "--help"
+          ]
+        },
+        "result": {
+          "output": "Usage: tmux-orc execute [OPTIONS] PRD_FILE\n\n  Execute a PRD by deploying an agent team for manual orchestration.\n\n  PRD_FILE: Path to the Product Requirements Document\n\n  This command sets up a manual orchestration workflow where Claude (you) acts\n  as the orchestrator to oversee an autonomous AI agent team.\n\n  WORKFLOW: 1. Creates project structure and copies PRD 2. Analyzes PRD to\n  suggest optimal team composition 3. Deploys the agent team with role-\n  specific briefings 4. PM agent autonomously reads PRD and creates tasks 5.\n  PM distributes tasks to team members 6. Team works independently with PM\n  coordination 7. You monitor and guide at a high level\n\n  ORCHESTRATOR RESPONSIBILITIES: - Review PRD and approve team composition -\n  Monitor overall project health - Make architectural decisions - Resolve\n  cross-team blockers - Ensure quality standards - NOT micromanage individual\n  agents\n\n  TEAM COMPOSITION: - --auto: Analyzes PRD to determine optimal team - --team-\n  type: Use predefined team templates - --team-size: Override suggested team\n  size\n\n  IMPORTANT: This is NOT automatic PRD parsing. The PM agent reads the actual\n  PRD document and creates the implementation plan. You oversee the process\n  but let agents work autonomously.\n\n  Examples:     tmux-orc execute ./prd.md     tmux-orc execute ./prd.md --auto\n  tmux-orc execute ./prd.md --project-name myapp     tmux-orc execute ./prd.md\n  --team-type backend --team-size 4     tmux-orc execute ./prd.md --no-monitor\n  --skip-planning\n\n  After execution:     - Monitor PM: tmux-orc read --session project:0     -\n  Check tasks: tmux-orc tasks status project     - View team: tmux-orc team\n  status project     - Message PM: tmux-orc send project:0 \"status?\"\n\nOptions:\n  --project-name TEXT             Project name (defaults to PRD filename)\n  --team-size INTEGER             Number of agents to deploy\n  --team-type [frontend|backend|fullstack|custom]\n                                  Type of team to deploy\n  --no-monitor                    Skip starting the monitoring daemon\n  --skip-planning                 Skip team planning phase\n  --auto                          Automatically determine team from PRD\n                                  analysis\n  --wait-for-tasks / --no-wait-for-tasks\n                                  Wait for PM to generate tasks\n  --json                          Output in JSON format\n  --help                          Show this message and exit.\n"
+        },
+        "raw_output": "Usage: tmux-orc execute [OPTIONS] PRD_FILE\n\n  Execute a PRD by deploying an agent team for manual orchestration.\n\n  PRD_FILE: Path to the Product Requirements Document\n\n  This command sets up a manual orchestration workflow where Claude (you) acts\n  as the orchestrator to oversee an autonomous AI agent team.\n\n  WORKFLOW: 1. Creates project structure and copies PRD 2. Analyzes PRD to\n  suggest optimal team composition 3. Deploys the agent team with role-\n  specific briefings 4. PM agent autonomously reads PRD and creates tasks 5.\n  PM distributes tasks to team members 6. Team works independently with PM\n  coordination 7. You monitor and guide at a high level\n\n  ORCHESTRATOR RESPONSIBILITIES: - Review PRD and approve team composition -\n  Monitor overall project health - Make architectural decisions - Resolve\n  cross-team blockers - Ensure quality standards - NOT micromanage individual\n  agents\n\n  TEAM COMPOSITION: - --auto: Analyzes PRD to determine optimal team - --team-\n  type: Use predefined team templates - --team-size: Override suggested team\n  size\n\n  IMPORTANT: This is NOT automatic PRD parsing. The PM agent reads the actual\n  PRD document and creates the implementation plan. You oversee the process\n  but let agents work autonomously.\n\n  Examples:     tmux-orc execute ./prd.md     tmux-orc execute ./prd.md --auto\n  tmux-orc execute ./prd.md --project-name myapp     tmux-orc execute ./prd.md\n  --team-type backend --team-size 4     tmux-orc execute ./prd.md --no-monitor\n  --skip-planning\n\n  After execution:     - Monitor PM: tmux-orc read --session project:0     -\n  Check tasks: tmux-orc tasks status project     - View team: tmux-orc team\n  status project     - Message PM: tmux-orc send project:0 \"status?\"\n\nOptions:\n  --project-name TEXT             Project name (defaults to PRD filename)\n  --team-size INTEGER             Number of agents to deploy\n  --team-type [frontend|backend|fullstack|custom]\n                                  Type of team to deploy\n  --no-monitor                    Skip starting the monitoring daemon\n  --skip-planning                 Skip team planning phase\n  --auto                          Automatically determine team from PRD\n                                  analysis\n  --wait-for-tasks / --no-wait-for-tasks\n                                  Wait for PM to generate tasks\n  --json                          Output in JSON format\n  --help                          Show this message and exit.\n",
+        "execution_time": 1.7377564907073975,
+        "mcp_tool": "cli_execute"
+      }
+    }
+  }
+}

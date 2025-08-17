@@ -138,11 +138,15 @@ cython_debug/
 
 # TMUX Orchestrator specific
 .tmux-orchestrator/config.yml
-.tmux_orchestrator/
+.tmux_orchestrator/planning/*/
 logs/
 *.pid
 *.sock
 next_check_note.txt
+.test_env_hidden/
+
+# Legacy tests (disabled for Phase 1 commit)
+.legacy_tests_disabled/
 
 # OS
 .DS_Store
@@ -176,3 +180,17 @@ test_env/
 # Old reports and generated files
 /*_report.md
 /*_summary.md
+
+# Docker build artifacts (excluding devcontainer)
+docker-compose*.yml
+Dockerfile*
+!.devcontainer/Dockerfile
+.dockerignore
+
+# Simple CLI deployment - ignore complex deployment artifacts
+docker/
+!docker/archive/
+kubernetes/
+helm/
+deploy/
+deployment/

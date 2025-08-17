@@ -5,6 +5,7 @@ TODO: Consider refactoring this to be under an 'orchestrator' command group
       nested commands like 'agent spawn' and 'context spawn'.
 """
 
+import json
 import re
 import shlex
 import subprocess
@@ -25,7 +26,8 @@ console = Console()
 )
 @click.option("--no-launch", is_flag=True, help="Create config but don't launch terminal")
 @click.option("--no-gui", is_flag=True, help="Run in current terminal (for SSH/bash environments)")
-def spawn_orc(profile: str | None, terminal: str, no_launch: bool, no_gui: bool) -> None:
+@click.option("--json", "output_json", is_flag=True, help="Output in JSON format")
+def spawn_orc(profile: str | None, terminal: str, no_launch: bool, no_gui: bool, output_json: bool) -> None:
     """Launch Claude Code as an orchestrator in a new terminal.
 
     This is the primary entry point for humans to start working with tmux-orchestrator.
@@ -95,16 +97,32 @@ rm -f "$0"
     script_path.chmod(0o755)
 
     if no_launch:
-        console.print("[green]Startup script created at:[/green]", script_path)
-        console.print("\n[yellow]To launch manually, run:[/yellow]")
-        console.print(f"  {script_path}")
+        if output_json:
+            result = {
+                "success": True,
+                "data": {
+                    "script_path": str(script_path),
+                    "profile": profile,
+                    "terminal": terminal,
+                    "launch_command": str(script_path),
+                    "instructions": ["Script created successfully", f"To launch manually, run: {script_path}"],
+                },
+                "timestamp": time.time(),
+                "command": "spawn-orc",
+            }
+            console.print(json.dumps(result, indent=2))
+        else:
+            console.print("[green]Startup script created at:[/green]", script_path)
+            console.print("\n[yellow]To launch manually, run:[/yellow]")
+            console.print(f"  {script_path}")
         return
 
     # Handle non-GUI mode
     if no_gui:
-        console.print("[green]Running orchestrator in current terminal...[/green]")
-        console.print("[dim]Starting in 3 seconds...[/dim]")
-        time.sleep(3)
+        if not output_json:
+            console.print("[green]Running orchestrator in current terminal...[/green]")
+            console.print("[dim]Starting in 3 seconds...[/dim]")
+            time.sleep(3)
 
         # Run claude directly without temp file
         instruction = """Welcome! You are being launched as the Tmux Orchestrator.
@@ -119,51 +137,127 @@ This will provide you with your role, responsibilities, and workflow for managin
             # Launch Claude and send instruction via stdin
             process = subprocess.Popen(claude_cmd, stdin=subprocess.PIPE, text=True)
             process.communicate(input=instruction)
+
+            if output_json:
+                result = {
+                    "success": True,
+                    "data": {
+                        "mode": "no-gui",
+                        "profile": profile,
+                        "instructions_sent": True,
+                        "message": "Orchestrator launched in current terminal",
+                    },
+                    "timestamp": time.time(),
+                    "command": "spawn-orc",
+                }
+                console.print(json.dumps(result, indent=2))
+
         except subprocess.CalledProcessError as e:
-            console.print(f"[red]Error running orchestrator: {e}[/red]")
+            if output_json:
+                result = {
+                    "success": False,
+                    "error": str(e),
+                    "error_type": "CalledProcessError",
+                    "timestamp": time.time(),
+                    "command": "spawn-orc",
+                }
+                console.print(json.dumps(result, indent=2))
+            else:
+                console.print(f"[red]Error running orchestrator: {e}[/red]")
             sys.exit(1)
         except KeyboardInterrupt:
-            console.print("\n[yellow]Orchestrator session interrupted[/yellow]")
+            if not output_json:
+                console.print("\n[yellow]Orchestrator session interrupted[/yellow]")
         return
 
     # Detect terminal emulator for GUI mode
     terminal_cmd = _get_terminal_command(terminal, str(script_path))
 
     if not terminal_cmd:
-        console.print("[red]Error: Could not detect terminal emulator[/red]")
-        console.print("[yellow]Try one of these options:[/yellow]")
-        console.print("  - Use --no-gui flag to run in current terminal (SSH/bash)")
-        console.print("  - Specify --terminal explicitly (gnome-terminal, konsole, xterm, etc.)")
-        console.print("  - Use --no-launch to create script and run manually")
+        if output_json:
+            result = {
+                "success": False,
+                "error": "Could not detect terminal emulator",
+                "error_type": "TerminalDetectionError",
+                "suggestions": [
+                    "Use --no-gui flag to run in current terminal (SSH/bash)",
+                    "Specify --terminal explicitly (gnome-terminal, konsole, xterm, etc.)",
+                    "Use --no-launch to create script and run manually",
+                ],
+                "timestamp": time.time(),
+                "command": "spawn-orc",
+            }
+            console.print(json.dumps(result, indent=2))
+        else:
+            console.print("[red]Error: Could not detect terminal emulator[/red]")
+            console.print("[yellow]Try one of these options:[/yellow]")
+            console.print("  - Use --no-gui flag to run in current terminal (SSH/bash)")
+            console.print("  - Specify --terminal explicitly (gnome-terminal, konsole, xterm, etc.)")
+            console.print("  - Use --no-launch to create script and run manually")
         sys.exit(1)
 
     # Launch terminal
     try:
-        console.print(f"[green]Launching orchestrator in new {terminal} window...[/green]")
+        if not output_json:
+            console.print(f"[green]Launching orchestrator in new {terminal} window...[/green]")
         subprocess.Popen(terminal_cmd, start_new_session=True)
 
-        # Give helpful instructions
-        console.print("\n[bold cyan]🎉 Orchestrator terminal launched![/bold cyan]\n")
-        console.print("In the new terminal window:")
-        console.print("1. Claude Code will start with autonomous permissions")
-        console.print("2. The orchestrator context will be automatically loaded")
-        console.print("3. You'll be ready to manage AI agent teams")
-        console.print("\n[yellow]Typical orchestrator workflow:[/yellow]")
-        console.print("1. Create a feature request: `planning/feature-xyz.md`")
-        console.print("2. Use Claude's `/create-prd` command with the file")
-        console.print("3. Answer the PRD survey questions")
-        console.print("4. The orchestrator will spawn a PM with the PRD")
-        console.print("5. The PM will use `/generate-tasks` to create task list")
-        console.print("6. The PM will spawn the team and begin work")
+        if output_json:
+            result = {
+                "success": True,
+                "data": {
+                    "terminal": terminal,
+                    "profile": profile,
+                    "script_path": str(script_path),
+                    "terminal_command": terminal_cmd,
+                    "workflow_steps": [
+                        "Create a feature request: planning/feature-xyz.md",
+                        "Use Claude's /create-prd command with the file",
+                        "Answer the PRD survey questions",
+                        "The orchestrator will spawn a PM with the PRD",
+                        "The PM will use /generate-tasks to create task list",
+                        "The PM will spawn the team and begin work",
+                    ],
+                    "message": "Orchestrator terminal launched successfully",
+                },
+                "timestamp": time.time(),
+                "command": "spawn-orc",
+            }
+            console.print(json.dumps(result, indent=2))
+        else:
+            # Give helpful instructions
+            console.print("\n[bold cyan]🎉 Orchestrator terminal launched![/bold cyan]\n")
+            console.print("In the new terminal window:")
+            console.print("1. Claude Code will start with autonomous permissions")
+            console.print("2. The orchestrator context will be automatically loaded")
+            console.print("3. You'll be ready to manage AI agent teams")
+            console.print("\n[yellow]Typical orchestrator workflow:[/yellow]")
+            console.print("1. Create a feature request: `planning/feature-xyz.md`")
+            console.print("2. Use Claude's `/create-prd` command with the file")
+            console.print("3. Answer the PRD survey questions")
+            console.print("4. The orchestrator will spawn a PM with the PRD")
+            console.print("5. The PM will use `/generate-tasks` to create task list")
+            console.print("6. The PM will spawn the team and begin work")
 
         # Note: The script self-deletes after execution, so no cleanup needed here
 
     except Exception as e:
-        console.print(f"[red]Error launching terminal: {e}[/red]")
-        console.print("\n[yellow]Manual launch instructions:[/yellow]")
-        console.print("1. Open a new terminal")
-        console.print(f"2. Run: {script_path}")
-        console.print("   OR use: spawn-orc --no-gui")
+        if output_json:
+            result = {
+                "success": False,
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "manual_instructions": ["Open a new terminal", f"Run: {script_path}", "OR use: spawn-orc --no-gui"],
+                "timestamp": time.time(),
+                "command": "spawn-orc",
+            }
+            console.print(json.dumps(result, indent=2))
+        else:
+            console.print(f"[red]Error launching terminal: {e}[/red]")
+            console.print("\n[yellow]Manual launch instructions:[/yellow]")
+            console.print("1. Open a new terminal")
+            console.print(f"2. Run: {script_path}")
+            console.print("   OR use: spawn-orc --no-gui")
         sys.exit(1)
 
 

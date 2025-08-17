@@ -1,9 +1,12 @@
 """Publish/Subscribe commands for inter-agent communication."""
 
 import json
+import threading
+import time
+from collections import defaultdict, deque
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import click
 from rich.console import Console
@@ -15,6 +18,13 @@ console = Console()
 
 # Message store location (could be Redis/DB in future)
 MESSAGE_STORE = Path.home() / ".tmux-orchestrator" / "messages"
+
+# Performance optimization: Message buffering
+_message_buffer: dict[str, deque] = defaultdict(deque)
+_buffer_lock = threading.Lock()
+_last_flush = time.time()
+BUFFER_FLUSH_INTERVAL = 2.0  # Flush every 2 seconds
+MAX_BUFFER_SIZE = 50  # Flush if buffer exceeds this size
 
 
 @click.group()
@@ -48,8 +58,8 @@ def pubsub() -> None:
 def publish(
     ctx: click.Context,
     message: str,
-    session: Optional[str],
-    group: Optional[str],
+    session: str | None,
+    group: str | None,
     priority: str,
     tag: list[str],
 ) -> None:
@@ -138,8 +148,8 @@ def read(
     ctx: click.Context,
     session: str,
     tail: int,
-    since: Optional[str],
-    filter: Optional[str],
+    since: str | None,
+    filter: str | None,
     json: bool,
 ) -> None:
     """Read agent output and message history.
@@ -206,7 +216,7 @@ def search(
     ctx: click.Context,
     pattern: str,
     all_sessions: bool,
-    group: Optional[str],
+    group: str | None,
     context: int,
 ) -> None:
     """Search for patterns across agent sessions.
@@ -366,26 +376,55 @@ def _get_group_members(tmux: TMUXManager, group: str) -> list[str]:
 
 
 def _store_message(target: str, msg_data: dict[str, Any]) -> None:
-    """Store message in local file store."""
-    session_file = MESSAGE_STORE / f"{target.replace(':', '_')}.json"
+    """Store message using buffered I/O for performance."""
+    global _last_flush
 
-    if session_file.exists():
-        with open(session_file) as f:
-            messages = json.load(f)
-    else:
-        messages = []
+    with _buffer_lock:
+        # Add to buffer
+        _message_buffer[target].append(msg_data)
 
-    messages.append(msg_data)
+        # Check if we need to flush
+        current_time = time.time()
+        should_flush = (
+            len(_message_buffer[target]) >= MAX_BUFFER_SIZE or current_time - _last_flush >= BUFFER_FLUSH_INTERVAL
+        )
 
-    # Keep only last 1000 messages
-    if len(messages) > 1000:
-        messages = messages[-1000:]
-
-    with open(session_file, "w") as f:
-        json.dump(messages, f, indent=2)
+        if should_flush:
+            _flush_message_buffers()
+            _last_flush = current_time
 
 
-def _get_stored_messages(session: str, since: Optional[str]) -> list[dict[str, Any]]:
+def _flush_message_buffers() -> None:
+    """Flush all message buffers to disk."""
+    for target, messages in _message_buffer.items():
+        if not messages:
+            continue
+
+        session_file = MESSAGE_STORE / f"{target.replace(':', '_')}.json"
+
+        # Load existing messages
+        if session_file.exists():
+            with open(session_file) as f:
+                existing_messages = json.load(f)
+        else:
+            existing_messages = []
+
+        # Add buffered messages
+        existing_messages.extend(messages)
+
+        # Keep only last 1000 messages
+        if len(existing_messages) > 1000:
+            existing_messages = existing_messages[-1000:]
+
+        # Write back to file
+        with open(session_file, "w") as f:
+            json.dump(existing_messages, f, indent=2)
+
+        # Clear buffer
+        messages.clear()
+
+
+def _get_stored_messages(session: str, since: str | None) -> list[dict[str, Any]]:
     """Get stored messages for a session."""
     session_file = MESSAGE_STORE / f"{session.replace(':', '_')}.json"
 

@@ -17,6 +17,151 @@ poetry run invoke quick
 poetry run invoke q
 ```
 
+## 🚨 CLI Reflection Development - CRITICAL KNOWLEDGE
+
+**EVERY CLI ENHANCEMENT AUTOMATICALLY IMPROVES AI AGENT CAPABILITIES**
+
+The Tmux Orchestrator uses CLI Reflection architecture where CLI commands are the single source of truth for all functionality, including MCP tools used by Claude agents.
+
+### **Knowledge Transfer Essentials**
+
+#### **What This Means for Developers**
+1. **CLI First**: Always implement in CLI commands, never manually create MCP tools
+2. **Automatic MCP**: Every CLI command automatically becomes an MCP tool for Claude
+3. **JSON Required**: All CLI commands MUST support `--json` flag for MCP compatibility
+4. **Single Codebase**: No dual implementation - CLI changes automatically update AI capabilities
+
+#### **Architecture Impact**
+```
+Your CLI Enhancement
+    ↓
+Automatic MCP Tool Update (via reflection)
+    ↓
+Enhanced Claude Agent Capabilities
+    ↓
+Improved AI Agent Collaboration
+```
+
+### **Mandatory CLI Command Patterns**
+
+#### **1. JSON Output Support (REQUIRED)**
+```python
+@click.option('--json', 'json_output', is_flag=True, help='Output in JSON format')
+def your_command(json_output):
+    try:
+        result = perform_operation()
+        if json_output:
+            click.echo(json.dumps({
+                "success": True,
+                "data": result,
+                "timestamp": datetime.now().isoformat(),
+                "command": "your-command"
+            }))
+        else:
+            click.echo(f"Operation completed: {result}")
+    except Exception as e:
+        if json_output:
+            click.echo(json.dumps({
+                "success": False,
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "timestamp": datetime.now().isoformat(),
+                "command": "your-command"
+            }))
+        else:
+            click.secho(f"Error: {e}", fg='red')
+        sys.exit(1)
+```
+
+#### **2. Discovery Commands (Use These, Never Hardcode)**
+```bash
+# ALWAYS use these to understand current CLI structure
+tmux-orc reflect                    # Full CLI tree view
+tmux-orc reflect --format json     # JSON structure for tools
+tmux-orc [command] --help          # Specific command help
+
+# NEVER hardcode CLI examples in docs or code
+# CLI structure evolves, use reflection commands
+```
+
+#### **3. MCP Integration Testing**
+```bash
+# Test that your CLI enhancement works with MCP
+tmux-orc server mcp-serve           # Start MCP server
+
+# In Claude Code: Your new command is automatically available
+# No additional MCP development required
+```
+
+#### **4. Comprehensive Help Text (Claude Uses This)**
+```python
+@click.command(
+    help="""
+    Clear description of what this command does.
+
+    This becomes the MCP tool description that Claude sees.
+    Be comprehensive and include examples.
+
+    Examples:
+        tmux-orc your-command arg1 arg2        # Basic usage
+        tmux-orc your-command --option value   # With options
+        tmux-orc your-command --json           # JSON output
+
+    Use Cases:
+        • When you need to...
+        • For managing...
+        • To automate...
+    """,
+    short_help="Brief description for tool listings"
+)
+```
+
+### **Development Workflow**
+
+#### **Before Writing Code**
+```bash
+# 1. Understand current CLI structure
+tmux-orc reflect
+
+# 2. Check if functionality already exists
+tmux-orc [command] --help
+
+# 3. Follow existing patterns
+```
+
+#### **While Developing**
+```bash
+# 1. Test CLI command manually
+tmux-orc your-new-command --json
+
+# 2. Verify JSON output format
+# 3. Test error handling
+```
+
+#### **After Implementation**
+```bash
+# 1. Test MCP integration
+tmux-orc server mcp-serve
+
+# 2. Verify in Claude Code
+# Your command should appear as MCP tool automatically
+
+# 3. Test end-to-end AI agent usage
+```
+
+### **Critical Rules**
+
+1. **NEVER create manual MCP tools** - CLI Reflection handles this automatically
+2. **ALWAYS add `--json` support** - Required for MCP compatibility
+3. **ALWAYS use `tmux-orc reflect`** - Never hardcode CLI structure
+4. **ALWAYS test MCP integration** - Verify Claude can use your command
+5. **FOCUS on CLI quality** - MCP tools inherit CLI behavior exactly
+
+### **Knowledge Transfer Links**
+- [CLI Enhancement Patterns](../architecture/cli-enhancement-patterns.md) - Detailed implementation patterns
+- [CLI Reflection Architecture](../architecture/cli-reflection-mcp-architecture.md) - Complete architecture overview
+- [MCP Integration Guide](../architecture/mcp-integration-complete.md) - MCP server setup and testing
+
 ## Available Tasks
 
 ### Core Development Tasks

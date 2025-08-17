@@ -1,8 +1,12 @@
 """Setup commands for Claude Code integration."""
 
 import json
+import os
+import platform
+import shutil
+import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import click
 from rich.console import Console
@@ -10,6 +14,109 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 console = Console()
+
+
+def detect_claude_executable() -> Optional[Path]:
+    """Detect Claude Code executable across platforms.
+
+    Returns:
+        Path to Claude executable if found, None otherwise
+    """
+    system = platform.system().lower()
+
+    # Common executable names to try
+    candidates = []
+
+    if system == "windows":
+        # Windows: Check Program Files and App Data
+        candidates.extend(
+            [
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Claude" / "Claude.exe",
+                Path(os.environ.get("PROGRAMFILES", "")) / "Claude" / "Claude.exe",
+                Path(os.environ.get("PROGRAMFILES(X86)", "")) / "Claude" / "Claude.exe",
+            ]
+        )
+        # Also check PATH
+        claude_in_path = shutil.which("claude")
+        if claude_in_path:
+            candidates.append(Path(claude_in_path))
+
+    elif system == "darwin":
+        # macOS: Check Applications folder
+        candidates.extend(
+            [
+                Path("/Applications/Claude.app/Contents/MacOS/Claude"),
+                Path.home() / "Applications" / "Claude.app" / "Contents" / "MacOS" / "Claude",
+            ]
+        )
+
+    elif system == "linux":
+        # Linux: Check common installation locations
+        candidates.extend(
+            [
+                Path("/usr/bin/claude"),
+                Path("/usr/local/bin/claude"),
+                Path.home() / ".local" / "bin" / "claude",
+                Path("/opt/Claude/claude"),
+                Path("/snap/bin/claude"),  # Snap package
+                Path.home() / "AppImages" / "Claude.AppImage",
+            ]
+        )
+        # Also check PATH
+        claude_in_path = shutil.which("claude")
+        if claude_in_path:
+            candidates.append(Path(claude_in_path))
+
+    # Check which candidates exist
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_file():
+            try:
+                # Verify it's executable
+                if os.access(candidate, os.X_OK):
+                    return candidate
+            except Exception:
+                continue
+
+    return None
+
+
+def restart_claude_if_running() -> bool:
+    """Attempt to restart Claude Code if it's running.
+
+    Returns:
+        True if restart was attempted, False if Claude not found running
+    """
+    system = platform.system().lower()
+
+    try:
+        if system == "windows":
+            # Check if Claude process is running
+            result = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq Claude.exe"], capture_output=True, text=True, timeout=5
+            )
+            if "Claude.exe" in result.stdout:
+                # Kill Claude process
+                subprocess.run(["taskkill", "/F", "/IM", "Claude.exe"], capture_output=True, timeout=5)
+                console.print("[yellow]Terminated Claude Code process[/yellow]")
+                return True
+
+        elif system in ["darwin", "linux"]:
+            # Check if Claude process is running (generic approach)
+            result = subprocess.run(["pgrep", "-f", "[Cc]laude"], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split("\n")
+                for pid in pids:
+                    try:
+                        subprocess.run(["kill", pid], capture_output=True, timeout=5)
+                    except Exception:
+                        pass
+                console.print("[yellow]Terminated Claude Code process[/yellow]")
+                return True
+
+    except Exception as e:
+        console.print(f"[dim]Could not check/restart Claude: {e}[/dim]")
+
+    return False
 
 
 @click.group(invoke_without_command=True)
@@ -37,6 +144,89 @@ def setup(ctx: click.Context) -> None:
     if ctx.invoked_subcommand is None:
         # If no subcommand provided, run check-requirements
         ctx.invoke(check_requirements)
+
+
+@setup.command(name="mcp")
+@click.option("--force", is_flag=True, help="Force re-registration even if already registered")
+def setup_mcp(force: bool) -> None:
+    """Register MCP server with Claude Desktop.
+
+    This command specifically handles MCP server registration without
+    running the full Claude Code setup. Useful for:
+    - Re-registering after Claude Desktop updates
+    - Fixing registration issues
+    - Checking registration status
+
+    Examples:
+        tmux-orc setup mcp          # Register MCP server
+        tmux-orc setup mcp --force  # Force re-registration
+    """
+    from tmux_orchestrator.utils.claude_config import (
+        check_claude_installation,
+        get_registration_status,
+        register_mcp_server,
+    )
+
+    console.print("[bold]MCP Server Registration for Claude Desktop[/bold]\n")
+
+    # Check current status
+    status = get_registration_status()
+
+    if status["mcp_registered"] and not force:
+        console.print("[green]✓ MCP server is already registered with Claude Desktop[/green]")
+        console.print(f"   Config: {status['config_path']}")
+        console.print(f"   Status: {'Enabled' if not status['server_details'].get('disabled') else 'Disabled'}")
+        console.print("\nTo check server status: [cyan]tmux-orc server status[/cyan]")
+        console.print("To test the server: [cyan]tmux-orc server start --test[/cyan]")
+        return
+
+    # Check if Claude is installed
+    is_installed, config_path = check_claude_installation()
+
+    if not is_installed:
+        console.print("[red]❌ Claude Desktop not found[/red]")
+        console.print("\nClaude Desktop must be installed first:")
+        console.print("Download from: [cyan]https://claude.ai/download[/cyan]")
+
+        # Platform-specific guidance
+        system = platform.system()
+        if system == "Darwin":
+            console.print("\nExpected location: ~/Library/Application Support/Claude/")
+        elif system == "Windows":
+            console.print("\nExpected location: %APPDATA%\\Claude\\")
+        else:
+            console.print("\nExpected location: ~/.config/Claude/")
+        return
+
+    # Attempt registration
+    console.print("[blue]Registering MCP server with Claude Desktop...[/blue]")
+    success, message = register_mcp_server()
+
+    if success:
+        console.print(f"[green]✅ {message}[/green]")
+        console.print("\n[bold]Next Steps:[/bold]")
+        console.print("1. Restart Claude Desktop to load the MCP server")
+        console.print("2. Test with 'List tmux sessions' in Claude")
+        console.print("3. Check status: [cyan]tmux-orc server status[/cyan]")
+    else:
+        console.print(f"[red]❌ {message}[/red]")
+        console.print("\n[yellow]Manual registration required:[/yellow]")
+        console.print(f"1. Edit Claude config: {config_path}")
+        console.print("2. Add to 'mcpServers' section:")
+        console.print(
+            json.dumps(
+                {
+                    "tmux-orchestrator": {
+                        "command": "tmux-orc",
+                        "args": ["server", "start"],
+                        "env": {"TMUX_ORC_MCP_MODE": "claude"},
+                        "disabled": False,
+                    }
+                },
+                indent=2,
+            )
+        )
+        console.print("3. Save and restart Claude Desktop")
 
 
 @setup.command(name="check-requirements")
@@ -283,9 +473,50 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
 
         progress.update(task, advance=1)
 
-        # Task 3: Configure MCP server
+        # Task 3: Configure MCP server with Claude Desktop
         progress.update(task, description="Configuring MCP server...")
 
+        # Import Claude config utilities
+        from tmux_orchestrator.utils.claude_config import (
+            check_claude_installation,
+            get_registration_status,
+            register_mcp_server,
+        )
+
+        # First check if Claude Desktop is installed
+        is_installed, config_path = check_claude_installation()
+
+        if is_installed:
+            console.print(f"[green]✓ Found Claude Desktop config: {config_path}[/green]")
+
+            # Attempt registration
+            success, message = register_mcp_server()
+            if success:
+                console.print(f"[green]✓ {message}[/green]")
+
+                # Show status after registration
+                status = get_registration_status()
+                if status["mcp_registered"]:
+                    console.print("[green]✓ MCP server successfully registered with Claude Desktop[/green]")
+                    console.print("[dim]   Restart Claude Desktop to activate the MCP server[/dim]")
+            else:
+                console.print(f"[yellow]⚠ {message}[/yellow]")
+                console.print("[yellow]   Will create local MCP config as fallback[/yellow]")
+        else:
+            # Claude Desktop not installed - provide platform-specific guidance
+            system = platform.system()
+            console.print(f"[yellow]⚠ Claude Desktop not detected on {system}[/yellow]")
+
+            if system == "Darwin":
+                console.print("[dim]   Expected at: ~/Library/Application Support/Claude/[/dim]")
+            elif system == "Windows":
+                console.print("[dim]   Expected at: %APPDATA%\\Claude\\[/dim]")
+            else:
+                console.print("[dim]   Expected at: ~/.config/Claude/[/dim]")
+
+            console.print("[dim]   Install from: https://claude.ai/download[/dim]")
+            console.print("[yellow]   Creating local MCP config for future use...[/yellow]")
+        # Create local MCP config (always useful for reference)
         mcp_config_path = claude_path / "config" / "mcp.json"
         mcp_config_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -296,18 +527,33 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
         else:
             mcp_config = {"servers": {}}
 
-        # Add tmux-orchestrator server
+        # Add tmux-orchestrator server with enhanced config
         mcp_config["servers"]["tmux-orchestrator"] = {
             "command": "tmux-orc",
-            "args": ["server", "mcp-serve"],
-            "env": {"TMUX_ORC_MODE": "mcp"},
+            "args": ["server", "start"],
+            "env": {
+                "TMUX_ORC_MCP_MODE": "claude",
+                "PYTHONUNBUFFERED": "1",  # Ensure real-time output
+            },
+            "disabled": False,
+            "description": "AI-powered tmux session orchestrator",
         }
 
-        # Write config
+        # Write config with proper formatting
         with open(mcp_config_path, "w") as f:
             json.dump(mcp_config, f, indent=2)
 
-        console.print("[green]✓ Configured MCP server[/green]")
+        console.print(f"[green]✓ Created local MCP config: {mcp_config_path}[/green]")
+
+        # If Claude Desktop is installed but registration failed, show manual steps
+        if is_installed and not success:
+            console.print("\n[yellow]Manual registration steps:[/yellow]")
+            console.print("1. Copy the MCP config from local file to Claude Desktop:")
+            console.print(f"   [cyan]cat {mcp_config_path}[/cyan]")
+            console.print("2. Add to Claude Desktop config manually:")
+            console.print(f"   [cyan]edit {config_path}[/cyan]")
+            console.print("3. Restart Claude Desktop")
+
         progress.update(task, advance=1)
 
         # Task 4: Create CLAUDE.md in .claude directory
@@ -367,21 +613,53 @@ All tasks are organized in `.tmux_orchestrator/projects/`:
 
         progress.update(task, advance=1)
 
-        # Task 5: Final instructions
+        # Task 5: Detect and handle Claude Code
+        progress.update(task, description="Checking Claude Code installation...")
+
+        claude_exe = detect_claude_executable()
+        claude_detected = claude_exe is not None
+        claude_restarted = False
+
+        if claude_detected:
+            console.print(f"[green]✓ Found Claude Code: {claude_exe}[/green]")
+
+            # Offer to restart Claude to load new configuration
+            if not non_interactive:
+                from rich.prompt import Confirm
+
+                should_restart = Confirm.ask("Restart Claude Code to load new configuration?", default=True)
+                if should_restart:
+                    claude_restarted = restart_claude_if_running()
+                    if claude_restarted:
+                        console.print("[green]✓ Claude Code will reload with new config[/green]")
+        else:
+            console.print("[yellow]⚠ Claude Code executable not found[/yellow]")
+            console.print("[dim]You may need to restart Claude Code manually to load configuration[/dim]")
+
         progress.update(task, description="Setup complete!", advance=1)
 
     # Display summary
+    claude_status = ""
+    if claude_detected:
+        if claude_restarted:
+            claude_status = f"• Claude Code: {claude_exe} (restarted)"
+        else:
+            claude_status = f"• Claude Code: {claude_exe} (restart manually)"
+    else:
+        claude_status = "• Claude Code: Not detected (install and restart manually)"
+
     summary = f"""Claude Code integration complete!
 
 [bold]Installed Components:[/bold]
 • Slash commands in: {commands_dir}
 • MCP server config: {mcp_config_path}
 • Claude instructions: {claude_md_path if claude_md_path.exists() else "Not created"}
+{claude_status}
 
 [bold]Next Steps:[/bold]
-1. Restart Claude Code to load slash commands
+1. {'Claude Code should reload automatically' if claude_restarted else 'Restart Claude Code to load slash commands'}
 2. Test with: /create-prd
-3. Monitor MCP server: tmux-orc mcp-status
+3. Monitor MCP server: tmux-orc server status
 
 [bold]Quick Test:[/bold]
 In Claude Code, try: "List all tmux sessions"

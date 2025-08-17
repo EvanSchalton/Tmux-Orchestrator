@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -53,7 +53,7 @@ class AgentInfo:
     name: str
     type: str
     status: str
-    last_seen: Optional[datetime] = None
+    last_seen: datetime | None = None
 
     @property
     def display_name(self) -> str:
@@ -69,10 +69,10 @@ class IdleAnalysis:
     is_idle: bool
     idle_type: IdleType
     confidence: float
-    last_activity: Optional[datetime]
-    content_hash: Optional[str] = None
+    last_activity: datetime | None
+    content_hash: str | None = None
     error_detected: bool = False
-    error_type: Optional[str] = None
+    error_type: str | None = None
 
 
 @dataclass
@@ -84,7 +84,7 @@ class NotificationEvent:
     message: str
     timestamp: datetime
     session: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
     @property
     def formatted_message(self) -> str:
@@ -103,8 +103,8 @@ class MonitorStatus:
     uptime: timedelta
     cycle_count: int
     errors_detected: int
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
 
 
 @dataclass
@@ -114,15 +114,15 @@ class AgentState:
     target: str
     session: str
     window: str
-    last_content: Optional[str] = None
-    last_content_hash: Optional[str] = None
-    last_activity: Optional[datetime] = None
+    last_content: str | None = None
+    last_content_hash: str | None = None
+    last_activity: datetime | None = None
     consecutive_idle_count: int = 0
     submission_attempts: int = 0
-    last_submission_time: Optional[datetime] = None
+    last_submission_time: datetime | None = None
     is_fresh: bool = True
     error_count: int = 0
-    last_error_time: Optional[datetime] = None
+    last_error_time: datetime | None = None
 
 
 @dataclass
@@ -134,12 +134,12 @@ class PluginInfo:
     module_name: str
     class_name: str
     status: PluginStatus
-    description: Optional[str] = None
-    version: Optional[str] = None
-    author: Optional[str] = None
-    instance: Optional[Any] = None
-    error: Optional[str] = None
-    dependencies: Optional[List[str]] = None
+    description: str | None = None
+    version: str | None = None
+    author: str | None = None
+    instance: Any | None = None
+    error: str | None = None
+    dependencies: list[str] | None = None
 
     def __post_init__(self):
         if self.dependencies is None:
@@ -169,7 +169,7 @@ class AgentMonitorInterface(MonitorComponent):
     """Interface for agent monitoring and discovery."""
 
     @abstractmethod
-    def discover_agents(self) -> List[AgentInfo]:
+    def discover_agents(self) -> list[AgentInfo]:
         """Discover all active agents."""
         pass
 
@@ -222,7 +222,7 @@ class StateTrackerInterface(MonitorComponent):
         pass
 
     @abstractmethod
-    def get_agent_state(self, target: str) -> Optional[AgentState]:
+    def get_agent_state(self, target: str) -> AgentState | None:
         """Get current agent state."""
         pass
 
@@ -232,6 +232,6 @@ class StateTrackerInterface(MonitorComponent):
         pass
 
     @abstractmethod
-    def get_session_agents(self, session: str) -> List[AgentState]:
+    def get_session_agents(self, session: str) -> list[AgentState]:
         """Get all agents in a session."""
         pass

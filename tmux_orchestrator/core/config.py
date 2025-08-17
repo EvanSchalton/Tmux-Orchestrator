@@ -22,7 +22,7 @@ class Config:
         self._config: dict[str, Any] = config_dict or self.DEFAULT_CONFIG.copy()
 
     @property
-    def RUNTIME_DIR(self) -> str:
+    def runtime_dir(self) -> str:
         """Runtime directory for PID files and daemon logs."""
         from pathlib import Path
 

@@ -122,3 +122,8 @@ Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrato
 - **Key Notes**:
   - These files are expected to stay in the root
   - Other tests/scripts/docs/etc are likely not and should be cleaned up before commits
+
+## System Error Logging and Reporting
+- **Tmux-Orc Command Failure Logging**:
+  - If tmux-orc commands fail, especially those hardcoded in context, log the failure in a project briefing file
+  - Hardcoded commands should be removed in favor of using the reflection command for dynamic CLI discovery

@@ -9,6 +9,7 @@ from rich.table import Table
 from tmux_orchestrator import __version__
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
+from tmux_orchestrator.utils.tmux_optimized import OptimizedTMUXManager
 
 # Initialize console for CLI output
 console: Console = Console()
@@ -51,8 +52,9 @@ def cli(ctx: click.Context, config_file: str | None, json: bool, verbose: bool) 
             console.print(f"[red]Configuration error: {e}[/red]")
         ctx.obj["config"] = Config()  # Use defaults
 
-    # Initialize TMUX manager
+    # Initialize TMUX manager (use optimized version for performance)
     ctx.obj["tmux"] = TMUXManager()
+    ctx.obj["tmux_optimized"] = OptimizedTMUXManager()
     ctx.obj["console"] = console
     ctx.obj["json_mode"] = json
     ctx.obj["verbose"] = verbose
@@ -96,10 +98,10 @@ def list(ctx: click.Context, json: bool) -> None:
 
     If no agents are found, provides guidance on deploying teams.
     """
-    tmux: TMUXManager = ctx.obj["tmux"]
+    tmux_optimized: OptimizedTMUXManager = ctx.obj["tmux_optimized"]
     use_json: bool = json or ctx.obj.get("json_mode", False)
 
-    agents = tmux.list_agents()
+    agents = tmux_optimized.list_agents_ultra_optimized()
 
     if use_json:
         import json as json_module
@@ -145,6 +147,11 @@ def reflect(ctx: click.Context, format: str, include_hidden: bool) -> None:
         # Get root CLI group
         root_group = ctx.find_root().command
 
+        # Check if it's a group with commands
+        if not isinstance(root_group, click.Group):
+            sys.stdout.write("Error: Root command is not a group\n")
+            return
+
         # Simple command listing
         if format == "tree":
             sys.stdout.write("tmux-orc CLI Commands:\n")
@@ -181,25 +188,27 @@ def reflect(ctx: click.Context, format: str, include_hidden: bool) -> None:
         elif format == "json":
             # Simple JSON structure
             commands = {}
-            for name, command in root_group.commands.items():
-                if not include_hidden and getattr(command, "hidden", False):
-                    continue
-                commands[name] = {
-                    "type": "group" if isinstance(command, click.Group) else "command",
-                    "help": command.help or "",
-                    "short_help": getattr(command, "short_help", "") or "",
-                }
+            if isinstance(root_group, click.Group):
+                for name, command in root_group.commands.items():
+                    if not include_hidden and getattr(command, "hidden", False):
+                        continue
+                    commands[name] = {
+                        "type": "group" if isinstance(command, click.Group) else "command",
+                        "help": command.help or "",
+                        "short_help": getattr(command, "short_help", "") or "",
+                    }
             sys.stdout.write(json.dumps(commands, indent=2) + "\n")
 
         elif format == "markdown":
             sys.stdout.write("# tmux-orc CLI Reference\n\n")
-            for name, command in root_group.commands.items():
-                if not include_hidden and getattr(command, "hidden", False):
-                    continue
-                cmd_type = "Group" if isinstance(command, click.Group) else "Command"
-                sys.stdout.write(f"## {name} ({cmd_type})\n\n")
-                if command.help:
-                    sys.stdout.write(f"{command.help}\n\n")
+            if isinstance(root_group, click.Group):
+                for name, command in root_group.commands.items():
+                    if not include_hidden and getattr(command, "hidden", False):
+                        continue
+                    cmd_type = "Group" if isinstance(command, click.Group) else "Command"
+                    sys.stdout.write(f"## {name} ({cmd_type})\n\n")
+                    if command.help:
+                        sys.stdout.write(f"{command.help}\n\n")
 
     except Exception as e:
         sys.stdout.write(f"Error generating CLI reflection: {e}\n")
@@ -242,12 +251,12 @@ def status(ctx: click.Context, json: bool) -> None:
     Use for regular system health checks, performance monitoring,
     and integration with external monitoring and alerting systems.
     """
-    tmux: TMUXManager = ctx.obj["tmux"]
+    tmux_optimized: OptimizedTMUXManager = ctx.obj["tmux_optimized"]
     use_json: bool = json or ctx.obj.get("json_mode", False)
 
-    # Gather system information
-    sessions = tmux.list_sessions()
-    agents = tmux.list_agents()
+    # Gather system information using optimized manager
+    sessions = tmux_optimized.list_sessions_cached()
+    agents = tmux_optimized.list_agents_ultra_optimized()
 
     if use_json:
         import json as json_module
@@ -299,8 +308,9 @@ def status(ctx: click.Context, json: bool) -> None:
 @click.argument("team_type", type=click.Choice(["frontend", "backend", "fullstack", "testing"]))
 @click.argument("size", type=int, default=3)
 @click.option("--project-name", help="Project name (defaults to current directory)")
+@click.option("--json", "output_json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def quick_deploy(ctx: click.Context, team_type: str, size: int, project_name: str | None) -> None:
+def quick_deploy(ctx: click.Context, team_type: str, size: int, project_name: str | None, output_json: bool) -> None:
     """Rapidly deploy optimized team configurations for immediate productivity.
 
     Creates a complete, ready-to-work team using battle-tested configurations
@@ -348,20 +358,49 @@ def quick_deploy(ctx: click.Context, team_type: str, size: int, project_name: st
     Perfect for hackathons, quick prototypes, urgent projects,
     or when you need a team running in under 2 minutes.
     """
-    from tmux_orchestrator.core.team_operations.deploy_team import deploy_standard_team
+    import time
+
+    from tmux_orchestrator.core.team_operations.deploy_team_optimized import deploy_standard_team_optimized
 
     if not project_name:
         project_name = Path.cwd().name
 
-    console.print(f"[blue]Deploying {team_type} team with {size} agents...[/blue]")
+    if not output_json:
+        console.print(f"[blue]Deploying {team_type} team with {size} agents...[/blue]")
 
-    # Delegate to business logic
-    success, message = deploy_standard_team(ctx.obj["tmux"], team_type, size, project_name)
+    # Delegate to optimized business logic
+    success, message = deploy_standard_team_optimized(ctx.obj["tmux_optimized"], team_type, size, project_name)
 
-    if success:
-        console.print(f"[green]✓ {message}[/green]")
+    if output_json:
+        # Standard JSON format: success, data, timestamp, command
+        result = {
+            "success": success,
+            "data": {
+                "team_type": team_type,
+                "size": size,
+                "project_name": project_name,
+                "session_name": project_name,  # Session name typically matches project
+                "message": message,
+                "agents_deployed": size if success else 0,
+                "next_steps": [
+                    f"tmux-orc team status {project_name}",
+                    f"tmux-orc team broadcast {project_name} 'Start working on project'",
+                    "tmux-orc agent status",
+                ]
+                if success
+                else [],
+            },
+            "timestamp": time.time(),
+            "command": f"quick-deploy {team_type} {size}",
+        }
+        import json
+
+        console.print(json.dumps(result, indent=2))
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        if success:
+            console.print(f"[green]✓ {message}[/green]")
+        else:
+            console.print(f"[red]✗ {message}[/red]")
 
 
 def _setup_command_groups() -> None:
@@ -382,13 +421,13 @@ def _setup_command_groups() -> None:
 
             cli.add_command(team.team)
         except ImportError:
-            # Try new team compose module
+            # Fallback to team_compose if team.py doesn't exist
             try:
                 from tmux_orchestrator.cli import team_compose
 
                 cli.add_command(team_compose.team)
             except ImportError:
-                pass  # team modules not available
+                console.print("[yellow]Warning: Team commands not available[/yellow]")
 
         # Add orchestrator commands (may not exist yet)
         try:
@@ -414,13 +453,7 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # spawn.py module for spawning agents
 
-        # Add spawn-orc command for orchestrator launch
-        try:
-            from tmux_orchestrator.cli import spawn_orc
-
-            cli.add_command(spawn_orc.spawn_orc)
-        except ImportError:
-            pass  # spawn_orc.py module for orchestrator launch
+        # spawn-orc removed - use 'spawn orc' subcommand instead
 
         # Note: VS Code setup moved to setup_claude.py as 'tmux-orc setup vscode'
 
@@ -447,6 +480,22 @@ def _setup_command_groups() -> None:
             cli.add_command(pubsub.pubsub)
         except ImportError:
             pass  # pubsub.py module for agent communication
+
+        # Add high-performance pubsub commands
+        try:
+            from tmux_orchestrator.cli import pubsub_fast
+
+            cli.add_command(pubsub_fast.pubsub_fast)
+        except ImportError:
+            pass  # pubsub_fast.py module for daemon-based messaging
+
+        # Add daemon management commands
+        try:
+            from tmux_orchestrator.cli import daemon
+
+            cli.add_command(daemon.daemon)
+        except ImportError:
+            pass  # daemon.py module for messaging daemon management
 
         # Add tasks commands
         try:

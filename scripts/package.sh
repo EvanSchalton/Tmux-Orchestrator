@@ -24,17 +24,20 @@ tar -czf "$OUTPUT_DIR/${PACKAGE_NAME}-${VERSION}.tar.gz" \
     --exclude='dist' \
     --exclude='*.log' \
     --exclude='registry' \
-    send-claude-message.sh \
-    schedule_with_note.sh \
-    tmux_utils.py \
-    install.sh \
-    bootstrap.sh \
+    --exclude='htmlcov' \
+    --exclude='__pycache__' \
+    --exclude='.pytest_cache' \
+    --exclude='.mypy_cache' \
+    bin/ \
+    tmux_orchestrator/ \
+    scripts/tmux_utils.py \
+    pyproject.toml \
     README.md \
-    QUICKSTART.md \
+    DEVELOPMENT-GUIDE.md \
     devcontainer-template.json \
     CLAUDE.md \
-    LEARNINGS.md \
-    images/
+    CHANGELOG.md \
+    examples/
 
 # Create standalone installer
 cat > "$OUTPUT_DIR/install-tmux-orchestrator.sh" << 'EOF'
@@ -60,15 +63,26 @@ else
     exit 1
 fi
 
-echo "🚀 Running installer..."
-./install.sh
+echo "🚀 Installing via Poetry..."
+if ! command -v poetry &> /dev/null; then
+    echo "Installing Poetry..."
+    curl -sSL https://install.python-poetry.org | python3 -
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+poetry install
+poetry build
+
+echo "🔗 Creating CLI symlink..."
+sudo ln -sf "$(pwd)/bin/tmux-message" /usr/local/bin/tmux-message
+poetry run python -c "import tmux_orchestrator; print('CLI available as: tmux-orc')"
 
 # Cleanup
 cd /
 rm -rf "$TEMP_DIR"
 
 echo "✅ Installation complete!"
-echo "   Run: tmux-orchestrator help"
+echo "   Run: tmux-orc --help"
 EOF
 
 chmod +x "$OUTPUT_DIR/install-tmux-orchestrator.sh"
@@ -86,7 +100,7 @@ shortcut: orch
 
 Send this message to the orchestrator: {{message}}
 
-Use: `tmux-orchestrator send orchestrator:0 "{{message}}"`
+Use: `tmux-orc agent send orchestrator:0 "{{message}}"`
 EOF
 
 cat > "$OUTPUT_DIR/claude-commands/schedule.md" << 'EOF'
@@ -100,7 +114,7 @@ shortcut: sched
 
 Schedule a check-in in {{minutes}} minutes with note: {{note}}
 
-Use: `tmux-orchestrator schedule {{minutes}} orchestrator:0 "{{note}}"`
+Use: `tmux-orc orchestrator schedule {{minutes}} "{{note}}"`
 EOF
 
 tar -czf "$OUTPUT_DIR/claude-commands.tar.gz" -C "$OUTPUT_DIR" claude-commands/

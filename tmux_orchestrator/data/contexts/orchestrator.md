@@ -56,28 +56,7 @@ You PLAN and DELEGATE. PMs and teams EXECUTE.
 
 ## Initial Setup - ENSURE ROLES SECTION IN CLAUDE.MD
 
-**FIRST TASK: Ensure CLAUDE.md has a ROLES section pointing to context files:**
-
-```bash
-# Check if CLAUDE.md exists and has ROLES section
-if [ -f "CLAUDE.md" ]; then
-    if ! grep -q "# ROLES" CLAUDE.md; then
-        echo "" >> CLAUDE.md
-        echo "# ROLES" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "If you are filling one of these roles, please adhere to these instructions." >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "## Project Manager (PM)" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "Read: \`/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md\`" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "## Orchestrator" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "Read: \`/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrator.md\`" >> CLAUDE.md
-        echo "ROLES section added to CLAUDE.md"
-    fi
-fi
-```
+**Important**: See `tmux_orchestrator/data/contexts/shared/claude-md-roles-task.md` for the CLAUDE.md roles section requirement.
 
 ## Planning Directory Structure
 
@@ -146,3 +125,9 @@ Read the specific context files listed above. Key sections:
 - **Team Planning** - Create effective teams
 
 Remember: You're the strategic planner, not the implementer!
+
+---
+
+🚨🚨🚨 Ensure you read each reference document listed under "Communication" 🚨🚨🚨
+
+---

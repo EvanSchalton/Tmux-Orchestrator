@@ -191,9 +191,19 @@ def list(ctx: click.Context, json: bool) -> None:
 @team.command()
 @click.argument("session")
 @click.argument("message")
+@click.option("--exclude", multiple=True, help="Window names/indices to exclude from broadcast")
+@click.option(
+    "--priority",
+    type=click.Choice(["low", "normal", "high", "urgent"]),
+    default="normal",
+    help="Message priority level",
+)
+@click.option("--agent-type", multiple=True, help="Target specific agent types (pm, qa, frontend, backend, etc)")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def broadcast(ctx: click.Context, session: str, message: str, json: bool) -> None:
+def broadcast(
+    ctx: click.Context, session: str, message: str, exclude: tuple, priority: str, agent_type: tuple, json: bool
+) -> None:
     """Broadcast a coordinated message to all agents in a team.
 
     Sends the same message simultaneously to all Claude agents in the
@@ -229,8 +239,15 @@ def broadcast(ctx: click.Context, session: str, message: str, json: bool) -> Non
     """
     tmux: TMUXManager = ctx.obj["tmux"]
 
-    # Delegate to business logic
-    success, summary_message, results = broadcast_to_team(tmux, session, message)
+    # Delegate to business logic with new parameters
+    success, summary_message, results = broadcast_to_team(
+        tmux,
+        session,
+        message,
+        exclude_windows=list(exclude) if exclude else None,
+        priority=priority,
+        agent_types=list(agent_type) if agent_type else None,
+    )
 
     if json:
         import json as json_module
@@ -363,8 +380,9 @@ def deploy(
 
 @team.command()
 @click.argument("session")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def recover(ctx: click.Context, session: str) -> None:
+def recover(ctx: click.Context, session: str, json: bool) -> None:
     """Recover and restore failed or unresponsive team agents.
 
     Automatically detects and restarts failed agents in the specified
@@ -406,14 +424,33 @@ def recover(ctx: click.Context, session: str) -> None:
         • Avoid forcefully killing tmux sessions
         • Keep system resources adequate for team size
     """
+    import time
+
     tmux: TMUXManager = ctx.obj["tmux"]
 
-    console.print(f"[blue]Recovering failed agents in session '{session}'...[/blue]")
+    start_time = time.time()
+    if not json:
+        console.print(f"[blue]Recovering failed agents in session '{session}'...[/blue]")
 
     # Delegate to business logic
     success, message = recover_team_agents(tmux, session)
+    execution_time = (time.time() - start_time) * 1000
 
-    if success:
-        console.print(f"[green]✓ {message}[/green]")
+    result_data = {
+        "success": success,
+        "command": "team recover",
+        "session": session,
+        "message": message,
+        "execution_time_ms": execution_time,
+        "timestamp": time.time(),
+    }
+
+    if json:
+        import json as json_module
+
+        console.print(json_module.dumps(result_data, indent=2))
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        if success:
+            console.print(f"[green]✓ {message}[/green]")
+        else:
+            console.print(f"[red]✗ {message}[/red]")

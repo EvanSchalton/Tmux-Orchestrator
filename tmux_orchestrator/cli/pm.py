@@ -37,8 +37,9 @@ def pm() -> None:
 
 
 @pm.command()
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def checkin(ctx: click.Context) -> None:
+def checkin(ctx: click.Context, json: bool) -> None:
     """Trigger comprehensive team status review by Project Manager.
 
     Initiates a systematic status check where the PM requests updates
@@ -65,18 +66,38 @@ def checkin(ctx: click.Context) -> None:
     The PM will provide structured feedback including task completion
     status, identified blockers, resource needs, and timeline updates.
     """
+    import time
+
     from tmux_orchestrator.core.pm_manager import PMManager
 
+    start_time = time.time()
     manager = PMManager(ctx.obj["tmux"])
-    manager.trigger_status_review()
+    success = manager.trigger_status_review()
+    execution_time = (time.time() - start_time) * 1000
 
-    console.print("[green]✓ PM status review triggered[/green]")
+    if json:
+        import json as json_module
+
+        result = {
+            "success": success,
+            "command": "pm checkin",
+            "execution_time_ms": execution_time,
+            "timestamp": time.time(),
+            "message": "PM status review triggered" if success else "Failed to trigger PM status review",
+        }
+        console.print(json_module.dumps(result, indent=2))
+    else:
+        if success:
+            console.print("[green]✓ PM status review triggered[/green]")
+        else:
+            console.print("[red]✗ Failed to trigger PM status review[/red]")
 
 
 @pm.command()
 @click.argument("message")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def message(ctx: click.Context, message: str) -> None:
+def message(ctx: click.Context, message: str, json: bool) -> None:
     """Send a direct message to the Project Manager.
 
     Delivers a message directly to the PM agent, useful for providing
@@ -101,25 +122,60 @@ def message(ctx: click.Context, message: str) -> None:
     The PM will acknowledge the message and take appropriate action
     based on the content and current project context.
     """
+    import time
+
     from tmux_orchestrator.core.pm_manager import PMManager
 
+    start_time = time.time()
     manager = PMManager(ctx.obj["tmux"])
     target = manager.find_pm_session()
 
     if not target:
-        console.print("[red]✗ No PM session found[/red]")
+        result_data = {
+            "success": False,
+            "command": "pm message",
+            "message": message,
+            "error": "No PM session found",
+            "timestamp": time.time(),
+            "execution_time_ms": (time.time() - start_time) * 1000,
+        }
+
+        if json:
+            import json as json_module
+
+            console.print(json_module.dumps(result_data, indent=2))
+        else:
+            console.print("[red]✗ No PM session found[/red]")
         return
 
-    if ctx.obj["tmux"].send_message(target, message):
-        console.print(f"[green]✓ Message sent to PM at {target}[/green]")
+    success = ctx.obj["tmux"].send_message(target, message)
+    execution_time = (time.time() - start_time) * 1000
+
+    result_data = {
+        "success": success,
+        "command": "pm message",
+        "message": message,
+        "target": target,
+        "timestamp": time.time(),
+        "execution_time_ms": execution_time,
+    }
+
+    if json:
+        import json as json_module
+
+        console.print(json_module.dumps(result_data, indent=2))
     else:
-        console.print("[red]✗ Failed to send message to PM[/red]")
+        if success:
+            console.print(f"[green]✓ Message sent to PM at {target}[/green]")
+        else:
+            console.print("[red]✗ Failed to send message to PM[/red]")
 
 
 @pm.command()
 @click.argument("message")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def broadcast(ctx: click.Context, message: str) -> None:
+def broadcast(ctx: click.Context, message: str, json: bool) -> None:
     """Have the Project Manager broadcast a message to all team agents.
 
     Uses the PM as a communication hub to send coordinated messages to
@@ -147,22 +203,47 @@ def broadcast(ctx: click.Context, message: str) -> None:
     The PM adds project context, ensures message clarity, and
     coordinates any follow-up actions required from the team.
     """
+    import time
+
     from tmux_orchestrator.core.pm_manager import PMManager
 
+    start_time = time.time()
     manager = PMManager(ctx.obj["tmux"])
     results = manager.broadcast_to_all_agents(message)
+    execution_time = (time.time() - start_time) * 1000
 
-    console.print(f"[green]✓ Broadcast sent to {len(results)} agents[/green]")
-    for agent, success in results.items():
-        status = "✓" if success else "✗"
-        color = "green" if success else "red"
-        console.print(f"  [{color}]{status} {agent}[/{color}]")
+    successful_agents = [agent for agent, success in results.items() if success]
+    failed_agents = [agent for agent, success in results.items() if not success]
+
+    result_data = {
+        "success": len(failed_agents) == 0,
+        "command": "pm broadcast",
+        "message": message,
+        "total_agents": len(results),
+        "successful_agents": len(successful_agents),
+        "failed_agents": len(failed_agents),
+        "results": results,
+        "timestamp": time.time(),
+        "execution_time_ms": execution_time,
+    }
+
+    if json:
+        import json as json_module
+
+        console.print(json_module.dumps(result_data, indent=2))
+    else:
+        console.print(f"[green]✓ Broadcast sent to {len(results)} agents[/green]")
+        for agent, success in results.items():
+            status = "✓" if success else "✗"
+            color = "green" if success else "red"
+            console.print(f"  [{color}]{status} {agent}[/{color}]")
 
 
 @pm.command()
 @click.option("--custom-message", help="Custom check-in message")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def custom_checkin(ctx: click.Context, custom_message: str | None) -> None:
+def custom_checkin(ctx: click.Context, custom_message: str | None, json: bool) -> None:
     """Send customized status check-in request to all team agents.
 
     Allows the PM to send a tailored status request instead of the
@@ -187,15 +268,34 @@ def custom_checkin(ctx: click.Context, custom_message: str | None) -> None:
     The PM will collect all responses, analyze them for patterns and
     issues, and provide a consolidated report with actionable insights.
     """
+    import time
+
     from tmux_orchestrator.core.pm_manager import PMManager
 
     if not custom_message:
         custom_message = "Please provide a status update on your current work."
 
+    start_time = time.time()
     manager = PMManager(ctx.obj["tmux"])
     results = manager.custom_checkin(custom_message)
+    execution_time = (time.time() - start_time) * 1000
 
-    console.print(f"[green]✓ Custom check-in sent to {len(results)} agents[/green]")
+    result_data = {
+        "success": True,
+        "command": "pm custom_checkin",
+        "custom_message": custom_message,
+        "agents_contacted": len(results),
+        "results": results,
+        "timestamp": time.time(),
+        "execution_time_ms": execution_time,
+    }
+
+    if json:
+        import json as json_module
+
+        console.print(json_module.dumps(result_data, indent=2))
+    else:
+        console.print(f"[green]✓ Custom check-in sent to {len(results)} agents[/green]")
 
 
 @pm.command()
@@ -304,8 +404,9 @@ def status(ctx: click.Context, json: bool) -> None:
 @pm.command()
 @click.argument("session")
 @click.option("--project-dir", help="Project directory (defaults to current)")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def create(ctx: click.Context, session: str, project_dir: str | None) -> None:
+def create(ctx: click.Context, session: str, project_dir: str | None, json: bool) -> None:
     """Create a new Project Manager for team coordination and oversight.
 
     Deploys a specialized Claude agent configured as a Project Manager
@@ -351,43 +452,61 @@ def create(ctx: click.Context, session: str, project_dir: str | None) -> None:
     Note: Only one PM should be created per project session to
     maintain clear chain of command and avoid coordination conflicts.
     """
+    import time
     from pathlib import Path
+
+    start_time = time.time()
 
     if not project_dir:
         project_dir = str(Path.cwd())
 
     tmux: TMUXManager = ctx.obj["tmux"]
-
-    # Check if session exists, create if not
-    if not tmux.has_session(session):
-        console.print(f"[blue]Creating new session: {session}[/blue]")
-        if not tmux.create_session(session, "Project-Manager", project_dir):
-            console.print(f"[red]✗ Failed to create session {session}[/red]")
-            return
-
-    # Create PM window
     pm_window = "Project-Manager"
-    if not tmux.create_window(session, pm_window, project_dir):
-        console.print(f"[red]✗ Failed to create PM window in {session}[/red]")
-        return
-
-    # Start Claude PM
     target = f"{session}:{pm_window}"
-    console.print(f"[blue]Starting Project Manager at {target}...[/blue]")
 
-    # Start Claude
-    if not tmux.send_text(target, "claude --dangerously-skip-permissions"):
-        console.print(f"[red]✗ Failed to start Claude in {target}[/red]")
-        return
+    # Track creation steps for JSON output
+    steps_completed = []
+    success = True
+    error_message = None
 
-    import time
+    try:
+        # Check if session exists, create if not
+        session_existed = tmux.has_session(session)
+        if not session_existed:
+            if not json:
+                console.print(f"[blue]Creating new session: {session}[/blue]")
+            if not tmux.create_session(session, "Project-Manager", project_dir):
+                error_message = f"Failed to create session {session}"
+                success = False
+                raise Exception(error_message)
+            steps_completed.append("session_created")
+        else:
+            steps_completed.append("session_existed")
 
-    time.sleep(0.5)
-    tmux.press_enter(target)
-    time.sleep(3)  # Wait for Claude to start
+        # Create PM window
+        if not tmux.create_window(session, pm_window, project_dir):
+            error_message = f"Failed to create PM window in {session}"
+            success = False
+            raise Exception(error_message)
+        steps_completed.append("pm_window_created")
 
-    # Send PM briefing
-    pm_briefing = """You are the Project Manager for this development team. Your responsibilities:
+        # Start Claude PM
+        if not json:
+            console.print(f"[blue]Starting Project Manager at {target}...[/blue]")
+
+        # Start Claude
+        if not tmux.send_text(target, "claude --dangerously-skip-permissions"):
+            error_message = f"Failed to start Claude in {target}"
+            success = False
+            raise Exception(error_message)
+        steps_completed.append("claude_started")
+
+        time.sleep(0.5)
+        tmux.press_enter(target)
+        time.sleep(3)  # Wait for Claude to start
+
+        # Send PM briefing
+        pm_briefing = """You are the Project Manager for this development team. Your responsibilities:
 
 1. Coordinate team activities and maintain project timeline
 2. Ensure quality standards are met across all deliverables
@@ -407,10 +526,47 @@ Steps for agent recovery:
 
 Begin by analyzing the project structure and creating an initial project plan."""
 
-    if tmux.send_message(target, pm_briefing):
-        console.print(f"[green]✓ Project Manager created successfully at {target}[/green]")
-        console.print(f"  Session: {session}")
-        console.print(f"  Window: {pm_window}")
-        console.print(f"  Directory: {project_dir}")
+        briefing_success = tmux.send_message(target, pm_briefing)
+        if briefing_success:
+            steps_completed.append("briefing_sent")
+        else:
+            steps_completed.append("briefing_failed")
+
+    except Exception as e:
+        success = False
+        if not error_message:
+            error_message = str(e)
+
+    execution_time = (time.time() - start_time) * 1000
+
+    result_data = {
+        "success": success,
+        "command": "pm create",
+        "session": session,
+        "target": target,
+        "window": pm_window,
+        "project_directory": project_dir,
+        "steps_completed": steps_completed,
+        "session_existed": session_existed if "session_existed" in locals() else False,
+        "briefing_success": briefing_success if "briefing_success" in locals() else False,
+        "execution_time_ms": execution_time,
+        "timestamp": time.time(),
+    }
+
+    if not success:
+        result_data["error"] = error_message
+
+    if json:
+        import json as json_module
+
+        console.print(json_module.dumps(result_data, indent=2))
     else:
-        console.print("[yellow]⚠ PM created but briefing may have failed[/yellow]")
+        if success:
+            console.print(f"[green]✓ Project Manager created successfully at {target}[/green]")
+            console.print(f"  Session: {session}")
+            console.print(f"  Window: {pm_window}")
+            console.print(f"  Directory: {project_dir}")
+            if not briefing_success:
+                console.print("[yellow]⚠ PM created but briefing may have failed[/yellow]")
+        else:
+            console.print(f"[red]✗ {error_message}[/red]")

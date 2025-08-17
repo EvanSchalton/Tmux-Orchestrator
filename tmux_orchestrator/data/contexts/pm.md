@@ -33,6 +33,20 @@ This context is organized into focused sections. Read the sections relevant to y
 - **CLI Reference**: `tmux_orchestrator/data/contexts/shared/cli-reference.md`
 - **Coordination Patterns**: `tmux_orchestrator/data/contexts/shared/coordination-patterns.md`
 
+## 📁 CRITICAL: Documentation Directory Protocol
+
+**ALL PROJECT DOCUMENTATION MUST GO IN THE PROJECT-SPECIFIC PLANNING DIRECTORY**
+
+🚨 **NEVER put documents in `.tmux_orchestrator/planning/` root!**
+
+✅ **CORRECT**: `.tmux_orchestrator/planning/2025-01-17T17-06-41-python-typing-modernization/status-report.md`
+❌ **WRONG**: `.tmux_orchestrator/planning/status-report.md`
+
+### Your Project Directory
+Your project directory follows the pattern: `.tmux_orchestrator/planning/YYYY-MM-DDTHH-MM-SS-project-name/`
+
+**IMMEDIATELY broadcast to all agents**: All status reports, progress updates, and documentation MUST be placed in YOUR project directory, NOT the planning root!
+
 ## Quick Start Checklist
 
 When you first load this context:
@@ -41,55 +55,14 @@ When you first load this context:
 2. **Check daemon status**: `tmux-orc monitor status`
 3. **Find your session**: `tmux display-message -p '#S'`
 4. **Locate team plan**: `.tmux_orchestrator/planning/*/team-plan.md`
-5. **Spawn your team** according to the plan
-6. **Start monitoring** if not already running
+5. **Identify your project directory**: `.tmux_orchestrator/planning/YYYY-MM-DDTHH-MM-SS-*/`
+6. **Broadcast documentation rules** to all agents
+7. **Spawn your team** according to the plan
+8. **Start monitoring** if not already running
 
 ## Initial Setup - ENSURE ROLES SECTION IN CLAUDE.MD
 
-**FIRST TASK: Ensure CLAUDE.md has a ROLES section pointing to context files:**
-
-```bash
-# Check if CLAUDE.md exists and has ROLES section
-if [ -f "CLAUDE.md" ]; then
-    if ! grep -q "# ROLES" CLAUDE.md; then
-        # Add ROLES section
-        echo "" >> CLAUDE.md
-        echo "# ROLES" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "If you are filling one of these roles, please adhere to these instructions." >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "## Project Manager (PM)" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "Read: \`/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md\`" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "## Orchestrator" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "Read: \`/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrator.md\`" >> CLAUDE.md
-        echo "" >> CLAUDE.md
-        echo "ROLES section added to CLAUDE.md"
-    else
-        echo "ROLES section already exists in CLAUDE.md"
-    fi
-else
-    # Create CLAUDE.md with ROLES section
-    cat > CLAUDE.md << 'EOF'
-# Project Instructions
-
-# ROLES
-
-If you are filling one of these roles, please adhere to these instructions.
-
-## Project Manager (PM)
-
-Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md`
-
-## Orchestrator
-
-Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrator.md`
-EOF
-    echo "Created CLAUDE.md with ROLES section"
-fi
-```
+**Important**: See `tmux_orchestrator/data/contexts/shared/claude-md-roles-task.md` for the CLAUDE.md roles section requirement.
 
 ## Core Responsibilities Summary
 

@@ -16,6 +16,11 @@ class TMUXManager:
         self._min_command_interval = 0.05  # 50ms minimum between commands
         self._logger = logging.getLogger(__name__)
 
+        # Performance optimization: Session caching
+        self._session_cache = {}
+        self._session_cache_time = 0.0
+        self._cache_ttl = 30.0  # Cache for 30 seconds
+
     def _validate_input(self, value: str, field_name: str = "input") -> str:
         """Validate input to prevent command injection vulnerabilities.
 
@@ -223,7 +228,7 @@ class TMUXManager:
 
         try:
             # Clear any existing input first
-            self.press_ctrl_c(target)
+            # DISABLED: self.press_ctrl_c(target)  # This kills Claude when multiple messages arrive
             time.sleep(delay)
 
             # Clear the input line
@@ -248,7 +253,7 @@ class TMUXManager:
     def _send_message_fallback(self, target: str, message: str) -> bool:
         """Original message sending implementation as fallback."""
         # Clear any existing input
-        self.press_ctrl_c(target)
+        # DISABLED: self.press_ctrl_c(target)  # This kills Claude when multiple messages arrive
         subprocess.run(["sleep", "0.5"])
 
         # Clear the input line
@@ -284,7 +289,14 @@ class TMUXManager:
         return ""
 
     def list_sessions(self) -> list[dict[str, str]]:
-        """List all tmux sessions."""
+        """List all tmux sessions with caching for performance."""
+        current_time = time.time()
+
+        # Check cache
+        if current_time - self._session_cache_time < self._cache_ttl and "sessions" in self._session_cache:
+            return self._session_cache["sessions"]
+
+        # Cache miss - get fresh data
         result = self._run_tmux(
             [
                 "list-sessions",
@@ -307,6 +319,11 @@ class TMUXManager:
                         "attached": parts[2] if len(parts) > 2 else "0",
                     }
                 )
+
+        # Update cache
+        self._session_cache["sessions"] = sessions
+        self._session_cache_time = current_time
+
         return sessions
 
     def list_windows(self, session: str) -> list[dict[str, str]]:

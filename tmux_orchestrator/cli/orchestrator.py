@@ -3,7 +3,7 @@
 import builtins
 import subprocess
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import click
 from rich.console import Console
@@ -48,7 +48,7 @@ def orchestrator() -> None:
 @click.option("--session", default="tmux-orc", help="Orchestrator session name")
 @click.option("--project-dir", help="Project directory (defaults to current)")
 @click.pass_context
-def start(ctx: click.Context, session: str, project_dir: Optional[str]) -> None:
+def start(ctx: click.Context, session: str, project_dir: str | None) -> None:
     """Start the master orchestrator for enterprise-wide project coordination.
 
     Creates and initializes the main orchestrator agent with comprehensive
@@ -157,7 +157,7 @@ Begin by analyzing the current system state and available projects."""
 @click.argument("note")
 @click.option("--target", help="Target window (defaults to current orchestrator)")
 @click.pass_context
-def schedule(ctx: click.Context, minutes: int, note: str, target: Optional[str]) -> None:
+def schedule(ctx: click.Context, minutes: int, note: str, target: str | None) -> None:
     """Schedule automated reminders and orchestrator check-ins.
 
     Creates time-based reminders for the orchestrator to perform specific
@@ -563,7 +563,7 @@ def kill(ctx: click.Context, session: str, force: bool) -> None:
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
 @click.option("--exclude", help="Comma-separated list of sessions to preserve")
 @click.pass_context
-def kill_all(ctx: click.Context, force: bool, exclude: Optional[str]) -> None:
+def kill_all(ctx: click.Context, force: bool, exclude: str | None) -> None:
     """Terminate ALL tmux sessions with strategic oversight and safety controls.
 
     Provides emergency shutdown capabilities for the entire tmux ecosystem
@@ -728,8 +728,9 @@ def kill_all(ctx: click.Context, force: bool, exclude: Optional[str]) -> None:
 @click.argument("message")
 @click.option("--all-sessions", is_flag=True, help="Broadcast to all sessions")
 @click.option("--session-filter", help="Filter sessions by name pattern")
+@click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filter: Optional[str]) -> None:
+def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filter: str | None, json: bool) -> None:
     """Orchestrator-level strategic broadcasts to project teams and PMs.
 
     Sends high-priority, strategically important communications from the
@@ -799,10 +800,35 @@ def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filt
         sessions = [s for s in sessions if session_filter.lower() in s["name"].lower()]
 
     if not sessions:
-        console.print("[yellow]No target sessions found for broadcast[/yellow]")
+        if json:
+            import json as json_module
+
+            result = {
+                "success": False,
+                "message": "No target sessions found for broadcast",
+                "sessions_targeted": 0,
+                "sessions_succeeded": 0,
+                "broadcast_message": message,
+            }
+            console.print(json_module.dumps(result, indent=2))
+        else:
+            console.print("[yellow]No target sessions found for broadcast[/yellow]")
         return
 
-    console.print(f"[blue]Broadcasting to {len(sessions)} sessions...[/blue]")
+    if json:
+        # Prepare JSON result structure
+        import json as json_module
+
+        result = {
+            "success": False,
+            "message": "",
+            "broadcast_message": message,
+            "sessions_targeted": len(sessions),
+            "sessions_succeeded": 0,
+            "session_results": [],
+        }
+    else:
+        console.print(f"[blue]Broadcasting to {len(sessions)} sessions...[/blue]")
 
     success_count = 0
     for session in sessions:
@@ -820,11 +846,37 @@ def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filt
 
         if target_window:
             if tmux.send_message(target_window, f"🎭 ORCHESTRATOR BROADCAST: {message}"):
-                console.print(f"  [green]✓ {session_name}[/green]")
+                if json:
+                    result["session_results"].append(
+                        {"session": session_name, "success": True, "target_window": target_window}
+                    )
+                else:
+                    console.print(f"  [green]✓ {session_name}[/green]")
                 success_count += 1
             else:
-                console.print(f"  [red]✗ {session_name}[/red]")
+                if json:
+                    result["session_results"].append(
+                        {
+                            "session": session_name,
+                            "success": False,
+                            "target_window": target_window,
+                            "error": "Failed to send message",
+                        }
+                    )
+                else:
+                    console.print(f"  [red]✗ {session_name}[/red]")
         else:
-            console.print(f"  [yellow]⚠ {session_name} (no suitable window)[/yellow]")
+            if json:
+                result["session_results"].append(
+                    {"session": session_name, "success": False, "error": "No suitable window found"}
+                )
+            else:
+                console.print(f"  [yellow]⚠ {session_name} (no suitable window)[/yellow]")
 
-    console.print(f"\n[bold]Broadcast completed: {success_count}/{len(sessions)} successful[/bold]")
+    if json:
+        result["sessions_succeeded"] = success_count
+        result["success"] = success_count > 0
+        result["message"] = f"Broadcast completed: {success_count}/{len(sessions)} successful"
+        console.print(json_module.dumps(result, indent=2))
+    else:
+        console.print(f"\n[bold]Broadcast completed: {success_count}/{len(sessions)} successful[/bold]")

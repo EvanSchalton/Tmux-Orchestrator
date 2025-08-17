@@ -1,78 +1,159 @@
-# End-to-End Workflow
+# Complete End-to-End Workflow Guide
 
-## Setup Phase
+This guide walks you through a complete project lifecycle using the TMUX Orchestrator, from initial setup to project completion.
 
-1. **User clones a repo into a docker dev container**
-   - Or works in local development environment
-   - Ensures tmux is installed and working
+## Phase 1: Environment Setup
 
-2. **User installs CLI from GitHub**
-   ```bash
-   git clone https://github.com/org/tmux-orchestrator.git
-   cd tmux-orchestrator
-   pip install -e .
-   ```
+### 1. Install TMUX Orchestrator
 
-3. **User runs `tmux-orc setup claude-code`**
-   - Installs slash commands to `~/.continue/commands/`
-   - Configures MCP server in `~/.continue/config/mcp.json`
-   - Creates `CLAUDE.md` in workspace with instructions
-   - User must restart Claude Code to load slash commands
+Choose your installation method:
 
-3.b **User optionally runs `tmux-orc setup vscode`**
-   - Creates `.vscode/tasks.json` with orchestrator commands
-   - Adds "Open All Agents" task
-   - Adds "Show Daemon Logs" task
-   - Configures debugging settings
+**Option A: Quick Install (Recommended)**
+```bash
+pip install tmux-orchestrator
+```
 
-## PRD Creation Phase
+**Option B: Development Install**
+```bash
+git clone https://github.com/EvanSchalton/Tmux-Orchestrator.git
+cd tmux-orchestrator
+pip install -e .
+```
 
-4. **User creates a project_description.md**
-   - Brief description of desired features
-   - High-level requirements
-   - Any specific constraints
+### 2. Initialize Your Environment
 
-5. **User invokes `/create-prd project_description.md`**
-   - Claude generates a PRD survey with clarifying questions
-   - Survey covers technical details, quality standards, etc.
+```bash
+# Set up the orchestrator
+tmux-orc setup
 
-6. **User completes the PRD survey**
-   - Answers all questions thoroughly
-   - Claude generates comprehensive PRD
-   - User saves as `prd-{feature}.md`
+# Configure Claude Code integration (recommended)
+tmux-orc setup claude-code
 
-## Execution Phase
+# Optional: Set up VSCode integration
+tmux-orc setup vscode
+```
 
-7. **User executes the PRD**
+**What this does:**
+- Installs slash commands to `~/.continue/commands/`
+- Configures MCP server in `~/.continue/config/mcp.json`
+- Creates `CLAUDE.md` with project instructions
+- Sets up VSCode tasks for agent management
 
-   **Option A: Via Claude (MCP)**
-   ```
-   "Execute the PRD at ./prd-user-auth.md"
-   ```
+**Important:** Restart Claude Code after setup to load slash commands.
 
-   **Option B: Via CLI (Recommended)**
-   ```bash
-   tmux-orc execute ./prd-user-auth.md
-   ```
-   This will:
-   - Create project structure
-   - Plan custom team composition based on PRD
-   - Deploy the optimized team
-   - Brief PM with workflow
+### 3. Verify Installation
 
-   **Option C: Manual orchestration**
-   ```bash
-   # Create project structure
-   tmux-orc tasks create project-name --prd ./prd.md
+```bash
+# Check CLI is working
+tmux-orc --help
 
-   # Plan team composition
-   tmux-orc team compose project-name --prd ./prd.md
+# Test basic functionality
+tmux-orc reflect
 
-   # Deploy custom team
-   tmux-orc team deploy project-name --custom
+# Verify tmux integration
+tmux list-sessions || echo "No active sessions (this is normal)"
+```
 
-   # Brief PM manually
-   ```
+## Phase 2: Project Planning
+
+### 4. Create Your Project Description
+
+Start by describing your project requirements:
+
+```bash
+# Create a simple project description
+cat > project_description.md << EOF
+# My Todo Application
+
+## Overview
+Build a modern todo application with user authentication and real-time updates.
+
+## Key Features
+- User registration and authentication
+- Create, read, update, delete tasks
+- Real-time synchronization across devices
+- Responsive web interface
+- REST API backend
+
+## Technical Requirements
+- Frontend: React with TypeScript
+- Backend: Node.js with Express
+- Database: PostgreSQL
+- Testing: Jest for unit tests, Cypress for E2E
+- Deployment: Docker containers
+
+## Quality Standards
+- 90%+ test coverage
+- Accessibility compliance (WCAG 2.1)
+- Performance: <2s page load times
+- Security: JWT authentication, input validation
+EOF
+```
+
+### 5. Generate Comprehensive PRD
+
+Use Claude to expand your description into a detailed PRD:
+
+**Via Claude Code (recommended):**
+```
+/create-prd project_description.md
+```
+
+**Via CLI:**
+```bash
+tmux-orc prd create project_description.md
+```
+
+**What happens:**
+- Claude analyzes your requirements
+- Generates clarifying questions about technical details
+- Creates a comprehensive Product Requirements Document
+- Saves as `prd-{project-name}.md`
+
+### 6. Review and Refine PRD
+
+- Answer all clarifying questions thoroughly
+- Review the generated PRD for completeness
+- Make any necessary adjustments
+- Ensure all requirements are clear and testable
+
+## Phase 3: Team Deployment and Execution
+
+### 7. Execute Your PRD
+
+Deploy an AI team to implement your project:
+
+**Option A: Automated Execution (Recommended)**
+```bash
+tmux-orc execute ./prd-todo-app.md
+```
+
+**Option B: Via Claude Code**
+```
+"Execute the PRD at ./prd-todo-app.md"
+```
+
+**Option C: Step-by-Step Manual Control**
+```bash
+# 1. Create project structure
+tmux-orc tasks create todo-app --prd ./prd-todo-app.md
+
+# 2. Plan optimal team composition
+tmux-orc team compose todo-app --prd ./prd-todo-app.md
+
+# 3. Deploy the team
+tmux-orc team deploy todo-app --custom
+
+# 4. Brief PM with project details
+tmux-orc pm brief todo-app --prd ./prd-todo-app.md
+```
+
+**What the automated execution does:**
+- Analyzes PRD requirements
+- Determines optimal team composition (PM + Frontend + Backend + QA + etc.)
+- Creates project structure in `.tmux_orchestrator/projects/todo-app/`
+- Deploys agents to appropriate tmux sessions
+- Briefs PM with complete project context
 
 ## Team Planning Phase (NEW)
 

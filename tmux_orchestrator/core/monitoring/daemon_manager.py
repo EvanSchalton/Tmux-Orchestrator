@@ -11,7 +11,7 @@ import os
 import signal
 import time
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from tmux_orchestrator.core.config import Config
 
@@ -30,10 +30,10 @@ class DaemonManager(DaemonManagerInterface):
         """
         self.config = config
         self.logger = logger
-        self.pid_file = Path(config.RUNTIME_DIR) / "tmux-orchestrator.pid"
-        self.lock_file = Path(config.RUNTIME_DIR) / "tmux-orchestrator.lock"
+        self.pid_file = Path(config.runtime_dir) / "tmux-orchestrator.pid"
+        self.lock_file = Path(config.runtime_dir) / "tmux-orchestrator.lock"
         self._shutdown_requested = False
-        self._lock_fd: Optional[int] = None
+        self._lock_fd: int | None = None
 
         # Ensure runtime directory exists
         self.pid_file.parent.mkdir(parents=True, exist_ok=True)
@@ -64,7 +64,7 @@ class DaemonManager(DaemonManagerInterface):
             self.logger.error(f"Error checking daemon status: {e}")
             return False
 
-    def get_pid(self) -> Optional[int]:
+    def get_pid(self) -> int | None:
         """Get daemon PID from file.
 
         Returns:
@@ -130,7 +130,7 @@ class DaemonManager(DaemonManagerInterface):
                 os.dup2(devnull.fileno(), 0)  # stdin
 
             # Set up logging to file for daemon
-            log_file = Path(self.config.RUNTIME_DIR) / "daemon.log"
+            log_file = Path(self.config.runtime_dir) / "daemon.log"
             with open(log_file, "a") as log_fd:
                 os.dup2(log_fd.fileno(), 1)  # stdout
                 os.dup2(log_fd.fileno(), 2)  # stderr
