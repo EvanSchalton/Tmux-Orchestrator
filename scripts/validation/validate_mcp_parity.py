@@ -74,10 +74,9 @@ def test_mcp_generation():
     except subprocess.TimeoutExpired as e:
         # This is expected - we just want the initial generation logs
         output = e.stdout.decode() if e.stdout else ""
-        error = e.stderr.decode() if e.stderr else ""
+        e.stderr.decode() if e.stderr else ""
     else:
         output = result.stdout
-        error = result.stderr
 
     generation_time = time.time() - start_time
 

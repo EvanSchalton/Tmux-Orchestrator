@@ -28,7 +28,7 @@ def kill_agent(
     Returns:
         Tuple of (success, message, details)
     """
-    start_time = time.time()
+    time.time()
     details = {
         "target": target,
         "timestamp": datetime.utcnow().isoformat() + "Z",

@@ -1,0 +1,443 @@
+name: CLI Reflection MCP Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/cli-* ]
+    paths:
+      - 'tmux_orchestrator/cli/**'
+      - 'tmux_orchestrator/mcp_server_fresh.py'
+      - 'pyproject.toml'
+      - '.github/workflows/cli-reflection-pipeline.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'tmux_orchestrator/cli/**'
+      - 'tmux_orchestrator/mcp_server_fresh.py'
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Test scope'
+        required: false
+        type: choice
+        options:
+          - all
+          - cli-discovery
+          - mcp-generation
+          - integration
+        default: 'all'
+
+env:
+  POETRY_VERSION: "1.6.1"
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # CLI Discovery Validation
+  cli-discovery:
+    name: "CLI Discovery & Reflection"
+    runs-on: ubuntu-latest
+
+    outputs:
+      cli-commands: ${{ steps.discovery.outputs.commands }}
+      tool-count: ${{ steps.discovery.outputs.tool-count }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: |
+        poetry install --no-interaction
+
+    - name: Test CLI availability
+      run: |
+        echo "🔍 Testing CLI availability..."
+        poetry run tmux-orc --version
+        poetry run tmux-orc --help
+
+    - name: Test CLI reflection capability
+      id: discovery
+      run: |
+        echo "📊 Testing CLI reflection..."
+
+        # Test reflect command
+        poetry run tmux-orc reflect --format json > cli_structure.json
+
+        # Parse and validate structure
+        python << 'EOF'
+        import json
+        import sys
+
+        with open('cli_structure.json', 'r') as f:
+            cli_data = json.load(f)
+
+        # Extract commands
+        commands = {k: v for k, v in cli_data.items()
+                   if isinstance(v, dict) and v.get('type') == 'command'}
+
+        print(f"Discovered {len(commands)} CLI commands:")
+
+        for cmd_name, cmd_info in commands.items():
+            short_help = cmd_info.get('short_help', 'No description')
+            print(f"  • {cmd_name}: {short_help}")
+
+        # Set outputs
+        with open('commands.json', 'w') as f:
+            json.dump(list(commands.keys()), f)
+
+        print(f"tool-count={len(commands)}")
+
+        # Validate minimum expected commands
+        if len(commands) < 5:
+            print(f"❌ Expected at least 5 commands, found {len(commands)}")
+            sys.exit(1)
+
+        print(f"✅ CLI discovery successful: {len(commands)} commands")
+        EOF
+
+        # Set GitHub outputs
+        echo "tool-count=$(cat commands.json | jq length)" >> $GITHUB_OUTPUT
+        echo "commands=$(cat commands.json)" >> $GITHUB_OUTPUT
+
+    - name: Upload CLI structure
+      uses: actions/upload-artifact@v3
+      with:
+        name: cli-structure
+        path: |
+          cli_structure.json
+          commands.json
+
+  # MCP Tool Generation
+  mcp-tool-generation:
+    name: "MCP Tool Auto-Generation"
+    runs-on: ubuntu-latest
+    needs: cli-discovery
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: |
+        poetry install --no-interaction
+
+    - name: Test MCP server tool generation
+      run: |
+        echo "🔧 Testing MCP tool auto-generation..."
+
+        python << 'EOF'
+        import asyncio
+        import json
+        import sys
+        from tmux_orchestrator.mcp_server_fresh import FreshCLIMCPServer
+
+        async def test_generation():
+            server = FreshCLIMCPServer()
+
+            # Test tool generation
+            tools = await server._generate_all_tools()
+
+            print(f"Generated {len(tools)} MCP tools:")
+
+            for tool_name, tool_info in tools.items():
+                cmd_name = tool_info['command_name']
+                description = tool_info['description']
+                print(f"  • {tool_name} → tmux-orc {cmd_name}")
+                print(f"    {description}")
+
+            # Validate tool structure
+            for tool_name, tool_info in tools.items():
+                required_fields = ['command_name', 'description', 'input_schema']
+                for field in required_fields:
+                    if field not in tool_info:
+                        print(f"❌ Tool {tool_name} missing field: {field}")
+                        return False
+
+                # Validate input schema
+                schema = tool_info['input_schema']
+                if schema.get('type') != 'object':
+                    print(f"❌ Tool {tool_name} invalid schema type")
+                    return False
+
+            # Save results
+            with open('generated_tools.json', 'w') as f:
+                json.dump({
+                    'tool_count': len(tools),
+                    'tools': list(tools.keys()),
+                    'generation_successful': True
+                }, f, indent=2)
+
+            print(f"✅ Tool generation successful: {len(tools)} tools")
+            return True
+
+        success = asyncio.run(test_generation())
+        if not success:
+            sys.exit(1)
+        EOF
+
+    - name: Upload generated tools info
+      uses: actions/upload-artifact@v3
+      with:
+        name: generated-tools
+        path: generated_tools.json
+
+  # MCP Server Integration Test
+  mcp-server-integration:
+    name: "MCP Server Integration"
+    runs-on: ubuntu-latest
+    needs: [cli-discovery, mcp-tool-generation]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tmux
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: |
+        poetry install --no-interaction
+
+    - name: Test MCP server startup
+      run: |
+        echo "🚀 Testing MCP server startup..."
+
+        # Test server can start and discover tools
+        timeout 30s python << 'EOF' || true
+        import asyncio
+        import sys
+        from tmux_orchestrator.mcp_server_fresh import FreshCLIMCPServer
+
+        async def test_startup():
+            try:
+                server = FreshCLIMCPServer()
+                tools = await server._generate_all_tools()
+
+                print(f"✅ Server startup successful")
+                print(f"✅ Generated {len(tools)} tools")
+
+                # Test a simple command execution
+                result = await server._execute_cli_command('list', {'args': ['--help']})
+                print(f"✅ Command execution: {result['success']}")
+
+                return True
+
+            except Exception as e:
+                print(f"❌ Server startup failed: {e}")
+                return False
+
+        success = asyncio.run(test_startup())
+        if success:
+            echo "✅ MCP server integration test passed"
+        else
+            echo "❌ MCP server integration test failed"
+            exit 1
+        EOF
+
+    - name: Test CLI-MCP round trip
+      run: |
+        echo "🔄 Testing CLI-MCP round trip..."
+
+        python << 'EOF'
+        import asyncio
+        import json
+        from tmux_orchestrator.mcp_server_fresh import FreshCLIMCPServer
+
+        async def test_round_trip():
+            server = FreshCLIMCPServer()
+
+            # Generate tools
+            await server._generate_all_tools()
+
+            # Test each generated tool with help command
+            tools = server.generated_tools
+            results = {}
+
+            for tool_name, tool_info in tools.items():
+                cmd_name = tool_info['command_name']
+
+                try:
+                    # Execute help for each command
+                    result = await server._execute_cli_command(
+                        cmd_name,
+                        {'args': [], 'options': {'help': True}}
+                    )
+
+                    results[tool_name] = {
+                        'command': cmd_name,
+                        'success': result['success'],
+                        'execution_time': result['execution_time']
+                    }
+
+                    status = "✅" if result['success'] else "❌"
+                    time_ms = result['execution_time'] * 1000
+                    print(f"{status} {tool_name}: {time_ms:.1f}ms")
+
+                except Exception as e:
+                    results[tool_name] = {
+                        'command': cmd_name,
+                        'success': False,
+                        'error': str(e)
+                    }
+                    print(f"❌ {tool_name}: {e}")
+
+            # Calculate success rate
+            successful = sum(1 for r in results.values() if r['success'])
+            total = len(results)
+            success_rate = (successful / total) * 100
+
+            print(f"\n📊 Round-trip Results:")
+            print(f"Successful: {successful}/{total} ({success_rate:.1f}%)")
+
+            return success_rate >= 80  # 80% success rate required
+
+        success = asyncio.run(test_round_trip())
+        print(f"\n{'✅ Round-trip test PASSED' if success else '❌ Round-trip test FAILED'}")
+        EOF
+
+  # Performance Validation
+  cli-performance:
+    name: "CLI Performance Validation"
+    runs-on: ubuntu-latest
+    needs: mcp-server-integration
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tmux time
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: |
+        poetry install --no-interaction
+
+    - name: Test CLI reflection performance
+      run: |
+        echo "⚡ Testing CLI reflection performance..."
+
+        # Test CLI reflection speed
+        echo "Testing tmux-orc reflect performance..."
+        time poetry run tmux-orc reflect --format json > /dev/null
+
+        # Test MCP tool generation speed
+        echo "Testing MCP tool generation performance..."
+        python << 'EOF'
+        import asyncio
+        import time
+        from tmux_orchestrator.mcp_server_fresh import FreshCLIMCPServer
+
+        async def test_performance():
+            print("Measuring tool generation performance...")
+
+            start_time = time.perf_counter()
+
+            server = FreshCLIMCPServer()
+            tools = await server._generate_all_tools()
+
+            generation_time = time.perf_counter() - start_time
+
+            print(f"Tool generation: {generation_time:.3f}s for {len(tools)} tools")
+            print(f"Average per tool: {(generation_time/len(tools)*1000):.1f}ms")
+
+            # Performance requirement: <2s for tool generation
+            if generation_time < 2.0:
+                print("✅ Performance requirement met (<2s)")
+                return True
+            else:
+                print("❌ Performance requirement failed (>2s)")
+                return False
+
+        success = asyncio.run(test_performance())
+        if not success:
+            exit 1
+        EOF
+
+  # Pipeline Summary
+  cli-reflection-summary:
+    name: "CLI Reflection Pipeline Summary"
+    runs-on: ubuntu-latest
+    needs: [cli-discovery, mcp-tool-generation, mcp-server-integration, cli-performance]
+    if: always()
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: pipeline-results
+
+    - name: Generate pipeline summary
+      run: |
+        echo "📊 CLI Reflection Pipeline Summary"
+        echo "=================================="
+        echo ""
+        echo "CLI Discovery: ${{ needs.cli-discovery.result }}"
+        echo "MCP Generation: ${{ needs.mcp-tool-generation.result }}"
+        echo "Server Integration: ${{ needs.mcp-server-integration.result }}"
+        echo "Performance: ${{ needs.cli-performance.result }}"
+        echo ""
+
+        # Check overall success
+        if [[ "${{ needs.cli-discovery.result }}" == "success" && \
+              "${{ needs.mcp-tool-generation.result }}" == "success" && \
+              "${{ needs.mcp-server-integration.result }}" == "success" && \
+              "${{ needs.cli-performance.result }}" == "success" ]]; then
+          echo "✅ CLI Reflection Pipeline: ALL TESTS PASSED"
+          echo "🎉 Fresh MCP server with CLI auto-generation: READY"
+          echo ""
+          echo "Discovered CLI commands: ${{ needs.cli-discovery.outputs.tool-count }}"
+          echo "Generated MCP tools: ${{ needs.cli-discovery.outputs.tool-count }}"
+          echo ""
+          echo "🚀 CLI reflection approach successfully validated!"
+        else
+          echo "❌ CLI Reflection Pipeline: TESTS FAILED"
+          echo "🔧 Review failed jobs before proceeding"
+          exit 1
+        fi

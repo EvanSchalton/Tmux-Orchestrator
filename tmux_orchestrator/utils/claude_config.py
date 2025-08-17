@@ -61,7 +61,7 @@ def check_mcp_registration() -> tuple[bool, Path | None, dict[str, Any]]:
     return False, config_path, {}
 
 
-def register_mcp_server() -> Tuple[bool, str]:
+def register_mcp_server() -> tuple[bool, str]:
     """Register tmux-orchestrator MCP server with Claude Desktop.
 
     Returns:
@@ -134,7 +134,7 @@ def update_mcp_registration(enabled: bool = True) -> bool:
     return False
 
 
-def get_registration_status() -> Dict[str, Any]:
+def get_registration_status() -> dict[str, Any]:
     """Get comprehensive MCP registration status."""
     is_installed, config_path = check_claude_installation()
     is_registered, _, server_details = check_mcp_registration()

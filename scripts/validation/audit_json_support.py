@@ -111,7 +111,6 @@ class JSONSupportAuditor:
         if has_json_in_help:
             try:
                 # Use safe arguments that won't cause side effects
-                safe_args = []
                 if any(word in cmd_name.lower() for word in ["deploy", "spawn", "execute", "kill", "restart"]):
                     # Don't test destructive commands with --json
                     json_works = "skipped_destructive"

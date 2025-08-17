@@ -215,7 +215,7 @@ def run_sprint2_benchmarks() -> None:
     print("Starting Sprint 2 Performance Analysis...")
 
     benchmarker = PerformanceBenchmarker(iterations=3)
-    results = benchmarker.benchmark_sprint2_commands()
+    benchmarker.benchmark_sprint2_commands()
 
     # Generate and save report
     report = benchmarker.generate_performance_report()

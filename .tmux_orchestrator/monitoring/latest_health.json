@@ -1,0 +1,54 @@
+{
+  "timestamp": "2025-08-17T01:35:17.628958",
+  "commands_tested": 4,
+  "commands_passing": 0,
+  "pass_rate": 0.0,
+  "average_duration_ms": 1278.4318105259445,
+  "target_ms": 500,
+  "overall_health": "UNHEALTHY",
+  "individual_results": [
+    {
+      "command": "tmux-orc --version",
+      "duration_ms": 1311.4909559953958,
+      "success": true,
+      "meets_target": false,
+      "timestamp": "2025-08-17T01:35:13.826556",
+      "stdout_size": 25,
+      "stderr_size": 0
+    },
+    {
+      "command": "tmux-orc list --json",
+      "duration_ms": 1315.9684260608628,
+      "success": true,
+      "meets_target": false,
+      "timestamp": "2025-08-17T01:35:15.142567",
+      "stdout_size": 1461,
+      "stderr_size": 0
+    },
+    {
+      "command": "tmux-orc status --json",
+      "duration_ms": 1772.294557071291,
+      "success": true,
+      "meets_target": false,
+      "timestamp": "2025-08-17T01:35:16.914903",
+      "stdout_size": 1746,
+      "stderr_size": 0
+    },
+    {
+      "command": "tmux-orc reflect --format json",
+      "duration_ms": 713.9733029762283,
+      "success": true,
+      "meets_target": false,
+      "timestamp": "2025-08-17T01:35:17.628923",
+      "stdout_size": 20173,
+      "stderr_size": 0
+    }
+  ],
+  "mcp_server": {
+    "mcp_startup_ms": 2404.579602065496,
+    "tools_generated": 6,
+    "meets_target": false,
+    "success": true,
+    "timestamp": "2025-08-17T01:35:20.034457"
+  }
+}

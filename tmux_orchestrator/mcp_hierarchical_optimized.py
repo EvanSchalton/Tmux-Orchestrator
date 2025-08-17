@@ -315,7 +315,6 @@ class OptimizedHierarchicalToolGenerator:
 
     def _generate_usage_examples(self, group_name: str, subcommands: List[Dict]) -> List[Dict]:
         """Generate usage examples for the tool."""
-        examples = []
 
         # Common example patterns
         example_patterns = {

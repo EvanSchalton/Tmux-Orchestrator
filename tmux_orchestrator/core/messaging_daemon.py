@@ -118,7 +118,7 @@ class HighPerformanceMessagingDaemon:
 
     async def _process_command(self, request: dict[str, Any]) -> dict[str, Any]:
         """Process client commands with performance tracking."""
-        start_time = time.time()
+        time.time()
 
         command = request.get("command")
 

@@ -1,0 +1,95 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 2.1.23)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Verify version (if manual trigger)
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        CURRENT_VERSION=$(poetry version -s)
+        if [ "$CURRENT_VERSION" != "${{ github.event.inputs.version }}" ]; then
+          echo "Version mismatch: pyproject.toml has $CURRENT_VERSION but ${{ github.event.inputs.version }} was requested"
+          exit 1
+        fi
+
+    - name: Build package
+      run: |
+        poetry build
+        echo "Built packages:"
+        ls -la dist/
+
+    - name: Verify package contents
+      run: |
+        pip install twine
+        twine check dist/*
+
+    - name: Test CLI reflection in built package
+      run: |
+        echo "🔍 Testing CLI reflection in built package..."
+        # Install from built wheel
+        pip install dist/*.whl
+
+        # Test CLI availability
+        tmux-orc --version
+        tmux-orc --help
+
+        # Test CLI reflection capability
+        tmux-orc reflect --format json > cli_test.json
+        python -c "
+        import json
+        with open('cli_test.json') as f:
+            data = json.load(f)
+        commands = [k for k, v in data.items() if isinstance(v, dict) and v.get('type') == 'command']
+        print(f'✅ CLI reflection test: {len(commands)} commands discovered')
+        assert len(commands) >= 5, f'Expected >=5 commands, got {len(commands)}'
+        "
+
+        # Test MCP server entry points
+        echo "Testing MCP server entry points..."
+        python -c "
+        try:
+            import tmux_orchestrator.mcp_server_fastmcp
+            print('✅ FastMCP server module available')
+        except ImportError as e:
+            print(f'❌ FastMCP server import failed: {e}')
+            exit(1)
+        "
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: dist/
+        verbose: true

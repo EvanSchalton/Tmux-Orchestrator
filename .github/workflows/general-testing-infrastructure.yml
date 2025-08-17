@@ -1,0 +1,419 @@
+name: General Testing Infrastructure Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+    paths:
+      - 'tmux_orchestrator/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - '.github/workflows/general-testing-infrastructure.yml'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        type: choice
+        options:
+          - all
+          - unit
+          - integration
+          - performance
+          - security
+        default: 'all'
+
+env:
+  POETRY_VERSION: "1.6.1"
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # Test Environment Setup
+  test-environment-setup:
+    name: "Test Environment Setup & Validation"
+    runs-on: ubuntu-latest
+
+    outputs:
+      python-version: ${{ env.PYTHON_VERSION }}
+      poetry-version: ${{ env.POETRY_VERSION }}
+      test-matrix: ${{ steps.test-matrix.outputs.matrix }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Cache Poetry dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
+
+    - name: Install dependencies
+      run: |
+        poetry install --no-interaction
+
+    - name: Validate test structure
+      run: |
+        echo "🔍 Validating test directory structure..."
+
+        # Check test directories exist
+        required_dirs=(
+          "tests/core"
+          "tests/integration"
+          "tests/security"
+          "tests/benchmarks"
+        )
+
+        for dir in "${required_dirs[@]}"; do
+          if [ -d "$dir" ]; then
+            echo "✅ Directory exists: $dir"
+          else
+            echo "⚠️ Creating directory: $dir"
+            mkdir -p "$dir"
+          fi
+        done
+
+        # Validate pytest configuration
+        if [ -f "pytest.ini" ]; then
+          echo "✅ pytest.ini found"
+        else
+          echo "⚠️ pytest.ini not found"
+        fi
+
+        # Check test discovery
+        test_count=$(poetry run pytest --collect-only -q | grep "test session starts" -A 1 | tail -1 | grep -o '[0-9]\+' | head -1 || echo "0")
+        echo "📊 Discovered $test_count tests"
+
+    - name: Generate test matrix
+      id: test-matrix
+      run: |
+        # Generate dynamic test matrix based on available tests
+        matrix=$(cat << 'EOF'
+        {
+          "test-type": [
+            {"name": "unit", "path": "tests/core", "timeout": "10m"},
+            {"name": "integration", "path": "tests/integration", "timeout": "20m"},
+            {"name": "security", "path": "tests/security", "timeout": "15m"},
+            {"name": "performance", "path": "tests/benchmarks", "timeout": "30m"}
+          ],
+          "os": ["ubuntu-latest"],
+          "python-version": ["3.11"]
+        }
+        EOF
+        )
+        echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+  # Core Unit Tests
+  unit-tests:
+    name: "Unit Tests"
+    runs-on: ubuntu-latest
+    needs: test-environment-setup
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_suite == 'unit' || github.event.inputs.test_suite == 'all'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Run unit tests
+      run: |
+        echo "🧪 Running unit tests..."
+        poetry run pytest tests/core/ \
+          -v \
+          --tb=short \
+          --maxfail=10 \
+          --timeout=300 \
+          --cov=tmux_orchestrator \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --junit-xml=test-results/unit-tests.xml
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: unit-test-results
+        path: |
+          test-results/
+          coverage.xml
+
+  # Integration Tests
+  integration-tests:
+    name: "Integration Tests"
+    runs-on: ubuntu-latest
+    needs: test-environment-setup
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_suite == 'integration' || github.event.inputs.test_suite == 'all'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tmux
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Run integration tests
+      run: |
+        echo "🔄 Running integration tests..."
+        poetry run pytest tests/integration/ \
+          -v \
+          --tb=short \
+          --maxfail=5 \
+          --timeout=600 \
+          --junit-xml=test-results/integration-tests.xml
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: test-results/
+
+  # Security Tests
+  security-tests:
+    name: "Security Tests"
+    runs-on: ubuntu-latest
+    needs: test-environment-setup
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_suite == 'security' || github.event.inputs.test_suite == 'all'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Run security tests
+      run: |
+        echo "🔒 Running security tests..."
+        poetry run pytest tests/security/ \
+          -v \
+          --tb=short \
+          --maxfail=5 \
+          --junit-xml=test-results/security-tests.xml
+
+    - name: Run bandit security linter
+      run: |
+        echo "🔍 Running bandit security analysis..."
+        poetry run bandit -r tmux_orchestrator/ -f json -o security-report.json || true
+        poetry run bandit -r tmux_orchestrator/ -f txt
+
+    - name: Upload security results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-test-results
+        path: |
+          test-results/
+          security-report.json
+
+  # Performance Tests
+  performance-tests:
+    name: "Performance Tests"
+    runs-on: ubuntu-latest
+    needs: test-environment-setup
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_suite == 'performance' || github.event.inputs.test_suite == 'all'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tmux time
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Run performance benchmarks
+      run: |
+        echo "⚡ Running performance tests..."
+        poetry run pytest tests/benchmarks/ \
+          -v \
+          --tb=short \
+          --maxfail=3 \
+          --timeout=1200 \
+          --junit-xml=test-results/performance-tests.xml
+
+    - name: Performance validation
+      run: |
+        echo "📊 Validating performance requirements..."
+
+        # Test CLI command performance (<1 second requirement)
+        echo "Testing CLI startup time..."
+        time_output=$(time poetry run tmux-orc --help 2>&1)
+        echo "CLI help command completed"
+
+        # Test basic operations performance
+        echo "Testing basic operations..."
+        start_time=$(date +%s.%N)
+        poetry run python -c "
+        from tmux_orchestrator.utils.tmux import TMUXManager
+        tmux = TMUXManager()
+        # Basic operation test
+        print('Basic operations test completed')
+        "
+        end_time=$(date +%s.%N)
+        duration=$(echo "$end_time - $start_time" | bc)
+        echo "Basic operations took: ${duration}s"
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-test-results
+        path: test-results/
+
+  # Code Quality Analysis
+  code-quality:
+    name: "Code Quality Analysis"
+    runs-on: ubuntu-latest
+    needs: test-environment-setup
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: ${{ env.POETRY_VERSION }}
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Run code formatting check
+      run: |
+        echo "🎨 Checking code formatting..."
+        poetry run black --check tmux_orchestrator/ tests/
+
+    - name: Run linting
+      run: |
+        echo "🔍 Running linting..."
+        poetry run ruff check tmux_orchestrator/ tests/
+
+    - name: Run type checking
+      run: |
+        echo "📝 Running type checking..."
+        poetry run mypy tmux_orchestrator/ --ignore-missing-imports || true
+
+    - name: Run import sorting check
+      run: |
+        echo "📚 Checking import sorting..."
+        poetry run isort --check-only tmux_orchestrator/ tests/
+
+  # Test Results Summary
+  test-summary:
+    name: "Test Results Summary"
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, security-tests, performance-tests, code-quality]
+    if: always()
+
+    steps:
+    - name: Download all test results
+      uses: actions/download-artifact@v3
+      with:
+        path: test-results
+
+    - name: Generate test summary
+      run: |
+        echo "📊 Test Results Summary"
+        echo "======================"
+        echo ""
+        echo "Unit Tests: ${{ needs.unit-tests.result }}"
+        echo "Integration Tests: ${{ needs.integration-tests.result }}"
+        echo "Security Tests: ${{ needs.security-tests.result }}"
+        echo "Performance Tests: ${{ needs.performance-tests.result }}"
+        echo "Code Quality: ${{ needs.code-quality.result }}"
+        echo ""
+
+        # Check overall success
+        if [[ "${{ needs.unit-tests.result }}" == "success" && \
+              "${{ needs.integration-tests.result }}" == "success" && \
+              "${{ needs.security-tests.result }}" == "success" && \
+              "${{ needs.performance-tests.result }}" == "success" && \
+              "${{ needs.code-quality.result }}" == "success" ]]; then
+          echo "✅ All tests PASSED!"
+          echo "🎉 General testing infrastructure working correctly"
+        else
+          echo "❌ Some tests FAILED!"
+          echo "🔧 Review failed jobs for details"
+          exit 1
+        fi

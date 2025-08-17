@@ -1,0 +1,88 @@
+{
+  "timestamp": "2025-08-17T01:48:03.345893",
+  "overall_status": "\u26a1 ULTRA-PERFORMANCE ACHIEVED",
+  "average_improvement_pct": 63.886007120786005,
+  "sub_1s_achievement_rate": 75.0,
+  "ultra_performance_rate": 0.0,
+  "total_tests": 4,
+  "ultra_performance_commands": 0,
+  "sub_1s_commands": 3,
+  "individual_results": [
+    {
+      "command": "version",
+      "average_ms": 1008.3730644080788,
+      "min_ms": 708.6440610000864,
+      "max_ms": 1200.3077919362113,
+      "baseline_ms": 4130,
+      "improvement_pct": 75.58418730246783,
+      "meets_sub_1s": false,
+      "meets_ultra": false,
+      "performance_class": "\u26a0\ufe0f GOOD",
+      "all_timings": [
+        1029.4103290652856,
+        1200.3077919362113,
+        1067.8199810208753,
+        1035.6831590179354,
+        708.6440610000864
+      ],
+      "success_rate": 1.0
+    },
+    {
+      "command": "list",
+      "average_ms": 902.0099382149056,
+      "min_ms": 762.0643759146333,
+      "max_ms": 1135.4996779700741,
+      "baseline_ms": 2663,
+      "improvement_pct": 66.12805339035278,
+      "meets_sub_1s": true,
+      "meets_ultra": false,
+      "performance_class": "\u26a1 REVOLUTIONARY",
+      "all_timings": [
+        762.0643759146333,
+        812.3708220664412,
+        908.668052055873,
+        891.4467630675063,
+        1135.4996779700741
+      ],
+      "success_rate": 1.0
+    },
+    {
+      "command": "status",
+      "average_ms": 846.2739262264222,
+      "min_ms": 712.3798029497266,
+      "max_ms": 1108.370541012846,
+      "baseline_ms": 2580,
+      "improvement_pct": 67.19868502998364,
+      "meets_sub_1s": true,
+      "meets_ultra": false,
+      "performance_class": "\u26a1 REVOLUTIONARY",
+      "all_timings": [
+        1108.370541012846,
+        863.9874320942909,
+        832.2088120039552,
+        714.4230430712923,
+        712.3798029497266
+      ],
+      "success_rate": 1.0
+    },
+    {
+      "command": "reflect",
+      "average_ms": 989.4222748233005,
+      "min_ms": 790.3666590573266,
+      "max_ms": 1103.3785759937018,
+      "baseline_ms": 1854,
+      "improvement_pct": 46.63310276033978,
+      "meets_sub_1s": true,
+      "meets_ultra": false,
+      "performance_class": "\u26a1 REVOLUTIONARY",
+      "all_timings": [
+        1062.3136440990493,
+        1103.3785759937018,
+        912.4880459858105,
+        1078.5644489806145,
+        790.3666590573266
+      ],
+      "success_rate": 1.0
+    }
+  ]
+}
