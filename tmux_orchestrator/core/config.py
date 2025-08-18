@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -18,8 +18,8 @@ class Config:
         "server": {"host": "127.0.0.1", "port": 8000},
     }
 
-    def __init__(self, config_dict: dict[str, Any] | None = None):
-        self._config: dict[str, Any] = config_dict or self.DEFAULT_CONFIG.copy()
+    def __init__(self, config_dict: Optional[Dict[str, Any]] = None):
+        self._config: Dict[str, Any] = config_dict or self.DEFAULT_CONFIG.copy()
 
     @property
     def runtime_dir(self) -> str:
@@ -31,7 +31,7 @@ class Config:
         return str(runtime_dir)
 
     @classmethod
-    def load(cls, config_path: Path | None = None) -> "Config":
+    def load(cls, config_path: Optional[Path] = None) -> "Config":
         """Load configuration from file or defaults."""
         if config_path is None:
             # Look for config in standard locations
@@ -49,7 +49,7 @@ class Config:
 
         if config_path and config_path.exists():
             with open(config_path) as f:
-                config_dict: dict[str, Any] = yaml.safe_load(f) or {}
+                config_dict: Dict[str, Any] = yaml.safe_load(f) or {}
                 # Merge with defaults
                 merged_config = cls.DEFAULT_CONFIG.copy()
                 cls._deep_merge(merged_config, config_dict)
@@ -61,7 +61,7 @@ class Config:
         return config
 
     @staticmethod
-    def _deep_merge(base: dict[str, Any], update: dict[str, Any]) -> None:
+    def _deep_merge(base: Dict[str, Any], update: Dict[str, Any]) -> None:
         """Deep merge update dict into base dict."""
         for key, value in update.items():
             if key in base and isinstance(base[key], dict) and isinstance(value, dict):
@@ -98,7 +98,7 @@ class Config:
     def set(self, key: str, value: Any) -> None:
         """Set configuration value using dot notation."""
         keys = key.split(".")
-        config: dict[str, Any] = self._config
+        config: Dict[str, Any] = self._config
 
         for k in keys[:-1]:
             if k not in config:
@@ -107,7 +107,7 @@ class Config:
 
         config[keys[-1]] = value
 
-    def save(self, config_path: Path | None = None) -> None:
+    def save(self, config_path: Optional[Path] = None) -> None:
         """Save configuration to file."""
         if config_path is None:
             config_path = Path.cwd() / ".tmux-orchestrator" / "config.yml"
@@ -157,7 +157,7 @@ class Config:
         """Get notification cooldown."""
         return int(self._config["monitoring"]["notification_cooldown"])
 
-    def get_agent_config(self, agent_type: str) -> dict[str, Any] | None:
+    def get_agent_config(self, agent_type: str) -> Optional[Dict[str, Any]]:
         """Get configuration for a specific agent type."""
         agents = self._config["team"]["agents"]
         for agent in agents:

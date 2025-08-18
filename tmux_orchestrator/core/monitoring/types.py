@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -53,7 +53,7 @@ class AgentInfo:
     name: str
     type: str
     status: str
-    last_seen: datetime | None = None
+    last_seen: Union[datetime, None] = None
 
     @property
     def display_name(self) -> str:

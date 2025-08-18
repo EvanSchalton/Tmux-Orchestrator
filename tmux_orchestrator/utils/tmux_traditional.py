@@ -5,6 +5,7 @@ import re
 import shlex
 import subprocess
 import time
+from typing import Dict, List, Optional
 
 
 class TMUXManager:
@@ -97,7 +98,7 @@ class TMUXManager:
 
         self._last_command_time = time.time()
 
-    def _run_tmux(self, args: list[str], check: bool = True) -> subprocess.CompletedProcess:
+    def _run_tmux(self, args: List[str], check: bool = True) -> subprocess.CompletedProcess:
         """Run a tmux command with security safeguards and throttling.
 
         SECURITY: This method ensures all arguments are passed safely to subprocess
@@ -145,8 +146,8 @@ class TMUXManager:
     def create_session(
         self,
         session_name: str,
-        window_name: str | None = None,
-        start_directory: str | None = None,
+        window_name: Optional[str] = None,
+        start_directory: Optional[str] = None,
     ) -> bool:
         """Create a new tmux session."""
         cmd = ["new-session", "-d", "-s", session_name]
@@ -158,7 +159,7 @@ class TMUXManager:
         result = self._run_tmux(cmd, check=False)
         return result.returncode == 0
 
-    def create_window(self, session_name: str, window_name: str, start_directory: str | None = None) -> bool:
+    def create_window(self, session_name: str, window_name: str, start_directory: Optional[str] = None) -> bool:
         """Create a new window in a session."""
         cmd = ["new-window", "-t", session_name, "-n", window_name]
         if start_directory:
@@ -288,7 +289,7 @@ class TMUXManager:
             return "\n".join(output_lines[-lines:])
         return ""
 
-    def list_sessions(self) -> list[dict[str, str]]:
+    def list_sessions(self) -> List[Dict[str, str]]:
         """List all tmux sessions with caching for performance."""
         current_time = time.time()
 
@@ -326,7 +327,7 @@ class TMUXManager:
 
         return sessions
 
-    def list_windows(self, session: str) -> list[dict[str, str]]:
+    def list_windows(self, session: str) -> List[Dict[str, str]]:
         """List windows in a session."""
         result = self._run_tmux(
             [
@@ -354,7 +355,7 @@ class TMUXManager:
                 )
         return windows
 
-    def list_agents(self) -> list[dict[str, str]]:
+    def list_agents(self) -> List[Dict[str, str]]:
         """List all active agents across sessions."""
         agents = []
         sessions = self.list_sessions()

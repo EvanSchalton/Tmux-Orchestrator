@@ -12,7 +12,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -27,9 +27,9 @@ class TestResult:
     command: str
     tool_name: str
     success: bool
-    error: str | None = None
+    error: Optional[str] = None
     execution_time: float = 0.0
-    output: dict[str, Any] | None = None
+    output: Optional[dict[str, Any]] = None
 
 
 class MCPParityTestSuite:

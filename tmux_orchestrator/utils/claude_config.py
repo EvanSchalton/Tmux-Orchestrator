@@ -4,10 +4,10 @@ import json
 import os
 import platform
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Optional, Tuple
 
 
-def get_claude_config_path() -> Path | None:
+def get_claude_config_path() -> Optional[Path]:
     """Get Claude Desktop config path for current platform."""
     system = platform.system()
 
@@ -22,7 +22,7 @@ def get_claude_config_path() -> Path | None:
     return None
 
 
-def check_claude_installation() -> tuple[bool, Path | None]:
+def check_claude_installation() -> Tuple[bool, Optional[Path]]:
     """Check if Claude Desktop is installed by looking for config directory."""
     config_path = get_claude_config_path()
 
@@ -36,7 +36,7 @@ def check_claude_installation() -> tuple[bool, Path | None]:
     return False, config_path
 
 
-def check_mcp_registration() -> tuple[bool, Path | None, dict[str, Any]]:
+def check_mcp_registration() -> Tuple[bool, Optional[Path], Dict[str, Any]]:
     """Check if MCP server is registered with Claude.
 
     Returns:
@@ -61,7 +61,7 @@ def check_mcp_registration() -> tuple[bool, Path | None, dict[str, Any]]:
     return False, config_path, {}
 
 
-def register_mcp_server() -> tuple[bool, str]:
+def register_mcp_server() -> Tuple[bool, str]:
     """Register tmux-orchestrator MCP server with Claude Desktop.
 
     Returns:
@@ -134,7 +134,7 @@ def update_mcp_registration(enabled: bool = True) -> bool:
     return False
 
 
-def get_registration_status() -> dict[str, Any]:
+def get_registration_status() -> Dict[str, Any]:
     """Get comprehensive MCP registration status."""
     is_installed, config_path = check_claude_installation()
     is_registered, _, server_details = check_mcp_registration()

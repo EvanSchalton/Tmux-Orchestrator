@@ -1,6 +1,7 @@
 """TMUX Orchestrator CLI - AI-powered tmux session management."""
 
 from pathlib import Path
+from typing import Optional
 
 import click
 from rich.console import Console
@@ -26,7 +27,7 @@ console: Console = Console()
 @click.option("--json", is_flag=True, help="Output in JSON format for scripting")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.pass_context
-def cli(ctx: click.Context, config_file: str | None, json: bool, verbose: bool) -> None:
+def cli(ctx: click.Context, config_file: Optional[str], json: bool, verbose: bool) -> None:
     """TMUX Orchestrator - AI-powered tmux session management.
 
     The TMUX Orchestrator enables autonomous AI agents to collaborate in tmux sessions,
@@ -309,7 +310,7 @@ def status(ctx: click.Context, json: bool) -> None:
 @click.option("--project-name", help="Project name (defaults to current directory)")
 @click.option("--json", "output_json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def quick_deploy(ctx: click.Context, team_type: str, size: int, project_name: str | None, output_json: bool) -> None:
+def quick_deploy(ctx: click.Context, team_type: str, size: int, project_name: Optional[str], output_json: bool) -> None:
     """Rapidly deploy optimized team configurations for immediate productivity.
 
     Creates a complete, ready-to-work team using battle-tested configurations

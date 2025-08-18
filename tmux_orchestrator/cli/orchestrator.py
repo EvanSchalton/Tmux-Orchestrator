@@ -2,6 +2,7 @@
 
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 import click
 from rich.console import Console
@@ -47,7 +48,7 @@ def orchestrator(ctx: click.Context) -> None:
 @click.option("--session", default="tmux-orc", help="Orchestrator session name")
 @click.option("--project-dir", help="Project directory (defaults to current)")
 @click.pass_context
-def start(ctx: click.Context, session: str, project_dir: str | None) -> None:
+def start(ctx: click.Context, session: str, project_dir: Optional[str]) -> None:
     """Start the master orchestrator for enterprise-wide project coordination.
 
     Creates and initializes the main orchestrator agent with comprehensive
@@ -156,7 +157,7 @@ Begin by analyzing the current system state and available projects."""
 @click.argument("note")
 @click.option("--target", help="Target window (defaults to current orchestrator)")
 @click.pass_context
-def schedule(ctx: click.Context, minutes: int, note: str, target: str | None) -> None:
+def schedule(ctx: click.Context, minutes: int, note: str, target: Optional[str]) -> None:
     """Schedule automated reminders and orchestrator check-ins.
 
     Creates time-based reminders for the orchestrator to perform specific
@@ -557,7 +558,7 @@ def kill(ctx: click.Context, session: str, force: bool) -> None:
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
 @click.option("--exclude", help="Comma-separated list of sessions to preserve")
 @click.pass_context
-def kill_all(ctx: click.Context, force: bool, exclude: str | None) -> None:
+def kill_all(ctx: click.Context, force: bool, exclude: Optional[str]) -> None:
     """Terminate ALL tmux sessions with strategic oversight and safety controls.
 
     Provides emergency shutdown capabilities for the entire tmux ecosystem
@@ -724,7 +725,7 @@ def kill_all(ctx: click.Context, force: bool, exclude: str | None) -> None:
 @click.option("--session-filter", help="Filter sessions by name pattern")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filter: str | None, json: bool) -> None:
+def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filter: Optional[str], json: bool) -> None:
     """Orchestrator-level strategic broadcasts to project teams and PMs.
 
     Sends high-priority, strategically important communications from the

@@ -24,7 +24,7 @@ import os
 import subprocess
 import sys
 import time
-from typing import Any, Callable, List
+from typing import Any, Callable, Dict, List
 
 # CLI introspection imports
 # FastMCP for MCP server implementation
@@ -99,7 +99,7 @@ class EnhancedHierarchicalSchema:
     }
 
     @staticmethod
-    def build_hierarchical_schema(group_name: str, subcommands: list[str]) -> dict[str, Any]:
+    def build_hierarchical_schema(group_name: str, subcommands: List[str]) -> Dict[str, Any]:
         """Build enhanced hierarchical schema with enumDescriptions."""
         descriptions = EnhancedHierarchicalSchema.COMPLETE_ACTION_DESCRIPTIONS.get(group_name, {})
 
@@ -159,7 +159,7 @@ class EnhancedCLIToMCPServer:
         mode = "hierarchical" if HIERARCHICAL_MODE else "flat"
         logger.info(f"Initializing enhanced CLI reflection MCP server: {server_name} (mode: {mode})")
 
-    async def discover_cli_structure(self) -> dict[str, Any]:
+    async def discover_cli_structure(self) -> Dict[str, Any]:
         """
         Discover the complete CLI structure using tmux-orc reflect.
 
@@ -200,7 +200,7 @@ class EnhancedCLIToMCPServer:
             logger.error(f"CLI discovery failed: {e}")
             return {}
 
-    def generate_all_mcp_tools(self) -> dict[str, Any]:
+    def generate_all_mcp_tools(self) -> Dict[str, Any]:
         """
         Generate all MCP tools from discovered CLI structure.
         Supports both hierarchical and flat modes.
@@ -227,7 +227,7 @@ class EnhancedCLIToMCPServer:
         logger.info(f"Successfully generated {len(self.generated_tools)} MCP tools")
         return self.generated_tools
 
-    def _generate_hierarchical_tools(self, commands: dict[str, Any]) -> None:
+    def _generate_hierarchical_tools(self, commands: Dict[str, Any]) -> None:
         """Generate hierarchical tools - one tool per command group."""
         for command_name, command_info in commands.items():
             try:
@@ -243,7 +243,7 @@ class EnhancedCLIToMCPServer:
                 logger.error(f"Failed to generate hierarchical tool for {command_name}: {e}")
                 continue
 
-    def _generate_flat_tools(self, commands: dict[str, Any]) -> None:
+    def _generate_flat_tools(self, commands: Dict[str, Any]) -> None:
         """Generate flat tools - original behavior."""
         for command_name, command_info in commands.items():
             try:
@@ -327,7 +327,7 @@ class EnhancedCLIToMCPServer:
     def _create_hierarchical_tool_function(self, group_name: str, subcommands: List[str]) -> Callable:
         """Create hierarchical tool function with enhanced validation."""
 
-        async def hierarchical_tool(**kwargs) -> dict[str, Any]:
+        async def hierarchical_tool(**kwargs) -> Dict[str, Any]:
             """Enhanced hierarchical tool function."""
             action = kwargs.get("action")
 
@@ -405,7 +405,7 @@ class EnhancedCLIToMCPServer:
 
         return hierarchical_tool
 
-    def _generate_tool_for_command(self, command_name: str, command_info: dict[str, Any]) -> None:
+    def _generate_tool_for_command(self, command_name: str, command_info: Dict[str, Any]) -> None:
         """Generate an MCP tool for a specific CLI command."""
 
         # Clean command name for MCP tool (replace hyphens with underscores)
@@ -455,7 +455,7 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to register tool {tool_name}: {e}")
 
-    def _generate_tools_for_group(self, group_name: str, group_info: dict[str, Any]) -> None:
+    def _generate_tools_for_group(self, group_name: str, group_info: Dict[str, Any]) -> None:
         """Generate MCP tools for all subcommands in a command group."""
         try:
             logger.debug(f"Discovering subcommands for group: {group_name}")
@@ -527,7 +527,7 @@ class EnhancedCLIToMCPServer:
 
         return subcommands
 
-    def _generate_tool_for_subcommand(self, tool_name: str, full_command: str, command_info: dict[str, Any]) -> None:
+    def _generate_tool_for_subcommand(self, tool_name: str, full_command: str, command_info: Dict[str, Any]) -> None:
         """Generate an MCP tool for a subcommand."""
 
         # Extract command information
@@ -573,10 +573,10 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to register subcommand tool {tool_name}: {e}")
 
-    def _create_subcommand_tool_function(self, full_command: str, command_info: dict[str, Any]):
+    def _create_subcommand_tool_function(self, full_command: str, command_info: Dict[str, Any]):
         """Create the actual function that executes a subcommand."""
 
-        async def tool_function(**kwargs) -> dict[str, Any]:
+        async def tool_function(**kwargs) -> Dict[str, Any]:
             """Dynamically generated MCP tool function for subcommand."""
             try:
                 logger.info(f"Executing CLI subcommand: {full_command} with args: {kwargs}")
@@ -617,7 +617,7 @@ class EnhancedCLIToMCPServer:
 
         return tool_function
 
-    async def _execute_cli_subcommand(self, cmd_parts: list[str], cli_args: list[str]) -> dict[str, Any]:
+    async def _execute_cli_subcommand(self, cmd_parts: List[str], cli_args: List[str]) -> Dict[str, Any]:
         """Execute CLI subcommand and return structured result."""
         start_time = time.time()
 
@@ -665,10 +665,10 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             return {"return_code": -1, "error": str(e), "execution_time": time.time() - start_time}
 
-    def _create_tool_function(self, command_name: str, command_info: dict[str, Any]):
+    def _create_tool_function(self, command_name: str, command_info: Dict[str, Any]):
         """Create the actual function that executes the CLI command."""
 
-        async def tool_function(**kwargs) -> dict[str, Any]:
+        async def tool_function(**kwargs) -> Dict[str, Any]:
             """Dynamically generated MCP tool function."""
             try:
                 logger.info(f"Executing CLI command: {command_name} with args: {kwargs}")
@@ -706,7 +706,7 @@ class EnhancedCLIToMCPServer:
 
         return tool_function
 
-    def _convert_kwargs_to_cli_args(self, kwargs: dict[str, Any]) -> list[str]:
+    def _convert_kwargs_to_cli_args(self, kwargs: Dict[str, Any]) -> List[str]:
         """Convert MCP keyword arguments to CLI arguments."""
         cli_args = []
 

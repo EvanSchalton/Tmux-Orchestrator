@@ -7,7 +7,7 @@ injection attacks and ensure data integrity.
 import re
 import shlex
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 from tmux_orchestrator.utils.exceptions import ValidationError
 
@@ -210,7 +210,7 @@ def sanitize_path(path: str) -> str:
         raise ValidationError(f"Invalid path: {e}")
 
 
-def sanitize_command_args(args: list[str]) -> list[str]:
+def sanitize_command_args(args: List[str]) -> List[str]:
     """Sanitize command line arguments.
 
     Args:

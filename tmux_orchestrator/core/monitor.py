@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -50,8 +50,8 @@ class DaemonAlreadyRunningError(Exception):
 class TerminalCache(BaseModel):
     """Intelligent terminal content caching for idle detection."""
 
-    early_value: str | None = None
-    later_value: str | None = None
+    early_value: Optional[str] = None
+    later_value: Optional[str] = None
     max_distance: int = 10
     use_levenshtein: bool = False  # Toggle between Levenshtein and efficient scoring
 
@@ -111,7 +111,7 @@ class IdleMonitor:
     _instance = None
     _lock = threading.Lock()
 
-    def __new__(cls, tmux: TMUXManager, config: Config | None = None):
+    def __new__(cls, tmux: TMUXManager, config: Optional[Config] = None):
         """Ensure only one instance of IdleMonitor exists (singleton pattern)."""
         if cls._instance is None:
             with cls._lock:
@@ -120,7 +120,7 @@ class IdleMonitor:
                     cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, tmux: TMUXManager, config: Config | None = None):
+    def __init__(self, tmux: TMUXManager, config: Optional[Config] = None):
         # Only initialize once
         if hasattr(self, "_initialized"):
             return
@@ -1139,7 +1139,7 @@ monitor._run_monitoring_daemon({interval})
 
         return session_logger
 
-    def _cleanup_daemon(self, signum: int | None = None, is_graceful: bool = False) -> None:
+    def _cleanup_daemon(self, signum: Optional[int] = None, is_graceful: bool = False) -> None:
         """Clean up daemon resources.
 
         Args:
@@ -1848,7 +1848,7 @@ monitor._run_monitoring_daemon({interval})
         except Exception:
             return None
 
-    def _find_pm_window(self, tmux: TMUXManager, session_name: str | None = None) -> str | None:
+    def _find_pm_window(self, tmux: TMUXManager, session_name: Optional[str] = None) -> Optional[str]:
         """Find PM window by name pattern, regardless of Claude interface status.
 
         This is used for recovery detection - finds ANY PM window, healthy or crashed.
@@ -2032,7 +2032,7 @@ monitor._run_monitoring_daemon({interval})
         """Detect if PM has crashed in the given session.
 
         Returns:
-            Tuple of (crashed: bool, pm_target: str | None)
+            Tuple of (crashed: bool, pm_target: Optional[str])
             - crashed: True if PM crashed or is unhealthy
             - pm_target: The target string if PM window exists (crashed or healthy)
         """
@@ -2698,7 +2698,7 @@ monitor._run_monitoring_daemon({interval})
         self,
         tmux: TMUXManager,
         session_name: str,
-        crashed_pm_target: str | None,
+        crashed_pm_target: Optional[str],
         logger: logging.Logger,
         max_retries: int = 3,
         retry_delay: int = 2,
