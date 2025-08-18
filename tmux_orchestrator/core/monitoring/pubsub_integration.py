@@ -35,13 +35,13 @@ class MonitorPubsubClient:
     ) -> Tuple[bool, float]:
         """
         Publish notification with performance tracking.
-        
+
         Args:
             target: Target session:window
             message: Message content
             priority: Message priority (low, normal, high, critical)
             tags: Optional message tags
-            
+
         Returns:
             Tuple of (success, delivery_time_ms)
         """
@@ -55,11 +55,11 @@ class MonitorPubsubClient:
             # Try daemon first for performance
             response = await self._daemon_client.publish(target, message, priority, tags)
             success = response.get("status") == "queued"
-            
+
             if not success and self._cli_fallback:
                 # Fallback to CLI if daemon fails
                 success = await self._publish_via_cli(target, message, priority, tags)
-                
+
         except Exception as e:
             self.logger.warning(f"Daemon publish failed: {e}")
             if self._cli_fallback:
@@ -100,11 +100,11 @@ class MonitorPubsubClient:
                 "--priority",
                 priority,
             ]
-            
+
             # Add tags
             for tag in tags:
                 cmd.extend(["--tag", tag])
-                
+
             cmd.append(message)
 
             # Run command
@@ -113,7 +113,7 @@ class MonitorPubsubClient:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            
+
             await result.wait()
             return result.returncode == 0
 
@@ -127,14 +127,14 @@ class MonitorPubsubClient:
     ) -> Dict[str, any]:
         """
         Publish multiple notifications in batch for efficiency.
-        
+
         Args:
             notifications: List of notification dicts with keys:
                 - target: Target session:window
                 - message: Message content
                 - priority: Message priority (optional)
                 - tags: Message tags (optional)
-                
+
         Returns:
             Dict with batch statistics
         """
@@ -188,10 +188,7 @@ class MonitorPubsubClient:
         }
 
         # Overall performance
-        all_times = (
-            self._performance_metrics["daemon_times"] +
-            self._performance_metrics["cli_times"]
-        )
+        all_times = self._performance_metrics["daemon_times"] + self._performance_metrics["cli_times"]
         stats["overall"] = self._calculate_stats(all_times)
         stats["meeting_target"] = all(t < 100 for t in all_times[-100:])  # Last 100 messages
 
@@ -210,7 +207,7 @@ class MonitorPubsubClient:
 
         sorted_times = sorted(times)
         count = len(sorted_times)
-        
+
         return {
             "count": count,
             "min": sorted_times[0],
@@ -251,31 +248,29 @@ class PriorityMessageRouter:
 
         if route["method"] == "batch" and priority == "low":
             # Queue low priority for batch processing
-            self._batch_queue["low"].append({
-                "target": target,
-                "message": message,
-                "priority": priority,
-                "tags": tags or [],
-            })
-            
+            self._batch_queue["low"].append(
+                {
+                    "target": target,
+                    "message": message,
+                    "priority": priority,
+                    "tags": tags or [],
+                }
+            )
+
             # Process batch if queue is large enough
             if len(self._batch_queue["low"]) >= 10:
                 await self.flush_batch_queue()
-                
+
             return True
 
         else:
             # Direct send for higher priorities
-            success, delivery_time = await self.client.publish_notification(
-                target, message, priority, tags
-            )
+            success, delivery_time = await self.client.publish_notification(target, message, priority, tags)
 
             # Retry critical/high priority if failed and under timeout
             if not success and route["retry"] and delivery_time < route["timeout"]:
                 self.logger.info(f"Retrying {priority} priority message")
-                success, _ = await self.client.publish_notification(
-                    target, message, priority, tags
-                )
+                success, _ = await self.client.publish_notification(target, message, priority, tags)
 
             return success
 

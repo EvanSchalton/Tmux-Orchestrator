@@ -4,7 +4,6 @@ This module provides utilities for the monitoring daemon to send structured
 notifications through the pubsub messaging system instead of direct tmux commands.
 """
 
-import asyncio
 import json
 import subprocess
 from datetime import datetime
@@ -240,7 +239,9 @@ class DaemonPubsubIntegration:
                     "subject": subject,
                     "body": body,
                     "context": context,
-                    "actions": [{"id": action, "label": action.replace("_", " ").title()} for action in (actions or [])],
+                    "actions": [
+                        {"id": action, "label": action.replace("_", " ").title()} for action in (actions or [])
+                    ],
                 },
             },
             "metadata": {
@@ -413,7 +414,9 @@ class DaemonPubsubIntegration:
             Formatted message body
         """
         if action_type == "investigate_agent":
-            return f"Please investigate {context.get('agent', 'unknown')} - {context.get('reason', 'unspecified issue')}"
+            return (
+                f"Please investigate {context.get('agent', 'unknown')} - {context.get('reason', 'unspecified issue')}"
+            )
         elif action_type == "redistribute_tasks":
             return f"Agent {context.get('failed_agent', 'unknown')} failed. Please redistribute tasks to active agents."
         else:

@@ -11,7 +11,6 @@ from datetime import datetime
 from typing import Dict, List, Optional, Set
 
 from tmux_orchestrator.core.config import Config
-from tmux_orchestrator.core.messaging_daemon import DaemonClient
 from tmux_orchestrator.core.monitoring.pubsub_integration import MonitorPubsubClient, PriorityMessageRouter
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -24,16 +23,16 @@ class PubsubRecoveryCoordinator:
         self.tmux = tmux
         self.config = config
         self.logger = logger
-        
+
         # Initialize pubsub components
         self.pubsub_client = MonitorPubsubClient(logger)
         self.priority_router = PriorityMessageRouter(self.pubsub_client)
-        
+
         # Recovery state tracking
         self._active_recoveries: Set[str] = set()
         self._recovery_history: Dict[str, List[Dict]] = {}
         self._pm_recovery_grace_period = 180  # 3 minutes grace after PM recovery
-        
+
     async def notify_recovery_needed(
         self,
         target: str,
@@ -44,14 +43,14 @@ class PubsubRecoveryCoordinator:
     ) -> bool:
         """
         Send high-priority recovery notification via pubsub.
-        
+
         Args:
             target: Target agent/PM identifier
             issue: Description of the issue
             session: Session name
             recovery_type: Type of recovery (agent, pm, team)
             metadata: Additional recovery metadata
-            
+
         Returns:
             Success status
         """
@@ -91,19 +90,21 @@ class PubsubRecoveryCoordinator:
         )
 
         # Track recovery in history
-        self._track_recovery(recovery_key, {
-            "timestamp": datetime.now(),
-            "target": target,
-            "issue": issue,
-            "type": recovery_type,
-            "priority": priority,
-            "notified": success,
-        })
+        self._track_recovery(
+            recovery_key,
+            {
+                "timestamp": datetime.now(),
+                "target": target,
+                "issue": issue,
+                "type": recovery_type,
+                "priority": priority,
+                "notified": success,
+            },
+        )
 
         if success:
             self.logger.info(
-                f"Recovery notification sent to PM {pm_target} for {target} "
-                f"(priority: {priority}, issue: {issue})"
+                f"Recovery notification sent to PM {pm_target} for {target} " f"(priority: {priority}, issue: {issue})"
             )
         else:
             self.logger.error(f"Failed to send recovery notification for {target}")
@@ -120,7 +121,7 @@ class PubsubRecoveryCoordinator:
     ) -> bool:
         """Notify PM that recovery is complete."""
         recovery_key = f"{session}:{target}"
-        
+
         # Remove from active recoveries
         self._active_recoveries.discard(recovery_key)
 
@@ -176,11 +177,9 @@ class PubsubRecoveryCoordinator:
 
         # Execute notifications concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         success_count = sum(1 for r in results if r is True)
-        self.logger.info(
-            f"Team recovery notification sent to {success_count}/{len(affected_agents)} agents"
-        )
+        self.logger.info(f"Team recovery notification sent to {success_count}/{len(affected_agents)} agents")
 
         return success_count > 0
 
@@ -189,7 +188,7 @@ class PubsubRecoveryCoordinator:
         # Check recovery history for recent PM recovery
         pm_key = pm_target.replace(":", "_")
         pm_history = self._recovery_history.get(pm_key, [])
-        
+
         if pm_history:
             latest_recovery = pm_history[-1]
             recovery_time = latest_recovery.get("timestamp")
@@ -197,18 +196,17 @@ class PubsubRecoveryCoordinator:
                 elapsed = (datetime.now() - recovery_time).total_seconds()
                 if elapsed < self._pm_recovery_grace_period:
                     self.logger.debug(
-                        f"PM {pm_target} in grace period "
-                        f"({elapsed:.0f}s < {self._pm_recovery_grace_period}s)"
+                        f"PM {pm_target} in grace period " f"({elapsed:.0f}s < {self._pm_recovery_grace_period}s)"
                     )
                     return True
-                    
+
         return False
 
     async def batch_recovery_status(self) -> Dict[str, any]:
         """Get comprehensive recovery status with performance metrics."""
         # Get pubsub performance stats
         perf_stats = self.pubsub_client.get_performance_stats()
-        
+
         status = {
             "active_recoveries": list(self._active_recoveries),
             "recovery_count": len(self._active_recoveries),
@@ -239,10 +237,10 @@ class PubsubRecoveryCoordinator:
             "pm": "🚨",
             "team": "⚡",
         }
-        
+
         emoji = emoji_map.get(recovery_type, "🔧")
         type_label = recovery_type.upper()
-        
+
         return (
             f"{emoji} {type_label} RECOVERY NEEDED - {timestamp}\\n"
             f"Target: {target}\\n"
@@ -257,13 +255,13 @@ class PubsubRecoveryCoordinator:
             return "critical"
         if "crash" in issue.lower() or "failure" in issue.lower():
             return "critical"
-            
+
         # High priorities
         if recovery_type == "team":
             return "high"
         if "not responding" in issue.lower():
             return "high"
-            
+
         # Normal priority for standard agent issues
         return "normal"
 
@@ -286,9 +284,9 @@ class PubsubRecoveryCoordinator:
         history_key = recovery_key.replace(":", "_")
         if history_key not in self._recovery_history:
             self._recovery_history[history_key] = []
-        
+
         self._recovery_history[history_key].append(recovery_data)
-        
+
         # Limit history size
         if len(self._recovery_history[history_key]) > 100:
             self._recovery_history[history_key] = self._recovery_history[history_key][-50:]

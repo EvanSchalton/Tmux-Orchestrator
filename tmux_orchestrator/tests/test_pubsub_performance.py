@@ -32,52 +32,52 @@ class PubsubPerformanceTester:
     async def run_performance_tests(self, target: str = "test:0", iterations: int = 100) -> Dict[str, any]:
         """
         Run comprehensive performance tests.
-        
+
         Args:
             target: Target window for testing
             iterations: Number of test iterations
-            
+
         Returns:
             Performance test results
         """
         print(f"🚀 Running performance tests ({iterations} iterations)...")
-        
+
         # Test 1: Direct daemon performance
         print("\n1️⃣ Testing direct daemon performance...")
         await self._test_direct_daemon(target, iterations)
-        
+
         # Test 2: Pubsub client performance
         print("\n2️⃣ Testing pubsub client performance...")
         await self._test_pubsub_client(target, iterations)
-        
+
         # Test 3: Priority router performance
         print("\n3️⃣ Testing priority router performance...")
         await self._test_priority_router(target, iterations)
-        
+
         # Test 4: Batch delivery performance
         print("\n4️⃣ Testing batch delivery performance...")
         await self._test_batch_delivery(target, min(iterations, 50))
-        
+
         # Analyze results
         return self._analyze_results()
 
     async def _test_direct_daemon(self, target: str, iterations: int) -> None:
         """Test direct daemon client performance."""
         client = DaemonClient()
-        
+
         for i in range(iterations):
             message = f"Performance test {i} - direct daemon"
             start = time.perf_counter()
-            
+
             try:
                 await client.publish(target, message, "normal", ["test"])
             except Exception as e:
                 print(f"❌ Direct daemon error: {e}")
                 continue
-                
+
             elapsed_ms = (time.perf_counter() - start) * 1000
             self.results["direct_daemon"].append(elapsed_ms)
-            
+
             if i % 10 == 0:
                 print(f"  Progress: {i}/{iterations} (last: {elapsed_ms:.1f}ms)")
 
@@ -85,45 +85,41 @@ class PubsubPerformanceTester:
         """Test pubsub client with fallback performance."""
         for i in range(iterations):
             message = f"Performance test {i} - pubsub client"
-            
-            success, elapsed_ms = await self.pubsub_client.publish_notification(
-                target, message, "normal", ["test"]
-            )
-            
+
+            success, elapsed_ms = await self.pubsub_client.publish_notification(target, message, "normal", ["test"])
+
             if success:
                 self.results["pubsub_client"].append(elapsed_ms)
-            
+
             if i % 10 == 0:
                 print(f"  Progress: {i}/{iterations} (last: {elapsed_ms:.1f}ms)")
 
     async def _test_priority_router(self, target: str, iterations: int) -> None:
         """Test priority-based routing performance."""
         priorities = ["critical", "high", "normal", "low"]
-        
+
         for i in range(iterations):
             priority = priorities[i % len(priorities)]
             message = f"Performance test {i} - priority {priority}"
-            
+
             start = time.perf_counter()
-            success = await self.priority_router.route_message(
-                target, message, priority, ["test"]
-            )
+            success = await self.priority_router.route_message(target, message, priority, ["test"])
             elapsed_ms = (time.perf_counter() - start) * 1000
-            
+
             if success:
                 self.results["priority_router"].append(elapsed_ms)
-            
+
             if i % 10 == 0:
                 print(f"  Progress: {i}/{iterations} (last: {elapsed_ms:.1f}ms, priority: {priority})")
 
     async def _test_batch_delivery(self, target: str, batch_count: int) -> None:
         """Test batch delivery performance."""
         batch_sizes = [5, 10, 20, 50]
-        
+
         for size in batch_sizes:
             if batch_count < size:
                 continue
-                
+
             # Prepare batch
             notifications = [
                 {
@@ -134,16 +130,16 @@ class PubsubPerformanceTester:
                 }
                 for i in range(size)
             ]
-            
+
             # Test batch delivery
             start = time.perf_counter()
             result = await self.pubsub_client.batch_publish(notifications)
             elapsed_ms = (time.perf_counter() - start) * 1000
-            
+
             # Calculate per-message time
             per_msg_ms = elapsed_ms / size if size > 0 else 0
             self.results["batch_delivery"].extend([per_msg_ms] * result["success"])
-            
+
             print(f"  Batch size {size}: {elapsed_ms:.1f}ms total, {per_msg_ms:.1f}ms per message")
 
     def _analyze_results(self) -> Dict[str, any]:
@@ -158,10 +154,10 @@ class PubsubPerformanceTester:
         for test_name, times in self.results.items():
             if not times:
                 continue
-                
+
             sorted_times = sorted(times)
             count = len(sorted_times)
-            
+
             stats = {
                 "count": count,
                 "min": sorted_times[0],
@@ -171,11 +167,11 @@ class PubsubPerformanceTester:
                 "p95": sorted_times[int(count * 0.95)] if count > 1 else sorted_times[0],
                 "p99": sorted_times[int(count * 0.99)] if count > 1 else sorted_times[0],
             }
-            
+
             # Check target compliance
             under_100ms = sum(1 for t in sorted_times if t < 100)
             compliance_pct = (under_100ms / count) * 100
-            
+
             analysis["summary"][test_name] = stats
             analysis["target_compliance"][test_name] = {
                 "under_100ms_count": under_100ms,
@@ -185,20 +181,18 @@ class PubsubPerformanceTester:
 
         # Generate recommendations
         self._generate_recommendations(analysis)
-        
+
         return analysis
 
     def _generate_recommendations(self, analysis: Dict[str, any]) -> None:
         """Generate performance recommendations based on results."""
         recommendations = []
-        
+
         for test_name, compliance in analysis["target_compliance"].items():
             if not compliance["meets_target"]:
                 pct = compliance["compliance_percentage"]
-                recommendations.append(
-                    f"⚠️  {test_name}: Only {pct:.1f}% of messages meet <100ms target"
-                )
-                
+                recommendations.append(f"⚠️  {test_name}: Only {pct:.1f}% of messages meet <100ms target")
+
                 # Specific recommendations
                 if test_name == "direct_daemon":
                     recommendations.append("   → Check daemon socket performance")
@@ -215,7 +209,7 @@ class PubsubPerformanceTester:
 
         if not recommendations:
             recommendations.append("✅ All performance targets met!")
-            
+
         analysis["recommendations"] = recommendations
 
     def print_results(self, analysis: Dict[str, any]) -> None:
@@ -223,7 +217,7 @@ class PubsubPerformanceTester:
         print("\n" + "=" * 60)
         print("📊 PERFORMANCE TEST RESULTS")
         print("=" * 60)
-        
+
         # Summary stats
         print("\n📈 Performance Summary:")
         for test_name, stats in analysis["summary"].items():
@@ -235,13 +229,13 @@ class PubsubPerformanceTester:
             print(f"  P95: {stats['p95']:.1f}ms")
             print(f"  P99: {stats['p99']:.1f}ms")
             print(f"  Max: {stats['max']:.1f}ms")
-        
+
         # Target compliance
         print("\n🎯 Target Compliance (<100ms):")
         for test_name, compliance in analysis["target_compliance"].items():
             status = "✅" if compliance["meets_target"] else "❌"
             print(f"{status} {test_name}: {compliance['compliance_percentage']:.1f}%")
-        
+
         # Recommendations
         print("\n💡 Recommendations:")
         for rec in analysis["recommendations"]:
@@ -251,17 +245,17 @@ class PubsubPerformanceTester:
 async def main():
     """Run performance tests."""
     tester = PubsubPerformanceTester()
-    
+
     # Create test window if needed
     tmux = TMUXManager()
     try:
         tmux.create_session("test")
-    except:
+    except Exception:
         pass  # Session might already exist
-    
+
     # Run tests
     results = await tester.run_performance_tests("test:0", iterations=100)
-    
+
     # Print results
     tester.print_results(results)
 

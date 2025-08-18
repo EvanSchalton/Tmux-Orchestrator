@@ -35,13 +35,13 @@ class PubsubNotificationManager(NotificationManagerInterface):
         """Initialize the notification manager and daemon client."""
         try:
             self.logger.info("Initializing PubsubNotificationManager")
-            
+
             # Initialize daemon client
             self._daemon_client = DaemonClient()
-            
+
             # Test daemon connectivity
             asyncio.run(self._test_daemon_connection())
-            
+
             return True
         except Exception as e:
             self.logger.warning(f"Daemon client initialization failed, falling back to direct tmux: {e}")
@@ -81,8 +81,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
             time_diff = (datetime.now() - last_time).total_seconds()
             if time_diff < self._notification_cooldown:
                 self.logger.debug(
-                    f"Throttling notification for {notification_key} "
-                    f"(last sent {time_diff:.0f}s ago)"
+                    f"Throttling notification for {notification_key} " f"(last sent {time_diff:.0f}s ago)"
                 )
                 return
 
@@ -275,14 +274,14 @@ class PubsubNotificationManager(NotificationManagerInterface):
                 # Send consolidated report via pubsub or fallback
                 if report_sections:
                     full_report = report_header + "\\n\\n".join(report_sections)
-                    
+
                     # Determine priority based on content
                     priority = "normal"
                     if critical_messages:
                         priority = "critical"
                     elif high_priority:
                         priority = "high"
-                    
+
                     success = self._send_notification(pm_target, full_report, priority)
                     if success:
                         sent_count += 1
@@ -338,7 +337,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
             "total_pm_messages": sum(len(msgs) for msgs in self._pm_notifications.values()),
             "delivery_method": "daemon" if self._use_daemon else "direct_tmux",
         }
-        
+
         # Add daemon stats if available
         if self._use_daemon and self._daemon_client:
             try:
@@ -351,5 +350,5 @@ class PubsubNotificationManager(NotificationManagerInterface):
                     }
             except Exception:
                 pass
-                
+
         return stats

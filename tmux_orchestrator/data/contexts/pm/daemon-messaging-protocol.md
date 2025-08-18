@@ -190,7 +190,7 @@ await self._send_pubsub_notification(
 async def handle_daemon_message(self, message: Dict[str, Any]):
     msg_type = message["message"]["type"]
     category = message["message"]["category"]
-    
+
     if msg_type == "notification":
         if category == "health":
             await self._handle_health_notification(message)
@@ -295,7 +295,7 @@ Daemon Detects Crash
 ```python
 class DaemonPubsubIntegration:
     """Daemon-side pubsub integration for structured messaging."""
-    
+
     async def send_health_alert(self, agent_target: str, issue: str, context: dict):
         """Send structured health alert through pubsub."""
         message = self._build_message(
@@ -308,11 +308,11 @@ class DaemonPubsubIntegration:
             tags=["monitoring", "health", issue.lower()],
             requires_ack=True
         )
-        
+
         # Determine target PM
         session = agent_target.split(":")[0]
         pm_target = f"{session}:1"  # Standard PM window
-        
+
         # Send via pubsub
         await self.pubsub_client.publish(
             target=pm_target,

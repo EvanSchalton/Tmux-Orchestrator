@@ -16,7 +16,7 @@ This guide provides comprehensive testing instructions for the critical daemon r
 
 ### Test Classes
 1. `TestFalsePositiveCrashDetection` - False positive prevention tests
-2. `TestPMRecoveryCooldown` - Recovery cooldown mechanism tests  
+2. `TestPMRecoveryCooldown` - Recovery cooldown mechanism tests
 3. `TestTeamNotificationFixes` - Team notification method tests
 4. `TestSingletonEnforcement` - Singleton pattern tests
 5. `TestIntegrationScenarios` - End-to-end integration tests

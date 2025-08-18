@@ -7,7 +7,6 @@ This test validates that all 92 flat tool operations can be performed using
 """
 
 
-
 class ToolReductionTest:
     """Demonstrates the tool reduction from flat to hierarchical structure."""
 
