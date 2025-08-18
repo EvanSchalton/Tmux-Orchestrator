@@ -8,7 +8,7 @@ the 60-second recovery requirement with comprehensive error handling.
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from tmux_orchestrator.core.recovery.auto_restart import auto_restart_agent
 from tmux_orchestrator.core.recovery.check_agent_health import (
@@ -26,11 +26,11 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 def coordinate_agent_recovery(
     tmux: TMUXManager,
     target: str,
-    logger: Optional[logging.Logger] = None,
+    logger: logging.Logger | None = None,
     max_failures: int = 3,
     recovery_timeout: int = 60,
     enable_auto_restart: bool = True,
-    briefing_text: Optional[str] = None,
+    briefing_text: str | None = None,
     use_structured_logging: bool = True,
 ) -> tuple[bool, str, dict[str, Any]]:
     """

@@ -1,7 +1,5 @@
 """Project Manager specific commands."""
 
-from typing import Optional
-
 import click
 from rich.console import Console
 
@@ -245,7 +243,7 @@ def broadcast(ctx: click.Context, message: str, json: bool) -> None:
 @click.option("--custom-message", help="Custom check-in message")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def custom_checkin(ctx: click.Context, custom_message: Optional[str], json: bool) -> None:
+def custom_checkin(ctx: click.Context, custom_message: str | None, json: bool) -> None:
     """Send customized status check-in request to all team agents.
 
     Allows the PM to send a tailored status request instead of the
@@ -408,7 +406,7 @@ def status(ctx: click.Context, json: bool) -> None:
 @click.option("--project-dir", help="Project directory (defaults to current)")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def create(ctx: click.Context, session: str, project_dir: Optional[str], json: bool) -> None:
+def create(ctx: click.Context, session: str, project_dir: str | None, json: bool) -> None:
     """Create a new Project Manager for team coordination and oversight.
 
     Deploys a specialized Claude agent configured as a Project Manager

@@ -1,7 +1,6 @@
 """Project Manager specific functionality."""
 
 from datetime import datetime
-from typing import Dict, List, Union
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -50,7 +49,7 @@ Please read the task file and create an implementation plan."""
     def __init__(self, tmux: TMUXManager):
         self.tmux = tmux
 
-    def find_pm_session(self) -> Union[str, None]:
+    def find_pm_session(self) -> str | None:
         """Find the PM session and window."""
         sessions = self.tmux.list_sessions()
 
@@ -63,7 +62,7 @@ Please read the task file and create an implementation plan."""
 
         return None
 
-    def deploy_pm(self, project_name: str, task_file: Union[str, None] = None) -> str:
+    def deploy_pm(self, project_name: str, task_file: str | None = None) -> str:
         """Deploy a Project Manager."""
         session_name = f"{project_name}-{project_name}"  # Following the pattern
 
@@ -125,7 +124,7 @@ Please read the task file and create an implementation plan."""
         )
         self.tmux.send_keys(target, "Enter")
 
-    def _get_pm_briefing(self, project_name: str, task_file: Union[str, None]) -> str:
+    def _get_pm_briefing(self, project_name: str, task_file: str | None) -> str:
         """Get PM briefing with agent list from the same session."""
         # Determine the session name for this PM
         session_name = f"{project_name}-{project_name}"  # Following the deploy_pm pattern
@@ -163,7 +162,7 @@ Please read the task file and create an implementation plan."""
         # Send to PM
         self.tmux.send_message(pm_target, status_report)
 
-    def _build_status_report(self, agents: List[Dict]) -> str:
+    def _build_status_report(self, agents: list[dict]) -> str:
         """Build a status report for PM."""
         report = f"""📊 TEAM STATUS REPORT - {datetime.now().strftime("%Y-%m-%d %H:%M")}
 ========================================
@@ -217,7 +216,7 @@ Remember: Quality over speed. No shortcuts."""
 
         return "No recent output"
 
-    def broadcast_to_all_agents(self, message: str, session: Union[str, None] = None) -> Dict[str, bool]:
+    def broadcast_to_all_agents(self, message: str, session: str = None) -> dict[str, bool]:
         """Broadcast a message to all agents in the same session.
 
         Args:
@@ -259,7 +258,7 @@ Remember: Quality over speed. No shortcuts."""
 
         return results
 
-    def custom_checkin(self, custom_message: str) -> Dict[str, bool]:
+    def custom_checkin(self, custom_message: str) -> dict[str, bool]:
         """Send custom check-in message to all agents."""
         full_message = f"""🔔 PM CHECK-IN REQUEST:
 

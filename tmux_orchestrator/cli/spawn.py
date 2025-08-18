@@ -1,7 +1,6 @@
 """Spawn command group for creating orchestrators, PMs, and agents."""
 
 from pathlib import Path
-from typing import Union
 
 import click
 from rich.console import Console
@@ -40,7 +39,7 @@ def spawn() -> None:
 @click.option("--no-launch", is_flag=True, help="Create config but don't launch terminal")
 @click.option("--no-gui", is_flag=True, help="Run in current terminal (for SSH/bash environments)")
 @click.pass_context
-def orc(ctx: click.Context, profile: Union[str, None], terminal: str, no_launch: bool, no_gui: bool) -> None:
+def orc(ctx: click.Context, profile: str | None, terminal: str, no_launch: bool, no_gui: bool) -> None:
     """Launch Claude Code as an orchestrator in a new terminal.
 
     This is the primary entry point for humans to start working with tmux-orchestrator.
@@ -70,7 +69,7 @@ def orc(ctx: click.Context, profile: Union[str, None], terminal: str, no_launch:
 @click.option("--extend", help="Additional project-specific context")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def pm(ctx: click.Context, session: str, extend: Union[str, None] = None, json: bool = False) -> None:
+def pm(ctx: click.Context, session: str, extend: str | None = None, json: bool = False) -> None:
     """Spawn a Project Manager with standardized context.
 
     This command creates a complete PM agent setup:
@@ -102,7 +101,7 @@ def pm(ctx: click.Context, session: str, extend: Union[str, None] = None, json: 
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def agent(
-    ctx: click.Context, name: str, target: str, briefing: str, working_dir: Union[str, None] = None, json: bool = False
+    ctx: click.Context, name: str, target: str, briefing: str, working_dir: str | None = None, json: bool = False
 ) -> None:
     """Spawn a custom agent into a specific session.
 

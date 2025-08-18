@@ -4,7 +4,6 @@ import logging
 import subprocess
 import time
 from pathlib import Path
-from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ class ClaudeInterface:
     """Handles Claude-specific terminal interface quirks."""
 
     @staticmethod
-    def send_message_to_claude(tmux_session: str, message: str, timeout: float = 10.0) -> Tuple[bool, str]:
+    def send_message_to_claude(tmux_session: str, message: str, timeout: float = 10.0) -> tuple[bool, str]:
         """
         Send a message to Claude and ensure it's actually submitted.
 

@@ -1,7 +1,6 @@
 """Context commands for standardized agent briefings."""
 
 from pathlib import Path
-from typing import Optional
 
 import click
 import pkg_resources  # noqa: E402
@@ -162,7 +161,7 @@ def list(json: bool) -> None:
 @click.option("--session", required=True, help="Target session name or session:window (legacy)")
 @click.option("--extend", help="Additional project-specific context")
 @click.option("--json", is_flag=True, help="Output in JSON format")
-def spawn(role: str, session: str, extend: Optional[str] = None, json: bool = False) -> None:
+def spawn(role: str, session: str, extend: str | None = None, json: bool = False) -> None:
     """Spawn an agent with standardized context (orchestrator/pm only).
 
     This command creates a complete agent setup:
@@ -321,7 +320,7 @@ def spawn(role: str, session: str, extend: Optional[str] = None, json: bool = Fa
 @click.option("--role", required=True, help="System role (orchestrator/pm) to export")
 @click.option("--project", help="Project name for customization")
 @click.option("--json", is_flag=True, help="Output in JSON format")
-def export(output_file: str, role: str, project: Optional[str] = None, json: bool = False) -> None:
+def export(output_file: str, role: str, project: str | None = None, json: bool = False) -> None:
     """Export a system role context to a file for customization.
 
     Only orchestrator and PM have standard contexts. All other agents

@@ -4,7 +4,7 @@ import asyncio
 import functools
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +19,10 @@ class AsyncCLIProcessor:
             max_workers: Maximum number of concurrent operations
         """
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
-        self._background_tasks: Dict[str, asyncio.Task] = {}
+        self._background_tasks: dict[str, asyncio.Task] = {}
 
     async def run_heavy_operation_async(
-        self, operation: Callable, *args, timeout: float = 30.0, task_id: Optional[str] = None, **kwargs
+        self, operation: Callable, *args, timeout: float = 30.0, task_id: str | None = None, **kwargs
     ) -> Any:
         """Run a heavy operation asynchronously.
 
@@ -178,7 +178,7 @@ def async_cli_wrapper(timeout: float = 30.0):
 
 
 # Global async processor instance for CLI operations
-_global_processor: Optional[AsyncCLIProcessor] = None
+_global_processor: AsyncCLIProcessor | None = None
 
 
 def get_global_async_processor() -> AsyncCLIProcessor:

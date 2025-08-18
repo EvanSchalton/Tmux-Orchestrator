@@ -10,7 +10,6 @@ Tests concurrent agent operations with focus on:
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 from unittest.mock import Mock, patch
 
 from tmux_orchestrator.core.config import Config
@@ -245,7 +244,7 @@ class TestThreadSafety:
         allocated_resources = set()
         lock = threading.Lock()
 
-        def allocate_resource() -> Optional[int]:
+        def allocate_resource() -> int | None:
             """Allocate a resource ID if available."""
             with lock:
                 if len(allocated_resources) >= max_resources:
@@ -301,7 +300,7 @@ class TestStressConditions:
         agent_counter = 0
         active_agents = {}
 
-        def spawn_agent() -> Optional[int]:
+        def spawn_agent() -> int | None:
             nonlocal agent_counter
             if len(active_agents) >= max_agents:
                 return None
