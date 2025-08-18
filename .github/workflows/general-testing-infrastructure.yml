@@ -111,7 +111,7 @@ jobs:
             {"name": "performance", "path": "tests/benchmarks", "timeout": "30m"}
           ],
           "os": ["ubuntu-latest"],
-          "python-version": ["3.11"]
+          "python-version": ["3.11", "3.12"]
         }
         EOF
         )
