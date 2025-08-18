@@ -462,7 +462,6 @@ def create(ctx: click.Context, session: str, project_dir: str | None, json: bool
 
     tmux: TMUXManager = ctx.obj["tmux"]
     pm_window = "Project-Manager"
-    target = f"{session}:{pm_window}"
 
     # Track creation steps for JSON output
     steps_completed = []
@@ -470,12 +469,35 @@ def create(ctx: click.Context, session: str, project_dir: str | None, json: bool
     error_message = None
 
     try:
-        # Check if session exists, create if not
+        # 1. Check for existing PM in the target session
+        existing_pm = None
+        if tmux.has_session(session):
+            windows = tmux.list_windows(session)
+            for window in windows:
+                if any(pattern in window["name"].lower() for pattern in ["pm", "project-manager", "claude-pm"]):
+                    existing_pm = f"{session}:{window['index']}"
+                    break
+
+        # 2. Handle existing PM
+        if existing_pm:
+            if not json:
+                console.print(f"[yellow]PM already exists at {existing_pm}[/yellow]")
+                console.print("[blue]Replacing existing PM...[/blue]")
+
+            # Kill the existing PM window
+            if tmux.kill_window(existing_pm):
+                steps_completed.append("existing_pm_replaced")
+            else:
+                if not json:
+                    console.print("[yellow]⚠ Could not remove existing PM, continuing...[/yellow]")
+
+        # 3. Create session if needed (but without PM window name conflict)
         session_existed = tmux.has_session(session)
         if not session_existed:
             if not json:
                 console.print(f"[blue]Creating new session: {session}[/blue]")
-            if not tmux.create_session(session, "Project-Manager", project_dir):
+            # Create session with generic first window name to avoid conflicts
+            if not tmux.create_session(session, "main", project_dir):
                 error_message = f"Failed to create session {session}"
                 success = False
                 raise Exception(error_message)
@@ -483,14 +505,29 @@ def create(ctx: click.Context, session: str, project_dir: str | None, json: bool
         else:
             steps_completed.append("session_existed")
 
-        # Create PM window
+        # 4. Create PM window (guaranteed unique since we cleaned up existing PM)
         if not tmux.create_window(session, pm_window, project_dir):
             error_message = f"Failed to create PM window in {session}"
             success = False
             raise Exception(error_message)
         steps_completed.append("pm_window_created")
 
-        # Start Claude PM
+        # 5. Get the actual window index for targeting
+        windows = tmux.list_windows(session)
+        pm_window_index = None
+        for window in windows:
+            if window["name"] == "Project-Manager":
+                pm_window_index = window["index"]
+                break
+
+        if not pm_window_index:
+            error_message = "Failed to find created PM window"
+            success = False
+            raise Exception(error_message)
+
+        target = f"{session}:{pm_window_index}"  # Use index, not name
+
+        # 6. Start Claude PM
         if not json:
             console.print(f"[blue]Starting Project Manager at {target}...[/blue]")
 

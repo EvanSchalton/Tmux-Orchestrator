@@ -1,0 +1,84 @@
+{
+  "final_results": {
+    "overall_accuracy": 95.83333333333334,
+    "meets_95_target": true,
+    "baseline_accuracy": 81.8,
+    "accuracy_improvement": 14.033333333333346,
+    "avg_confidence": 0.8441666666666664,
+    "avg_improvement_per_test": 37.416666666666664,
+    "total_tests": 24,
+    "passed_tests": 23,
+    "failed_tests": 1
+  },
+  "seven_fixes_status": {
+    "total_fixes": 7,
+    "fixes_working": 6,
+    "all_fixes_validated": false,
+    "fix_success_rates": {
+      "fix_1_show_dashboard": 100.0,
+      "fix_2_terminate_all": 100.0,
+      "fix_3_deploy_spawn": 100.0,
+      "fix_4_message_target": 100.0,
+      "fix_5_status_dashboard": 66.66666666666666,
+      "fix_6_stop_all_agents": 100.0,
+      "fix_7_tell_everyone": 100.0,
+      "baseline_regression": 100.0
+    }
+  },
+  "implementation_status": {
+    "fix_1_show_dashboard": {
+      "name": "Map 'show system' \u2192 monitor.dashboard",
+      "implemented": true,
+      "verified": true,
+      "success_rate": 100.0
+    },
+    "fix_2_terminate_all": {
+      "name": "Map 'terminate all' \u2192 agent.kill-all",
+      "implemented": true,
+      "verified": true,
+      "success_rate": 100.0
+    },
+    "fix_3_deploy_spawn": {
+      "name": "Disambiguate 'deploy agent' \u2192 spawn.agent",
+      "implemented": true,
+      "verified": true,
+      "success_rate": 100.0
+    },
+    "fix_4_message_target": {
+      "name": "Disambiguate singular vs plural messaging",
+      "implemented": true,
+      "verified": true,
+      "success_rate": 100.0
+    },
+    "fix_5_status_dashboard": {
+      "name": "Clarify 'check status' vs 'dashboard'",
+      "implemented": true,
+      "verified": false,
+      "success_rate": 66.66666666666666
+    },
+    "fix_6_stop_all_agents": {
+      "name": "Map 'stop all' \u2192 agent.kill-all",
+      "implemented": true,
+      "verified": true,
+      "success_rate": 100.0
+    },
+    "fix_7_tell_everyone": {
+      "name": "Map 'tell everyone' \u2192 team.broadcast",
+      "implemented": true,
+      "verified": true,
+      "success_rate": 100.0
+    }
+  },
+  "failed_tests": [
+    {
+      "test_id": "fix_5_status_dashboard_test_3",
+      "fix_category": "fix_5_status_dashboard",
+      "error": "Expected agent.status, got system.status",
+      "confidence": 0.85
+    }
+  ],
+  "regression_validation": {
+    "baseline_preserved": true,
+    "no_degradation": true
+  }
+}

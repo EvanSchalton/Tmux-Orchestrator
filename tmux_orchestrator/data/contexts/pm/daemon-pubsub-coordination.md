@@ -1,8 +1,67 @@
-# Daemon-PM Pubsub Coordination Protocols
+# Daemon-Pubsub Coordination Guide
 
-This document outlines how Project Managers should integrate with the monitoring daemon through the pubsub messaging system for enhanced coordination.
+## Overview
 
-## Quick Reference
+The Tmux Orchestrator uses a high-performance messaging daemon to achieve sub-100ms message delivery between monitoring systems and agents. This replaces slow CLI-based messaging (5000ms) with daemon IPC for critical notifications.
+
+## Architecture
+
+### Components
+
+1. **Messaging Daemon** (`messaging_daemon.py`)
+   - Unix socket IPC server
+   - Async message processing
+   - Priority-based queuing
+   - Performance tracking
+
+2. **Pubsub CLI** (`cli/pubsub.py`)
+   - Fast daemon client interface
+   - Performance monitoring
+   - Structured message filtering
+
+3. **Monitor Integration**
+   - `PubsubNotificationManager`: High-performance notification delivery
+   - `MonitorPubsubClient`: Daemon client with CLI fallback
+   - `PriorityMessageRouter`: Priority-based message routing
+
+4. **Recovery Integration**
+   - `PubsubRecoveryCoordinator`: Fast recovery notifications
+   - Grace period tracking
+   - Batch recovery operations
+
+## Performance Requirements
+
+- **Target**: <100ms message delivery
+- **Critical Messages**: <50ms
+- **High Priority**: <75ms
+- **Normal Priority**: <100ms
+- **Low Priority**: Batched, <500ms
+
+## Message Priorities
+
+### Critical (🚨)
+- Agent crashes
+- PM failures
+- System emergencies
+
+### High (🔧)
+- Recovery needed
+- Unresponsive agents
+- Team-wide issues
+
+### Normal (📋)
+- Fresh agent alerts
+- Status updates
+- Team idle notifications
+
+### Low (💤)
+- Idle agent notifications
+- Routine status checks
+- Non-urgent updates
+
+## PM Integration
+
+### Quick Reference
 
 ```bash
 # Check daemon notifications (last 30 minutes)
@@ -276,14 +335,143 @@ print(f"High priority messages: {len(messages)}")
 - PMs don't need to manage message cleanup
 - Use `--since` parameters to limit historical searches
 
+## Structured Message Format
+
+```json
+{
+  "id": "daemon-health-1234567890",
+  "timestamp": "2025-01-15T10:30:45Z",
+  "source": {
+    "type": "daemon",
+    "identifier": "monitoring-daemon"
+  },
+  "message": {
+    "type": "notification",
+    "category": "health",
+    "priority": "high",
+    "content": {
+      "subject": "Agent Health Alert",
+      "body": "Agent backend:1 has been idle for 30 minutes",
+      "context": {
+        "agent": "backend:1",
+        "issue_type": "idle",
+        "idle_duration": 1800
+      }
+    }
+  },
+  "metadata": {
+    "requires_ack": true,
+    "tags": ["health", "idle", "backend"],
+    "correlation_id": "session-123"
+  }
+}
+```
+
+## Fallback Behavior
+
+If the daemon is unavailable:
+
+1. **Automatic CLI Fallback**: System falls back to CLI commands
+2. **Performance Degradation**: Expect 5000ms instead of <100ms
+3. **Retry Logic**: Critical messages are retried
+4. **Logging**: Fallback events are logged for debugging
+
+## Best Practices
+
+### For Monitoring Systems
+
+1. **Batch Low-Priority Messages**: Reduce overhead
+2. **Use Priority Routing**: Ensure critical messages are fast
+3. **Monitor Performance**: Track delivery times
+4. **Handle Failures Gracefully**: Always have fallback
+
+### For PMs
+
+1. **Process Messages Regularly**: Check every 30-60 seconds
+2. **Acknowledge Critical Messages**: Confirm receipt and action
+3. **Use Filters**: Focus on relevant messages
+4. **Respond to Escalations**: Handle critical issues promptly
+
+## Troubleshooting
+
+### Daemon Not Running
+
+```bash
+# Check status
+tmux-orc pubsub status
+
+# Start daemon
+tmux-orc daemon start
+
+# Check logs
+tail -f ~/.tmux-orchestrator/logs/daemon.log
+```
+
+### Performance Issues
+
+```bash
+# Check queue depth
+tmux-orc pubsub stats | grep "Queue Depth"
+
+# Monitor delivery times
+tmux-orc pubsub stats | grep "P95"
+
+# Check for errors
+grep ERROR ~/.tmux-orchestrator/logs/daemon.log
+```
+
+### Message Not Delivered
+
+1. Check daemon status
+2. Verify target exists
+3. Check message priority
+4. Review daemon logs
+5. Test with CLI fallback
+
+## Performance Testing
+
+```bash
+# Run performance tests
+python tmux_orchestrator/tests/test_pubsub_performance.py
+
+# Expected output:
+🚀 Running performance tests (100 iterations)...
+
+📊 PERFORMANCE TEST RESULTS
+==========================
+
+📈 Performance Summary:
+direct_daemon:
+  Messages: 100
+  Min: 15.2ms
+  Median: 42.3ms
+  P95: 87.5ms
+  Max: 112.3ms
+
+🎯 Target Compliance (<100ms):
+✅ direct_daemon: 94.0%
+✅ pubsub_client: 96.0%
+✅ priority_router: 95.5%
+✅ batch_delivery: 98.2%
+```
+
 ## Integration Checklist
 
 - [ ] PM session identified correctly (`#S:#I`)
-- [ ] Daemon monitoring daemon is running
+- [ ] Daemon monitoring script running
 - [ ] Pubsub system health verified
 - [ ] Message filtering working correctly
 - [ ] Acknowledgment system tested
 - [ ] Escalation protocols established
 - [ ] Team communication patterns updated
+- [ ] Performance targets validated (<100ms)
 
-Remember: The pubsub system enhances coordination but doesn't replace direct agent communication for task management.
+## Future Enhancements
+
+1. **WebSocket Support**: For remote monitoring
+2. **Message Persistence**: Durable queue for reliability
+3. **Metrics Export**: Prometheus/Grafana integration
+4. **Encryption**: For sensitive messages
+5. **Multi-Daemon**: For redundancy and scale
+
+Remember: The pubsub system enhances coordination with sub-100ms performance but doesn't replace direct agent communication for task management.

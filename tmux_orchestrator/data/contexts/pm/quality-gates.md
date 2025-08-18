@@ -1,5 +1,7 @@
 # Quality Gates and Standards
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
+
 ## 🚨 ZERO TOLERANCE FOR SKIPPING QUALITY CHECKS! 🚨
 
 As PM, you are the guardian of code quality. **NEVER** allow work to proceed without proper testing and validation.

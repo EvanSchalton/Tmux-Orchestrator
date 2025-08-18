@@ -1,5 +1,7 @@
 # Project Status and Completion Checking
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
+
 ## 📋 Checking Project Completion Status
 
 **When asked "Did the team complete or crash?", follow this procedure:**

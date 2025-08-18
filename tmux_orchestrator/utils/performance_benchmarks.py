@@ -119,7 +119,7 @@ class PerformanceBenchmarker:
         # Clean up any test sessions
         try:
             subprocess.run(["tmux", "kill-session", "-t", "benchmark-test-frontend"], capture_output=True, timeout=5)
-        except:
+        except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
         return benchmark_results

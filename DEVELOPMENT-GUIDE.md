@@ -1081,6 +1081,220 @@ black tmux_orchestrator/
    )
    ```
 
+## Daemon-PM Pubsub Coordination
+
+### Overview
+
+The monitoring daemon and Project Managers (PMs) coordinate through a structured messaging protocol built on top of the high-performance pubsub system. This replaces direct tmux send_keys with a robust, filterable, and acknowledgment-based communication system.
+
+### Architecture
+
+```mermaid
+graph LR
+    subgraph "Monitoring Daemon"
+        MD[Monitor Daemon]
+        DPI[DaemonPubsubIntegration]
+    end
+
+    subgraph "Pubsub System"
+        MQ[Message Queue]
+        MS[Message Store]
+        Tags[Tag Index]
+    end
+
+    subgraph "PM Layer"
+        PM[Project Manager]
+        PMI[PMPubsubIntegration]
+        Handler[Message Handler]
+    end
+
+    MD --> DPI
+    DPI -->|Structured Messages| MQ
+    MQ --> MS
+    MS --> Tags
+    Tags -->|Filtered Messages| PMI
+    PMI --> Handler
+    Handler --> PM
+    PM -->|Acknowledgments| MQ
+```
+
+### Message Protocol
+
+#### Message Structure
+```json
+{
+  "id": "unique-message-id",
+  "timestamp": "ISO-8601",
+  "source": {
+    "type": "daemon|pm|agent",
+    "identifier": "daemon-monitor|pm:0"
+  },
+  "message": {
+    "type": "notification|request|response|acknowledgment",
+    "category": "health|recovery|status|task|escalation",
+    "priority": "critical|high|normal|low",
+    "content": {
+      "subject": "Brief subject",
+      "body": "Detailed message",
+      "context": {},
+      "actions": []
+    }
+  },
+  "metadata": {
+    "tags": ["monitoring", "health"],
+    "ttl": 3600,
+    "requires_ack": true,
+    "correlation_id": "parent-msg-id"
+  }
+}
+```
+
+### Integration Points
+
+#### 1. Daemon-Side Integration
+
+```python
+from tmux_orchestrator.core.monitoring.daemon_pubsub_integration import DaemonPubsubIntegration
+
+# Send health alert
+await daemon_integration.send_health_alert(
+    agent_target="backend-dev:2",
+    issue_type="idle",
+    details={"idle_duration": 900},
+    priority=MessagePriority.HIGH
+)
+
+# Send recovery notification
+await daemon_integration.send_recovery_notification(
+    target="pm:1",
+    recovery_type="pm_crash",
+    recovery_details={"new_pm": "pm:1"}
+)
+```
+
+#### 2. PM-Side Integration
+
+```python
+from tmux_orchestrator.core.communication.pm_pubsub_integration import PMPubsubIntegration
+
+# Process messages
+messages = await pm_integration.process_structured_messages(since_minutes=5)
+
+# Handle health notifications
+for msg in messages["health"]:
+    result = await pm_integration.handle_health_notification(msg)
+
+# Handle recovery notifications
+for msg in messages["recovery"]:
+    result = await pm_integration.handle_recovery_notification(msg)
+```
+
+### CLI Commands
+
+#### Publishing Messages
+```bash
+# Send structured message
+tmux-orc pubsub publish '{"id":"test-1",...}' --target pm:1 --priority high --tag monitoring
+
+# Simple text message (legacy)
+tmux-orc pubsub publish "Agent idle alert" --target pm:1 --priority high
+```
+
+#### Reading with Filters
+```bash
+# Read high-priority daemon messages
+tmux-orc pubsub read --target pm:1 \
+  --filter-priority critical --filter-priority high \
+  --filter-source daemon \
+  --unacked-only
+
+# Query historical messages
+tmux-orc pubsub query --session project-x \
+  --category health --category recovery \
+  --since 60 \
+  --format summary
+```
+
+### Message Flow Examples
+
+#### Health Check Flow
+1. Daemon detects idle agent
+2. Sends structured health notification via pubsub
+3. PM receives and processes message
+4. PM takes action (restart/investigate)
+5. PM sends acknowledgment with action taken
+6. Daemon logs acknowledgment
+
+#### Recovery Flow
+1. Daemon detects PM crash
+2. Spawns replacement PM
+3. Sends critical recovery notification
+4. New PM verifies recovery
+5. Team agents notified via broadcast
+6. PM acknowledges with verification status
+
+### Filtering and Tagging
+
+#### Tag Taxonomy
+- **System Tags**: `monitoring`, `management`, `recovery`, `health`, `escalation`
+- **Priority Tags**: `critical`, `high`, `normal`, `low`
+- **Action Tags**: `requires_ack`, `auto_action`, `manual_review`
+
+#### Filter Examples
+```python
+# Get unacknowledged critical health alerts
+critical_health = await pubsub.read(
+    filters={
+        "message.category": "health",
+        "message.priority": "critical",
+        "metadata.requires_ack": True,
+        "status": "unacknowledged"
+    }
+)
+```
+
+### Performance Considerations
+
+1. **Message Batching**: Group related notifications
+2. **Priority Queuing**: Critical messages processed first
+3. **TTL Management**: Auto-expire old notifications
+4. **Selective Delivery**: Use tags to reduce processing overhead
+
+### Best Practices
+
+1. **Always acknowledge critical messages**
+2. **Use structured format for daemon-PM communication**
+3. **Include actionable context in messages**
+4. **Filter aggressively to reduce noise**
+5. **Monitor acknowledgment rates**
+
+### Troubleshooting
+
+#### Messages Not Delivered
+```bash
+# Check pubsub daemon status
+tmux-orc pubsub status
+
+# Verify message in store
+ls ~/.tmux-orchestrator/messages/
+
+# Test connectivity
+tmux-orc pubsub publish "test" --target pm:1
+```
+
+#### Acknowledgments Not Working
+```python
+# Check acknowledgment store
+ls ~/.tmux-orchestrator/acknowledgments/
+
+# Manually acknowledge
+pm_integration.acknowledge_structured_message(
+    message_id="msg-123",
+    action_taken="investigated",
+    result={"status": "resolved"}
+)
+```
+
 ## Related Documentation
 
 - [ADR-001: Monitor.py SOLID Refactor](docs/architecture/ADR-001-monitor-refactor.md)

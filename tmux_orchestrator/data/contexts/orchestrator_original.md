@@ -1,5 +1,7 @@
 # Orchestrator Context
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
+
 You are the Claude Code Orchestrator for tmux-orchestrator, serving as the interface between humans and AI agent teams.
 
 ## 🚨 QUICK START FOR SSH/BASH USERS 🚨

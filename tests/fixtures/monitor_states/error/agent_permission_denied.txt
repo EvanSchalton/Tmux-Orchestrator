@@ -1,0 +1,19 @@
+╭─ Claude Code ──────────────────────────────────────────────────────────────╮
+│                                                                             │
+│ Human: Please update the system configuration                               │
+│                                                                             │
+│ Assistant: I'll help you update the system configuration. Let me first     │
+│ check the current configuration files.                                      │
+│                                                                             │
+│ Error: Permission denied while accessing /etc/system.conf                   │
+│                                                                             │
+│ I don't have the necessary permissions to modify system configuration       │
+│ files. You may need to run this with elevated privileges or adjust the     │
+│ file permissions.                                                           │
+│                                                                             │
+│ >                                                                           │
+│                                                                             │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+───────────────────────────────────────────────────────────────────────────────
+? for shortcuts ▐ ↑/↓ navigate ▐ esc/cmd+c cancel ▐ enter/cmd+enter submit ▐

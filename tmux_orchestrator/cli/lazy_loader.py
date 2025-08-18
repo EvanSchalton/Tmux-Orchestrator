@@ -138,7 +138,7 @@ def create_lazy_cli() -> LazyCommandGroup:
 
     cli.add_lazy_command("pubsub", "tmux_orchestrator.cli.pubsub", "pubsub")
 
-    cli.add_lazy_command("pubsub-fast", "tmux_orchestrator.cli.pubsub_fast", "pubsub_fast")
+    # Note: pubsub-fast was consolidated into pubsub
 
     cli.add_lazy_command("daemon", "tmux_orchestrator.cli.daemon", "daemon")
 

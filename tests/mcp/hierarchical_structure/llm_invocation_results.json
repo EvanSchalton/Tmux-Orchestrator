@@ -1,0 +1,282 @@
+{
+  "test_type": "llm_invocation",
+  "timestamp": "2025-08-17 16:31:11",
+  "metrics": {
+    "overall": {
+      "flat_success_rate": 100.0,
+      "hierarchical_success_rate": 81.81818181818183,
+      "improvement": -18.181818181818173
+    },
+    "by_complexity": {
+      "simple": {
+        "flat_success": 100.0,
+        "hierarchical_success": 100.0
+      },
+      "medium": {
+        "flat_success": 100.0,
+        "hierarchical_success": 66.66666666666666
+      },
+      "complex": {
+        "flat_success": 100.0,
+        "hierarchical_success": 80.0
+      }
+    },
+    "performance": {
+      "flat_avg_response_time": 2.5987625122070312e-05,
+      "hierarchical_avg_response_time": 2.1219253540039062e-05,
+      "time_improvement": 18.34862385321101
+    },
+    "confidence": {
+      "flat_avg": 0.8484848484848485,
+      "hierarchical_avg": 0.46969696969696967
+    },
+    "total_scenarios": 11,
+    "meets_95_percent_target": false
+  },
+  "detailed_results": [
+    {
+      "scenario_id": "simple_1",
+      "structure": "flat",
+      "correct": true,
+      "selected": "agent_status",
+      "confidence": 0.6666666666666666,
+      "response_time": 0.00012683868408203125
+    },
+    {
+      "scenario_id": "simple_2",
+      "structure": "flat",
+      "correct": true,
+      "selected": "agent_kill",
+      "confidence": 0.6666666666666666,
+      "response_time": 1.5497207641601562e-05
+    },
+    {
+      "scenario_id": "simple_3",
+      "structure": "flat",
+      "correct": true,
+      "selected": "monitor_start",
+      "confidence": 0.6666666666666666,
+      "response_time": 1.3828277587890625e-05
+    },
+    {
+      "scenario_id": "medium_1",
+      "structure": "flat",
+      "correct": true,
+      "selected": "spawn_agent",
+      "confidence": 1.0,
+      "response_time": 1.6450881958007812e-05
+    },
+    {
+      "scenario_id": "medium_2",
+      "structure": "flat",
+      "correct": true,
+      "selected": "team_broadcast",
+      "confidence": 1.0,
+      "response_time": 1.4543533325195312e-05
+    },
+    {
+      "scenario_id": "medium_3",
+      "structure": "flat",
+      "correct": true,
+      "selected": "errors_recent",
+      "confidence": 1.0,
+      "response_time": 1.4543533325195312e-05
+    },
+    {
+      "scenario_id": "complex_1",
+      "structure": "flat",
+      "correct": true,
+      "selected": "status",
+      "confidence": 1.0,
+      "response_time": 1.4781951904296875e-05
+    },
+    {
+      "scenario_id": "complex_2",
+      "structure": "flat",
+      "correct": true,
+      "selected": "pm_create",
+      "confidence": 1.0,
+      "response_time": 1.621246337890625e-05
+    },
+    {
+      "scenario_id": "complex_3",
+      "structure": "flat",
+      "correct": true,
+      "selected": "agent_restart",
+      "confidence": 0.6666666666666666,
+      "response_time": 2.5272369384765625e-05
+    },
+    {
+      "scenario_id": "edge_1",
+      "structure": "flat",
+      "correct": true,
+      "selected": "agent_message",
+      "confidence": 0.6666666666666666,
+      "response_time": 1.4066696166992188e-05
+    },
+    {
+      "scenario_id": "edge_2",
+      "structure": "flat",
+      "correct": true,
+      "selected": "monitor_dashboard",
+      "confidence": 1.0,
+      "response_time": 1.3828277587890625e-05
+    },
+    {
+      "scenario_id": "simple_1",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "agent.status",
+      "confidence": 0.5,
+      "response_time": 2.7418136596679688e-05
+    },
+    {
+      "scenario_id": "simple_2",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "agent.kill",
+      "confidence": 0.3333333333333333,
+      "response_time": 1.9073486328125e-05
+    },
+    {
+      "scenario_id": "simple_3",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "monitor.start",
+      "confidence": 0.3333333333333333,
+      "response_time": 1.7881393432617188e-05
+    },
+    {
+      "scenario_id": "medium_1",
+      "structure": "hierarchical",
+      "correct": false,
+      "selected": "agent.agent",
+      "confidence": 0.3333333333333333,
+      "response_time": 3.4332275390625e-05
+    },
+    {
+      "scenario_id": "medium_2",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "team.broadcast",
+      "confidence": 0.5,
+      "response_time": 2.288818359375e-05
+    },
+    {
+      "scenario_id": "medium_3",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "errors.recent",
+      "confidence": 0.6666666666666666,
+      "response_time": 1.8835067749023438e-05
+    },
+    {
+      "scenario_id": "complex_1",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "system.status",
+      "confidence": 0.5,
+      "response_time": 1.8835067749023438e-05
+    },
+    {
+      "scenario_id": "complex_2",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "pm.create",
+      "confidence": 0.8333333333333334,
+      "response_time": 2.0265579223632812e-05
+    },
+    {
+      "scenario_id": "complex_3",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "agent.restart",
+      "confidence": 0.3333333333333333,
+      "response_time": 1.8358230590820312e-05
+    },
+    {
+      "scenario_id": "edge_1",
+      "structure": "hierarchical",
+      "correct": false,
+      "selected": "agent.broadcast",
+      "confidence": 0.3333333333333333,
+      "response_time": 1.71661376953125e-05
+    },
+    {
+      "scenario_id": "edge_2",
+      "structure": "hierarchical",
+      "correct": true,
+      "selected": "monitor.dashboard",
+      "confidence": 0.5,
+      "response_time": 1.8358230590820312e-05
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "simple_1",
+      "description": "Direct agent status check",
+      "complexity": "simple",
+      "prompt": "Show me the status of all agents"
+    },
+    {
+      "id": "simple_2",
+      "description": "Kill specific agent",
+      "complexity": "simple",
+      "prompt": "Kill the agent in test-session:1"
+    },
+    {
+      "id": "simple_3",
+      "description": "Start monitoring",
+      "complexity": "simple",
+      "prompt": "Start the monitoring system"
+    },
+    {
+      "id": "medium_1",
+      "description": "Deploy agent with context",
+      "complexity": "medium",
+      "prompt": "I need a backend developer agent in the api-session to work on the REST endpoints"
+    },
+    {
+      "id": "medium_2",
+      "description": "Team communication",
+      "complexity": "medium",
+      "prompt": "Tell everyone on the team that we're having a standup meeting in 5 minutes"
+    },
+    {
+      "id": "medium_3",
+      "description": "Error investigation",
+      "complexity": "medium",
+      "prompt": "I'm seeing some issues, can you show me what errors happened recently?"
+    },
+    {
+      "id": "complex_1",
+      "description": "Full system check",
+      "complexity": "complex",
+      "prompt": "Check if everything is running properly - agents, monitoring, and the daemon"
+    },
+    {
+      "id": "complex_2",
+      "description": "PM creation with details",
+      "complexity": "complex",
+      "prompt": "Create a new project manager called 'alpha-pm' to coordinate the API refactoring project with 3 developers"
+    },
+    {
+      "id": "complex_3",
+      "description": "Recovery after failure",
+      "complexity": "complex",
+      "prompt": "The frontend agent crashed, can you bring it back up with the same configuration?"
+    },
+    {
+      "id": "edge_1",
+      "description": "Ambiguous target",
+      "complexity": "complex",
+      "prompt": "Send a message to the developer"
+    },
+    {
+      "id": "edge_2",
+      "description": "Multiple valid tools",
+      "complexity": "complex",
+      "prompt": "Show me what's happening in the system"
+    }
+  ]
+}

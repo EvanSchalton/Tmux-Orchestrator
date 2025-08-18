@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/usr/local/bin/claude", line 8, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.12/dist-packages/claude_code/cli.py", line 45, in main
+    app.run()
+  File "/usr/local/lib/python3.12/dist-packages/claude_code/app.py", line 123, in run
+    self.connection.send_message(message)
+  File "/usr/local/lib/python3.12/dist-packages/claude_code/connection.py", line 89, in send_message
+    raise ConnectionError("Network timeout occurred")
+ConnectionError: Network timeout occurred
+vscode ➜ /workspaces/Tmux-Orchestrator (main) $

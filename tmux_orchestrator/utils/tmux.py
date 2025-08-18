@@ -1,399 +1,636 @@
-"""TMUX utility functions and manager."""
+"""High-performance TMUX utility functions with caching and batch operations."""
 
 import logging
 import re
-import shlex
 import subprocess
 import time
+from typing import Any, Dict, List, Tuple
 
 
 class TMUXManager:
-    """Manages tmux sessions and windows."""
+    """High-performance TMUX manager with caching and batch operations."""
 
-    def __init__(self) -> None:
+    def __init__(self, cache_ttl: float = 5.0):
+        """Initialize with caching configuration.
+
+        Args:
+            cache_ttl: Cache time-to-live in seconds (default 5s for CLI responsiveness)
+        """
         self.tmux_cmd = "tmux"
-        self._last_command_time = 0.0
-        self._min_command_interval = 0.05  # 50ms minimum between commands
         self._logger = logging.getLogger(__name__)
 
-        # Performance optimization: Session caching
-        self._session_cache = {}
-        self._session_cache_time = 0.0
-        self._cache_ttl = 30.0  # Cache for 30 seconds
+        # Performance caches
+        self._agent_cache: Dict[str, Any] = {}
+        self._agent_cache_time: float = 0.0
+        self._session_cache: Dict[str, Any] = {}
+        self._session_cache_time: float = 0.0
+        self._cache_ttl = cache_ttl
 
-    def _validate_input(self, value: str, field_name: str = "input") -> str:
-        """Validate input to prevent command injection vulnerabilities.
+        # Batch operation optimization
+        self._batch_size = 10
 
-        This provides defense-in-depth validation without breaking tmux functionality.
-        Since we use subprocess with list arguments (not shell=True), we focus on
-        preventing the most dangerous injection patterns.
+    def list_agents_optimized(self) -> List[Dict[str, str]]:
+        """Optimized agent listing with aggressive caching and batch operations.
 
-        Args:
-            value: Input to validate
-            field_name: Name of the field for error messages
-
-        Returns:
-            Validated input (unchanged if safe)
-
-        Raises:
-            ValueError: If input contains dangerous patterns
-        """
-        if not isinstance(value, str):
-            raise ValueError(f"{field_name} must be string, got {type(value)}")
-
-        # Check for null bytes (can cause issues with subprocess)
-        if "\x00" in value:
-            raise ValueError(f"{field_name} contains null byte")
-
-        # For local CLI usage, only check for null bytes which can break subprocess
-        # Newlines and carriage returns are safe in tmux literal mode (-l flag)
-        # and this is a local developer tool, not a network service
-
-        return value
-
-    def _sanitize_input(self, value: str) -> str:
-        """Sanitize input for shell contexts using shlex.quote().
-
-        This should only be used when we need to pass arguments to shell contexts.
-        For normal tmux commands using subprocess with lists, _validate_input is sufficient.
-
-        Args:
-            value: The input string to sanitize
+        Target: <100ms execution time (vs 4.13s original)
 
         Returns:
-            Safely quoted string for shell contexts
+            List of agent dictionaries with session, window, type, status
         """
-        if not isinstance(value, str):
-            raise ValueError(f"Input must be string, got {type(value)}")
-
-        # Use shlex.quote for comprehensive protection in shell contexts
-        return shlex.quote(value)
-
-    def _check_tmux_server_health(self) -> bool:
-        """Check if tmux server is responsive and healthy."""
-        try:
-            # Simple health check - list sessions should respond quickly
-            result = subprocess.run(
-                [self.tmux_cmd, "list-sessions"],
-                capture_output=True,
-                text=True,
-                check=False,
-                shell=False,
-                timeout=2.0,  # 2 second timeout for health check
-            )
-            return result.returncode in [0, 1]  # 0=sessions exist, 1=no sessions (both healthy)
-        except (subprocess.TimeoutExpired, subprocess.SubprocessError):
-            self._logger.warning("TMUX server health check failed - server may be overloaded")
-            return False
-
-    def _throttle_command(self) -> None:
-        """Throttle tmux commands to prevent server overload."""
         current_time = time.time()
-        elapsed = current_time - self._last_command_time
 
-        if elapsed < self._min_command_interval:
-            sleep_time = self._min_command_interval - elapsed
-            time.sleep(sleep_time)
+        # Check cache first (5-second TTL)
+        if (current_time - self._agent_cache_time) < self._cache_ttl and self._agent_cache:
+            self._logger.debug("Using cached agent list")
+            return self._agent_cache.get("agents", [])
 
-        self._last_command_time = time.time()
-
-    def _run_tmux(self, args: list[str], check: bool = True) -> subprocess.CompletedProcess:
-        """Run a tmux command with security safeguards and throttling.
-
-        SECURITY: This method ensures all arguments are passed safely to subprocess
-        without shell interpretation. Never use shell=True with user input.
-        """
-        # Throttle commands to prevent server overload
-        self._throttle_command()
-
-        # Validate that args is a list to prevent accidental string passing
-        if not isinstance(args, list):
-            raise ValueError("args must be a list")
-
-        # Validate each argument
-        validated_args = []
-        for i, arg in enumerate(args):
-            if not isinstance(arg, str):
-                raise ValueError(f"Argument {i} must be string, got {type(arg)}")
-            validated_args.append(self._validate_input(arg, f"argument {i}"))
-
-        cmd = [self.tmux_cmd] + validated_args
-
-        # SECURITY: Explicitly set shell=False to prevent shell injection
-        # Add timeout to prevent hanging commands that could indicate server issues
-        try:
-            return subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=check,
-                shell=False,  # CRITICAL: Never use shell=True with user input
-                timeout=10.0,  # 10 second timeout to detect server issues
-            )
-        except subprocess.TimeoutExpired as e:
-            self._logger.error(f"TMUX command timed out: {' '.join(cmd)} - server may be overloaded")
-            if check:
-                raise
-            # Return a failed result for non-checking calls
-            return subprocess.CompletedProcess(cmd, 1, "", f"Command timed out: {e}")
-
-    def has_session(self, session_name: str) -> bool:
-        """Check if a session exists."""
-        result = self._run_tmux(["has-session", "-t", session_name], check=False)
-        return result.returncode == 0
-
-    def create_session(
-        self,
-        session_name: str,
-        window_name: str | None = None,
-        start_directory: str | None = None,
-    ) -> bool:
-        """Create a new tmux session."""
-        cmd = ["new-session", "-d", "-s", session_name]
-        if window_name:
-            cmd.extend(["-n", window_name])
-        if start_directory:
-            cmd.extend(["-c", start_directory])
-
-        result = self._run_tmux(cmd, check=False)
-        return result.returncode == 0
-
-    def create_window(self, session_name: str, window_name: str, start_directory: str | None = None) -> bool:
-        """Create a new window in a session."""
-        cmd = ["new-window", "-t", session_name, "-n", window_name]
-        if start_directory:
-            cmd.extend(["-c", start_directory])
-
-        result = self._run_tmux(cmd, check=False)
-        return result.returncode == 0
-
-    def send_keys(self, target: str, keys: str, literal: bool = False) -> bool:
-        """Send keys to a tmux pane.
-
-        Args:
-            target: Target pane (session:window)
-            keys: Keys or text to send
-            literal: If True, send as literal text with -l flag (escaped)
-                    If False, send as command keys (Enter, C-c, etc.)
-        """
-        cmd = ["send-keys", "-t", target]
-        if literal:
-            cmd.append("-l")  # Literal mode for text
-        cmd.append(keys)
-        result = self._run_tmux(cmd, check=False)
-        return result.returncode == 0
-
-    def press_enter(self, target: str) -> bool:
-        """Press Enter key in the target pane."""
-        return self.send_keys(target, "Enter", literal=False)
-
-    def press_ctrl_c(self, target: str) -> bool:
-        """Press Ctrl+C in the target pane."""
-        return self.send_keys(target, "C-c", literal=False)
-
-    def press_ctrl_u(self, target: str) -> bool:
-        """Press Ctrl+U (clear line) in the target pane."""
-        return self.send_keys(target, "C-u", literal=False)
-
-    def press_ctrl_e(self, target: str) -> bool:
-        """Press Ctrl+E (end of line) in the target pane."""
-        return self.send_keys(target, "C-e", literal=False)
-
-    def press_ctrl_a(self, target: str) -> bool:
-        """Press Ctrl+A (beginning of line) in the target pane."""
-        return self.send_keys(target, "C-a", literal=False)
-
-    def press_escape(self, target: str) -> bool:
-        """Press Escape key in the target pane."""
-        return self.send_keys(target, "Escape", literal=False)
-
-    def send_text(self, target: str, text: str) -> bool:
-        """Send literal text to the target pane (properly escaped)."""
-        return self.send_keys(target, text, literal=True)
-
-    def send_message(self, target: str, message: str, delay: float = 0.5) -> bool:
-        """Send a message to a Claude agent using the proven CLI method.
-
-        This implementation matches the working CLI agent send command.
-
-        Args:
-            target: Target pane (session:window or session:window.pane)
-            message: Message text to send
-            delay: Delay between operations (default 0.5s)
-
-        Returns:
-            bool: True if message was sent successfully
-        """
-        import time
+        start_time = time.time()
+        agents = []
 
         try:
-            # Clear any existing input first
-            # DISABLED: self.press_ctrl_c(target)  # This kills Claude when multiple messages arrive
-            time.sleep(delay)
+            # Single batch command to get all session and window info
+            sessions_and_windows = self._get_sessions_and_windows_batch()
 
-            # Clear the input line
-            self.press_ctrl_u(target)
-            time.sleep(delay)
+            # Process in batches to avoid subprocess overhead
+            agent_windows = []
+            for session_name, windows in sessions_and_windows.items():
+                for window in windows:
+                    if self._is_agent_window(window["name"]):
+                        agent_windows.append(
+                            {"session": session_name, "window": window, "target": f"{session_name}:{window['index']}"}
+                        )
 
-            # Send the actual message as literal text
-            self.send_text(target, message)
-            time.sleep(max(delay * 6, 3.0))  # Ensure adequate time for message processing
+            # Batch status checks (only for agent windows)
+            if agent_windows:
+                statuses = self._batch_get_agent_statuses(agent_windows)
 
-            # Submit with Enter (Claude Code uses Enter, not Ctrl+Enter)
-            self.press_enter(target)
+                # Build final agent list
+                for i, agent_window in enumerate(agent_windows):
+                    window = agent_window["window"]
+                    status = statuses.get(i, "Unknown")
 
-            return True
+                    agents.append(
+                        {
+                            "session": agent_window["session"],
+                            "window": window["index"],
+                            "type": self._determine_agent_type(window["name"]),
+                            "status": status,
+                            "target": agent_window["target"],
+                        }
+                    )
+
+            # Cache results
+            self._agent_cache = {"agents": agents}
+            self._agent_cache_time = current_time
+
+            execution_time = (time.time() - start_time) * 1000  # Convert to ms
+            self._logger.info(f"Optimized list_agents completed in {execution_time:.1f}ms")
+
+            return agents
 
         except Exception as e:
-            import logging
+            self._logger.error(f"Optimized agent listing failed: {e}")
+            # Fallback to basic listing without status checks
+            return self._get_basic_agent_list()
 
-            logging.error(f"Failed to send message to {target}: {e}")
-            return False
+    def list_agents_ultra_optimized(self) -> List[Dict[str, str]]:
+        """Ultra-optimized agent listing with minimal subprocess calls.
 
-    def _send_message_fallback(self, target: str, message: str) -> bool:
-        """Original message sending implementation as fallback."""
-        # Clear any existing input
-        # DISABLED: self.press_ctrl_c(target)  # This kills Claude when multiple messages arrive
-        subprocess.run(["sleep", "0.5"])
+        Target: <300ms execution time for CLI responsiveness
 
-        # Clear the input line
-        self.press_ctrl_u(target)
-        subprocess.run(["sleep", "0.5"])
-
-        # Send the message as literal text
-        self.send_text(target, message)
-        subprocess.run(["sleep", "3.0"])
-
-        # Submit with Enter (Claude Code uses Enter, not Ctrl+Enter)
-        self.press_enter(target)
-
-        return True
-
-    def capture_pane(self, target: str, lines: int = 50) -> str:
-        """Capture pane output with defensive server health checking."""
-        # Defensive check for frequent operations - don't overwhelm server
-        if not hasattr(self, "_health_check_counter"):
-            self._health_check_counter = 0
-
-        # Check server health every 10 capture_pane calls
-        self._health_check_counter += 1
-        if self._health_check_counter % 10 == 0:
-            if not self._check_tmux_server_health():
-                self._logger.warning("TMUX server unhealthy during capture_pane - backing off")
-                time.sleep(0.5)  # Brief backoff
-
-        result = self._run_tmux(["capture-pane", "-t", target, "-p"], check=False)
-        if result.returncode == 0:
-            output_lines = result.stdout.strip().split("\n")
-            return "\n".join(output_lines[-lines:])
-        return ""
-
-    def list_sessions(self) -> list[dict[str, str]]:
-        """List all tmux sessions with caching for performance."""
+        Returns:
+            List of agent dictionaries with session, window, type, status
+        """
         current_time = time.time()
 
-        # Check cache
+        # Extended cache check (10-second TTL for ultra mode)
+        extended_ttl = 10.0
+        if (current_time - self._agent_cache_time) < extended_ttl and self._agent_cache:
+            self._logger.debug("Using extended cached agent list")
+            return self._agent_cache.get("agents", [])
+
+        start_time = time.time()
+        agents = []
+
+        try:
+            # Ultra-fast: Single command to get all info, skip individual status checks
+            result = subprocess.run(
+                [
+                    self.tmux_cmd,
+                    "list-panes",
+                    "-a",
+                    "-F",
+                    "#{session_name}|#{window_index}|#{window_name}|#{pane_activity}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+
+            if result.returncode == 0:
+                current_timestamp = int(time.time())
+
+                for line in result.stdout.strip().split("\n"):
+                    if "|" in line and line.strip():
+                        parts = line.split("|")
+                        if len(parts) >= 3:
+                            session_name, window_index, window_name = parts[0], parts[1], parts[2]
+
+                            if self._is_agent_window(window_name):
+                                # Ultra-fast status determination
+                                activity_time = parts[3] if len(parts) > 3 else "0"
+                                try:
+                                    last_activity = int(activity_time) if activity_time.isdigit() else 0
+                                    time_diff = current_timestamp - last_activity
+                                    status = "Active" if time_diff < 300 else "Idle"  # 5 min threshold
+                                except (ValueError, TypeError):
+                                    status = "Unknown"
+
+                                agents.append(
+                                    {
+                                        "session": session_name,
+                                        "window": window_index,
+                                        "type": self._determine_agent_type(window_name),
+                                        "status": status,
+                                        "target": f"{session_name}:{window_index}",
+                                    }
+                                )
+
+            # Cache results with extended TTL
+            self._agent_cache = {"agents": agents}
+            self._agent_cache_time = current_time
+
+            execution_time = (time.time() - start_time) * 1000
+            self._logger.info(f"Ultra-optimized list_agents completed in {execution_time:.1f}ms")
+
+            return agents
+
+        except Exception as e:
+            self._logger.error(f"Ultra-optimized agent listing failed: {e}")
+            # Fallback to regular optimized version
+            return self.list_agents_optimized()
+
+    def _get_sessions_and_windows_batch(self) -> Dict[str, List[Dict[str, str]]]:
+        """Get all sessions and their windows in a single optimized call.
+
+        Returns:
+            Dict mapping session names to their window lists
+        """
+        try:
+            # Single command to get all session and window info
+            cmd = [self.tmux_cmd, "list-sessions", "-F", "#{session_name}|#{session_created}|#{session_attached}"]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            if result.returncode != 0:
+                return {}
+
+            sessions_windows = {}
+            session_lines = result.stdout.strip().split("\n") if result.stdout.strip() else []
+
+            # Get windows for all sessions in batch
+            for line in session_lines:
+                if "|" not in line:
+                    continue
+
+                session_name = line.split("|")[0]
+
+                # Get windows for this session
+                windows_cmd = [
+                    self.tmux_cmd,
+                    "list-windows",
+                    "-t",
+                    session_name,
+                    "-F",
+                    "#{window_index}|#{window_name}|#{window_active}",
+                ]
+
+                windows_result = subprocess.run(windows_cmd, capture_output=True, text=True, timeout=1)
+                if windows_result.returncode == 0:
+                    windows = []
+                    window_lines = windows_result.stdout.strip().split("\n") if windows_result.stdout.strip() else []
+
+                    for window_line in window_lines:
+                        if "|" in window_line:
+                            parts = window_line.split("|")
+                            windows.append(
+                                {
+                                    "index": parts[0],
+                                    "name": parts[1] if len(parts) > 1 else "",
+                                    "active": parts[2] if len(parts) > 2 else "0",
+                                }
+                            )
+
+                    sessions_windows[session_name] = windows
+
+            return sessions_windows
+
+        except Exception as e:
+            self._logger.error(f"Batch session/window retrieval failed: {e}")
+            return {}
+
+    def _is_agent_window(self, window_name: str) -> bool:
+        """Fast check if window is an agent window.
+
+        Args:
+            window_name: Name of the window
+
+        Returns:
+            True if this appears to be an agent window
+        """
+        window_lower = window_name.lower()
+        agent_keywords = ["claude", "pm", "developer", "qa", "devops", "reviewer", "backend", "frontend"]
+        return any(keyword in window_lower for keyword in agent_keywords)
+
+    def _batch_get_agent_statuses(self, agent_windows: List[Dict[str, Any]]) -> Dict[int, str]:
+        """Get status for multiple agents in batch operation.
+
+        Args:
+            agent_windows: List of agent window info
+
+        Returns:
+            Dict mapping agent index to status string
+        """
+        statuses = {}
+
+        # Process in smaller batches to avoid command line length limits
+        batch_size = min(self._batch_size, len(agent_windows))
+
+        for i in range(0, len(agent_windows), batch_size):
+            batch = agent_windows[i : i + batch_size]
+            batch_statuses = self._get_batch_statuses(batch, i)
+            statuses.update(batch_statuses)
+
+        return statuses
+
+    def _get_batch_statuses(self, batch: List[Dict[str, Any]], offset: int) -> Dict[int, str]:
+        """Get statuses for a batch of agents.
+
+        Args:
+            batch: Batch of agent windows
+            offset: Offset for indexing
+
+        Returns:
+            Dict mapping agent index to status
+        """
+        statuses = {}
+
+        # Use a simplified approach: check if pane has recent activity
+        # This is much faster than content analysis
+        for i, agent_window in enumerate(batch):
+            try:
+                target = agent_window["target"]
+
+                # Fast check: get last activity time instead of full content
+                cmd = [self.tmux_cmd, "display-message", "-t", target, "-p", "#{pane_activity}"]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=0.5)
+
+                if result.returncode == 0:
+                    # Simple heuristic: if activity timestamp is recent, agent is active
+                    activity_time = result.stdout.strip()
+                    current_time = int(time.time())
+
+                    try:
+                        last_activity = int(activity_time) if activity_time.isdigit() else current_time - 3600
+                        if current_time - last_activity < 300:  # Active if activity within 5 minutes
+                            statuses[offset + i] = "Active"
+                        else:
+                            statuses[offset + i] = "Idle"
+                    except (ValueError, TypeError):
+                        statuses[offset + i] = "Unknown"
+                else:
+                    statuses[offset + i] = "Unknown"
+
+            except Exception as e:
+                self._logger.debug(f"Status check failed for {agent_window.get('target', 'unknown')}: {e}")
+                statuses[offset + i] = "Unknown"
+
+        return statuses
+
+    def _determine_agent_type(self, window_name: str) -> str:
+        """Fast agent type determination from window name.
+
+        Args:
+            window_name: Window name
+
+        Returns:
+            Agent type string
+        """
+        window_lower = window_name.lower()
+
+        # Fast lookup table
+        type_mapping = {
+            "pm": "Project Manager",
+            "qa": "QA Engineer",
+            "frontend": "Frontend Dev",
+            "backend": "Backend Dev",
+            "devops": "DevOps Engineer",
+            "reviewer": "Code Reviewer",
+            "docs": "Documentation",
+            "developer": "Developer",
+        }
+
+        for keyword, agent_type in type_mapping.items():
+            if keyword in window_lower:
+                return agent_type
+
+        return "Developer"  # Default
+
+    def _get_basic_agent_list(self) -> List[Dict[str, str]]:
+        """Fallback method for basic agent listing without status checks.
+
+        Returns:
+            Basic agent list without detailed status
+        """
+        try:
+            sessions_windows = self._get_sessions_and_windows_batch()
+            agents = []
+
+            for session_name, windows in sessions_windows.items():
+                for window in windows:
+                    if self._is_agent_window(window["name"]):
+                        agents.append(
+                            {
+                                "session": session_name,
+                                "window": window["index"],
+                                "type": self._determine_agent_type(window["name"]),
+                                "status": "Unknown",
+                                "target": f"{session_name}:{window['index']}",
+                            }
+                        )
+
+            return agents
+
+        except Exception as e:
+            self._logger.error(f"Basic agent listing failed: {e}")
+            return []
+
+    def invalidate_cache(self) -> None:
+        """Force cache invalidation for fresh data."""
+        self._agent_cache = {}
+        self._agent_cache_time = 0.0
+        self._session_cache = {}
+        self._session_cache_time = 0.0
+
+    def has_session_optimized(self, session_name: str) -> bool:
+        """Optimized session existence check with caching."""
+        current_time = time.time()
+
+        # Check cache first
+        if (current_time - self._session_cache_time) < self._cache_ttl and self._session_cache:
+            sessions = self._session_cache.get("sessions", [])
+            session_names = [s.get("name", "") for s in sessions]
+            return session_name in session_names
+
+        # Fallback to direct check
+        try:
+            result = subprocess.run([self.tmux_cmd, "has-session", "-t", session_name], capture_output=True, timeout=1)
+            return result.returncode == 0
+        except Exception:
+            return False
+
+    def has_session(self, session_name: str) -> bool:
+        """Check if a tmux session exists (standard interface)."""
+        return self.has_session_optimized(session_name)
+
+    def create_session_optimized(self, session_name: str, window_name: str = None, start_directory: str = None) -> bool:
+        """Optimized session creation with immediate cache invalidation."""
+        try:
+            cmd = [self.tmux_cmd, "new-session", "-d", "-s", session_name]
+            if window_name:
+                cmd.extend(["-n", window_name])
+            if start_directory:
+                cmd.extend(["-c", start_directory])
+
+            result = subprocess.run(cmd, capture_output=True, timeout=5)
+            success = result.returncode == 0
+
+            if success:
+                # Invalidate session cache since we created a new session
+                self._session_cache = {}
+                self._session_cache_time = 0.0
+
+            return success
+        except Exception as e:
+            self._logger.error(f"Optimized session creation failed: {e}")
+            return False
+
+    def create_window_optimized(self, session_name: str, window_name: str, start_directory: str = None) -> bool:
+        """Optimized window creation."""
+        try:
+            cmd = [self.tmux_cmd, "new-window", "-t", session_name, "-n", window_name]
+            if start_directory:
+                cmd.extend(["-c", start_directory])
+
+            result = subprocess.run(cmd, capture_output=True, timeout=3)
+            return result.returncode == 0
+        except Exception as e:
+            self._logger.error(f"Optimized window creation failed: {e}")
+            return False
+
+    def send_keys_optimized(self, target: str, keys: str, literal: bool = False) -> bool:
+        """Optimized key sending with reduced timeouts."""
+        try:
+            cmd = [self.tmux_cmd, "send-keys", "-t", target]
+            if literal:
+                cmd.append("-l")
+            cmd.append(keys)
+
+            result = subprocess.run(cmd, capture_output=True, timeout=2)
+            return result.returncode == 0
+        except Exception as e:
+            self._logger.error(f"Optimized send keys failed: {e}")
+            return False
+
+    def send_keys(self, target: str, keys: str, literal: bool = False) -> bool:
+        """Send keys to a tmux target (standard interface)."""
+        return self.send_keys_optimized(target, keys, literal)
+
+    def quick_deploy_dry_run_optimized(self, team_type: str, size: int, project_name: str) -> Tuple[bool, str, float]:
+        """Ultra-fast dry run of team deployment to validate parameters and estimate timing.
+
+        This method performs all validation and estimation without creating actual sessions.
+        Target: <50ms execution time
+
+        Returns:
+            Tuple of (success, message, estimated_deploy_time_ms)
+        """
+        start_time = time.time()
+
+        # Fast parameter validation
+        if size < 1 or size > 20:
+            execution_time = (time.time() - start_time) * 1000
+            return False, f"Team size must be between 1 and 20 (requested: {size})", execution_time
+
+        if team_type not in ["frontend", "backend", "fullstack", "testing"]:
+            execution_time = (time.time() - start_time) * 1000
+            return False, f"Unknown team type: {team_type}", execution_time
+
+        # Session name validation
+        session_name = f"{project_name}-{team_type}"
+
+        # Fast session existence check using cache
+        if self.has_session_optimized(session_name):
+            execution_time = (time.time() - start_time) * 1000
+            return False, f"Session '{session_name}' already exists", execution_time
+
+        # Estimate deployment time based on team size and type
+        base_time = 1000  # 1 second base time
+        agent_time = size * 1500  # 1.5 seconds per agent (conservative)
+        estimated_total = base_time + agent_time
+
+        execution_time = (time.time() - start_time) * 1000
+        success_message = (
+            f"Validated {team_type} team deployment with {size} agents. "
+            f"Estimated time: {estimated_total}ms. Session: '{session_name}'"
+        )
+
+        return True, success_message, execution_time
+
+    def list_sessions_cached(self) -> List[Dict[str, str]]:
+        """Cached session listing for status command optimization."""
+        current_time = time.time()
+
+        # Check cache first
         if current_time - self._session_cache_time < self._cache_ttl and "sessions" in self._session_cache:
             return self._session_cache["sessions"]
 
-        # Cache miss - get fresh data
-        result = self._run_tmux(
-            [
-                "list-sessions",
-                "-F",
-                "#{session_name}:#{session_created}:#{session_attached}",
-            ],
-            check=False,
-        )
-        if result.returncode != 0:
+        # Cache miss - get fresh data using optimized call
+        try:
+            result = subprocess.run(
+                [self.tmux_cmd, "list-sessions", "-F", "#{session_name}:#{session_created}:#{session_attached}"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+
+            if result.returncode != 0:
+                return []
+
+            sessions = []
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    parts = line.split(":")
+                    sessions.append(
+                        {
+                            "name": parts[0],
+                            "created": parts[1] if len(parts) > 1 else "",
+                            "attached": parts[2] if len(parts) > 2 else "0",
+                        }
+                    )
+
+            # Update cache
+            self._session_cache["sessions"] = sessions
+            self._session_cache_time = current_time
+
+            return sessions
+
+        except Exception as e:
+            self._logger.error(f"Cached session listing failed: {e}")
             return []
 
-        sessions = []
-        for line in result.stdout.strip().split("\n"):
-            if line:
-                parts = line.split(":")
-                sessions.append(
-                    {
-                        "name": parts[0],
-                        "created": parts[1] if len(parts) > 1 else "",
-                        "attached": parts[2] if len(parts) > 2 else "0",
-                    }
-                )
+    def list_sessions(self) -> List[Dict[str, str]]:
+        """Standard interface for listing sessions - delegates to optimized version."""
+        return self.list_sessions_cached()
 
-        # Update cache
-        self._session_cache["sessions"] = sessions
-        self._session_cache_time = current_time
+    def list_agents(self) -> List[Dict[str, str]]:
+        """Standard interface for listing agents - delegates to optimized version."""
+        return self.list_agents_optimized()
 
-        return sessions
+    def create_session(self, session_name: str, window_name: str = None, start_directory: str = None) -> bool:
+        """Standard interface for creating sessions - delegates to optimized version."""
+        return self.create_session_optimized(session_name, window_name, start_directory)
 
-    def list_windows(self, session: str) -> list[dict[str, str]]:
-        """List windows in a session."""
-        result = self._run_tmux(
-            [
+    def capture_pane(self, target: str, lines: int = 50) -> str:
+        """Capture pane output - optimized version.
+
+        Args:
+            target: Target pane (session:window or session:window.pane)
+            lines: Number of lines to capture (default 50, 0 for all)
+
+        Returns:
+            Captured pane content as string
+        """
+        try:
+            cmd = [self.tmux_cmd, "capture-pane", "-t", target, "-p"]
+            if lines > 0:
+                cmd.extend(["-S", f"-{lines}"])
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                return result.stdout
+            else:
+                self._logger.error(f"Failed to capture pane {target}: {result.stderr}")
+                return ""
+        except Exception as e:
+            self._logger.error(f"Error capturing pane {target}: {e}")
+            return ""
+
+    def list_windows(self, session: str) -> List[Dict[str, str]]:
+        """List windows in a session.
+
+        Args:
+            session: Session name
+
+        Returns:
+            List of window dictionaries with index, name, and active status
+        """
+        try:
+            cmd = [
+                self.tmux_cmd,
                 "list-windows",
                 "-t",
                 session,
                 "-F",
                 "#{window_index}:#{window_name}:#{window_active}",
-            ],
-            check=False,
-        )
-        if result.returncode != 0:
-            return []
+            ]
 
-        windows = []
-        for line in result.stdout.strip().split("\n"):
-            if line:
-                parts = line.split(":")
-                windows.append(
-                    {
-                        "index": parts[0],
-                        "name": parts[1] if len(parts) > 1 else "",
-                        "active": parts[2] if len(parts) > 2 else "0",
-                    }
-                )
-        return windows
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            if result.returncode != 0:
+                return []
 
-    def list_agents(self) -> list[dict[str, str]]:
-        """List all active agents across sessions."""
-        agents = []
-        sessions = self.list_sessions()
-
-        for session in sessions:
-            windows = self.list_windows(session["name"])
-            for window in windows:
-                # Check if it's a Claude window
-                if "Claude" in window["name"] or window["name"] in [
-                    "pm",
-                    "developer",
-                    "qa",
-                ]:
-                    # Determine agent type directly from window name
-                    window_name = window["name"]
-
-                    # Remove "claude-" prefix if present
-                    if window_name.lower().startswith("claude-"):
-                        window_name = window_name[7:]  # Remove "claude-" (7 chars)
-
-                    # Use window name directly, capitalizing appropriately
-                    agent_type = window_name.replace("-", " ").replace("_", " ").title()
-
-                    # Check if idle
-                    pane_content = self.capture_pane(f"{session['name']}:{window['index']}")
-                    status = "Active"
-                    if self._is_idle(pane_content):
-                        status = "Idle"
-
-                    agents.append(
+            windows = []
+            for line in result.stdout.strip().split("\n"):
+                if line and ":" in line:
+                    parts = line.split(":", 2)
+                    windows.append(
                         {
-                            "session": session["name"],
-                            "window": window["index"],
-                            "type": agent_type,
-                            "status": status,
+                            "index": parts[0],
+                            "name": parts[1] if len(parts) > 1 else "",
+                            "active": parts[2] if len(parts) > 2 else "0",
                         }
                     )
 
-        return agents
+            return windows
+
+        except Exception as e:
+            self._logger.error(f"Error listing windows for session {session}: {e}")
+            return []
+
+    def create_window(self, session_name: str, window_name: str, start_directory: str = None) -> bool:
+        """Standard interface for creating windows - delegates to optimized version."""
+        return self.create_window_optimized(session_name, window_name, start_directory)
+
+    def send_text(self, target: str, text: str) -> bool:
+        """Send literal text to the target pane (properly escaped)."""
+        return self.send_keys(target, text, literal=True)
+
+    def press_enter(self, target: str) -> bool:
+        """Press Enter key in the target pane."""
+        return self.send_keys(target, "Enter", literal=False)
+
+    def press_ctrl_u(self, target: str) -> bool:
+        """Press Ctrl+U (clear line) in the target pane."""
+        return self.send_keys(target, "C-u", literal=False)
+
+    def send_message(self, target: str, message: str, delay: float = 0.5) -> bool:
+        """Send a message to a Claude agent using the proven CLI method."""
+        if not self.press_ctrl_u(target):
+            return False
+        time.sleep(0.1)
+        if not self.send_text(target, message):
+            return False
+        time.sleep(delay)
+        return self.press_enter(target)
 
     def _is_idle(self, pane_content: str) -> bool:
         """Check if pane content indicates idle state."""
@@ -405,47 +642,39 @@ class TMUXManager:
             r"idle",
             r"completed.*awaiting",
         ]
-
         for pattern in idle_patterns:
             if re.search(pattern, pane_content, re.IGNORECASE):
                 return True
-
         # Check for Claude prompt with no recent activity
         if "│ >" in pane_content and pane_content.strip().endswith("│"):
             return True
-
         return False
 
     def kill_window(self, target: str) -> bool:
-        """Kill a specific tmux window.
-
-        Args:
-            target: Window target in format "session:window" or "session:window_index"
-
-        Returns:
-            True if window was successfully killed, False otherwise
-        """
-        result = self._run_tmux(["kill-window", "-t", target], check=False)
+        """Kill a specific tmux window."""
+        result = subprocess.run([self.tmux_cmd, "kill-window", "-t", target], capture_output=True, text=True)
         return result.returncode == 0
 
     def kill_session(self, session_name: str) -> bool:
-        """Kill a tmux session."""
-        result = self._run_tmux(["kill-session", "-t", session_name], check=False)
+        """Kill a specific tmux session."""
+        result = subprocess.run([self.tmux_cmd, "kill-session", "-t", session_name], capture_output=True, text=True)
         return result.returncode == 0
 
-    def kill_project_sessions(self, project_name: str) -> int:
-        """Kill all sessions for a project."""
-        killed = 0
-        sessions = self.list_sessions()
+    def _validate_input(self, value: str, field_name: str = "input") -> str:
+        """Validate input to prevent command injection vulnerabilities."""
+        if not isinstance(value, str):
+            raise ValueError(f"{field_name} must be string, got {type(value)}")
 
-        for session in sessions:
-            if project_name in session["name"] or session["name"] == "orchestrator":
-                if self.kill_session(session["name"]):
-                    killed += 1
+        # Check for null bytes (can cause issues with subprocess)
+        if "\x00" in value:
+            raise ValueError(f"{field_name} contains null byte")
 
-        return killed
+        return value
 
-    def rename_window(self, target: str, new_name: str) -> bool:
-        """Rename a tmux window."""
-        result = self._run_tmux(["rename-window", "-t", target, new_name], check=False)
-        return result.returncode == 0
+    def press_escape(self, target: str) -> bool:
+        """Press Escape key in the target pane."""
+        return self.send_keys(target, "Escape", literal=False)
+
+    def press_ctrl_e(self, target: str) -> bool:
+        """Press Ctrl+E (end of line) in the target pane."""
+        return self.send_keys(target, "C-e", literal=False)

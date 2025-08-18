@@ -64,7 +64,7 @@ def test_specific_mcp_tools():
                 try:
                     json.loads(result.stdout)
                     json_valid = True
-                except:
+                except (json.JSONDecodeError, ValueError):
                     pass
 
             success = result.returncode == 0 or "--dry-run" in test["cli_command"]

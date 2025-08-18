@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-08-17 16:30:54",
+  "overall_score": 91.33333333333334,
+  "meets_requirements": false,
+  "action_parameter_tests": {
+    "success_rate": 100.0,
+    "passed": 10,
+    "failed": 0
+  },
+  "enum_descriptions": {
+    "clarity_rate": 80.0,
+    "with_descriptions": 10,
+    "clear_descriptions": 8
+  },
+  "error_messages": {
+    "quality_score": 86.66666666666667,
+    "all_have_suggestions": true,
+    "all_have_examples": true
+  },
+  "schema_validation": {
+    "llm_friendliness_score": 99.99999999999999,
+    "has_enum_descriptions": true,
+    "has_examples": true,
+    "has_pattern_validation": true,
+    "has_conditional_requirements": true
+  }
+}

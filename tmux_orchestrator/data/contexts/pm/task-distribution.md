@@ -1,5 +1,7 @@
 # Task Distribution and Agent Coordination
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
+
 ## Core Task Management Principles
 
 As PM, you are responsible for keeping all agents productive and coordinated. This requires proactive task management and clear communication.

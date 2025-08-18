@@ -146,6 +146,10 @@ class IdleMonitor:
             "monitoring.pm_recovery_grace_period_minutes", 3
         )  # Configurable grace period
 
+        # Recovery cooldown to prevent rapid recovery loops
+        self._recovery_cooldown_minutes = config.get("monitoring.pm_recovery_cooldown_minutes", 5)
+        self._last_recovery_attempt: dict[str, datetime] = {}  # Track last recovery attempt per session
+
         # PM crash observation tracking for pre-kill confirmation
         self._pm_crash_observations: dict[str, list[datetime]] = {}  # Track crash observations
         self._crash_observation_window = 30  # 30-second observation period before killing PM
@@ -820,21 +824,6 @@ monitor._run_monitoring_daemon({interval})
                     self._resume_incomplete_recoveries()
             except Exception as e:
                 self.logger.error(f"Error checking recovery state: {e}")
-
-    def _notify_team_of_pm_recovery(self, pm_target: str) -> None:
-        """Notify team members that PM has been recovered.
-
-        Args:
-            pm_target: PM target
-        """
-        session = pm_target.split(":")[0]
-        team_agents = self._get_team_agents(session)
-
-        for agent in team_agents:
-            message = "NOTICE: PM has been recovered after a crash. Please continue with your current tasks."
-            self._notify_agent(agent["target"], message)
-
-        return True  # Fixed undefined variable
 
     def stop(self, allow_cleanup: bool = True) -> bool:
         """Stop the idle monitor daemon.
@@ -2667,6 +2656,22 @@ monitor._run_monitoring_daemon({interval})
                 session_logger.info(f"   - Recovery initiated at: {time.strftime('%Y-%m-%d %H:%M:%S')}")
                 logger.info(f"Session has {agent_count} agents that need a PM")
 
+                # Check recovery cooldown to prevent rapid recovery loops
+                if session_name in self._last_recovery_attempt:
+                    time_since_last_attempt = datetime.now() - self._last_recovery_attempt[session_name]
+                    cooldown_period = timedelta(minutes=self._recovery_cooldown_minutes)
+
+                    if time_since_last_attempt < cooldown_period:
+                        remaining_cooldown = cooldown_period - time_since_last_attempt
+                        logger.warning(
+                            f"Recovery cooldown active for session {session_name}. "
+                            f"Waiting {remaining_cooldown.total_seconds():.0f}s before next attempt."
+                        )
+                        return
+
+                # Record this recovery attempt
+                self._last_recovery_attempt[session_name] = datetime.now()
+
                 # Use the new recovery orchestration method
                 recovery_success = self._recover_crashed_pm(
                     tmux=tmux,
@@ -3660,19 +3665,6 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
                     self._resume_incomplete_recoveries()
             except Exception as e:
                 self.logger.error(f"Error checking recovery state: {e}")
-
-    def _notify_team_of_pm_recovery(self, pm_target: str) -> None:
-        """Notify team members that PM has been recovered.
-
-        Args:
-            pm_target: PM target
-        """
-        session = pm_target.split(":")[0]
-        team_agents = self._get_team_agents(session)
-
-        for agent in team_agents:
-            message = "NOTICE: PM has been recovered after a crash. Please continue with your current tasks."
-            self._notify_agent(agent["target"], message)
 
 
 class AgentMonitor:

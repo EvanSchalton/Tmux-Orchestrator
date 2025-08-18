@@ -1,9 +1,7 @@
 """Orchestrator management commands for session scheduling and coordination."""
 
-import builtins
 import subprocess
 from pathlib import Path
-from typing import Any
 
 import click
 from rich.console import Console
@@ -16,7 +14,8 @@ console: Console = Console()
 
 
 @click.group()
-def orchestrator() -> None:
+@click.pass_context
+def orchestrator(ctx: click.Context) -> None:
     """High-level orchestrator operations for system-wide management.
 
     The orchestrator command group provides strategic oversight and coordination
@@ -353,19 +352,14 @@ def status(ctx: click.Context, json: bool) -> None:
 
     # Recent activity summary
     if agents:
-        console.print("\n[bold]📊 Agent Activity Overview:[/bold]")
-        # Group by session
-        sessions_with_agents: dict[str, builtins.list[dict[str, Any]]] = {}
-        for agent in agents:
-            session_name = agent.get("session", "unknown")
-            if session_name not in sessions_with_agents:
-                sessions_with_agents[session_name] = []
-            sessions_with_agents[session_name].append(agent)
+        console.print(f"\n[bold]📊 Agent Activity Overview:[/bold] ({len(agents)} total agents)")
 
-        for session_name, session_agents in list(sessions_with_agents.items())[:5]:  # Top 5
-            active_count = len([a for a in session_agents if a.get("status") == "Active"])
-            total_count = len(session_agents)
-            console.print(f"  • {session_name}: {active_count}/{total_count} active")
+        # Simple summary without detailed breakdown to avoid Click interference
+        active_agents = [a for a in agents if a.get("status") == "Active"]
+        idle_agents = [a for a in agents if a.get("status") == "Idle"]
+        console.print(f"  Active: {len(active_agents)}, Idle: {len(idle_agents)}")
+
+    # End of status function
 
 
 @orchestrator.command()

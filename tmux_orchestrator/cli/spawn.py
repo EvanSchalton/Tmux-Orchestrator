@@ -283,7 +283,7 @@ def agent(
     # Start Claude in the new window
     actual_target = f"{session_name}:{actual_window_idx}"
     tmux.send_text(actual_target, "claude --dangerously-skip-permissions")
-    tmux.press_enter(actual_target)
+    tmux.send_keys(actual_target, "Enter")
 
     # CRITICAL: Wait for Claude to fully initialize to prevent Ctrl+C interruption
     time.sleep(8)  # Give Claude sufficient time to load completely

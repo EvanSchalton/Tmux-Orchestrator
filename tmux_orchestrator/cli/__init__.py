@@ -9,7 +9,6 @@ from rich.table import Table
 from tmux_orchestrator import __version__
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
-from tmux_orchestrator.utils.tmux_optimized import OptimizedTMUXManager
 
 # Initialize console for CLI output
 console: Console = Console()
@@ -52,9 +51,9 @@ def cli(ctx: click.Context, config_file: str | None, json: bool, verbose: bool) 
             console.print(f"[red]Configuration error: {e}[/red]")
         ctx.obj["config"] = Config()  # Use defaults
 
-    # Initialize TMUX manager (use optimized version for performance)
+    # Initialize TMUX manager (now using high-performance implementation)
     ctx.obj["tmux"] = TMUXManager()
-    ctx.obj["tmux_optimized"] = OptimizedTMUXManager()
+    ctx.obj["tmux_optimized"] = TMUXManager()  # Both point to same optimized version
     ctx.obj["console"] = console
     ctx.obj["json_mode"] = json
     ctx.obj["verbose"] = verbose
@@ -98,7 +97,7 @@ def list(ctx: click.Context, json: bool) -> None:
 
     If no agents are found, provides guidance on deploying teams.
     """
-    tmux_optimized: OptimizedTMUXManager = ctx.obj["tmux_optimized"]
+    tmux_optimized: TMUXManager = ctx.obj["tmux_optimized"]
     use_json: bool = json or ctx.obj.get("json_mode", False)
 
     agents = tmux_optimized.list_agents_ultra_optimized()
@@ -251,7 +250,7 @@ def status(ctx: click.Context, json: bool) -> None:
     Use for regular system health checks, performance monitoring,
     and integration with external monitoring and alerting systems.
     """
-    tmux_optimized: OptimizedTMUXManager = ctx.obj["tmux_optimized"]
+    tmux_optimized: TMUXManager = ctx.obj["tmux_optimized"]
     use_json: bool = json or ctx.obj.get("json_mode", False)
 
     # Gather system information using optimized manager
@@ -481,13 +480,7 @@ def _setup_command_groups() -> None:
         except ImportError:
             pass  # pubsub.py module for agent communication
 
-        # Add high-performance pubsub commands
-        try:
-            from tmux_orchestrator.cli import pubsub_fast
-
-            cli.add_command(pubsub_fast.pubsub_fast)
-        except ImportError:
-            pass  # pubsub_fast.py module for daemon-based messaging
+        # Note: pubsub_fast.py was consolidated into pubsub.py
 
         # Add daemon management commands
         try:

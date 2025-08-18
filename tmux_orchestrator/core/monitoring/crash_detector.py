@@ -43,7 +43,7 @@ class CrashDetector(CrashDetectorInterface):
             "panic:",  # System panic
             "bash-",  # Shell prompt (Claude gone)
             "zsh:",  # Shell prompt (Claude gone)
-            "$ ",  # Generic shell prompt (Claude gone)
+            # Removed "$ " as it causes too many false positives
             "traceback (most recent call last)",  # Python crash
             "modulenotfounderror",  # Import failure
             "process finished with exit code",  # Process died
@@ -115,7 +115,12 @@ class CrashDetector(CrashDetectorInterface):
         """
         content_lower = content.lower()
 
-        # Check for crash indicators
+        # PRIORITY 1: Check for shell prompt at the end of content (immediate crash detection)
+        if self._check_shell_prompt_at_end(content):
+            self.logger.warning(f"Agent {agent.target} shows shell prompt at end - likely crashed")
+            return True, "Shell prompt detected at terminal end"
+
+        # PRIORITY 2: Check for crash indicators
         for indicator in self._crash_indicators:
             if indicator in content_lower:
                 # Use context-aware check to prevent false positives
@@ -134,9 +139,11 @@ class CrashDetector(CrashDetectorInterface):
                     # Still observing, not confirmed yet
                     return False, None
 
-        # Check if Claude interface is present
-        if not self._is_claude_interface_present(content):
-            self.logger.warning(f"Agent {agent.target} missing Claude interface - likely crashed")
+        # PRIORITY 3: Check if Claude interface is present (only for extremely minimal content)
+        # Only flag as crash if content is very short and empty-looking
+        # This prevents false positives on normal conversation content
+        if len(content.strip()) < 10 and not self._is_claude_interface_present(content):
+            self.logger.warning(f"Agent {agent.target} missing Claude interface in minimal content - likely crashed")
             return True, "Missing Claude interface"
 
         return False, None
@@ -193,20 +200,22 @@ class CrashDetector(CrashDetectorInterface):
                 ("$", False),  # Generic $ prompt (check if standalone)
                 ("%", False),  # Generic % prompt
                 ("#", False),  # Root prompt
+                ("➜", False),  # Zsh fancy prompt
+                ("❯", False),  # Fish/starship prompt
             ]
 
             for pattern, prefix_check in shell_prompt_patterns:
                 if prefix_check:
                     # Check if line starts with this pattern (e.g., "bash-5.1$")
-                    if last_line.startswith(pattern) and last_line.endswith("$"):
+                    if last_line.startswith(pattern) and ("$" in last_line or pattern == "zsh:"):
                         return False  # This is a crash
                 else:
-                    # Check if it's just the prompt character
-                    if last_line == pattern:
+                    # Check if it's just the prompt character or starts with it
+                    if last_line == pattern or last_line.startswith(pattern):
                         return False  # This is a crash
 
                 # Also check if the specific crash indicator is in a crash line
-                if indicator in ["bash-", "$ "] and last_line.startswith("bash-") and "$" in last_line:
+                if indicator == "bash-" and last_line.startswith("bash-") and "$" in last_line:
                     return False  # bash prompt after crash
 
         # Default: assume it's normal conversation about failures
@@ -282,6 +291,59 @@ class CrashDetector(CrashDetectorInterface):
         for marker in claude_markers:
             if marker.lower() in content_lower:
                 return True
+
+        return False
+
+    def _check_shell_prompt_at_end(self, content: str) -> bool:
+        """Check if content ends with a shell prompt indicating crash.
+
+        Args:
+            content: Terminal content to check
+
+        Returns:
+            True if shell prompt detected at end indicating crash
+        """
+        lines = content.strip().split("\n")
+        if not lines:
+            return False
+
+        # Check last few lines for shell prompt patterns
+        last_lines = lines[-3:]  # Check last 3 lines
+
+        for line in reversed(last_lines):
+            line = line.strip()
+            if not line:
+                continue
+
+            # Common shell prompt patterns that indicate Claude has exited
+            shell_patterns = [
+                (r"^bash-\d+\.\d+\$$", True),  # bash-5.1$
+                (r"^bash-.*\$$", True),  # bash-anything$
+                (r"^zsh:\s*\$$", True),  # zsh: $
+                (r"^zsh:\s*$", True),  # zsh: (without $)
+                (r"^\[.+\]\$$", True),  # [user@host]$
+                (r"^.+@.+[:#~]\s*\$$", True),  # user@host:~ $
+                (r"^➜.*", True),  # zsh prompt
+                (r"^❯.*", True),  # fish/starship prompt
+                (r"^\$$", True),  # Just $ on its own line
+                (r"^\$ $", True),  # $ with trailing space
+                (r"^#$", True),  # Just # (root)
+                (r"^%$", True),  # Just % (csh/tcsh)
+            ]
+
+            for pattern, is_regex in shell_patterns:
+                if is_regex:
+                    if re.match(pattern, line):
+                        self.logger.debug(f"Shell prompt pattern '{pattern}' matched: '{line}'")
+                        return True
+                else:
+                    if line == pattern:
+                        self.logger.debug(f"Shell prompt exact match: '{line}'")
+                        return True
+
+            # If we found a non-empty line that's not a prompt, probably not crashed
+            if len(line) > 5:  # Arbitrary threshold for "real content"
+                return False
 
         return False
 

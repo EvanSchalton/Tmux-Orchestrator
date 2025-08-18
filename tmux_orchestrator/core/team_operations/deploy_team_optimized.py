@@ -4,18 +4,18 @@ import time
 from pathlib import Path
 from typing import Tuple
 
-from tmux_orchestrator.utils.tmux_optimized import OptimizedTMUXManager
+from tmux_orchestrator.utils.tmux import TMUXManager
 
 
 def deploy_standard_team_optimized(
-    tmux_optimized: OptimizedTMUXManager, team_type: str, size: int, project_name: str
+    tmux_optimized: TMUXManager, team_type: str, size: int, project_name: str
 ) -> Tuple[bool, str]:
     """Deploy a standard team configuration with performance optimizations.
 
     Target: <500ms execution time (vs 1.57s original)
 
     Args:
-        tmux_optimized: OptimizedTMUXManager instance
+        tmux_optimized: TMUXManager instance
         team_type: Type of team (frontend, backend, fullstack, testing)
         size: Number of agents to deploy
         project_name: Name of the project
@@ -67,18 +67,13 @@ def deploy_standard_team_optimized(
 
     except Exception as e:
         # Clean up session if deployment failed
-        # Note: Using regular tmux manager for cleanup to avoid circular dependencies
-        from tmux_orchestrator.utils.tmux import TMUXManager
-
         cleanup_tmux = TMUXManager()
         cleanup_tmux.kill_session(session_name)
 
         return False, f"Deployment failed: {str(e)}"
 
 
-def _deploy_frontend_team_optimized(
-    tmux_optimized: OptimizedTMUXManager, session_name: str, size: int, project_dir: str
-) -> int:
+def _deploy_frontend_team_optimized(tmux_optimized: TMUXManager, session_name: str, size: int, project_dir: str) -> int:
     """Deploy frontend-focused team with optimizations."""
     agents_deployed = 0
 
@@ -104,9 +99,7 @@ def _deploy_frontend_team_optimized(
     return agents_deployed
 
 
-def _deploy_backend_team_optimized(
-    tmux_optimized: OptimizedTMUXManager, session_name: str, size: int, project_dir: str
-) -> int:
+def _deploy_backend_team_optimized(tmux_optimized: TMUXManager, session_name: str, size: int, project_dir: str) -> int:
     """Deploy backend-focused team with optimizations."""
     agents_deployed = 0
 
@@ -133,7 +126,7 @@ def _deploy_backend_team_optimized(
 
 
 def _deploy_fullstack_team_optimized(
-    tmux_optimized: OptimizedTMUXManager, session_name: str, size: int, project_dir: str
+    tmux_optimized: TMUXManager, session_name: str, size: int, project_dir: str
 ) -> int:
     """Deploy balanced fullstack team with optimizations."""
     agents_deployed = 0
@@ -162,9 +155,7 @@ def _deploy_fullstack_team_optimized(
     return agents_deployed
 
 
-def _deploy_testing_team_optimized(
-    tmux_optimized: OptimizedTMUXManager, session_name: str, size: int, project_dir: str
-) -> int:
+def _deploy_testing_team_optimized(tmux_optimized: TMUXManager, session_name: str, size: int, project_dir: str) -> int:
     """Deploy testing-focused team with optimizations."""
     agents_deployed = 0
 
@@ -184,7 +175,7 @@ def _deploy_testing_team_optimized(
     return agents_deployed
 
 
-def _start_claude_agent_optimized(tmux_optimized: OptimizedTMUXManager, target: str, role: str) -> bool:
+def _start_claude_agent_optimized(tmux_optimized: TMUXManager, target: str, role: str) -> bool:
     """Start a Claude agent with optimized timing and reduced delays."""
     # Optimized startup sequence with reduced delays
     if not tmux_optimized.send_keys_optimized(target, "claude --dangerously-skip-permissions"):
@@ -202,7 +193,7 @@ def _start_claude_agent_optimized(tmux_optimized: OptimizedTMUXManager, target: 
     return _send_message_optimized(tmux_optimized, target, briefing)
 
 
-def _send_message_optimized(tmux_optimized: OptimizedTMUXManager, target: str, message: str) -> bool:
+def _send_message_optimized(tmux_optimized: TMUXManager, target: str, message: str) -> bool:
     """Send message with optimized timing."""
     try:
         # Clear any existing input with optimized timing

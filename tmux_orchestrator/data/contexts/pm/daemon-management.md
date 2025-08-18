@@ -1,5 +1,7 @@
 # Daemon Management and Notifications
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
+
 ## 🤖 Working with the Monitoring Daemon
 
 The monitoring daemon is your automated assistant, detecting idle/crashed agents and alerting you. Learn to work WITH it, not against it.
@@ -22,7 +24,7 @@ tmux-orc monitor logs -f
 - **Detects idle agents** (no activity for ~1 minute)
 - **Identifies crashed agents** (Claude not responding)
 - **Monitors rate limits** (API usage limits)
-- **Sends PM notifications** (via tmux-orc message)
+- **Sends PM notifications** (via monitoring system)
 - **Auto-recovers crashed PMs** (spawns replacement)
 
 ## 📋 CRITICAL: How to Handle Daemon Notifications

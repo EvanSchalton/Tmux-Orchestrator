@@ -1,0 +1,320 @@
+#!/usr/bin/env python3
+"""
+Stress tests for spawn auto-increment functionality.
+Tests race conditions, concurrent spawns, and edge cases.
+"""
+
+import random
+import subprocess
+import threading
+import time
+import unittest
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from tmux_orchestrator.utils.tmux import TMUXManager
+
+
+class TestSpawnStress(unittest.TestCase):
+    """Stress tests for spawn functionality"""
+
+    TEST_SESSION_PREFIX = "tmux-orc-stress-"
+
+    @classmethod
+    def setUpClass(cls):
+        """Check tmux availability"""
+        try:
+            subprocess.run(["tmux", "-V"], check=True, capture_output=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            raise unittest.SkipTest("tmux not available")
+
+    def setUp(self):
+        """Set up test environment"""
+        self.tmux = TMUXManager()
+        self.test_session = f"{self.TEST_SESSION_PREFIX}{int(time.time())}"
+        self.cleanup_sessions()
+
+    def tearDown(self):
+        """Clean up"""
+        self.cleanup_sessions()
+
+    def cleanup_sessions(self):
+        """Remove all stress test sessions"""
+        sessions = subprocess.run(["tmux", "list-sessions", "-F", "#{session_name}"], capture_output=True, text=True)
+        if sessions.returncode == 0:
+            for session in sessions.stdout.strip().split("\n"):
+                if session.startswith(self.TEST_SESSION_PREFIX):
+                    subprocess.run(["tmux", "kill-session", "-t", session], capture_output=True)
+
+    def spawn_agent(self, name: str, session: str) -> tuple[bool, str]:
+        """Spawn a single agent and return success status"""
+        result = subprocess.run(
+            ["tmux-orc", "spawn", "agent", name, session, "--briefing", f"Test agent {name}"],
+            capture_output=True,
+            text=True,
+        )
+        return result.returncode == 0, result.stdout + result.stderr
+
+    def test_concurrent_spawns_same_session(self):
+        """Test multiple agents spawning concurrently into same session"""
+        # Create session
+        self.assertTrue(self.tmux.create_session(self.test_session))
+
+        # Spawn 10 agents concurrently
+        agent_names = [f"agent-{i}" for i in range(10)]
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(self.spawn_agent, name, self.test_session): name for name in agent_names}
+
+            results = {}
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    success, output = future.result()
+                    results[name] = (success, output)
+                except Exception as e:
+                    results[name] = (False, str(e))
+
+        # All spawns should succeed
+        failed = [(name, output) for name, (success, output) in results.items() if not success]
+        self.assertEqual(len(failed), 0, f"Failed spawns: {failed}")
+
+        # Verify all windows exist
+        windows = self.tmux.list_windows(self.test_session)
+        window_names = [w["name"] for w in windows]
+
+        for name in agent_names:
+            self.assertIn(f"Claude-{name}", window_names)
+
+        # Verify sequential indices (0-9)
+        indices = sorted([w["index"] for w in windows])
+        self.assertEqual(indices, list(range(10)))
+
+    def test_rapid_spawn_delete_cycles(self):
+        """Test rapid creation and deletion of windows"""
+        # Create session
+        self.assertTrue(self.tmux.create_session(self.test_session))
+
+        # Perform 5 cycles of create/delete
+        for cycle in range(5):
+            # Create 3 windows
+            for i in range(3):
+                name = f"cycle-{cycle}-agent-{i}"
+                success, _ = self.spawn_agent(name, self.test_session)
+                self.assertTrue(success)
+
+            # Delete middle window
+            windows = self.tmux.list_windows(self.test_session)
+            if len(windows) > 1:
+                middle_idx = windows[len(windows) // 2]["index"]
+                subprocess.run(["tmux", "kill-window", "-t", f"{self.test_session}:{middle_idx}"], capture_output=True)
+                time.sleep(0.1)
+
+        # Final state should be consistent
+        windows = self.tmux.list_windows(self.test_session)
+        self.assertGreater(len(windows), 0)
+
+        # All indices should be valid
+        for window in windows:
+            self.assertIsInstance(window["index"], int)
+            self.assertGreaterEqual(window["index"], 0)
+
+    def test_spawn_with_random_delays(self):
+        """Test spawning with random delays between operations"""
+        # Create session
+        self.assertTrue(self.tmux.create_session(self.test_session))
+
+        def delayed_spawn(name: str, delay: float):
+            time.sleep(delay)
+            return self.spawn_agent(name, self.test_session)
+
+        # Spawn agents with random delays
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            futures = []
+            for i in range(8):
+                delay = random.uniform(0, 0.5)  # Random delay up to 500ms
+                future = executor.submit(delayed_spawn, f"delayed-{i}", delay)
+                futures.append((f"delayed-{i}", future))
+
+            # Collect results
+            for name, future in futures:
+                success, output = future.result()
+                self.assertTrue(success, f"Failed to spawn {name}: {output}")
+
+        # Verify all windows created
+        windows = self.tmux.list_windows(self.test_session)
+        self.assertEqual(len(windows), 8)
+
+    def test_spawn_session_limit(self):
+        """Test behavior when approaching tmux window limits"""
+        # Create session
+        self.assertTrue(self.tmux.create_session(self.test_session))
+
+        # Try to create many windows (tmux typically supports up to 200+)
+        # We'll test with 50 to be reasonable
+        success_count = 0
+        fail_count = 0
+
+        for i in range(50):
+            success, output = self.spawn_agent(f"bulk-{i}", self.test_session)
+            if success:
+                success_count += 1
+            else:
+                fail_count += 1
+                # First failure might indicate we hit a limit
+                if fail_count == 1:
+                    print(f"First failure at window {i}: {output}")
+
+        # Should create many windows successfully
+        self.assertGreater(success_count, 40)  # At least 40 should succeed
+
+        # Verify windows are sequential
+        windows = self.tmux.list_windows(self.test_session)
+        indices = sorted([w["index"] for w in windows])
+
+        # Indices should be contiguous from 0
+        for i, idx in enumerate(indices):
+            self.assertEqual(idx, i)
+
+    def test_spawn_with_kill_session_race(self):
+        """Test spawning while session is being killed"""
+        # Create session
+        self.assertTrue(self.tmux.create_session(self.test_session))
+
+        # Function to kill session after delay
+        def kill_session_delayed():
+            time.sleep(0.2)
+            subprocess.run(["tmux", "kill-session", "-t", self.test_session], capture_output=True)
+
+        # Start spawning agents while session might be killed
+        kill_thread = threading.Thread(target=kill_session_delayed)
+        kill_thread.start()
+
+        # Try to spawn agents
+        results = []
+        for i in range(5):
+            success, output = self.spawn_agent(f"racing-{i}", self.test_session)
+            results.append((i, success, output))
+            time.sleep(0.1)
+
+        kill_thread.join()
+
+        # Some spawns should succeed before kill
+        successes = [r for r in results if r[1]]
+        self.assertGreater(len(successes), 0)
+
+        # Later spawns should fail gracefully
+        failures = [r for r in results if not r[1]]
+        for idx, success, output in failures:
+            # Should have meaningful error, not crash
+            self.assertTrue(
+                "Failed to create session" in output
+                or "session not found" in output.lower()
+                or "no session" in output.lower()
+            )
+
+    def test_spawn_name_collision_handling(self):
+        """Test handling of duplicate agent names"""
+        # Create session
+        self.assertTrue(self.tmux.create_session(self.test_session))
+
+        # Spawn same agent name multiple times concurrently
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(self.spawn_agent, "duplicate", self.test_session) for _ in range(3)]
+
+            results = [future.result() for future in as_completed(futures)]
+
+        # At least one should succeed
+        successes = [r for r in results if r[0]]
+        self.assertGreater(len(successes), 0)
+
+        # Windows should have unique names (tmux might append numbers)
+        windows = self.tmux.list_windows(self.test_session)
+        window_names = [w["name"] for w in windows]
+
+        # Should have at least one Claude-duplicate window
+        duplicate_windows = [n for n in window_names if "duplicate" in n.lower()]
+        self.assertGreater(len(duplicate_windows), 0)
+
+
+class TestSpawnErrorRecovery(unittest.TestCase):
+    """Test error recovery and edge cases"""
+
+    TEST_SESSION_PREFIX = "tmux-orc-error-"
+
+    def setUp(self):
+        """Set up test environment"""
+        self.tmux = TMUXManager()
+        self.test_session = f"{self.TEST_SESSION_PREFIX}{int(time.time())}"
+        self.cleanup_sessions()
+
+    def tearDown(self):
+        """Clean up"""
+        self.cleanup_sessions()
+
+    def cleanup_sessions(self):
+        """Remove test sessions"""
+        sessions = subprocess.run(["tmux", "list-sessions", "-F", "#{session_name}"], capture_output=True, text=True)
+        if sessions.returncode == 0:
+            for session in sessions.stdout.strip().split("\n"):
+                if session.startswith(self.TEST_SESSION_PREFIX):
+                    subprocess.run(["tmux", "kill-session", "-t", session], capture_output=True)
+
+    def test_spawn_with_invalid_characters(self):
+        """Test spawning with special characters in names"""
+        # Create session
+        self.assertTrue(self.tmux.create_session(self.test_session))
+
+        # Test various special characters
+        test_names = [
+            "agent-with-dash",
+            "agent_with_underscore",
+            "agent.with.dots",
+            "agent@special",
+            "agent#hash",
+            "agent with spaces",  # This might be escaped
+            "agent'quote",
+            'agent"doublequote',
+        ]
+
+        for name in test_names:
+            # Clean name for safe use
+            safe_name = name.replace(" ", "-").replace("'", "").replace('"', "")
+
+            result = subprocess.run(
+                ["tmux-orc", "spawn", "agent", safe_name, self.test_session, "--briefing", f"Test {name}"],
+                capture_output=True,
+                text=True,
+            )
+
+            # Should handle gracefully (success or clear error)
+            if result.returncode != 0:
+                # Error should be meaningful
+                self.assertTrue("invalid" in result.stdout.lower() or "failed" in result.stdout.lower())
+
+    def test_spawn_very_long_names(self):
+        """Test spawning with very long agent names"""
+        # Create session
+        self.assertTrue(self.tmux.create_session(self.test_session))
+
+        # Test long name (tmux has limits)
+        long_name = "a" * 100
+
+        result = subprocess.run(
+            ["tmux-orc", "spawn", "agent", long_name, self.test_session, "--briefing", "Test long name"],
+            capture_output=True,
+            text=True,
+        )
+
+        # Should either succeed or fail gracefully
+        if result.returncode == 0:
+            # Verify window created
+            windows = self.tmux.list_windows(self.test_session)
+            self.assertGreater(len(windows), 0)
+        else:
+            # Should have meaningful error
+            self.assertTrue("failed" in result.stdout.lower())
+
+
+if __name__ == "__main__":
+    # Run stress tests with verbose output
+    unittest.main(verbosity=2)

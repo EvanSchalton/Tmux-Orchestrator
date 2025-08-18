@@ -1,5 +1,7 @@
 # TMUX Communications Guide
 
+> 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
+
 ## Session Management
 
 ### Finding Your Current Session

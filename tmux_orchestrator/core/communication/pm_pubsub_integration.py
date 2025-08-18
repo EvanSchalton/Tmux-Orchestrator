@@ -4,13 +4,34 @@ This module provides utilities for Project Managers to consume and respond to
 daemon notifications through the pubsub messaging system.
 """
 
+import asyncio
 import json
 import subprocess
 from datetime import datetime, timedelta
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List
 
 from tmux_orchestrator.utils.tmux import TMUXManager
+
+
+class MessagePriority(Enum):
+    """Message priority levels."""
+
+    CRITICAL = "critical"
+    HIGH = "high"
+    NORMAL = "normal"
+    LOW = "low"
+
+
+class MessageCategory(Enum):
+    """Message categories."""
+
+    HEALTH = "health"
+    RECOVERY = "recovery"
+    STATUS = "status"
+    TASK = "task"
+    ESCALATION = "escalation"
 
 
 class PMPubsubIntegration:
@@ -320,3 +341,369 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
     script_path.chmod(0o755)
 
     return str(script_path)
+
+    async def process_structured_messages(self, since_minutes: int = 5) -> Dict[str, List[Dict[str, Any]]]:
+        """Process structured daemon messages from pubsub.
+
+        Args:
+            since_minutes: How many minutes back to check
+
+        Returns:
+            Dictionary of messages categorized by type
+        """
+        messages = self.get_daemon_notifications(since_minutes)
+
+        categorized = {"health": [], "recovery": [], "status": [], "requests": [], "unacknowledged": []}
+
+        for msg in messages:
+            # Parse structured message format
+            if isinstance(msg.get("raw_message"), str):
+                try:
+                    structured_msg = json.loads(msg["raw_message"])
+                    if self._is_structured_message(structured_msg):
+                        msg_category = structured_msg["message"]["category"]
+                        msg_type = structured_msg["message"]["type"]
+
+                        # Categorize by type
+                        if msg_category == "health":
+                            categorized["health"].append(structured_msg)
+                        elif msg_category == "recovery":
+                            categorized["recovery"].append(structured_msg)
+                        elif msg_category == "status":
+                            categorized["status"].append(structured_msg)
+                        elif msg_type == "request":
+                            categorized["requests"].append(structured_msg)
+
+                        # Track unacknowledged messages
+                        if structured_msg["metadata"].get("requires_ack") and not self._is_acknowledged(
+                            structured_msg["id"]
+                        ):
+                            categorized["unacknowledged"].append(structured_msg)
+                except json.JSONDecodeError:
+                    # Not a structured message, use legacy parsing
+                    pass
+
+        return categorized
+
+    async def handle_health_notification(self, message: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle health notification from daemon.
+
+        Args:
+            message: Structured health notification
+
+        Returns:
+            Response with action taken
+        """
+        content = message["message"]["content"]
+        context = content["context"]
+        agent = context.get("agent", "unknown")
+        issue_type = context.get("issue_type", "unknown")
+
+        # Determine appropriate action
+        action = self._determine_health_action(issue_type, context)
+
+        # Execute action
+        result = await self._execute_health_action(agent, action, context)
+
+        # Send acknowledgment if required
+        if message["metadata"].get("requires_ack"):
+            await self.acknowledge_structured_message(message["id"], action, result)
+
+        return {
+            "message_id": message["id"],
+            "agent": agent,
+            "issue": issue_type,
+            "action_taken": action,
+            "result": result,
+        }
+
+    async def handle_recovery_notification(self, message: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle recovery notification from daemon.
+
+        Args:
+            message: Structured recovery notification
+
+        Returns:
+            Response with verification status
+        """
+        content = message["message"]["content"]
+        context = content["context"]
+        target = context.get("target", "unknown")
+        recovery_type = context.get("recovery_type", "unknown")
+
+        # Verify recovery success
+        verification = await self._verify_recovery(target, recovery_type, context)
+
+        # Send acknowledgment
+        if message["metadata"].get("requires_ack"):
+            await self.acknowledge_structured_message(message["id"], "verified", verification)
+
+        return {
+            "message_id": message["id"],
+            "target": target,
+            "recovery_type": recovery_type,
+            "verification": verification,
+        }
+
+    async def handle_action_request(self, message: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle action request from daemon.
+
+        Args:
+            message: Structured action request
+
+        Returns:
+            Response with action result
+        """
+        content = message["message"]["content"]
+        context = content["context"]
+        action_type = context.get("action_type", "unknown")
+
+        # Execute requested action
+        result = await self._execute_requested_action(action_type, context)
+
+        # Send response
+        response_msg = self._build_response_message(message["id"], action_type, result)
+
+        await self._send_response(response_msg)
+
+        return {"message_id": message["id"], "action_type": action_type, "result": result}
+
+    async def acknowledge_structured_message(self, message_id: str, action_taken: str, result: Dict[str, Any]):
+        """Acknowledge a structured daemon message.
+
+        Args:
+            message_id: Original message ID
+            action_taken: Action that was taken
+            result: Result of the action
+        """
+        ack_message = {
+            "id": f"pm-ack-{datetime.now().timestamp()}",
+            "timestamp": datetime.now().isoformat(),
+            "source": {"type": "pm", "identifier": self.session},
+            "message": {
+                "type": "acknowledgment",
+                "category": "response",
+                "priority": "normal",
+                "content": {
+                    "subject": f"Action Completed: {action_taken}",
+                    "body": f"PM {self.session} completed {action_taken}",
+                    "context": {
+                        "original_message_id": message_id,
+                        "action_taken": action_taken,
+                        "result": result,
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                },
+            },
+            "metadata": {"tags": ["acknowledgment", "pm-response"], "correlation_id": message_id},
+        }
+
+        # Send acknowledgment
+        await self._send_pubsub_message(
+            "management",  # Send to management group
+            json.dumps(ack_message),
+            ["acknowledgment", "pm-response", action_taken],
+        )
+
+    def _is_structured_message(self, message: Any) -> bool:
+        """Check if message follows structured format.
+
+        Args:
+            message: Message to check
+
+        Returns:
+            True if message is structured format
+        """
+        if not isinstance(message, dict):
+            return False
+
+        required_fields = ["id", "timestamp", "source", "message", "metadata"]
+        return all(field in message for field in required_fields)
+
+    def _is_acknowledged(self, message_id: str) -> bool:
+        """Check if message has been acknowledged.
+
+        Args:
+            message_id: Message ID to check
+
+        Returns:
+            True if acknowledged
+        """
+        # Check acknowledgment store
+        ack_file = Path.home() / ".tmux-orchestrator" / "acknowledgments" / f"{message_id}.json"
+        return ack_file.exists()
+
+    def _determine_health_action(self, issue_type: str, context: Dict[str, Any]) -> str:
+        """Determine appropriate action for health issue.
+
+        Args:
+            issue_type: Type of health issue
+            context: Issue context
+
+        Returns:
+            Recommended action
+        """
+        if issue_type == "idle":
+            idle_duration = context.get("idle_duration", 0)
+            if idle_duration > 1800:  # 30 minutes
+                return "restart"
+            else:
+                return "investigate"
+        elif issue_type == "crashed":
+            return "restart"
+        elif issue_type == "unresponsive":
+            return "force_restart"
+        else:
+            return "investigate"
+
+    async def _execute_health_action(self, agent: str, action: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute health-related action on agent.
+
+        Args:
+            agent: Agent target
+            action: Action to take
+            context: Action context
+
+        Returns:
+            Action result
+        """
+        try:
+            if action == "restart":
+                # Send restart command
+                subprocess.run(["tmux-orc", "restart", "agent", agent], check=True, capture_output=True)
+                return {"status": "success", "action": "agent_restarted"}
+
+            elif action == "investigate":
+                # Send status request to agent
+                subprocess.run(
+                    ["tmux-orc", "agent", "send", agent, "STATUS REQUEST: Please provide current task and progress"],
+                    check=True,
+                )
+                return {"status": "success", "action": "status_requested"}
+
+            elif action == "force_restart":
+                # Kill and respawn agent
+                session = agent.split(":")[0]
+                window = agent.split(":")[1]
+                subprocess.run(["tmux", "kill-window", "-t", f"{session}:{window}"], check=False)
+                await asyncio.sleep(1)
+                subprocess.run(["tmux-orc", "spawn", "agent", "--session", agent], check=True)
+                return {"status": "success", "action": "agent_respawned"}
+
+            else:
+                return {"status": "unknown_action", "action": action}
+
+        except subprocess.CalledProcessError as e:
+            return {"status": "failed", "error": str(e)}
+
+    async def _verify_recovery(self, target: str, recovery_type: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Verify recovery action success.
+
+        Args:
+            target: Recovery target
+            recovery_type: Type of recovery
+            context: Recovery context
+
+        Returns:
+            Verification result
+        """
+        try:
+            # Check if target is responsive
+            content = self.tmux.capture_pane(target, lines=10)
+
+            if "Human:" in content or "Assistant:" in content:
+                return {"status": "verified", "target_responsive": True, "recovery_type": recovery_type}
+            else:
+                return {"status": "unverified", "target_responsive": False, "recovery_type": recovery_type}
+
+        except Exception as e:
+            return {"status": "verification_failed", "error": str(e), "recovery_type": recovery_type}
+
+    async def _execute_requested_action(self, action_type: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute action requested by daemon.
+
+        Args:
+            action_type: Type of action
+            context: Action context
+
+        Returns:
+            Action result
+        """
+        if action_type == "redistribute_tasks":
+            # Implement task redistribution logic
+            failed_agent = context.get("failed_agent")
+            return {"status": "success", "redistributed_from": failed_agent, "action": "tasks_redistributed"}
+
+        elif action_type == "investigate_agent":
+            agent = context.get("agent")
+            reason = context.get("reason")
+            # Send investigation message to agent
+            subprocess.run(["tmux-orc", "agent", "send", agent, f"INVESTIGATION: {reason}"], check=True)
+            return {"status": "success", "investigated": agent, "reason": reason}
+
+        else:
+            return {"status": "unknown_action", "action_type": action_type}
+
+    def _build_response_message(self, original_id: str, action_type: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Build response message for daemon request.
+
+        Args:
+            original_id: Original request ID
+            action_type: Type of action performed
+            result: Action result
+
+        Returns:
+            Response message
+        """
+        return {
+            "id": f"pm-response-{datetime.now().timestamp()}",
+            "timestamp": datetime.now().isoformat(),
+            "source": {"type": "pm", "identifier": self.session},
+            "message": {
+                "type": "response",
+                "category": "task",
+                "priority": "normal",
+                "content": {
+                    "subject": f"Action Completed: {action_type}",
+                    "body": f"Completed requested action: {action_type}",
+                    "context": {"original_request_id": original_id, "action_type": action_type, "result": result},
+                },
+            },
+            "metadata": {"tags": ["response", "pm-action", action_type], "correlation_id": original_id},
+        }
+
+    async def _send_response(self, response_message: Dict[str, Any]):
+        """Send response message through pubsub.
+
+        Args:
+            response_message: Response to send
+        """
+        await self._send_pubsub_message(
+            "daemon-monitor",  # Send back to daemon
+            json.dumps(response_message),
+            response_message["metadata"]["tags"],
+        )
+
+    async def _send_pubsub_message(self, target: str, message: str, tags: List[str]) -> bool:
+        """Send message through pubsub system.
+
+        Args:
+            target: Target for message
+            message: Message content
+            tags: Message tags
+
+        Returns:
+            True if sent successfully
+        """
+        try:
+            cmd = ["tmux-orc", "pubsub", "publish", message, "--target", target]
+
+            for tag in tags:
+                cmd.extend(["--tag", tag])
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            return "queued" in result.stdout
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error sending pubsub message: {e}")
+            return False

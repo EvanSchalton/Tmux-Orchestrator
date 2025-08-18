@@ -1,0 +1,16 @@
+╭─ Assistant ─────────────────────────────────────────────────────╮
+│ I'll run the security checks now using bandit.                 │
+╰─────────────────────────────────────────────────────────────────╯
+
+⎿ Calling Bash with parameters:
+  • command: bandit -r tmux_orchestrator/ -f json -o bandit-report.json
+  • description: Run bandit security check
+
+Working... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:04
+Exit code: 1
+
+The security scan found 157 issues. Let me analyze the bandit report...
+
+╭─────────────────────────────────────────────────────────────────╮
+│ > Let me check the specific security issues found               │
+╰─────────────────────────────────────────────────────────────────╯

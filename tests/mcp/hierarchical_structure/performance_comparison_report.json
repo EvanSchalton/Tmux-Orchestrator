@@ -1,0 +1,100 @@
+{
+  "timestamp": "2025-08-17 16:31:05",
+  "summary": {
+    "average_improvement": -1414.4340810085378,
+    "meets_75_percent_reduction": true,
+    "meets_60_percent_token_reduction": false
+  },
+  "metrics": [
+    {
+      "name": "Tool Count",
+      "flat": 92,
+      "hierarchical": 17,
+      "improvement": 81.52173913043478,
+      "unit": "tools"
+    },
+    {
+      "name": "Token Usage",
+      "flat": 5892.25,
+      "hierarchical": 5261.5,
+      "improvement": 10.704739276167848,
+      "unit": "tokens"
+    },
+    {
+      "name": "Character Count",
+      "flat": 16004,
+      "hierarchical": 13594,
+      "improvement": 15.058735316170957,
+      "unit": "characters"
+    },
+    {
+      "name": "Search Complexity",
+      "flat": 92,
+      "hierarchical": 22,
+      "improvement": 76.08695652173914,
+      "unit": "comparisons"
+    },
+    {
+      "name": "Selection Time",
+      "flat": 0.009785683214431629,
+      "hierarchical": 1.0049126195372082,
+      "improvement": -10169.212660135918,
+      "unit": "ms"
+    },
+    {
+      "name": "Memory Footprint",
+      "flat": 17.408203125,
+      "hierarchical": 13.5283203125,
+      "improvement": 22.287669695949734,
+      "unit": "KB"
+    },
+    {
+      "name": "Description Efficiency",
+      "flat": 38.130434782608695,
+      "hierarchical": 14.293478260869565,
+      "improvement": 62.514253135689856,
+      "unit": "chars/operation"
+    }
+  ],
+  "structure_comparison": {
+    "flat": {
+      "total_tools": 92,
+      "example_tools": [
+        "agent_attach",
+        "agent_deploy",
+        "agent_info",
+        "agent_kill",
+        "agent_kill_all"
+      ]
+    },
+    "hierarchical": {
+      "total_tools": 17,
+      "tools": [
+        "agent",
+        "monitor",
+        "pm",
+        "context",
+        "team",
+        "orchestrator",
+        "setup",
+        "spawn",
+        "recovery",
+        "session",
+        "pubsub",
+        "pubsub_fast",
+        "daemon",
+        "tasks",
+        "errors",
+        "server",
+        "system"
+      ]
+    }
+  },
+  "key_benefits": [
+    "Reduced cognitive load for LLMs",
+    "Faster tool selection",
+    "Lower token usage",
+    "Better organization and discoverability",
+    "Maintains all functionality"
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "summary": {
+    "total_tests": 15,
+    "passed": 13,
+    "failed": 2,
+    "success_rate": 86.66666666666667,
+    "avg_confidence": 0.7346666666666667,
+    "meets_expected_948": false
+  },
+  "priority_area_rates": {
+    "show_dashboard_mapping": 100.0,
+    "terminate_all_kill_all": 66.66666666666666,
+    "deploy_spawn_disambiguation": 100.0,
+    "message_target_disambiguation": 66.66666666666666,
+    "status_dashboard_clarity": 100.0
+  },
+  "breakthrough_validation": {
+    "show_dashboard_mapping": true,
+    "terminate_all_kill_all": false,
+    "deploy_spawn_disambiguation": true,
+    "message_target_disambiguation": false,
+    "status_dashboard_clarity": true
+  },
+  "failed_tests": [
+    {
+      "test_id": "priority_2_stop_everyone",
+      "priority_area": "terminate_all_kill_all",
+      "passed": false,
+      "selected_tool": "spawn",
+      "selected_action": "agent",
+      "expected_tool": "agent",
+      "expected_action": "kill-all",
+      "confidence": 0.9,
+      "response_time_ms": 0.019725062884390354,
+      "success_indicators_met": [],
+      "error": "Expected agent.kill-all, got spawn.agent"
+    },
+    {
+      "test_id": "priority_4_tell_everyone",
+      "priority_area": "message_target_disambiguation",
+      "passed": false,
+      "selected_tool": "agent",
+      "selected_action": "message",
+      "expected_tool": "team",
+      "expected_action": "broadcast",
+      "confidence": 0.88,
+      "response_time_ms": 0.0204950338229537,
+      "success_indicators_met": [],
+      "error": "Expected team.broadcast, got agent.message"
+    }
+  ],
+  "ready_for_implementation": false
+}

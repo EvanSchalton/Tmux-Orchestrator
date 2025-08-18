@@ -1,0 +1,13 @@
+╭───────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                         │
+│                                                   │
+│   /help for help, /status for your current setup  │
+│                                                   │
+│   cwd: /workspaces/Tmux-Orchestrator              │
+╰───────────────────────────────────────────────────╯
+
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ > Try "fix lint errors"                                                                               │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  ? for shortcuts                                                                 Bypassing Permissions
+                         ✗ Auto-update failed · Try claude doctor or npm i -g @anthropic-ai/claude-code

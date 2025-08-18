@@ -239,6 +239,7 @@ def _start_daemon_process(socket_path: str) -> Optional[int]:
             "-c",
             f"""
 import asyncio
+import os
 import sys
 from pathlib import Path
 
