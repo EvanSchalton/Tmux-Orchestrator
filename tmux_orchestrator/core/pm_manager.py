@@ -125,13 +125,17 @@ Please read the task file and create an implementation plan."""
         self.tmux.send_keys(target, "Enter")
 
     def _get_pm_briefing(self, project_name: str, task_file: str | None) -> str:
-        """Get PM briefing with agent list."""
-        # Get list of agents
-        agents = self.tmux.list_agents()
+        """Get PM briefing with agent list from the same session."""
+        # Determine the session name for this PM
+        session_name = f"{project_name}-{project_name}"  # Following the deploy_pm pattern
+
+        # Get list of agents in this session only
+        all_agents = self.tmux.list_agents()
         agent_list = []
 
-        for agent in agents:
-            if agent["type"] != "PM":  # Don't list self
+        for agent in all_agents:
+            # Only include agents from the same session, excluding PMs
+            if agent["type"] != "PM" and agent.get("session") == session_name:
                 agent_list.append(f"  • {agent['type']}: tmux-message {agent['session']}:{agent['window']} 'message'")
 
         return self.PM_BRIEFING.format(
@@ -141,14 +145,19 @@ Please read the task file and create an implementation plan."""
         )
 
     def trigger_status_review(self) -> None:
-        """Trigger PM to review status of all agents."""
+        """Trigger PM to review status of all agents in the same session."""
         pm_target = self.find_pm_session()
         if not pm_target:
             raise RuntimeError("No PM session found")
 
-        # Gather status from all agents
-        agents = self.tmux.list_agents()
-        status_report = self._build_status_report(agents)
+        # Extract session from PM target
+        pm_session = pm_target.split(":")[0]
+
+        # Gather status from agents in the same session only
+        all_agents = self.tmux.list_agents()
+        session_agents = [agent for agent in all_agents if agent.get("session") == pm_session]
+
+        status_report = self._build_status_report(session_agents)
 
         # Send to PM
         self.tmux.send_message(pm_target, status_report)
@@ -207,13 +216,40 @@ Remember: Quality over speed. No shortcuts."""
 
         return "No recent output"
 
-    def broadcast_to_all_agents(self, message: str) -> dict[str, bool]:
-        """Broadcast a message to all agents."""
+    def broadcast_to_all_agents(self, message: str, session: str = None) -> dict[str, bool]:
+        """Broadcast a message to all agents in the same session.
+
+        Args:
+            message: The message to broadcast
+            session: Session to broadcast to. If None, attempts to find PM's session.
+
+        Returns:
+            Dictionary mapping agent targets to success status
+        """
+        # If no session provided, try to find the PM's session
+        if session is None:
+            pm_target = self.find_pm_session()
+            if pm_target:
+                session = pm_target.split(":")[0]
+            else:
+                # Fallback: try to get current session from environment
+                import subprocess
+
+                try:
+                    result = subprocess.run(
+                        ["tmux", "display-message", "-p", "#S"], capture_output=True, text=True, check=True
+                    )
+                    session = result.stdout.strip()
+                except subprocess.CalledProcessError:
+                    # If we can't determine session, return empty results
+                    return {}
+
         agents = self.tmux.list_agents()
         results = {}
 
         for agent in agents:
-            if agent["type"] == "PM":
+            # Skip PMs and agents not in our session
+            if agent["type"] == "PM" or agent.get("session") != session:
                 continue
 
             target = f"{agent['session']}:{agent['window']}"
