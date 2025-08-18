@@ -8,7 +8,6 @@ for sub-100ms notification delivery during critical recovery operations.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional, Set
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitoring.pubsub_integration import MonitorPubsubClient, PriorityMessageRouter
@@ -29,8 +28,8 @@ class PubsubRecoveryCoordinator:
         self.priority_router = PriorityMessageRouter(self.pubsub_client)
 
         # Recovery state tracking
-        self._active_recoveries: Set[str] = set()
-        self._recovery_history: Dict[str, List[Dict]] = {}
+        self._active_recoveries: set[str] = set()
+        self._recovery_history: dict[str, list[dict]] = {}
         self._pm_recovery_grace_period = 180  # 3 minutes grace after PM recovery
 
     async def notify_recovery_needed(
@@ -39,7 +38,7 @@ class PubsubRecoveryCoordinator:
         issue: str,
         session: str,
         recovery_type: str = "agent",
-        metadata: Optional[Dict] = None,
+        metadata: dict | None = None,
     ) -> bool:
         """
         Send high-priority recovery notification via pubsub.
@@ -148,7 +147,7 @@ class PubsubRecoveryCoordinator:
     async def notify_team_recovery(
         self,
         session: str,
-        affected_agents: List[str],
+        affected_agents: list[str],
         recovery_plan: str,
     ) -> bool:
         """Send team-wide recovery notification."""
@@ -202,7 +201,7 @@ class PubsubRecoveryCoordinator:
 
         return False
 
-    async def batch_recovery_status(self) -> Dict[str, any]:
+    async def batch_recovery_status(self) -> dict[str, any]:
         """Get comprehensive recovery status with performance metrics."""
         # Get pubsub performance stats
         perf_stats = self.pubsub_client.get_performance_stats()
@@ -265,7 +264,7 @@ class PubsubRecoveryCoordinator:
         # Normal priority for standard agent issues
         return "normal"
 
-    def _find_pm_for_recovery(self, session: str) -> Optional[str]:
+    def _find_pm_for_recovery(self, session: str) -> str | None:
         """Find PM in session for recovery notification."""
         try:
             windows = self.tmux.list_windows(session)
@@ -279,7 +278,7 @@ class PubsubRecoveryCoordinator:
             self.logger.error(f"Error finding PM in session {session}: {e}")
             return None
 
-    def _track_recovery(self, recovery_key: str, recovery_data: Dict) -> None:
+    def _track_recovery(self, recovery_key: str, recovery_data: dict) -> None:
         """Track recovery in history."""
         history_key = recovery_key.replace(":", "_")
         if history_key not in self._recovery_history:

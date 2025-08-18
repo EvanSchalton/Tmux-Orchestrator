@@ -8,7 +8,6 @@ preparing validation tests for the Senior Developer's pre-commit fixes.
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -71,7 +70,6 @@ class  AnotherClass  :
     def test_import_statement_fixes(self):
         """Test that ruff fixes import statement formatting."""
         bad_imports = """import os,sys,json
-from typing import Dict,List,Optional,Tuple
 from pathlib import Path,PurePath
 import subprocess as sp,shutil
 
@@ -83,7 +81,7 @@ def func():
             "import json",
             "import os",
             "import sys",
-            "from typing import Dict, List, Optional, Tuple",
+            "from typing import Optional",
             "from pathlib import Path, PurePath",
             "import shutil",
             "import subprocess as sp",
@@ -292,7 +290,7 @@ class ClassWithLongMethodNames:
         finally:
             temp_file.unlink()
 
-    def _test_ruff_format_fixes(self, bad_code: str, expected_fixes: List[str]):
+    def _test_ruff_format_fixes(self, bad_code: str, expected_fixes: list[str]):
         """Helper method to test ruff formatting fixes."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
             f.write(bad_code)
@@ -326,12 +324,11 @@ class TestRuffLintingScenarios:
 import sys
 import json
 import subprocess
-from typing import Dict, List, Optional
 from pathlib import Path
 
 def simple_function():
-    # Only using json and Dict
-    data: Dict[str, str] = json.loads('{"key": "value"}')
+    # Only using json and dict
+    data: dict[str, str] = json.loads('{"key": "value"}')
     return data
 """
 
@@ -340,7 +337,7 @@ def simple_function():
         # Should detect unused imports
         assert "F401" in lint_result, "Should detect unused imports (F401)"
         assert any(
-            module in lint_result for module in ["os", "sys", "subprocess", "List", "Optional", "Path"]
+            module in lint_result for module in ["os", "sys", "subprocess", "Optional", "Path"]
         ), "Should identify specific unused imports"
 
     def test_unused_variable_detection(self):
@@ -387,7 +384,6 @@ def another_function():
 import os
 from pathlib import Path
 import sys  # This should come before local imports
-from typing import Dict
 
 def test_function():
     return os.getcwd()
@@ -480,7 +476,6 @@ class TestRuffProjectSpecific:
     def test_async_code_formatting(self):
         """Test that ruff properly formats async/await code."""
         async_code = """import asyncio
-from typing import List
 
 async def async_function_with_bad_formatting(x,y):
     result=await another_async_function(x,y)
@@ -512,12 +507,12 @@ class AsyncClass:
 
     def test_type_annotation_formatting(self):
         """Test that ruff properly formats type annotations."""
-        typed_code = """from typing import Dict,List,Optional,Union,Tuple
+        typed_code = """from typing import Optional
 
-def typed_function(param1:str,param2:int)->Optional[str]:
+def typed_function(param1:str,param2:int)->str | None:
     return param1if param2>0 else None
 
-def complex_types(data:Dict[str,List[int]],callback:Optional[callable]=None)->Tuple[bool,str]:
+def complex_types(data:dict[str,list[int]],callback:callable | None=None)->tuple[bool,str]:
     if callback:
         result=callback(data)
     else:
@@ -525,23 +520,23 @@ def complex_types(data:Dict[str,List[int]],callback:Optional[callable]=None)->Tu
     return result,"success"
 
 class TypedClass:
-    def __init__(self,name:str,items:List[str])->None:
+    def __init__(self,name:str,items:list[str])->None:
         self.name=name
         self.items=items
 """
 
         expected_fixes = [
-            "from typing import Dict, List, Optional, Union, Tuple",
-            "def typed_function(param1: str, param2: int) -> Optional[str]:",
+            "from typing import Optional",
+            "def typed_function(param1: str, param2: int) -> str | None:",
             "return param1 if param2 > 0 else None",
             "def complex_types(",
-            "data: Dict[str, List[int]],",
-            "callback: Optional[callable] = None,",
-            ") -> Tuple[bool, str]:",
+            "data: dict[str, list[int]],",
+            "callback: callable | None = None,",
+            ") -> tuple[bool, str]:",
             "result = callback(data)",
             "result = True",
             'return result, "success"',
-            "def __init__(self, name: str, items: List[str]) -> None:",
+            "def __init__(self, name: str, items: list[str]) -> None:",
             "self.name = name",
             "self.items = items",
         ]
@@ -558,7 +553,7 @@ class TestOrchestrator:
         self.tmux=tmux
         self.monitor=IdleMonitor(tmux)
 
-    def check_agents(self,targets:List[str])->Dict[str,bool]:
+    def check_agents(self,targets:list[str])->dict[str,bool]:
         results={}
         for target in targets:
             content=self.tmux.capture_pane(target)
@@ -566,7 +561,7 @@ class TestOrchestrator:
             results[target]=not is_idle
         return results
 
-    def send_notifications(self,notifications:Dict[str,List[str]])->None:
+    def send_notifications(self,notifications:dict[str,list[str]])->None:
         for pm_target,messages in notifications.items():
             for message in messages:
                 self.tmux.send_message(pm_target,message)
@@ -576,19 +571,19 @@ class TestOrchestrator:
             "def __init__(self, tmux: TMUXManager):",
             "self.tmux = tmux",
             "self.monitor = IdleMonitor(tmux)",
-            "def check_agents(self, targets: List[str]) -> Dict[str, bool]:",
+            "def check_agents(self, targets: list[str]) -> dict[str, bool]:",
             "results = {}",
             "content = self.tmux.capture_pane(target)",
             "is_idle = self.monitor.is_agent_idle(target)",
             "results[target] = not is_idle",
-            "def send_notifications(self, notifications: Dict[str, List[str]]) -> None:",
+            "def send_notifications(self, notifications: dict[str, list[str]]) -> None:",
             "for pm_target, messages in notifications.items():",
             "self.tmux.send_message(pm_target, message)",
         ]
 
         self._test_formatting_fixes(orchestrator_patterns, expected_fixes)
 
-    def _test_formatting_fixes(self, code: str, expected_fixes: List[str]):
+    def _test_formatting_fixes(self, code: str, expected_fixes: list[str]):
         """Helper method to test formatting fixes."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
             f.write(code)

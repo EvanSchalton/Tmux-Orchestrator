@@ -10,7 +10,7 @@ import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Deque, Dict, List, Optional
+from typing import Deque
 
 from tmux_orchestrator.core.config import Config
 
@@ -23,7 +23,7 @@ class MetricPoint:
 
     timestamp: datetime
     value: float
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -63,19 +63,19 @@ class MetricsCollector(MonitorComponent):
         self.max_points_per_metric = max_points_per_metric
 
         # Metric storage: metric_name -> deque of MetricPoint
-        self._metrics: Dict[str, Deque[MetricPoint]] = defaultdict(lambda: deque(maxlen=max_points_per_metric))
+        self._metrics: dict[str, Deque[MetricPoint]] = defaultdict(lambda: deque(maxlen=max_points_per_metric))
 
         # Counters for cumulative metrics
-        self._counters: Dict[str, float] = defaultdict(float)
+        self._counters: dict[str, float] = defaultdict(float)
 
         # Gauges for current values
-        self._gauges: Dict[str, float] = defaultdict(float)
+        self._gauges: dict[str, float] = defaultdict(float)
 
         # Histograms for distributions
-        self._histograms: Dict[str, List[float]] = defaultdict(list)
+        self._histograms: dict[str, list[float]] = defaultdict(list)
 
         # Timing tracking
-        self._timers: Dict[str, float] = {}
+        self._timers: dict[str, float] = {}
 
     def initialize(self) -> bool:
         """Initialize the metrics collector."""
@@ -100,7 +100,7 @@ class MetricsCollector(MonitorComponent):
         self._histograms.clear()
         self._timers.clear()
 
-    def record_metric(self, name: str, value: float, labels: Optional[Dict[str, str]] = None) -> None:
+    def record_metric(self, name: str, value: float, labels: dict[str, str | None] = None) -> None:
         """Record a metric data point.
 
         Args:
@@ -159,7 +159,7 @@ class MetricsCollector(MonitorComponent):
         """
         self._timers[name] = time.time()
 
-    def stop_timer(self, name: str) -> Optional[float]:
+    def stop_timer(self, name: str) -> float | None:
         """Stop a timer and record the duration.
 
         Args:
@@ -203,7 +203,7 @@ class MetricsCollector(MonitorComponent):
                 agents_per_second = status.active_agents / duration
                 self.set_gauge("monitoring.agents_per_second", agents_per_second)
 
-    def get_metric_summary(self, name: str, window_minutes: Optional[int] = None) -> Optional[MetricSummary]:
+    def get_metric_summary(self, name: str, window_minutes: int | None = None) -> MetricSummary | None:
         """Get summary statistics for a metric.
 
         Args:
@@ -259,7 +259,7 @@ class MetricsCollector(MonitorComponent):
             window_duration=window_duration,
         )
 
-    def get_all_metrics(self) -> Dict[str, List[MetricPoint]]:
+    def get_all_metrics(self) -> dict[str, list[MetricPoint]]:
         """Get all current metrics.
 
         Returns:
@@ -267,11 +267,11 @@ class MetricsCollector(MonitorComponent):
         """
         return {name: list(points) for name, points in self._metrics.items()}
 
-    def get_counters(self) -> Dict[str, float]:
+    def get_counters(self) -> dict[str, float]:
         """Get all counter values."""
         return self._counters.copy()
 
-    def get_gauges(self) -> Dict[str, float]:
+    def get_gauges(self) -> dict[str, float]:
         """Get all gauge values."""
         return self._gauges.copy()
 

@@ -6,7 +6,7 @@ performance when dealing with many agents.
 """
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any
 
 from ..interfaces import (
     AgentMonitorInterface,
@@ -38,7 +38,7 @@ class ConcurrentMonitoringStrategy(MonitoringStrategyInterface):
         """Get strategy description."""
         return f"Concurrent monitoring with up to {self.max_concurrent} parallel agent checks"
 
-    async def execute(self, context: Dict[str, Any]) -> MonitorStatus:
+    async def execute(self, context: dict[str, Any]) -> MonitorStatus:
         """Execute the concurrent monitoring strategy.
 
         Args:
@@ -138,7 +138,7 @@ class ConcurrentMonitoringStrategy(MonitoringStrategyInterface):
         """Monitor a single agent with semaphore control.
 
         Returns:
-            Dict with monitoring results
+            dict with monitoring results
         """
         async with semaphore:
             return await self._monitor_agent_async(
@@ -151,7 +151,7 @@ class ConcurrentMonitoringStrategy(MonitoringStrategyInterface):
         """Asynchronously monitor a single agent.
 
         Returns:
-            Dict with monitoring results
+            dict with monitoring results
         """
         target = agent_info.target
         result = {"crashed": False, "idle": False, "healthy": False}
@@ -233,7 +233,7 @@ class ConcurrentMonitoringStrategy(MonitoringStrategyInterface):
         else:
             state_tracker.clear_team_idle(session)
 
-    def get_required_components(self) -> List[type]:
+    def get_required_components(self) -> list[type]:
         """Get required component interfaces."""
         return [
             AgentMonitorInterface,

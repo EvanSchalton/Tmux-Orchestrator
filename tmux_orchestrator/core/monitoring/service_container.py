@@ -8,7 +8,7 @@ that supports singleton and factory patterns for managing component lifecycles.
 import asyncio
 import inspect
 import logging
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Callable, TypeVar
 
 from .interfaces import ServiceContainerInterface
 
@@ -18,25 +18,23 @@ T = TypeVar("T")
 class ServiceContainer(ServiceContainerInterface):
     """Dependency injection container for managing service instances."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: logging.Logger | None = None):
         """Initialize the service container.
 
         Args:
             logger: Optional logger instance
         """
         self.logger = logger or logging.getLogger(__name__)
-        self._services: Dict[type, Any] = {}
-        self._factories: Dict[type, Callable] = {}
-        self._singletons: Dict[type, Any] = {}
-        self._singleton_flags: Dict[type, bool] = {}
-        self._plugins: Dict[str, Any] = {}  # Plugin registry
-        self._plugin_metadata: Dict[str, Dict[str, Any]] = {}  # Plugin metadata
-        self._async_factories: Dict[type, Callable] = {}  # Async factory functions
-        self._async_singletons: Dict[type, Any] = {}  # Async singleton instances
+        self._services: dict[type, Any] = {}
+        self._factories: dict[type, Callable] = {}
+        self._singletons: dict[type, Any] = {}
+        self._singleton_flags: dict[type, bool] = {}
+        self._plugins: dict[str, Any] = {}  # Plugin registry
+        self._plugin_metadata: dict[str, dict[str, Any]] = {}  # Plugin metadata
+        self._async_factories: dict[type, Callable] = {}  # Async factory functions
+        self._async_singletons: dict[type, Any] = {}  # Async singleton instances
 
-    def register(
-        self, interface_type: Type[T], implementation: Union[T, Callable[..., T]], singleton: bool = True
-    ) -> None:
+    def register(self, interface_type: type[T], implementation: T | Callable[..., T], singleton: bool = True) -> None:
         """Register a service implementation.
 
         Args:
@@ -57,7 +55,7 @@ class ServiceContainer(ServiceContainerInterface):
                 self._singletons[interface_type] = implementation
             self.logger.debug(f"Registered instance for {interface_type.__name__}")
 
-    def register_factory(self, interface_type: Type[T], factory: Callable[..., T], singleton: bool = True) -> None:
+    def register_factory(self, interface_type: type[T], factory: Callable[..., T], singleton: bool = True) -> None:
         """Register a factory function for creating services.
 
         Args:
@@ -69,7 +67,7 @@ class ServiceContainer(ServiceContainerInterface):
         self._singleton_flags[interface_type] = singleton
         self.logger.debug(f"Registered factory for {interface_type.__name__}")
 
-    def resolve(self, interface_type: Type[T]) -> T:
+    def resolve(self, interface_type: type[T]) -> T:
         """Resolve a service by interface type.
 
         Args:
@@ -142,7 +140,7 @@ class ServiceContainer(ServiceContainerInterface):
         self._async_singletons.clear()
         self.logger.debug("Cleared all service registrations")
 
-    def register_async(self, interface_type: Type[T], factory: Callable[..., T], singleton: bool = True) -> None:
+    def register_async(self, interface_type: type[T], factory: Callable[..., T], singleton: bool = True) -> None:
         """Register an async factory for a service.
 
         Args:
@@ -157,7 +155,7 @@ class ServiceContainer(ServiceContainerInterface):
         self._singleton_flags[interface_type] = singleton
         self.logger.debug(f"Registered async factory for {interface_type.__name__}")
 
-    async def resolve_async(self, interface_type: Type[T]) -> T:
+    async def resolve_async(self, interface_type: type[T]) -> T:
         """Resolve a service asynchronously.
 
         Args:
@@ -184,9 +182,7 @@ class ServiceContainer(ServiceContainerInterface):
         # Fall back to sync resolution
         return self.resolve(interface_type)
 
-    def register_plugin(
-        self, plugin_name: str, plugin_instance: Any, metadata: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def register_plugin(self, plugin_name: str, plugin_instance: Any, metadata: dict[str, Any] | None = None) -> None:
         """Register a plugin with the container.
 
         Args:
@@ -199,7 +195,7 @@ class ServiceContainer(ServiceContainerInterface):
             self._plugin_metadata[plugin_name] = metadata
         self.logger.info(f"Registered plugin: {plugin_name}")
 
-    def get_plugin(self, plugin_name: str) -> Optional[Any]:
+    def get_plugin(self, plugin_name: str) -> Any | None:
         """Get a registered plugin.
 
         Args:
@@ -210,7 +206,7 @@ class ServiceContainer(ServiceContainerInterface):
         """
         return self._plugins.get(plugin_name)
 
-    def get_all_plugins(self) -> Dict[str, Any]:
+    def get_all_plugins(self) -> dict[str, Any]:
         """Get all registered plugins.
 
         Returns:
@@ -218,7 +214,7 @@ class ServiceContainer(ServiceContainerInterface):
         """
         return self._plugins.copy()
 
-    def get_plugin_metadata(self, plugin_name: str) -> Optional[Dict[str, Any]]:
+    def get_plugin_metadata(self, plugin_name: str) -> dict[str, Any] | None:
         """Get metadata for a plugin.
 
         Args:
@@ -302,7 +298,7 @@ class ServiceContainer(ServiceContainerInterface):
 
         return await factory(**kwargs)
 
-    def _auto_resolve(self, cls: Type[T]) -> T:
+    def _auto_resolve(self, cls: type[T]) -> T:
         """Attempt to auto-resolve a concrete class.
 
         Args:
@@ -355,8 +351,8 @@ class ServiceBuilder:
             container: Service container instance
         """
         self.container = container
-        self._interface_type: Optional[type] = None
-        self._implementation: Optional[Any] = None
+        self._interface_type: type | None = None
+        self._implementation: Any | None = None
         self._singleton: bool = True
 
     def add(self, interface_type: type) -> "ServiceBuilder":
@@ -371,7 +367,7 @@ class ServiceBuilder:
         self._interface_type = interface_type
         return self
 
-    def use(self, implementation: Union[Any, Callable]) -> "ServiceBuilder":
+    def use(self, implementation: Any | Callable) -> "ServiceBuilder":
         """Set the implementation or factory.
 
         Args:

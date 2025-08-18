@@ -18,7 +18,7 @@ Bug Location: tmux_orchestrator/core/monitor.py:1724
 
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -29,11 +29,11 @@ class FalsePositiveQATest:
     """QA test for false positive 'failed' detection bug."""
 
     def __init__(self):
-        self.test_results: Dict[str, Any] = {}
+        self.test_results: dict[str, Any] = {}
         self.passed_tests = 0
         self.failed_tests = 0
 
-    def test_pm_outputs_failed_keyword(self) -> Dict[str, Any]:
+    def test_pm_outputs_failed_keyword(self) -> dict[str, Any]:
         """
         CRITICAL TEST: Verify PM outputting 'failed' is NOT killed
 
@@ -147,7 +147,7 @@ class FalsePositiveQATest:
             "summary": f"Passed: {len([r for r in results if r.get('test_passed', False)])}, Failed: {len([r for r in results if not r.get('test_passed', True)])}",
         }
 
-    def test_actual_crash_detection(self) -> Dict[str, Any]:
+    def test_actual_crash_detection(self) -> dict[str, Any]:
         """
         Test that actual crashes ARE properly detected.
         This verifies that fixing the false positive doesn't break real crash detection.
@@ -219,7 +219,7 @@ class FalsePositiveQATest:
             "summary": f"Passed: {len([r for r in results if r.get('test_passed', False)])}, Failed: {len([r for r in results if not r.get('test_passed', True)])}",
         }
 
-    def run_comprehensive_test(self) -> Dict[str, Any]:
+    def run_comprehensive_test(self) -> dict[str, Any]:
         """Run comprehensive QA test for false positive detection."""
         logger.info("🚀 Starting comprehensive false positive QA test...")
         logger.info("=" * 70)

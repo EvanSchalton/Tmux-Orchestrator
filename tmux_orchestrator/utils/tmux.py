@@ -4,7 +4,7 @@ import logging
 import re
 import subprocess
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, cast
 
 
 class TMUXManager:
@@ -20,16 +20,16 @@ class TMUXManager:
         self._logger = logging.getLogger(__name__)
 
         # Performance caches
-        self._agent_cache: Dict[str, Any] = {}
+        self._agent_cache: dict[str, Any] = {}
         self._agent_cache_time: float = 0.0
-        self._session_cache: Dict[str, Any] = {}
+        self._session_cache: dict[str, Any] = {}
         self._session_cache_time: float = 0.0
         self._cache_ttl = cache_ttl
 
         # Batch operation optimization
         self._batch_size = 10
 
-    def list_agents_optimized(self) -> List[Dict[str, str]]:
+    def list_agents_optimized(self) -> list[dict[str, str]]:
         """Optimized agent listing with aggressive caching and batch operations.
 
         Target: <100ms execution time (vs 4.13s original)
@@ -42,7 +42,8 @@ class TMUXManager:
         # Check cache first (5-second TTL)
         if (current_time - self._agent_cache_time) < self._cache_ttl and self._agent_cache:
             self._logger.debug("Using cached agent list")
-            return self._agent_cache.get("agents", [])
+            agents = self._agent_cache.get("agents", [])
+            return agents if isinstance(agents, list) else []
 
         start_time = time.time()
         agents = []
@@ -66,14 +67,14 @@ class TMUXManager:
 
                 # Build final agent list
                 for i, agent_window in enumerate(agent_windows):
-                    window = agent_window["window"]
+                    window_info = cast(dict[str, str], agent_window["window"])
                     status = statuses.get(i, "Unknown")
 
                     agents.append(
                         {
                             "session": agent_window["session"],
-                            "window": window["index"],
-                            "type": self._determine_agent_type(window["name"]),
+                            "window": window_info["index"],
+                            "type": self._determine_agent_type(window_info["name"]),
                             "status": status,
                             "target": agent_window["target"],
                         }
@@ -93,7 +94,7 @@ class TMUXManager:
             # Fallback to basic listing without status checks
             return self._get_basic_agent_list()
 
-    def list_agents_ultra_optimized(self) -> List[Dict[str, str]]:
+    def list_agents_ultra_optimized(self) -> list[dict[str, str]]:
         """Ultra-optimized agent listing with minimal subprocess calls.
 
         Target: <300ms execution time for CLI responsiveness
@@ -107,7 +108,8 @@ class TMUXManager:
         extended_ttl = 10.0
         if (current_time - self._agent_cache_time) < extended_ttl and self._agent_cache:
             self._logger.debug("Using extended cached agent list")
-            return self._agent_cache.get("agents", [])
+            agents = self._agent_cache.get("agents", [])
+            return agents if isinstance(agents, list) else []
 
         start_time = time.time()
         agents = []
@@ -170,11 +172,11 @@ class TMUXManager:
             # Fallback to regular optimized version
             return self.list_agents_optimized()
 
-    def _get_sessions_and_windows_batch(self) -> Dict[str, List[Dict[str, str]]]:
+    def _get_sessions_and_windows_batch(self) -> dict[str, list[dict[str, str]]]:
         """Get all sessions and their windows in a single optimized call.
 
         Returns:
-            Dict mapping session names to their window lists
+            dict mapping session names to their window lists
         """
         try:
             # Single command to get all session and window info
@@ -241,14 +243,14 @@ class TMUXManager:
         agent_keywords = ["claude", "pm", "developer", "qa", "devops", "reviewer", "backend", "frontend"]
         return any(keyword in window_lower for keyword in agent_keywords)
 
-    def _batch_get_agent_statuses(self, agent_windows: List[Dict[str, Any]]) -> Dict[int, str]:
+    def _batch_get_agent_statuses(self, agent_windows: list[dict[str, Any]]) -> dict[int, str]:
         """Get status for multiple agents in batch operation.
 
         Args:
             agent_windows: List of agent window info
 
         Returns:
-            Dict mapping agent index to status string
+            dict mapping agent index to status string
         """
         statuses = {}
 
@@ -262,7 +264,7 @@ class TMUXManager:
 
         return statuses
 
-    def _get_batch_statuses(self, batch: List[Dict[str, Any]], offset: int) -> Dict[int, str]:
+    def _get_batch_statuses(self, batch: list[dict[str, Any]], offset: int) -> dict[int, str]:
         """Get statuses for a batch of agents.
 
         Args:
@@ -270,7 +272,7 @@ class TMUXManager:
             offset: Offset for indexing
 
         Returns:
-            Dict mapping agent index to status
+            dict mapping agent index to status
         """
         statuses = {}
 
@@ -335,7 +337,7 @@ class TMUXManager:
 
         return "Developer"  # Default
 
-    def _get_basic_agent_list(self) -> List[Dict[str, str]]:
+    def _get_basic_agent_list(self) -> list[dict[str, str]]:
         """Fallback method for basic agent listing without status checks.
 
         Returns:
@@ -392,7 +394,9 @@ class TMUXManager:
         """Check if a tmux session exists (standard interface)."""
         return self.has_session_optimized(session_name)
 
-    def create_session_optimized(self, session_name: str, window_name: str = None, start_directory: str = None) -> bool:
+    def create_session_optimized(
+        self, session_name: str, window_name: str | None = None, start_directory: str | None = None
+    ) -> bool:
         """Optimized session creation with immediate cache invalidation."""
         try:
             cmd = [self.tmux_cmd, "new-session", "-d", "-s", session_name]
@@ -414,7 +418,7 @@ class TMUXManager:
             self._logger.error(f"Optimized session creation failed: {e}")
             return False
 
-    def create_window_optimized(self, session_name: str, window_name: str, start_directory: str = None) -> bool:
+    def create_window_optimized(self, session_name: str, window_name: str, start_directory: str | None = None) -> bool:
         """Optimized window creation."""
         try:
             cmd = [self.tmux_cmd, "new-window", "-t", session_name, "-n", window_name]
@@ -445,7 +449,7 @@ class TMUXManager:
         """Send keys to a tmux target (standard interface)."""
         return self.send_keys_optimized(target, keys, literal)
 
-    def quick_deploy_dry_run_optimized(self, team_type: str, size: int, project_name: str) -> Tuple[bool, str, float]:
+    def quick_deploy_dry_run_optimized(self, team_type: str, size: int, project_name: str) -> tuple[bool, str, float]:
         """Ultra-fast dry run of team deployment to validate parameters and estimate timing.
 
         This method performs all validation and estimation without creating actual sessions.
@@ -486,13 +490,14 @@ class TMUXManager:
 
         return True, success_message, execution_time
 
-    def list_sessions_cached(self) -> List[Dict[str, str]]:
+    def list_sessions_cached(self) -> list[dict[str, str]]:
         """Cached session listing for status command optimization."""
         current_time = time.time()
 
         # Check cache first
         if current_time - self._session_cache_time < self._cache_ttl and "sessions" in self._session_cache:
-            return self._session_cache["sessions"]
+            sessions = self._session_cache["sessions"]
+            return sessions if isinstance(sessions, list) else []
 
         # Cache miss - get fresh data using optimized call
         try:
@@ -528,15 +533,17 @@ class TMUXManager:
             self._logger.error(f"Cached session listing failed: {e}")
             return []
 
-    def list_sessions(self) -> List[Dict[str, str]]:
+    def list_sessions(self) -> list[dict[str, str]]:
         """Standard interface for listing sessions - delegates to optimized version."""
         return self.list_sessions_cached()
 
-    def list_agents(self) -> List[Dict[str, str]]:
+    def list_agents(self) -> list[dict[str, str]]:
         """Standard interface for listing agents - delegates to optimized version."""
         return self.list_agents_optimized()
 
-    def create_session(self, session_name: str, window_name: str = None, start_directory: str = None) -> bool:
+    def create_session(
+        self, session_name: str, window_name: str | None = None, start_directory: str | None = None
+    ) -> bool:
         """Standard interface for creating sessions - delegates to optimized version."""
         return self.create_session_optimized(session_name, window_name, start_directory)
 
@@ -565,7 +572,7 @@ class TMUXManager:
             self._logger.error(f"Error capturing pane {target}: {e}")
             return ""
 
-    def list_windows(self, session: str) -> List[Dict[str, str]]:
+    def list_windows(self, session: str) -> list[dict[str, str]]:
         """List windows in a session.
 
         Args:
@@ -606,7 +613,7 @@ class TMUXManager:
             self._logger.error(f"Error listing windows for session {session}: {e}")
             return []
 
-    def create_window(self, session_name: str, window_name: str, start_directory: str = None) -> bool:
+    def create_window(self, session_name: str, window_name: str, start_directory: str | None = None) -> bool:
         """Standard interface for creating windows - delegates to optimized version."""
         return self.create_window_optimized(session_name, window_name, start_directory)
 

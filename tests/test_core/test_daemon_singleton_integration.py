@@ -10,7 +10,6 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional, Tuple
 
 import psutil
 import pytest
@@ -66,12 +65,12 @@ class TestDaemonCLIIntegration:
 
         time.sleep(0.5)
 
-    def _run_cli_command(self, args: list, timeout: int = 10) -> Tuple[int, str, str]:
+    def _run_cli_command(self, args: list, timeout: int = 10) -> tuple[int, str, str]:
         """Run CLI command and return (returncode, stdout, stderr)."""
         result = subprocess.run(["tmux-orc"] + args, capture_output=True, text=True, timeout=timeout)
         return result.returncode, result.stdout, result.stderr
 
-    def _get_daemon_pid(self) -> Optional[int]:
+    def _get_daemon_pid(self) -> int | None:
         """Get daemon PID from PID file."""
         if self.pid_file.exists():
             try:

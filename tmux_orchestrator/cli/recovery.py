@@ -7,7 +7,7 @@ import signal
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import click
 from rich.console import Console
@@ -262,7 +262,7 @@ def recovery_status(json: bool) -> None:
 @click.option("--stress-test", is_flag=True, help="Include stress testing")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 def test_recovery(
-    target: Optional[str],
+    target: str | None,
     no_restart: bool,
     comprehensive: bool,
     stress_test: bool,

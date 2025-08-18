@@ -10,11 +10,11 @@ import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
 def setup_recovery_logger(
-    log_dir: Optional[Path] = None,
+    log_dir: Path | None = None,
     log_level: int = logging.INFO,
     max_file_size: int = 10 * 1024 * 1024,  # 10MB
     backup_count: int = 5,

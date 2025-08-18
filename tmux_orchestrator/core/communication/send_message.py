@@ -2,7 +2,6 @@
 
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -11,7 +10,7 @@ def send_message(
     tmux: TMUXManager,
     target: str,
     message: str,
-    timeout: Optional[float] = None,
+    timeout: float | None = None,
 ) -> tuple[bool, str]:
     """Send a message to a specific Claude agent.
 

@@ -10,7 +10,6 @@ import json
 import subprocess
 import sys
 import time
-from typing import List
 
 # Import the MCP server
 from tmux_orchestrator.mcp_fresh import FreshCLIToMCPServer
@@ -53,7 +52,7 @@ async def test_mcp_tool_generation():
     return server, tools
 
 
-async def test_tool_execution(server: FreshCLIToMCPServer, sample_tools: List[str]):
+async def test_tool_execution(server: FreshCLIToMCPServer, sample_tools: list[str]):
     """Test execution of sample MCP tools."""
     print("\n🧪 Testing Tool Execution...")
 

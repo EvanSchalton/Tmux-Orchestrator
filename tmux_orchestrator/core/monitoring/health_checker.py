@@ -3,7 +3,6 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitor_helpers import (
@@ -42,8 +41,8 @@ class HealthChecker(MonitorComponent):
             logger: Logger instance
         """
         super().__init__(tmux, config, logger)
-        self.agent_status: Dict[str, AgentHealthStatus] = {}
-        self.recent_recoveries: Dict[str, datetime] = {}
+        self.agent_status: dict[str, AgentHealthStatus] = {}
+        self.recent_recoveries: dict[str, datetime] = {}
 
         # Configuration from config
         self.max_failures = getattr(config, "max_failures", 3)
@@ -210,7 +209,7 @@ class HealthChecker(MonitorComponent):
         """
         return _has_crash_indicators(content) or _has_error_indicators(content)
 
-    def should_attempt_recovery(self, target: str, status: Optional[AgentHealthStatus] = None) -> bool:
+    def should_attempt_recovery(self, target: str, status: AgentHealthStatus | None = None) -> bool:
         """Determine if recovery should be attempted.
 
         Args:
@@ -252,7 +251,7 @@ class HealthChecker(MonitorComponent):
         self.recent_recoveries[target] = datetime.now()
         self.logger.info(f"Marked recovery attempt for {target}")
 
-    def get_all_agent_statuses(self) -> Dict[str, AgentHealthStatus]:
+    def get_all_agent_statuses(self) -> dict[str, AgentHealthStatus]:
         """Get all current agent health statuses.
 
         Returns:

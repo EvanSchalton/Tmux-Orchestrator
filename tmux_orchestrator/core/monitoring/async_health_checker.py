@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitoring.cache import LayeredCache
@@ -24,8 +24,8 @@ class AsyncHealthChecker(HealthChecker):
         tmux: TMUXManager,
         config: Config,
         logger: logging.Logger,
-        tmux_pool: Optional[TMuxConnectionPool] = None,
-        cache: Optional[LayeredCache] = None,
+        tmux_pool: TMuxConnectionPool | None = None,
+        cache: LayeredCache | None = None,
     ):
         """Initialize the async health checker.
 
@@ -45,7 +45,7 @@ class AsyncHealthChecker(HealthChecker):
 
         # Async-specific state
         self._check_semaphore = asyncio.Semaphore(20)  # Limit concurrent health checks
-        self._pending_checks: Dict[str, asyncio.Task] = {}
+        self._pending_checks: dict[str, asyncio.Task] = {}
 
     async def initialize_async(self) -> bool:
         """Initialize async components."""
@@ -185,7 +185,7 @@ class AsyncHealthChecker(HealthChecker):
 
     async def check_multiple_agents_async(
         self, targets: list[str], max_concurrent: int = 10
-    ) -> Dict[str, AgentHealthStatus]:
+    ) -> dict[str, AgentHealthStatus]:
         """Check health of multiple agents concurrently.
 
         Args:
@@ -198,7 +198,7 @@ class AsyncHealthChecker(HealthChecker):
         # Create semaphore for this batch
         semaphore = asyncio.Semaphore(max_concurrent)
 
-        async def check_with_semaphore(target: str) -> Tuple[str, AgentHealthStatus]:
+        async def check_with_semaphore(target: str) -> tuple[str, AgentHealthStatus]:
             async with semaphore:
                 status = await self.check_agent_health_async(target)
                 return target, status
@@ -218,7 +218,7 @@ class AsyncHealthChecker(HealthChecker):
 
         return statuses
 
-    async def should_attempt_recovery_async(self, target: str, status: Optional[AgentHealthStatus] = None) -> bool:
+    async def should_attempt_recovery_async(self, target: str, status: AgentHealthStatus | None = None) -> bool:
         """Async version of recovery check with caching."""
         # Check recovery cooldown from cache
         cache_key = f"recovery_cooldown:{target}"
@@ -245,7 +245,7 @@ class AsyncHealthChecker(HealthChecker):
         cache_key = f"recovery_attempt:{target}"
         await self.cache.set("agent_status", cache_key, datetime.now().isoformat(), ttl=float(self.recovery_cooldown))
 
-    async def get_health_summary_async(self) -> Dict[str, Any]:
+    async def get_health_summary_async(self) -> dict[str, Any]:
         """Get async health summary with statistics."""
         all_statuses = self.get_all_agent_statuses()
 

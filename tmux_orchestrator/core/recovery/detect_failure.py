@@ -113,7 +113,7 @@ def _check_idle_status_v2(tmux: TMUXManager, target: str) -> dict[str, Any]:
         - is_idle: bool
         - idle_duration: float (seconds)
         - last_snapshot: str (the last line captured)
-        - all_snapshots: List[str] (for debugging)
+        - all_snapshots: list[str] (for debugging)
     """
     snapshots: list[str] = []
     start_time: float = time.time()

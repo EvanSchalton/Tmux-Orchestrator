@@ -21,12 +21,12 @@ class TestMypyTypeCheckingScenarios:
     # Error: returning int instead of str
     return x + len(y)
 
-def another_function(items: List[str]) -> int:
+def another_function(items: list[str]) -> int:
     # Error: returning string instead of int
     return "not an integer"
 
-def third_function() -> Optional[str]:
-    # Error: returning int instead of Optional[str]
+def third_function() -> str | None:
+    # Error: returning int instead of str | None
     return 42
 """
 
@@ -66,18 +66,18 @@ def main():
 
     def test_collection_type_errors(self):
         """Test that mypy catches collection type annotation errors."""
-        code_with_collection_errors = """from typing import Dict, List
+        code_with_collection_errors = """
 
-def process_list(items: List[str]) -> List[int]:
-    # Error: returning List[str] instead of List[int]
+def process_list(items: list[str]) -> list[int]:
+    # Error: returning list[str] instead of list[int]
     return items
 
-def process_dict(data: Dict[str, int]) -> Dict[str, str]:
-    # Error: returning Dict[str, int] instead of Dict[str, str]
+def process_dict(data: dict[str, int]) -> dict[str, str]:
+    # Error: returning dict[str, int] instead of dict[str, str]
     return data
 
-def create_mixed_list() -> List[str]:
-    # Error: returning List[int] instead of List[str]
+def create_mixed_list() -> list[str]:
+    # Error: returning list[int] instead of list[str]
     return [1, 2, 3, 4, 5]
 """
 
@@ -88,19 +88,19 @@ def create_mixed_list() -> List[str]:
 
     def test_any_vs_specific_types(self):
         """Test the difference between Any and specific type annotations."""
-        code_with_any_issues = '''from typing import Any, Dict
+        code_with_any_issues = '''from typing import Any
 
 # This should work with Any
 def flexible_function(data: Any) -> Any:
     return data.anything.can.happen
 
 # This should fail with specific types
-def strict_function(data: Dict[str, str]) -> str:
-    # Error: Dict doesn't have 'nonexistent_method'
+def strict_function(data: dict[str, str]) -> str:
+    # Error: dict doesn't have 'nonexistent_method'
     return data.nonexistent_method()
 
 # Test the corrected patterns from monitor_async.py
-async def check_agent_status_async(target: str) -> Dict[str, Any]:
+async def check_agent_status_async(target: str) -> dict[str, Any]:
     """Properly typed async function."""
     return {
         "target": target,
@@ -108,9 +108,9 @@ async def check_agent_status_async(target: str) -> Dict[str, Any]:
         "timestamp": "now"
     }
 
-async def monitor_agents_batch(agents: List[str]) -> Dict[str, Dict[str, Any]]:
+async def monitor_agents_batch(agents: list[str]) -> dict[str, dict[str, Any]]:
     """Properly typed batch monitoring function."""
-    result: Dict[str, Dict[str, Any]] = {}
+    result: dict[str, dict[str, Any]] = {}
     for agent in agents:
         result[agent] = await check_agent_status_async(agent)
     return result
@@ -125,20 +125,20 @@ async def monitor_agents_batch(agents: List[str]) -> Dict[str, Dict[str, Any]]:
         """Test that mypy handles Optional and Union types correctly."""
         code_with_optional_errors = """from typing import Optional, Union
 
-def process_optional(value: Optional[str]) -> str:
+def process_optional(value: str | None) -> str:
     # Error: value might be None
     return value.upper()
 
-def process_union(value: Union[str, int]) -> str:
+def process_union(value: str | int) -> str:
     # Error: int doesn't have upper() method
     return value.upper()
 
-def correct_optional_handling(value: Optional[str]) -> str:
+def correct_optional_handling(value: str | None) -> str:
     if value is None:
         return "default"
     return value.upper()
 
-def correct_union_handling(value: Union[str, int]) -> str:
+def correct_union_handling(value: str | int) -> str:
     if isinstance(value, str):
         return value.upper()
     return str(value)
@@ -151,7 +151,7 @@ def correct_union_handling(value: Union[str, int]) -> str:
 
     def test_class_type_annotations(self):
         """Test that mypy handles class type annotations correctly."""
-        code_with_class_errors = """from typing import List, Optional
+        code_with_class_errors = """from typing import Optional
 
 class Person:
     def __init__(self, name: str, age: int) -> None:
@@ -166,12 +166,12 @@ class Person:
 
 class Team:
     def __init__(self) -> None:
-        self.members: List[Person] = []
+        self.members: list[Person] = []
 
     def add_member(self, person: Person) -> None:
         self.members.append(person)
 
-    def get_member(self, index: int) -> Optional[Person]:
+    def get_member(self, index: int) -> Person | None:
         if 0 <= index < len(self.members):
             return self.members[index]
         return None
@@ -196,7 +196,7 @@ def get_member_name(team: Team, index: int) -> str:
     def test_async_type_annotations(self):
         """Test that mypy handles async/await type annotations correctly."""
         code_with_async_errors = """import asyncio
-from typing import Awaitable, Coroutine, List
+from typing import Any, Awaitable, Callable, Coroutine
 
 async def async_function() -> str:
     await asyncio.sleep(0.1)
@@ -215,7 +215,7 @@ async def correct_async_usage() -> str:
     return result
 
 # Test async function type annotations
-async def async_monitor_function(targets: List[str]) -> List[str]:
+async def async_monitor_function(targets: list[str]) -> list[str]:
     results = []
     for target in targets:
         result = await async_function()
@@ -230,18 +230,18 @@ async def async_monitor_function(targets: List[str]) -> List[str]:
 
     def test_generic_type_annotations(self):
         """Test that mypy handles generic type annotations correctly."""
-        code_with_generic_errors = """from typing import Generic, TypeVar, List, Dict
+        code_with_generic_errors = """from typing import Generic, TypeVar
 
 T = TypeVar('T')
 
 class Container(Generic[T]):
     def __init__(self) -> None:
-        self.items: List[T] = []
+        self.items: list[T] = []
 
     def add(self, item: T) -> None:
         self.items.append(item)
 
-    def get_all(self) -> List[T]:
+    def get_all(self) -> list[T]:
         return self.items
 
 def test_generic_usage():
@@ -305,7 +305,7 @@ def test_protocol_usage():
 
     def test_project_specific_type_patterns(self):
         """Test type patterns specific to the tmux-orchestrator project."""
-        code_with_project_patterns = '''from typing import Any, Dict, List, Optional
+        code_with_project_patterns = '''from typing import Any, Optional
 from datetime import datetime
 
 # Simulate monitor_async.py patterns that had issues
@@ -314,7 +314,7 @@ class MockAgentState:
     IDLE = "idle"
     CRASHED = "crashed"
 
-async def check_agent_status_async(target: str) -> Dict[str, Any]:
+async def check_agent_status_async(target: str) -> dict[str, Any]:
     """This should now work correctly with proper Any import."""
     return {
         "target": target,
@@ -324,9 +324,9 @@ async def check_agent_status_async(target: str) -> Dict[str, Any]:
         "timestamp": datetime.now(),
     }
 
-async def monitor_agents_batch(agents: List[str]) -> Dict[str, Dict[str, Any]]:
+async def monitor_agents_batch(agents: list[str]) -> dict[str, dict[str, Any]]:
     """This should work with proper type annotations."""
-    agent_statuses: Dict[str, Dict[str, Any]] = {}
+    agent_statuses: dict[str, dict[str, Any]] = {}
     for agent in agents:
         result = await check_agent_status_async(agent)
         if isinstance(result, dict):
@@ -334,10 +334,10 @@ async def monitor_agents_batch(agents: List[str]) -> Dict[str, Dict[str, Any]]:
     return agent_statuses
 
 async def get_agent_notifications(
-    agent_statuses: Dict[str, Dict[str, Any]]
-) -> Dict[str, List[str]]:
+    agent_statuses: dict[str, dict[str, Any]]
+) -> dict[str, list[str]]:
     """Test the fixed notification function."""
-    notifications: Dict[str, List[str]] = {}
+    notifications: dict[str, list[str]] = {}
 
     for target, status in agent_statuses.items():
         session_name = target.split(":")[0]
@@ -501,9 +501,8 @@ def test_attribute_errors():
 
     def test_index_error_detection(self):
         """Test that mypy detects potential index errors."""
-        code_with_index_issues = """from typing import List
-
-def test_index_errors(items: List[str]) -> str:
+        code_with_index_issues = """
+def test_index_errors(items: list[str]) -> str:
     # mypy can't detect runtime index errors, but can detect type mismatches
     index: str = "not an int"  # This will cause issues
     # Error: can't use str as index

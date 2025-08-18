@@ -8,7 +8,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from tmux_orchestrator.core.monitor_helpers import (
     AgentState,
@@ -36,7 +36,7 @@ class AsyncAgentMonitor:
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(None, self.tmux.capture_pane, target, lines)
 
-    async def take_snapshots_async(self, target: str, count: int = 4, interval: float = 0.3) -> List[str]:
+    async def take_snapshots_async(self, target: str, count: int = 4, interval: float = 0.3) -> list[str]:
         """Take multiple snapshots concurrently for activity detection."""
         snapshots = []
 
@@ -51,7 +51,7 @@ class AsyncAgentMonitor:
 
         return snapshots
 
-    async def detect_agent_activity_async(self, target: str) -> Tuple[bool, str]:
+    async def detect_agent_activity_async(self, target: str) -> tuple[bool, str]:
         """Detect if agent is active using async snapshot comparison."""
         try:
             # Take snapshots asynchronously
@@ -88,7 +88,7 @@ class AsyncAgentMonitor:
             self.logger.error(f"Error detecting activity for {target}: {e}")
             return False, ""
 
-    async def check_agent_status_async(self, target: str) -> Dict[str, Any]:
+    async def check_agent_status_async(self, target: str) -> dict[str, Any]:
         """Asynchronously check agent status and return structured result."""
         try:
             # Get activity status and content
@@ -177,7 +177,7 @@ class AsyncAgentMonitor:
                 "timestamp": datetime.now(),
             }
 
-    async def monitor_agents_batch(self, agents: List[str]) -> Dict[str, Dict[str, Any]]:
+    async def monitor_agents_batch(self, agents: list[str]) -> dict[str, dict[str, Any]]:
         """Monitor multiple agents concurrently."""
         if not agents:
             return {}
@@ -193,7 +193,7 @@ class AsyncAgentMonitor:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Process results
-            agent_statuses: Dict[str, Dict[str, Any]] = {}
+            agent_statuses: dict[str, dict[str, Any]] = {}
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
                     self.logger.error(f"Error monitoring agent {agents[i]}: {result}")
@@ -220,9 +220,9 @@ class AsyncAgentMonitor:
             self.logger.error(f"Error in batch monitoring: {e}")
             return {}
 
-    async def get_agent_notifications(self, agent_statuses: Dict[str, Dict[str, Any]]) -> Dict[str, List[str]]:
+    async def get_agent_notifications(self, agent_statuses: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
         """Generate notifications based on agent statuses."""
-        notifications: Dict[str, List[str]] = {}
+        notifications: dict[str, list[str]] = {}
 
         for target, status in agent_statuses.items():
             session_name = target.split(":")[0]
@@ -251,7 +251,7 @@ class AsyncAgentMonitor:
 
 
 # Performance comparison function
-async def compare_monitoring_performance(agents: List[str], tmux: TMUXManager) -> Dict[str, float]:
+async def compare_monitoring_performance(agents: list[str], tmux: TMUXManager) -> dict[str, float]:
     """Compare performance between sync and async monitoring approaches."""
 
     # Test async monitoring

@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import IntEnum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from ..interfaces import (
     AgentMonitorInterface,
@@ -60,7 +60,7 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
     - Efficient resource usage for large agent pools
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any | None] = None):
         """Initialize priority-based strategy.
 
         Args:
@@ -98,8 +98,8 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
         self.check_timeout = self.config.get("check_timeout", 10.0)
 
         # Runtime state
-        self.crash_history: Dict[str, List[datetime]] = {}
-        self.false_positive_agents: Set[str] = set()
+        self.crash_history: dict[str, list[datetime]] = {}
+        self.false_positive_agents: set[str] = set()
 
     def get_name(self) -> str:
         """Get strategy name."""
@@ -112,7 +112,7 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
             f"Adaptive mode: {'enabled' if self.adaptive_mode else 'disabled'}"
         )
 
-    async def execute(self, context: Dict[str, Any]) -> MonitorStatus:
+    async def execute(self, context: dict[str, Any]) -> MonitorStatus:
         """Execute priority-based monitoring.
 
         Args:
@@ -225,8 +225,8 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
             return status
 
     def _prioritize_agents(
-        self, agents: List[AgentInfo], state_tracker: StateTrackerInterface
-    ) -> List[PrioritizedAgent]:
+        self, agents: list[AgentInfo], state_tracker: StateTrackerInterface
+    ) -> list[PrioritizedAgent]:
         """Prioritize agents based on configured criteria.
 
         Args:
@@ -319,8 +319,8 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
         crash_detector: CrashDetectorInterface,
         notification_manager: NotificationManagerInterface,
         status: MonitorStatus,
-        logger: Optional[Any],
-        metrics: Optional[Any],
+        logger: Any | None,
+        metrics: Any | None,
     ) -> None:
         """Check a single prioritized agent."""
         agent_info = p_agent.agent_info
@@ -362,7 +362,7 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
         crash_detector: CrashDetectorInterface,
         notification_manager: NotificationManagerInterface,
         status: MonitorStatus,
-        logger: Optional[Any],
+        logger: Any | None,
     ) -> None:
         """Perform the actual agent health check."""
         # Analyze agent content
@@ -398,14 +398,14 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
 
     async def _check_batch_concurrent(
         self,
-        batch: List[PrioritizedAgent],
+        batch: list[PrioritizedAgent],
         agent_monitor: AgentMonitorInterface,
         state_tracker: StateTrackerInterface,
         crash_detector: CrashDetectorInterface,
         notification_manager: NotificationManagerInterface,
         status: MonitorStatus,
-        logger: Optional[Any],
-        metrics: Optional[Any],
+        logger: Any | None,
+        metrics: Any | None,
     ) -> None:
         """Check a batch of agents concurrently."""
         # Create semaphore for concurrency control
@@ -423,10 +423,10 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
 
     async def _check_pm_health(
         self,
-        sessions: List[str],
+        sessions: list[str],
         pm_recovery_manager: PMRecoveryManagerInterface,
         notification_manager: NotificationManagerInterface,
-        logger: Optional[Any],
+        logger: Any | None,
     ) -> None:
         """Check PM health for all sessions."""
         for session in sessions:
@@ -476,7 +476,7 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
         recent = [t for t in self.crash_history[target] if t > cutoff]
         return len(recent)
 
-    def get_required_components(self) -> List[type]:
+    def get_required_components(self) -> list[type]:
         """Get required component interfaces."""
         return [
             AgentMonitorInterface,

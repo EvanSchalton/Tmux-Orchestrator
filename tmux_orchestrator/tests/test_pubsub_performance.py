@@ -7,7 +7,6 @@ Validates that message delivery meets the <100ms requirement.
 import asyncio
 import statistics
 import time
-from typing import Dict, List
 
 from tmux_orchestrator.core.messaging_daemon import DaemonClient
 from tmux_orchestrator.core.monitoring.pubsub_integration import MonitorPubsubClient, PriorityMessageRouter
@@ -22,14 +21,14 @@ class PubsubPerformanceTester:
         self.pubsub_client = MonitorPubsubClient()
         self.priority_router = PriorityMessageRouter(self.pubsub_client)
         self.tmux = TMUXManager()
-        self.results: Dict[str, List[float]] = {
+        self.results: dict[str, list[float]] = {
             "direct_daemon": [],
             "pubsub_client": [],
             "priority_router": [],
             "batch_delivery": [],
         }
 
-    async def run_performance_tests(self, target: str = "test:0", iterations: int = 100) -> Dict[str, any]:
+    async def run_performance_tests(self, target: str = "test:0", iterations: int = 100) -> dict[str, any]:
         """
         Run comprehensive performance tests.
 
@@ -142,7 +141,7 @@ class PubsubPerformanceTester:
 
             print(f"  Batch size {size}: {elapsed_ms:.1f}ms total, {per_msg_ms:.1f}ms per message")
 
-    def _analyze_results(self) -> Dict[str, any]:
+    def _analyze_results(self) -> dict[str, any]:
         """Analyze performance test results."""
         analysis = {
             "summary": {},
@@ -184,7 +183,7 @@ class PubsubPerformanceTester:
 
         return analysis
 
-    def _generate_recommendations(self, analysis: Dict[str, any]) -> None:
+    def _generate_recommendations(self, analysis: dict[str, any]) -> None:
         """Generate performance recommendations based on results."""
         recommendations = []
 
@@ -212,7 +211,7 @@ class PubsubPerformanceTester:
 
         analysis["recommendations"] = recommendations
 
-    def print_results(self, analysis: Dict[str, any]) -> None:
+    def print_results(self, analysis: dict[str, any]) -> None:
         """Print formatted performance analysis."""
         print("\n" + "=" * 60)
         print("📊 PERFORMANCE TEST RESULTS")

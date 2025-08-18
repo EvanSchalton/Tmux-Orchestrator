@@ -5,7 +5,6 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Dict, Optional, Set
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -37,7 +36,7 @@ class TMuxConnectionPool:
         max_size: int = 20,
         connection_timeout: float = 30.0,
         max_connection_age: float = 300.0,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         """Initialize the connection pool.
 
@@ -57,7 +56,7 @@ class TMuxConnectionPool:
         # Pool state
         self._pool: asyncio.Queue[PooledConnection] = asyncio.Queue(maxsize=max_size)
         self._semaphore = asyncio.Semaphore(max_size)
-        self._active_connections: Set[PooledConnection] = set()
+        self._active_connections: set[PooledConnection] = set()
         self._total_created = 0
         self._initialized = False
         self._shutdown = False
@@ -227,7 +226,7 @@ class TMuxConnectionPool:
         except Exception as e:
             self.logger.error(f"Failed to replace connection: {e}")
 
-    def get_stats(self) -> Dict[str, any]:
+    def get_stats(self) -> dict[str, any]:
         """Get pool statistics."""
         return {
             **self.stats,

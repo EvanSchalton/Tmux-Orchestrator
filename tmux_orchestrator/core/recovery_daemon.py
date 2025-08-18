@@ -7,7 +7,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ..utils.tmux import TMUXManager
 from .config import Config
@@ -28,7 +28,7 @@ class RecoveryDaemon:
     following SOLID principles and proper separation of concerns.
     """
 
-    def __init__(self, config_file: Optional[str] = None) -> None:
+    def __init__(self, config_file: str | None = None) -> None:
         """Initialize recovery daemon with configuration."""
         self.config: Config = Config.load(Path(config_file) if config_file else None)
         self.tmux: TMUXManager = TMUXManager()
@@ -223,7 +223,7 @@ class RecoveryDaemon:
         for target in list(self.known_agents):
             try:
                 # Get previous health status
-                previous_health: Optional[AgentHealthStatus] = self.agent_health.get(target)
+                previous_health: AgentHealthStatus | None = self.agent_health.get(target)
 
                 # Determine last response time
                 last_response: datetime = previous_health.last_check if previous_health else datetime.now()
@@ -316,7 +316,7 @@ class RecoveryDaemon:
     def get_status(self) -> dict[str, Any]:
         """Get daemon status information."""
         is_running: bool = self.is_running()
-        pid: Optional[int] = None
+        pid: int | None = None
 
         if is_running and self.pid_file.exists():
             with open(self.pid_file) as f:

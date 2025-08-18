@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitoring.agent_monitor import AgentMonitor
@@ -24,7 +24,7 @@ class MonitorService:
     with the monitoring system while delegating to specialized components.
     """
 
-    def __init__(self, tmux: TMUXManager, config: Config, logger: Optional[logging.Logger] = None):
+    def __init__(self, tmux: TMUXManager, config: Config, logger: logging.Logger | None = None):
         """Initialize the monitor service.
 
         Args:
@@ -185,7 +185,7 @@ class MonitorService:
             errors_detected=self.errors_detected,
         )
 
-    def check_health(self, session: str, window: Optional[str] = None) -> Dict[str, Any]:
+    def check_health(self, session: str, window: str | None = None) -> dict[str, Any]:
         """Check health of specific session or window.
 
         Args:
@@ -225,7 +225,7 @@ class MonitorService:
 
         return results
 
-    def handle_recovery(self, session: str, window: Optional[str] = None) -> bool:
+    def handle_recovery(self, session: str, window: str | None = None) -> bool:
         """Handle recovery for a specific session or window.
 
         Args:
@@ -253,7 +253,7 @@ class MonitorService:
 
         return False
 
-    def discover_agents(self) -> List[AgentInfo]:
+    def discover_agents(self) -> list[AgentInfo]:
         """Discover all active agents.
 
         Returns:

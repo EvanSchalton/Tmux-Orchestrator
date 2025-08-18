@@ -9,7 +9,7 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import psutil
 import pytest
@@ -68,7 +68,7 @@ class PMCrashTestHarness:
         self.test_sessions.append(session_name)
         return session_name
 
-    def spawn_test_pm(self, session_name: str) -> Dict[str, Any]:
+    def spawn_test_pm(self, session_name: str) -> dict[str, Any]:
         """Spawn a PM in the test session and return details."""
         # Use tmux-orc spawn command
         result = subprocess.run(["tmux-orc", "spawn", "pm", "--session", session_name], capture_output=True, text=True)
@@ -94,7 +94,7 @@ class PMCrashTestHarness:
 
         return {"target": pm_target, "pid": pm_pid, "session": session_name, "window": pm_window["index"]}
 
-    def _get_pane_process_pid(self, target: str) -> Optional[int]:
+    def _get_pane_process_pid(self, target: str) -> int | None:
         """Get the main process PID for a pane."""
         # Get pane PID
         result = subprocess.run(
@@ -115,7 +115,7 @@ class PMCrashTestHarness:
 
         return None
 
-    def simulate_pm_crash(self, pm_details: Dict[str, Any], crash_type: str) -> Dict[str, Any]:
+    def simulate_pm_crash(self, pm_details: dict[str, Any], crash_type: str) -> dict[str, Any]:
         """Simulate different types of PM crashes."""
         crash_info = {
             "type": crash_type,
@@ -156,7 +156,7 @@ class PMCrashTestHarness:
 
         return crash_info
 
-    def wait_for_detection(self, monitor: IdleMonitor, pm_target: str, timeout: int = 60) -> Dict[str, Any]:
+    def wait_for_detection(self, monitor: IdleMonitor, pm_target: str, timeout: int = 60) -> dict[str, Any]:
         """Wait for monitor to detect PM crash."""
         start_time = time.time()
         detection_result = {"detected": False, "detection_time": None, "detection_latency": None}
@@ -216,7 +216,7 @@ class PMCrashTestHarness:
 
         return detection_result
 
-    def validate_recovery(self, session_name: str, original_pm_target: str, timeout: int = 120) -> Dict[str, Any]:
+    def validate_recovery(self, session_name: str, original_pm_target: str, timeout: int = 120) -> dict[str, Any]:
         """Validate that PM recovery completed successfully."""
         start_time = time.time()
         recovery_result = {
@@ -270,7 +270,7 @@ class PMCrashTestHarness:
 
     def run_crash_detection_test(
         self, crash_type: str, detection_timeout: int = 60, recovery_timeout: int = 120
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run a complete crash detection test."""
         test_result = {"crash_type": crash_type, "test_start": time.time(), "success": False, "errors": []}
 

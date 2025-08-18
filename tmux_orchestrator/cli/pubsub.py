@@ -7,7 +7,6 @@ Replaces slow CLI-based pubsub with daemon IPC for sub-100ms performance.
 import asyncio
 import json
 import sys
-from typing import List
 
 import click
 from rich.console import Console
@@ -36,7 +35,7 @@ def pubsub() -> None:
 @click.option("--target", required=True, help="Target session:window")
 @click.option("--priority", type=click.Choice(["low", "normal", "high", "critical"]), default="normal")
 @click.option("--tag", multiple=True, help="Message tags")
-def publish(message: str, target: str, priority: str, tag: List[str]) -> None:
+def publish(message: str, target: str, priority: str, tag: list[str]) -> None:
     """Publish message via high-performance daemon (target: <100ms)."""
 
     async def _publish():
@@ -85,9 +84,9 @@ def read(
     target: str,
     lines: int,
     json_output: bool,
-    filter_priority: List[str],
-    filter_category: List[str],
-    filter_tag: List[str],
+    filter_priority: list[str],
+    filter_category: list[str],
+    filter_tag: list[str],
     filter_source: str,
     unacked_only: bool,
 ) -> None:
@@ -210,9 +209,9 @@ def stats() -> None:
 
 def _apply_message_filters(
     content: str,
-    filter_priority: List[str],
-    filter_category: List[str],
-    filter_tag: List[str],
+    filter_priority: list[str],
+    filter_category: list[str],
+    filter_tag: list[str],
     filter_source: str,
     unacked_only: bool,
 ) -> str:
@@ -314,7 +313,7 @@ def _format_structured_message(msg: dict) -> str:
 @click.option("--unacked", is_flag=True, help="Only unacknowledged messages")
 @click.option("--format", "output_format", type=click.Choice(["pretty", "json", "summary"]), default="pretty")
 def query(
-    session: str, priority: List[str], category: List[str], source: str, since: int, unacked: bool, output_format: str
+    session: str, priority: list[str], category: list[str], source: str, since: int, unacked: bool, output_format: str
 ) -> None:
     """Query structured messages with advanced filtering."""
 

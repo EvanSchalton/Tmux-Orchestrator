@@ -5,7 +5,7 @@ import statistics
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
 class PerformanceBenchmarker:
@@ -16,7 +16,7 @@ class PerformanceBenchmarker:
         self.iterations = iterations
         self.results = {}
 
-    def benchmark_command(self, command_args: List[str], name: str = None) -> Dict[str, Any]:
+    def benchmark_command(self, command_args: list[str], name: str | None = None) -> dict[str, Any]:
         """Benchmark a CLI command execution."""
         if not name:
             name = " ".join(command_args[:2])
@@ -66,7 +66,7 @@ class PerformanceBenchmarker:
         self.results[name] = benchmark_result
         return benchmark_result
 
-    def benchmark_sprint2_commands(self) -> Dict[str, Any]:
+    def benchmark_sprint2_commands(self) -> dict[str, Any]:
         """Benchmark all Sprint 2 optimized commands."""
 
         print("🚀 Sprint 2 Performance Benchmark Suite")

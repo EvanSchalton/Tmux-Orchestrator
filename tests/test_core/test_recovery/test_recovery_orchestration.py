@@ -11,7 +11,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -53,7 +53,7 @@ class RecoveryOrchestrationTest:
         if self.recovery_state_file.exists():
             self.recovery_state_file.unlink()
 
-    def create_test_environment(self, session_name: str, team_agents: List[str] = None) -> Dict[str, Any]:
+    def create_test_environment(self, session_name: str, team_agents: list[str] = None) -> dict[str, Any]:
         """Create a test environment with PM and team agents."""
         if team_agents is None:
             team_agents = ["developer", "qa"]
@@ -92,7 +92,7 @@ class RecoveryOrchestrationTest:
 
         return env
 
-    def simulate_pm_context(self, pm_target: str, context: Dict[str, Any]):
+    def simulate_pm_context(self, pm_target: str, context: dict[str, Any]):
         """Simulate PM having some working context."""
         # In a real implementation, this would be stored in the PM's state
         # For testing, we'll write it to a context file

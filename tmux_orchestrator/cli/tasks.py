@@ -4,7 +4,7 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import click
 from rich.console import Console
@@ -82,7 +82,7 @@ def tasks() -> None:
 @click.argument("project_name")
 @click.option("--prd", help="Path to existing PRD file to import")
 @click.option("--template", is_flag=True, help="Use template for new PRD")
-def create(project_name: str, prd: Optional[str], template: bool) -> None:
+def create(project_name: str, prd: str | None, template: bool) -> None:
     """Create a new project task structure.
 
     PROJECT_NAME: Name of the project (will be directory name)
@@ -203,7 +203,7 @@ Last Updated: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 @click.argument("project_name")
 @click.option("--agent", help="Specific agent to show tasks for")
 @click.option("--tree", is_flag=True, help="Show as tree structure")
-def status(project_name: str, agent: Optional[str], tree: bool) -> None:
+def status(project_name: str, agent: str | None, tree: bool) -> None:
     """Display task status for a project.
 
     PROJECT_NAME: Name of the project to check
@@ -562,7 +562,7 @@ Before marking ANY task complete:
     help="Export format",
 )
 @click.option("--output", help="Output file path")
-def export(project_name: str, format: str, output: Optional[str]) -> None:
+def export(project_name: str, format: str, output: str | None) -> None:
     """Export project task data.
 
     PROJECT_NAME: Project to export

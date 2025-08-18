@@ -14,7 +14,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -200,7 +200,7 @@ class FinalValidationSuite:
         tests.extend(regression_tests)
         return tests
 
-    def simulate_enhanced_selection(self, test: Dict[str, Any]) -> ValidationResult:
+    def simulate_enhanced_selection(self, test: dict[str, Any]) -> ValidationResult:
         """Simulate LLM selection with all 7 enumDescription fixes applied."""
         start_time = time.perf_counter()
 

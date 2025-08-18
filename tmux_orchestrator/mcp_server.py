@@ -24,7 +24,7 @@ import os
 import subprocess
 import sys
 import time
-from typing import Any, Callable, List
+from typing import Any, Callable
 
 # CLI introspection imports
 # FastMCP for MCP server implementation
@@ -164,7 +164,7 @@ class EnhancedCLIToMCPServer:
         Discover the complete CLI structure using tmux-orc reflect.
 
         Returns:
-            Dict containing the complete CLI structure
+            dict containing the complete CLI structure
         """
         try:
             logger.info("Discovering CLI structure via tmux-orc reflect...")
@@ -206,7 +206,7 @@ class EnhancedCLIToMCPServer:
         Supports both hierarchical and flat modes.
 
         Returns:
-            Dict of generated tool information
+            dict of generated tool information
         """
         if not self.cli_structure:
             logger.error("No CLI structure available for tool generation")
@@ -255,7 +255,7 @@ class EnhancedCLIToMCPServer:
                 logger.error(f"Failed to generate tool for {command_name}: {e}")
                 continue
 
-    def _discover_subcommands(self, group_name: str) -> List[str]:
+    def _discover_subcommands(self, group_name: str) -> list[str]:
         """Discover subcommands for a group using CLI help."""
         try:
             result = subprocess.run(["tmux-orc", group_name, "--help"], capture_output=True, text=True, timeout=30)
@@ -268,7 +268,7 @@ class EnhancedCLIToMCPServer:
             logger.error(f"Failed to discover subcommands for {group_name}: {e}")
             return []
 
-    def _generate_hierarchical_tool(self, group_name: str, subcommands: List[str]) -> None:
+    def _generate_hierarchical_tool(self, group_name: str, subcommands: list[str]) -> None:
         """Generate a hierarchical tool for a command group."""
         if not subcommands:
             return
@@ -324,7 +324,7 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to register hierarchical tool {group_name}: {e}")
 
-    def _create_hierarchical_tool_function(self, group_name: str, subcommands: List[str]) -> Callable:
+    def _create_hierarchical_tool_function(self, group_name: str, subcommands: list[str]) -> Callable:
         """Create hierarchical tool function with enhanced validation."""
 
         async def hierarchical_tool(**kwargs) -> dict[str, Any]:
@@ -499,7 +499,7 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to process group {group_name}: {e}")
 
-    def _parse_subcommands_from_help(self, help_text: str) -> List[str]:
+    def _parse_subcommands_from_help(self, help_text: str) -> list[str]:
         """Parse subcommand names from CLI help output."""
         subcommands = []
         in_commands_section = False

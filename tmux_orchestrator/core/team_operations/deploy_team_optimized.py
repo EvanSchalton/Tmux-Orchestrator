@@ -2,14 +2,13 @@
 
 import time
 from pathlib import Path
-from typing import Tuple
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
 def deploy_standard_team_optimized(
     tmux_optimized: TMUXManager, team_type: str, size: int, project_name: str
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Deploy a standard team configuration with performance optimizations.
 
     Target: <500ms execution time (vs 1.57s original)

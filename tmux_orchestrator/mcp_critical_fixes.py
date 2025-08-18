@@ -6,7 +6,7 @@ These 5 critical enumDescriptions fix 30% of failures (81.8% → 94.8% target)
 Based on LLM Optimizer's exact failure analysis.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 
 class CriticalEnumFixes:
@@ -68,7 +68,7 @@ class CriticalEnumFixes:
     }
 
     @staticmethod
-    def apply_critical_fixes(schema: Dict[str, Any], group_name: str) -> Dict[str, Any]:
+    def apply_critical_fixes(schema: dict[str, Any], group_name: str) -> dict[str, Any]:
         """Apply the 5 critical enumDescription fixes."""
         if group_name not in CriticalEnumFixes.CRITICAL_ENUM_FIXES:
             return schema
@@ -105,7 +105,7 @@ class CriticalEnumFixes:
         return schema
 
     @staticmethod
-    def get_disambiguation_suggestion(user_input: str) -> Dict[str, str]:
+    def get_disambiguation_suggestion(user_input: str) -> dict[str, str]:
         """Get disambiguation suggestion for user input."""
         import re
 
@@ -123,7 +123,7 @@ class CriticalEnumFixes:
         return {}
 
     @staticmethod
-    def validate_critical_coverage() -> Dict[str, Any]:
+    def validate_critical_coverage() -> dict[str, Any]:
         """Validate that all critical patterns are covered."""
         coverage = {
             "monitor_dashboard_patterns": ["show.*dashboard", "show.*monitoring", "show.*live"],
@@ -146,7 +146,7 @@ class CriticalEnumFixes:
         }
 
 
-def apply_critical_fixes_to_schema(original_schema: Dict[str, Any], group_name: str) -> Dict[str, Any]:
+def apply_critical_fixes_to_schema(original_schema: dict[str, Any], group_name: str) -> dict[str, Any]:
     """Apply critical fixes to existing schema."""
     enhanced_schema = original_schema.copy()
     return CriticalEnumFixes.apply_critical_fixes(enhanced_schema, group_name)

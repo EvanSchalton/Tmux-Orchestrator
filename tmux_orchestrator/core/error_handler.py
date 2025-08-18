@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Callable, TypeVar
 
 from rich.console import Console
 from rich.panel import Panel
@@ -47,8 +47,8 @@ class ErrorContext:
     """Context information for error handling."""
 
     operation: str
-    agent_id: Optional[str] = None
-    session_name: Optional[str] = None
+    agent_id: str | None = None
+    session_name: str | None = None
     additional_info: dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -62,7 +62,7 @@ class ErrorRecord:
     category: ErrorCategory
     severity: ErrorSeverity
     context: ErrorContext
-    traceback: Optional[str] = None
+    traceback: str | None = None
     recovery_attempted: bool = False
     recovery_successful: bool = False
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -71,7 +71,7 @@ class ErrorRecord:
 class ErrorHandler:
     """Centralized error handling with recovery procedures."""
 
-    def __init__(self, log_dir: Optional[Path] = None) -> None:
+    def __init__(self, log_dir: Path | None = None) -> None:
         """Initialize error handler."""
         self.log_dir = log_dir or Path.home() / ".tmux-orchestrator" / "errors"
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -277,15 +277,15 @@ class ErrorHandler:
 # Decorator for automatic error handling
 def handle_errors(
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-    category: Optional[ErrorCategory] = None,
+    category: ErrorCategory | None = None,
     operation: str = "",
     attempt_recovery: bool = True,
 ) -> Callable:
     """Decorator for automatic error handling."""
 
-    def decorator(func: Callable[..., T]) -> Callable[..., Union[T, None]]:
+    def decorator(func: Callable[..., T]) -> Callable[..., T | None]:
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Union[T, None]:
+        def wrapper(*args: Any, **kwargs: Any) -> T | None:
             try:
                 return func(*args, **kwargs)
             except Exception as e:
@@ -351,7 +351,7 @@ def retry_on_error(
 
 
 # Global error handler instance
-_global_error_handler: Optional[ErrorHandler] = None
+_global_error_handler: ErrorHandler | None = None
 
 
 def get_error_handler() -> ErrorHandler:

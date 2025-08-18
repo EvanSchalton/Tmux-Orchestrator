@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -56,8 +56,8 @@ class FeatureFlags(BaseModel):
     verbose_migration_logs: bool = False
 
     # Timestamps
-    flags_updated_at: Optional[datetime] = None
-    rollout_started_at: Optional[datetime] = None
+    flags_updated_at: datetime | None = None
+    rollout_started_at: datetime | None = None
 
     class Config:
         use_enum_values = True
@@ -71,7 +71,7 @@ class FeatureFlags(BaseModel):
         - TMUX_ORC_ROLLOUT_STAGE=beta
         - TMUX_ORC_DEFAULT_STRATEGY=concurrent
         """
-        flags: Dict[str, Any] = {}
+        flags: dict[str, Any] = {}
 
         # Boolean flags
         bool_flags = [
@@ -163,7 +163,7 @@ class FeatureFlags(BaseModel):
         with open(file_path, "w") as f:
             json.dump(data, f, indent=2)
 
-    def should_use_new_system(self, cycle_id: Optional[int] = None) -> bool:
+    def should_use_new_system(self, cycle_id: int | None = None) -> bool:
         """Determine if the new monitoring system should be used.
 
         Args:
@@ -224,7 +224,7 @@ class FeatureFlags(BaseModel):
 
         self.flags_updated_at = datetime.now()
 
-    def get_effective_config(self) -> Dict[str, Any]:
+    def get_effective_config(self) -> dict[str, Any]:
         """Get the effective configuration based on feature flags.
 
         Returns:
@@ -253,8 +253,8 @@ class FeatureFlagManager:
         """
         self.config_dir = config_dir
         self.flags_file = config_dir / "feature_flags.json"
-        self._flags: Optional[FeatureFlags] = None
-        self._last_modified: Optional[float] = None
+        self._flags: FeatureFlags | None = None
+        self._last_modified: float | None = None
 
     def get_flags(self) -> FeatureFlags:
         """Get current feature flags with hot-reload support.
@@ -275,7 +275,7 @@ class FeatureFlagManager:
 
         return self._flags
 
-    def update_flags(self, updates: Dict[str, Any]) -> FeatureFlags:
+    def update_flags(self, updates: dict[str, Any]) -> FeatureFlags:
         """Update feature flags and persist.
 
         Args:

@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from tmux_orchestrator.utils.exceptions import ValidationError
 
@@ -17,7 +17,7 @@ class MCPMessage:
 
     method: str
     params: dict[str, Any]
-    id: Optional[str] = None
+    id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -38,7 +38,7 @@ class MCPResponse:
 
     result: Any
     id: str
-    error: Optional[dict[str, Any]] = None
+    error: dict[str, Any | None] = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -100,7 +100,7 @@ class MCPProtocolHandler:
                 id=message.id or "unknown", result=None, error={"code": -32603, "message": f"Internal error: {str(e)}"}
             )
 
-    async def read_message(self, reader: asyncio.StreamReader) -> Optional[MCPMessage]:
+    async def read_message(self, reader: asyncio.StreamReader) -> MCPMessage | None:
         """Read a single MCP message from stdin.
 
         Args:

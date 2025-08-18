@@ -10,7 +10,7 @@ import logging
 import subprocess
 import sys
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -59,34 +59,34 @@ class MCPToolTester:
         # Generate test report
         await self.generate_test_report()
 
-    async def test_list_tool(self) -> Dict[str, Any]:
+    async def test_list_tool(self) -> dict[str, Any]:
         """Test the list MCP tool."""
         return await self.execute_cli_command_directly("list", ["--json"])
 
-    async def test_status_tool(self) -> Dict[str, Any]:
+    async def test_status_tool(self) -> dict[str, Any]:
         """Test the status MCP tool."""
         return await self.execute_cli_command_directly("status", ["--json"])
 
-    async def test_quick_deploy_tool(self) -> Dict[str, Any]:
+    async def test_quick_deploy_tool(self) -> dict[str, Any]:
         """Test the quick-deploy MCP tool (dry run)."""
         # Test with --help to avoid actually deploying
         return await self.execute_cli_command_directly("quick-deploy", ["--help"])
 
-    async def test_spawn_orc_tool(self) -> Dict[str, Any]:
+    async def test_spawn_orc_tool(self) -> dict[str, Any]:
         """Test the spawn-orc MCP tool (dry run)."""
         # Test with --help to avoid actually spawning
         return await self.execute_cli_command_directly("spawn-orc", ["--help"])
 
-    async def test_execute_tool(self) -> Dict[str, Any]:
+    async def test_execute_tool(self) -> dict[str, Any]:
         """Test the execute MCP tool (dry run)."""
         # Test with --help to avoid actually executing a PRD
         return await self.execute_cli_command_directly("execute", ["--help"])
 
-    async def test_reflect_tool(self) -> Dict[str, Any]:
+    async def test_reflect_tool(self) -> dict[str, Any]:
         """Test the reflect MCP tool."""
         return await self.execute_cli_command_directly("reflect", ["--format", "json"])
 
-    async def execute_cli_command_directly(self, command: str, args: List[str]) -> Dict[str, Any]:
+    async def execute_cli_command_directly(self, command: str, args: list[str]) -> dict[str, Any]:
         """Execute CLI command directly to simulate MCP tool behavior."""
         start_time = time.time()
 

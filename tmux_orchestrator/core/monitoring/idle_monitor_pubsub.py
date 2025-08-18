@@ -8,7 +8,6 @@ system for notifications while maintaining backward compatibility.
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Optional, Set
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -35,15 +34,13 @@ class IdleMonitorWithPubsub:
         self.pubsub = MonitorPubsubIntegration(session="idle-monitor", logger=logger)
 
         # Tracking state
-        self._agent_idle_start: Dict[str, float] = {}
-        self._notified_agents: Set[str] = set()
-        self._fresh_agents: Set[str] = set()
+        self._agent_idle_start: dict[str, float] = {}
+        self._notified_agents: set[str] = set()
+        self._fresh_agents: set[str] = set()
         self._last_flush_time = time.time()
         self._flush_interval = 60  # Flush queued messages every minute
 
-    def check_agent_idle(
-        self, agent: str, content: str, session_name: str, has_claude_interface: bool
-    ) -> Optional[str]:
+    def check_agent_idle(self, agent: str, content: str, session_name: str, has_claude_interface: bool) -> str | None:
         """Check if agent is idle and send appropriate notifications.
 
         Args:
@@ -118,7 +115,7 @@ class IdleMonitorWithPubsub:
 
         return False
 
-    def check_agent_crash(self, agent: str, content: str, session_name: str) -> Optional[str]:
+    def check_agent_crash(self, agent: str, content: str, session_name: str) -> str | None:
         """Check if agent has crashed and send notification.
 
         Args:
@@ -157,7 +154,7 @@ class IdleMonitorWithPubsub:
         self.logger.warning(f"Recovery needed for {agent}: {issue}")
         self.pubsub.publish_recovery_needed(agent, issue, session_name, recovery_type="restart")
 
-    def check_team_idle(self, session_name: str, agents: List[str], idle_agents: List[str]) -> None:
+    def check_team_idle(self, session_name: str, agents: list[str], idle_agents: list[str]) -> None:
         """Check if team is idle and send escalation.
 
         Args:
@@ -169,12 +166,12 @@ class IdleMonitorWithPubsub:
             self.logger.warning(f"Team idle detected in {session_name}")
             self.pubsub.publish_team_idle(session_name, idle_agents, len(agents))
 
-    def send_monitoring_report(self, session_name: str, agent_statuses: Dict[str, str]) -> None:
+    def send_monitoring_report(self, session_name: str, agent_statuses: dict[str, str]) -> None:
         """Send periodic monitoring report.
 
         Args:
             session_name: Session name
-            agent_statuses: Dict of agent statuses
+            agent_statuses: dict of agent statuses
         """
         summary = {
             "active": sum(1 for s in agent_statuses.values() if s == "active"),
@@ -251,7 +248,7 @@ class IdleMonitorWithPubsub:
         """
         self.pubsub.publish_agent_idle(agent, idle_duration, session_name, idle_type)
 
-    def handle_rate_limit(self, session_name: str, reset_time: Optional[datetime] = None) -> None:
+    def handle_rate_limit(self, session_name: str, reset_time: datetime | None = None) -> None:
         """Handle rate limit detection.
 
         Args:

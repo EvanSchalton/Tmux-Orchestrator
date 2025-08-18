@@ -8,7 +8,6 @@ to provide a unified monitoring interface that replaces the monolithic IdleMonit
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -29,7 +28,7 @@ class MonitorCycleResult:
         self.idle_agents: int = 0
         self.notifications_sent: int = 0
         self.cycle_duration: float = 0.0
-        self.errors: List[str] = []
+        self.errors: list[str] = []
         self.timestamp: datetime = datetime.now()
 
     @property
@@ -50,7 +49,7 @@ class ComponentManager:
     a unified monitoring interface that replaces the monolithic approach.
     """
 
-    def __init__(self, tmux: TMUXManager, config: Optional[Config] = None):
+    def __init__(self, tmux: TMUXManager, config: Config | None = None):
         """Initialize the component manager."""
         if config is None:
             config = Config.load()
@@ -67,14 +66,14 @@ class ComponentManager:
 
         # Monitoring state
         self._is_running = False
-        self._start_time: Optional[datetime] = None
+        self._start_time: datetime | None = None
         self._cycle_count = 0
         self._total_cycle_time = 0.0
         self._last_cycle_time = 0.0
         self._errors_detected = 0
 
         # Performance tracking
-        self._performance_history: List[float] = []
+        self._performance_history: list[float] = []
         self._max_history_size = 100
 
     def initialize(self) -> bool:
@@ -216,7 +215,7 @@ class ComponentManager:
 
         return result
 
-    def _discover_and_cache_agents(self, result: MonitorCycleResult) -> List[AgentInfo]:
+    def _discover_and_cache_agents(self, result: MonitorCycleResult) -> list[AgentInfo]:
         """Discover agents and update caches."""
         try:
             agents = self.agent_monitor.discover_agents()
@@ -232,7 +231,7 @@ class ComponentManager:
             result.add_error(f"Agent discovery failed: {e}")
             return []
 
-    def _analyze_agents(self, agents: List[AgentInfo], result: MonitorCycleResult) -> None:
+    def _analyze_agents(self, agents: list[AgentInfo], result: MonitorCycleResult) -> None:
         """Analyze all agents for idle state and notifications."""
         for agent in agents:
             try:
@@ -369,7 +368,7 @@ class ComponentManager:
             errors_detected=self._errors_detected,
         )
 
-    def get_performance_stats(self) -> Dict[str, float]:
+    def get_performance_stats(self) -> dict[str, float]:
         """Get performance statistics."""
         if not self._performance_history:
             return {"avg_cycle_time": 0.0, "min_cycle_time": 0.0, "max_cycle_time": 0.0, "total_cycles": 0}
@@ -385,7 +384,7 @@ class ComponentManager:
         """Check if specific agent is idle."""
         return self.state_tracker.is_agent_idle(target)
 
-    def get_agent_info(self, target: str) -> Optional[AgentInfo]:
+    def get_agent_info(self, target: str) -> AgentInfo | None:
         """Get information for specific agent."""
         return self.agent_monitor.get_cached_agent_info(target)
 

@@ -6,7 +6,7 @@ enabling pluggable monitoring behaviors.
 """
 
 from abc import abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 from ..interfaces import MonitoringStrategyInterface
 from ..types import MonitorStatus
@@ -24,7 +24,7 @@ class BaseMonitoringStrategy(MonitoringStrategyInterface):
         """
         self._name = name
         self._description = description
-        self._required_components: List[type] = []
+        self._required_components: list[type] = []
 
     def get_name(self) -> str:
         """Get strategy name.
@@ -42,7 +42,7 @@ class BaseMonitoringStrategy(MonitoringStrategyInterface):
         """
         return self._description
 
-    def get_required_components(self) -> List[type]:
+    def get_required_components(self) -> list[type]:
         """Get required component interfaces.
 
         Returns:
@@ -51,7 +51,7 @@ class BaseMonitoringStrategy(MonitoringStrategyInterface):
         return self._required_components
 
     @abstractmethod
-    async def execute(self, context: Dict[str, Any]) -> MonitorStatus:
+    async def execute(self, context: dict[str, Any]) -> MonitorStatus:
         """Execute the monitoring strategy.
 
         Args:
@@ -62,7 +62,7 @@ class BaseMonitoringStrategy(MonitoringStrategyInterface):
         """
         pass
 
-    def validate_context(self, context: Dict[str, Any]) -> bool:
+    def validate_context(self, context: dict[str, Any]) -> bool:
         """Validate that context contains required components.
 
         Args:

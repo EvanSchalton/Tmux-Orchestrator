@@ -1,7 +1,7 @@
 """Agent management functionality."""
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -99,8 +99,8 @@ Read the task file and plan your testing strategy."""
         self,
         agent_type: str,
         role: str,
-        project_name: Optional[str] = None,
-        task_file: Optional[str] = None,
+        project_name: str | None = None,
+        task_file: str | None = None,
     ) -> str:
         """Deploy a new agent."""
         if not project_name:
@@ -165,7 +165,7 @@ Read the task file and plan your testing strategy."""
         )
         self.tmux.send_keys(target, "Enter")
 
-    def _get_briefing(self, agent_type: str, role: str, project_name: str, task_file: Optional[str]) -> Optional[str]:
+    def _get_briefing(self, agent_type: str, role: str, project_name: str, task_file: str | None) -> str | None:
         """Get briefing for an agent."""
         if agent_type in self.AGENT_BRIEFINGS and role in self.AGENT_BRIEFINGS[agent_type]:
             briefing = self.AGENT_BRIEFINGS[agent_type][role]
@@ -214,7 +214,7 @@ Read the task file and plan your testing strategy."""
 
         return "Unknown"
 
-    def _extract_current_task(self, pane_content: str) -> Optional[str]:
+    def _extract_current_task(self, pane_content: str) -> str | None:
         """Extract current task from pane content."""
         # Look for task indicators
         import re

@@ -16,7 +16,7 @@ import json
 import logging
 import subprocess
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class MCPProtocolTest:
     """Test class for MCP protocol functionality."""
 
     def __init__(self):
-        self.server_process: Optional[subprocess.Popen] = None
+        self.server_process: subprocess.Popen | None = None
         self.test_results = {}
         self.errors = []
 
@@ -74,7 +74,7 @@ class MCPProtocolTest:
             except Exception as e:
                 logger.error(f"❌ Error stopping MCP server: {e}")
 
-    def send_mcp_request(self, request: Dict[str, Any], timeout: int = 5) -> Optional[Dict[str, Any]]:
+    def send_mcp_request(self, request: dict[str, Any], timeout: int = 5) -> dict[str, Any] | None:
         """Send a JSON-RPC request to the MCP server."""
         if not self.server_process:
             logger.error("❌ MCP server not running")
@@ -97,7 +97,7 @@ class MCPProtocolTest:
             logger.error(f"❌ Error sending MCP request: {e}")
             return None
 
-    def test_server_initialization(self) -> Dict[str, Any]:
+    def test_server_initialization(self) -> dict[str, Any]:
         """Test basic server initialization and capabilities."""
         logger.info("🔍 Testing server initialization...")
 
@@ -122,7 +122,7 @@ class MCPProtocolTest:
             logger.error("❌ Server initialization failed")
             return {"test": "server_initialization", "success": False, "error": "No response received"}
 
-    def test_tools_list(self) -> Dict[str, Any]:
+    def test_tools_list(self) -> dict[str, Any]:
         """Test listing available tools."""
         logger.info("🔍 Testing tools list...")
 
@@ -146,7 +146,7 @@ class MCPProtocolTest:
             logger.error("❌ Tools list failed")
             return {"test": "tools_list", "success": False, "error": "Failed to get tools list"}
 
-    def test_spawn_agent_tool(self) -> Dict[str, Any]:
+    def test_spawn_agent_tool(self) -> dict[str, Any]:
         """Test the spawn agent tool functionality."""
         logger.info("🔍 Testing spawn agent tool...")
 
@@ -177,7 +177,7 @@ class MCPProtocolTest:
                 "error": response.get("error") if response else "No response",
             }
 
-    def test_error_handling(self) -> Dict[str, Any]:
+    def test_error_handling(self) -> dict[str, Any]:
         """Test error handling for malformed requests."""
         logger.info("🔍 Testing error handling...")
 
@@ -227,7 +227,7 @@ class MCPProtocolTest:
 
         return {"test": "error_handling", "results": results, "success": all(r["success"] for r in results)}
 
-    def test_basic_functionality(self) -> Dict[str, Any]:
+    def test_basic_functionality(self) -> dict[str, Any]:
         """Test basic MCP functionality without complex operations."""
         logger.info("🔍 Testing basic MCP functionality...")
 
@@ -248,7 +248,7 @@ class MCPProtocolTest:
         logger.error("❌ Basic functionality test failed")
         return {"test": "basic_functionality", "success": False}
 
-    def run_comprehensive_mcp_test(self) -> Dict[str, Any]:
+    def run_comprehensive_mcp_test(self) -> dict[str, Any]:
         """Run comprehensive MCP protocol test."""
         logger.info("🚀 Starting comprehensive MCP protocol test...")
         logger.info("=" * 70)

@@ -6,7 +6,7 @@ to ensure proper dependency inversion throughout the monitoring system.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from .types import AgentInfo, MonitorStatus
 
@@ -16,8 +16,8 @@ class CrashDetectorInterface(ABC):
 
     @abstractmethod
     def detect_crash(
-        self, agent_info: AgentInfo, window_content: List[str], idle_duration: Optional[float] = None
-    ) -> Tuple[bool, Optional[str]]:
+        self, agent_info: AgentInfo, window_content: list[str], idle_duration: float | None = None
+    ) -> tuple[bool, str | None]:
         """Detect if an agent has crashed based on window content analysis.
 
         Args:
@@ -31,7 +31,7 @@ class CrashDetectorInterface(ABC):
         pass
 
     @abstractmethod
-    def detect_pm_crash(self, session_name: str) -> Tuple[bool, Optional[str]]:
+    def detect_pm_crash(self, session_name: str) -> tuple[bool, str | None]:
         """Detect if a PM has crashed in a session.
 
         Args:
@@ -61,7 +61,7 @@ class PMRecoveryManagerInterface(ABC):
         pass
 
     @abstractmethod
-    def check_pm_health(self, session_name: str) -> Tuple[bool, Optional[str], Optional[str]]:
+    def check_pm_health(self, session_name: str) -> tuple[bool, str | None, str | None]:
         """Check PM health in a session.
 
         Args:
@@ -85,7 +85,7 @@ class PMRecoveryManagerInterface(ABC):
         pass
 
     @abstractmethod
-    def recover_pm(self, session_name: str, crashed_target: Optional[str] = None) -> bool:
+    def recover_pm(self, session_name: str, crashed_target: str | None = None) -> bool:
         """Recover a crashed or missing PM.
 
         Args:
@@ -98,7 +98,7 @@ class PMRecoveryManagerInterface(ABC):
         pass
 
     @abstractmethod
-    def get_recovery_status(self) -> Dict[str, Any]:
+    def get_recovery_status(self) -> dict[str, Any]:
         """Get current recovery status.
 
         Returns:
@@ -120,7 +120,7 @@ class DaemonManagerInterface(ABC):
         pass
 
     @abstractmethod
-    def get_pid(self) -> Optional[int]:
+    def get_pid(self) -> int | None:
         """Get daemon PID.
 
         Returns:
@@ -194,7 +194,7 @@ class HealthCheckerInterface(ABC):
     """Interface for agent health checking."""
 
     @abstractmethod
-    async def check_agent_health(self, target: str) -> Tuple[bool, Optional[str]]:
+    async def check_agent_health(self, target: str) -> tuple[bool, str | None]:
         """Check health of a specific agent.
 
         Args:
@@ -206,7 +206,7 @@ class HealthCheckerInterface(ABC):
         pass
 
     @abstractmethod
-    async def get_health_metrics(self) -> Dict[str, Any]:
+    async def get_health_metrics(self) -> dict[str, Any]:
         """Get overall health metrics.
 
         Returns:
@@ -242,7 +242,7 @@ class MonitorServiceInterface(ABC):
         pass
 
     @abstractmethod
-    def get_component(self, component_type: str) -> Optional[Any]:
+    def get_component(self, component_type: str) -> Any | None:
         """Get a specific monitoring component.
 
         Args:
@@ -315,7 +315,7 @@ class MonitoringStrategyInterface(ABC):
         pass
 
     @abstractmethod
-    async def execute(self, context: Dict[str, Any]) -> MonitorStatus:
+    async def execute(self, context: dict[str, Any]) -> MonitorStatus:
         """Execute the monitoring strategy.
 
         Args:
@@ -327,7 +327,7 @@ class MonitoringStrategyInterface(ABC):
         pass
 
     @abstractmethod
-    def get_required_components(self) -> List[type]:
+    def get_required_components(self) -> list[type]:
         """Get required component interfaces.
 
         Returns:

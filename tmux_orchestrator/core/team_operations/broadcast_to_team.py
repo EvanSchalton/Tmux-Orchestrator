@@ -1,7 +1,7 @@
 """Business logic for broadcasting messages to team agents."""
 
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -10,9 +10,9 @@ def broadcast_to_team(
     tmux: TMUXManager,
     session: str,
     message: str,
-    exclude_windows: Optional[List[str]] = None,
+    exclude_windows: list[str | None] = None,
     priority: str = "normal",
-    agent_types: Optional[List[str]] = None,
+    agent_types: list[str | None] = None,
 ) -> tuple[bool, str, list[dict[str, Any]]]:
     """Broadcast a message to all agents in a session.
 

@@ -6,7 +6,7 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import click
 from rich.console import Console
@@ -16,7 +16,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 console = Console()
 
 
-def detect_claude_executable() -> Optional[Path]:
+def detect_claude_executable() -> Path | None:
     """Detect Claude Code executable across platforms.
 
     Returns:

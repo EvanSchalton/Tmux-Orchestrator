@@ -9,7 +9,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -18,8 +18,8 @@ def should_send_recovery_notification(
     target: str,
     notification_type: str,
     cooldown_minutes: int = 5,
-    state_file: Optional[Path] = None,
-    logger: Optional[logging.Logger] = None,
+    state_file: Path | None = None,
+    logger: logging.Logger | None = None,
 ) -> tuple[bool, str, dict[str, Any]]:
     """
     Determine if recovery notification should be sent based on cooldown policy.
@@ -86,7 +86,7 @@ def should_send_recovery_notification(
 
         # Check cooldown for this target
         target_key: str = f"{target}:{notification_type}"
-        last_notification: Optional[dict[str, Any]] = notification_state.get(target_key)
+        last_notification: dict[str, Any | None] = notification_state.get(target_key)
 
         if last_notification is None:
             # No previous notification of this type for this target
@@ -244,10 +244,10 @@ def send_recovery_notification(
     target: str,
     notification_type: str,
     message: str,
-    pm_target: Optional[str] = None,
+    pm_target: str | None = None,
     force_send: bool = False,
     cooldown_minutes: int = 5,
-    logger: Optional[logging.Logger] = None,
+    logger: logging.Logger | None = None,
 ) -> tuple[bool, str, dict[str, Any]]:
     """
     Send recovery notification with cooldown management.
@@ -383,7 +383,7 @@ def send_recovery_notification(
         return False, error_msg, result_data
 
 
-def _discover_pm_target(tmux: TMUXManager, logger: logging.Logger) -> Optional[str]:
+def _discover_pm_target(tmux: TMUXManager, logger: logging.Logger) -> str | None:
     """Discover PM target automatically."""
     logger.debug("Auto-discovering PM target")
 

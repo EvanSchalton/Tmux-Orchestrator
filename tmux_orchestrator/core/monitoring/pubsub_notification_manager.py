@@ -9,7 +9,6 @@ import asyncio
 import logging
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.messaging_daemon import DaemonClient
@@ -24,11 +23,11 @@ class PubsubNotificationManager(NotificationManagerInterface):
     def __init__(self, tmux: TMUXManager, config: Config, logger: logging.Logger):
         """Initialize the pubsub-enabled notification manager."""
         super().__init__(tmux, config, logger)
-        self._queued_notifications: List[NotificationEvent] = []
-        self._pm_notifications: Dict[str, List[str]] = defaultdict(list)
-        self._last_notification_times: Dict[str, datetime] = {}
+        self._queued_notifications: list[NotificationEvent] = []
+        self._pm_notifications: dict[str, list[str]] = defaultdict(list)
+        self._last_notification_times: dict[str, datetime] = {}
         self._notification_cooldown = 300  # 5 minutes between duplicate notifications
-        self._daemon_client: Optional[DaemonClient] = None
+        self._daemon_client: DaemonClient | None = None
         self._use_daemon = True  # Toggle for daemon vs direct tmux
 
     def initialize(self) -> bool:
@@ -111,7 +110,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
 
         return sent_count
 
-    def notify_agent_crash(self, target: str, error_type: str, session: str, metadata: Optional[Dict] = None) -> None:
+    def notify_agent_crash(self, target: str, error_type: str, session: str, metadata: dict | None = None) -> None:
         """Send high-priority agent crash notification."""
         if metadata is None:
             metadata = {}
@@ -130,9 +129,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.warning(f"Agent crash notification queued for {target}: {error_type}")
 
-    def notify_agent_idle(
-        self, target: str, idle_type: IdleType, session: str, metadata: Optional[Dict] = None
-    ) -> None:
+    def notify_agent_idle(self, target: str, idle_type: IdleType, session: str, metadata: dict | None = None) -> None:
         """Send low-priority agent idle notification."""
         if metadata is None:
             metadata = {}
@@ -156,7 +153,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.info(f"Agent idle notification queued for {target}: {idle_type.value}")
 
-    def notify_fresh_agent(self, target: str, session: str, metadata: Optional[Dict] = None) -> None:
+    def notify_fresh_agent(self, target: str, session: str, metadata: dict | None = None) -> None:
         """Send normal-priority fresh agent notification."""
         if metadata is None:
             metadata = {}
@@ -175,7 +172,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.info(f"Fresh agent notification queued for {target}")
 
-    def notify_team_idle(self, session: str, agent_count: int, metadata: Optional[Dict] = None) -> None:
+    def notify_team_idle(self, session: str, agent_count: int, metadata: dict | None = None) -> None:
         """Send normal-priority team idle notification."""
         if metadata is None:
             metadata = {}
@@ -194,7 +191,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.warning(f"Team idle notification queued for {session}")
 
-    def notify_recovery_needed(self, target: str, issue: str, session: str, metadata: Optional[Dict] = None) -> None:
+    def notify_recovery_needed(self, target: str, issue: str, session: str, metadata: dict | None = None) -> None:
         """Send critical-priority recovery needed notification."""
         if metadata is None:
             metadata = {}
@@ -314,7 +311,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
         # Fallback to direct tmux
         return self.tmux.send_keys(target, message)
 
-    def _find_pm_in_session(self, session: str) -> Optional[str]:
+    def _find_pm_in_session(self, session: str) -> str | None:
         """Find PM agent in the specified session."""
         try:
             windows = self.tmux.list_windows(session)
@@ -329,7 +326,7 @@ class PubsubNotificationManager(NotificationManagerInterface):
             self.logger.error(f"Error finding PM in session {session}: {e}")
             return None
 
-    def get_notification_stats(self) -> Dict[str, any]:
+    def get_notification_stats(self) -> dict[str, any]:
         """Get notification statistics including daemon performance."""
         stats = {
             "queued_notifications": len(self._queued_notifications),

@@ -4,7 +4,7 @@ import asyncio
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, Generic, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -25,7 +25,7 @@ class CacheEntry(Generic[T]):
     created_at: float
     last_accessed: float
     access_count: int = 1
-    ttl: Optional[float] = None
+    ttl: float | None = None
 
     def is_expired(self) -> bool:
         """Check if entry has expired."""
@@ -59,7 +59,7 @@ class AsyncMonitoringCache:
         self.strategy = strategy
 
         # Cache storage
-        self._cache: Dict[str, CacheEntry] = {}
+        self._cache: dict[str, CacheEntry] = {}
         self._lock = asyncio.Lock()
 
         # Metrics
@@ -70,7 +70,7 @@ class AsyncMonitoringCache:
             "expirations": 0,
         }
 
-    async def get(self, key: str) -> Optional[T]:
+    async def get(self, key: str) -> T | None:
         """Get a value from the cache.
 
         Args:
@@ -95,7 +95,7 @@ class AsyncMonitoringCache:
             self.stats["hits"] += 1
             return entry.value
 
-    async def set(self, key: str, value: T, ttl: Optional[float] = None) -> None:
+    async def set(self, key: str, value: T, ttl: float | None = None) -> None:
         """Set a value in the cache.
 
         Args:
@@ -114,7 +114,7 @@ class AsyncMonitoringCache:
 
             self._cache[key] = entry
 
-    async def get_or_compute(self, key: str, compute_fn: Callable[[], Awaitable[T]], ttl: Optional[float] = None) -> T:
+    async def get_or_compute(self, key: str, compute_fn: Callable[[], Awaitable[T]], ttl: float | None = None) -> T:
         """Get from cache or compute if missing/expired.
 
         This method ensures the compute function is only called once
@@ -205,7 +205,7 @@ class AsyncMonitoringCache:
         del self._cache[oldest_key]
         self.stats["evictions"] += 1
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_requests = self.stats["hits"] + self.stats["misses"]
         hit_rate = self.stats["hits"] / total_requests if total_requests > 0 else 0
@@ -218,7 +218,7 @@ class AsyncMonitoringCache:
         }
 
     async def warm_cache(
-        self, keys: list[str], compute_fn: Callable[[str], Awaitable[T]], ttl: Optional[float] = None
+        self, keys: list[str], compute_fn: Callable[[str], Awaitable[T]], ttl: float | None = None
     ) -> None:
         """Pre-populate cache with multiple keys.
 
@@ -265,11 +265,11 @@ class LayeredCache:
         """
         return self.layers[layer_name]
 
-    async def get(self, layer: str, key: str) -> Optional[Any]:
+    async def get(self, layer: str, key: str) -> Any | None:
         """Get value from specific layer."""
         return await self.layers[layer].get(key)
 
-    async def set(self, layer: str, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    async def set(self, layer: str, key: str, value: Any, ttl: float | None = None) -> None:
         """Set value in specific layer."""
         await self.layers[layer].set(key, value, ttl)
 
@@ -278,13 +278,13 @@ class LayeredCache:
         tasks = [cache.clear() for cache in self.layers.values()]
         await asyncio.gather(*tasks)
 
-    def get_all_stats(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_stats(self) -> dict[str, dict[str, Any]]:
         """Get statistics for all layers."""
         return {name: cache.get_stats() for name, cache in self.layers.items()}
 
 
 # Decorators for caching
-def cached(cache: AsyncMonitoringCache, key_fn: Optional[Callable[..., str]] = None, ttl: Optional[float] = None):
+def cached(cache: AsyncMonitoringCache, key_fn: Callable[..., str | None] = None, ttl: float | None = None):
     """Decorator for caching async function results.
 
     Args:

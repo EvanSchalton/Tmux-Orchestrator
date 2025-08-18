@@ -22,7 +22,7 @@ import logging
 import subprocess
 import sys
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 # CLI introspection imports
 # FastMCP for MCP server implementation
@@ -49,12 +49,12 @@ class FreshCLIToMCPServer:
 
         logger.info(f"Initializing fresh CLI reflection MCP server: {server_name}")
 
-    async def discover_cli_structure(self) -> Dict[str, Any]:
+    async def discover_cli_structure(self) -> dict[str, Any]:
         """
         Discover the complete CLI structure using tmux-orc reflect.
 
         Returns:
-            Dict containing the complete CLI structure
+            dict containing the complete CLI structure
         """
         try:
             logger.info("Discovering CLI structure via tmux-orc reflect...")
@@ -90,12 +90,12 @@ class FreshCLIToMCPServer:
             logger.error(f"CLI discovery failed: {e}")
             return {}
 
-    def generate_all_mcp_tools(self) -> Dict[str, Any]:
+    def generate_all_mcp_tools(self) -> dict[str, Any]:
         """
         Generate all MCP tools from discovered CLI structure.
 
         Returns:
-            Dict of generated tool information
+            dict of generated tool information
         """
         if not self.cli_structure:
             logger.error("No CLI structure available for tool generation")
@@ -122,7 +122,7 @@ class FreshCLIToMCPServer:
         logger.info(f"Successfully generated {len(self.generated_tools)} MCP tools")
         return self.generated_tools
 
-    def _generate_tool_for_command(self, command_name: str, command_info: Dict[str, Any]) -> None:
+    def _generate_tool_for_command(self, command_name: str, command_info: dict[str, Any]) -> None:
         """Generate an MCP tool for a specific CLI command."""
 
         # Clean command name for MCP tool (replace hyphens with underscores)
@@ -172,7 +172,7 @@ class FreshCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to register tool {tool_name}: {e}")
 
-    def _generate_tools_for_group(self, group_name: str, group_info: Dict[str, Any]) -> None:
+    def _generate_tools_for_group(self, group_name: str, group_info: dict[str, Any]) -> None:
         """Generate MCP tools for all subcommands in a command group."""
         try:
             logger.debug(f"Discovering subcommands for group: {group_name}")
@@ -216,7 +216,7 @@ class FreshCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to process group {group_name}: {e}")
 
-    def _parse_subcommands_from_help(self, help_text: str) -> List[str]:
+    def _parse_subcommands_from_help(self, help_text: str) -> list[str]:
         """Parse subcommand names from CLI help output."""
         subcommands = []
         in_commands_section = False
@@ -244,7 +244,7 @@ class FreshCLIToMCPServer:
 
         return subcommands
 
-    def _generate_tool_for_subcommand(self, tool_name: str, full_command: str, command_info: Dict[str, Any]) -> None:
+    def _generate_tool_for_subcommand(self, tool_name: str, full_command: str, command_info: dict[str, Any]) -> None:
         """Generate an MCP tool for a subcommand."""
 
         # Extract command information
@@ -290,10 +290,10 @@ class FreshCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to register subcommand tool {tool_name}: {e}")
 
-    def _create_subcommand_tool_function(self, full_command: str, command_info: Dict[str, Any]):
+    def _create_subcommand_tool_function(self, full_command: str, command_info: dict[str, Any]):
         """Create the actual function that executes a subcommand."""
 
-        async def tool_function(**kwargs) -> Dict[str, Any]:
+        async def tool_function(**kwargs) -> dict[str, Any]:
             """Dynamically generated MCP tool function for subcommand."""
             try:
                 logger.info(f"Executing CLI subcommand: {full_command} with args: {kwargs}")
@@ -334,7 +334,7 @@ class FreshCLIToMCPServer:
 
         return tool_function
 
-    async def _execute_cli_subcommand(self, cmd_parts: List[str], cli_args: List[str]) -> Dict[str, Any]:
+    async def _execute_cli_subcommand(self, cmd_parts: list[str], cli_args: list[str]) -> dict[str, Any]:
         """Execute CLI subcommand and return structured result."""
         start_time = time.time()
 
@@ -382,10 +382,10 @@ class FreshCLIToMCPServer:
         except Exception as e:
             return {"return_code": -1, "error": str(e), "execution_time": time.time() - start_time}
 
-    def _create_tool_function(self, command_name: str, command_info: Dict[str, Any]):
+    def _create_tool_function(self, command_name: str, command_info: dict[str, Any]):
         """Create the actual function that executes the CLI command."""
 
-        async def tool_function(**kwargs) -> Dict[str, Any]:
+        async def tool_function(**kwargs) -> dict[str, Any]:
             """Dynamically generated MCP tool function."""
             try:
                 logger.info(f"Executing CLI command: {command_name} with args: {kwargs}")
@@ -423,7 +423,7 @@ class FreshCLIToMCPServer:
 
         return tool_function
 
-    def _convert_kwargs_to_cli_args(self, kwargs: Dict[str, Any]) -> List[str]:
+    def _convert_kwargs_to_cli_args(self, kwargs: dict[str, Any]) -> list[str]:
         """Convert MCP keyword arguments to CLI arguments."""
         cli_args = []
 
@@ -452,7 +452,7 @@ class FreshCLIToMCPServer:
 
         return cli_args
 
-    async def _execute_cli_command(self, command_name: str, cli_args: List[str]) -> Dict[str, Any]:
+    async def _execute_cli_command(self, command_name: str, cli_args: list[str]) -> dict[str, Any]:
         """Execute CLI command and return structured result."""
         start_time = time.time()
 

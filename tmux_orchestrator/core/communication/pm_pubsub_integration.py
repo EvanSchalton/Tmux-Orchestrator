@@ -10,7 +10,7 @@ import subprocess
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -47,7 +47,7 @@ class PMPubsubIntegration:
         self.tmux = TMUXManager()
         self.message_store = Path.home() / ".tmux-orchestrator" / "messages"
 
-    def get_daemon_notifications(self, since_minutes: int = 30) -> List[Dict[str, Any]]:
+    def get_daemon_notifications(self, since_minutes: int = 30) -> list[dict[str, Any]]:
         """Get daemon notifications from the last N minutes.
 
         Args:
@@ -77,7 +77,7 @@ class PMPubsubIntegration:
 
         return []
 
-    def get_management_broadcasts(self, priority: str = "high") -> List[Dict[str, Any]]:
+    def get_management_broadcasts(self, priority: str = "high") -> list[dict[str, Any]]:
         """Get management group broadcasts of specified priority.
 
         Args:
@@ -111,7 +111,7 @@ class PMPubsubIntegration:
 
         return []
 
-    def check_for_recovery_actions(self) -> List[Dict[str, Any]]:
+    def check_for_recovery_actions(self) -> list[dict[str, Any]]:
         """Check for daemon recovery action notifications.
 
         Returns:
@@ -193,7 +193,7 @@ class PMPubsubIntegration:
             print(f"Error requesting daemon status: {e}")
             return False
 
-    def monitor_pubsub_health(self) -> Dict[str, Any]:
+    def monitor_pubsub_health(self) -> dict[str, Any]:
         """Check pubsub system health and message statistics.
 
         Returns:
@@ -212,7 +212,7 @@ class PMPubsubIntegration:
 
         return {}
 
-    def _parse_daemon_messages(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _parse_daemon_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Parse and categorize daemon messages.
 
         Args:
@@ -241,7 +241,7 @@ class PMPubsubIntegration:
 
         return daemon_messages
 
-    def _parse_recovery_messages(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _parse_recovery_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Parse recovery action messages.
 
         Args:
@@ -342,7 +342,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
 
     return str(script_path)
 
-    async def process_structured_messages(self, since_minutes: int = 5) -> Dict[str, List[Dict[str, Any]]]:
+    async def process_structured_messages(self, since_minutes: int = 5) -> dict[str, list[dict[str, Any]]]:
         """Process structured daemon messages from pubsub.
 
         Args:
@@ -385,7 +385,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
 
         return categorized
 
-    async def handle_health_notification(self, message: Dict[str, Any]) -> Dict[str, Any]:
+    async def handle_health_notification(self, message: dict[str, Any]) -> dict[str, Any]:
         """Handle health notification from daemon.
 
         Args:
@@ -417,7 +417,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
             "result": result,
         }
 
-    async def handle_recovery_notification(self, message: Dict[str, Any]) -> Dict[str, Any]:
+    async def handle_recovery_notification(self, message: dict[str, Any]) -> dict[str, Any]:
         """Handle recovery notification from daemon.
 
         Args:
@@ -445,7 +445,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
             "verification": verification,
         }
 
-    async def handle_action_request(self, message: Dict[str, Any]) -> Dict[str, Any]:
+    async def handle_action_request(self, message: dict[str, Any]) -> dict[str, Any]:
         """Handle action request from daemon.
 
         Args:
@@ -468,7 +468,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
 
         return {"message_id": message["id"], "action_type": action_type, "result": result}
 
-    async def acknowledge_structured_message(self, message_id: str, action_taken: str, result: Dict[str, Any]):
+    async def acknowledge_structured_message(self, message_id: str, action_taken: str, result: dict[str, Any]):
         """Acknowledge a structured daemon message.
 
         Args:
@@ -533,7 +533,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
         ack_file = Path.home() / ".tmux-orchestrator" / "acknowledgments" / f"{message_id}.json"
         return ack_file.exists()
 
-    def _determine_health_action(self, issue_type: str, context: Dict[str, Any]) -> str:
+    def _determine_health_action(self, issue_type: str, context: dict[str, Any]) -> str:
         """Determine appropriate action for health issue.
 
         Args:
@@ -556,7 +556,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
         else:
             return "investigate"
 
-    async def _execute_health_action(self, agent: str, action: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute_health_action(self, agent: str, action: str, context: dict[str, Any]) -> dict[str, Any]:
         """Execute health-related action on agent.
 
         Args:
@@ -596,7 +596,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
         except subprocess.CalledProcessError as e:
             return {"status": "failed", "error": str(e)}
 
-    async def _verify_recovery(self, target: str, recovery_type: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _verify_recovery(self, target: str, recovery_type: str, context: dict[str, Any]) -> dict[str, Any]:
         """Verify recovery action success.
 
         Args:
@@ -619,7 +619,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
         except Exception as e:
             return {"status": "verification_failed", "error": str(e), "recovery_type": recovery_type}
 
-    async def _execute_requested_action(self, action_type: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute_requested_action(self, action_type: str, context: dict[str, Any]) -> dict[str, Any]:
         """Execute action requested by daemon.
 
         Args:
@@ -644,7 +644,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
         else:
             return {"status": "unknown_action", "action_type": action_type}
 
-    def _build_response_message(self, original_id: str, action_type: str, result: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_response_message(self, original_id: str, action_type: str, result: dict[str, Any]) -> dict[str, Any]:
         """Build response message for daemon request.
 
         Args:
@@ -672,7 +672,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
             "metadata": {"tags": ["response", "pm-action", action_type], "correlation_id": original_id},
         }
 
-    async def _send_response(self, response_message: Dict[str, Any]):
+    async def _send_response(self, response_message: dict[str, Any]):
         """Send response message through pubsub.
 
         Args:
@@ -684,7 +684,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
             response_message["metadata"]["tags"],
         )
 
-    async def _send_pubsub_message(self, target: str, message: str, tags: List[str]) -> bool:
+    async def _send_pubsub_message(self, target: str, message: str, tags: list[str]) -> bool:
         """Send message through pubsub system.
 
         Args:

@@ -8,7 +8,7 @@ import json
 import subprocess
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 
@@ -42,7 +42,7 @@ class DaemonPubsubIntegration:
         self,
         agent_target: str,
         issue_type: str,
-        details: Dict[str, Any],
+        details: dict[str, Any],
         priority: MessagePriority = MessagePriority.HIGH,
     ) -> bool:
         """Send structured health alert through pubsub.
@@ -84,7 +84,7 @@ class DaemonPubsubIntegration:
         self,
         target: str,
         recovery_type: str,
-        recovery_details: Dict[str, Any],
+        recovery_details: dict[str, Any],
     ) -> bool:
         """Send recovery action notification.
 
@@ -130,7 +130,7 @@ class DaemonPubsubIntegration:
         self,
         session: str,
         status_type: str,
-        status_data: Dict[str, Any],
+        status_data: dict[str, Any],
     ) -> bool:
         """Send periodic status update.
 
@@ -165,7 +165,7 @@ class DaemonPubsubIntegration:
         self,
         pm_target: str,
         action_type: str,
-        action_context: Dict[str, Any],
+        action_context: dict[str, Any],
     ) -> bool:
         """Request specific action from PM.
 
@@ -201,11 +201,11 @@ class DaemonPubsubIntegration:
         priority: MessagePriority,
         subject: str,
         body: str,
-        context: Dict[str, Any],
-        tags: List[str] = None,
-        actions: List[str] = None,
+        context: dict[str, Any],
+        tags: list[str] = None,
+        actions: list[str] = None,
         requires_ack: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build structured message format.
 
         Args:
@@ -254,7 +254,7 @@ class DaemonPubsubIntegration:
     async def _send_pubsub_message(
         self,
         target: str,
-        message: Dict[str, Any],
+        message: dict[str, Any],
         priority: MessagePriority,
     ) -> bool:
         """Send message through pubsub system.
@@ -328,7 +328,7 @@ class DaemonPubsubIntegration:
         self,
         agent: str,
         issue_type: str,
-        details: Dict[str, Any],
+        details: dict[str, Any],
     ) -> str:
         """Format health issue message body.
 
@@ -354,7 +354,7 @@ class DaemonPubsubIntegration:
         self,
         target: str,
         recovery_type: str,
-        details: Dict[str, Any],
+        details: dict[str, Any],
     ) -> str:
         """Format recovery notification message.
 
@@ -378,7 +378,7 @@ class DaemonPubsubIntegration:
     def _format_status_message(
         self,
         status_type: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> str:
         """Format status update message.
 
@@ -402,7 +402,7 @@ class DaemonPubsubIntegration:
     def _format_action_request(
         self,
         action_type: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> str:
         """Format action request message.
 
@@ -422,7 +422,7 @@ class DaemonPubsubIntegration:
         else:
             return f"Action required: {action_type} - {context}"
 
-    def _suggest_health_actions(self, issue_type: str) -> List[str]:
+    def _suggest_health_actions(self, issue_type: str) -> list[str]:
         """Suggest appropriate actions for health issues.
 
         Args:
@@ -440,7 +440,7 @@ class DaemonPubsubIntegration:
         else:
             return ["investigate", "monitor"]
 
-    def _determine_priority(self, issue_type: str, duration: Optional[int] = None) -> MessagePriority:
+    def _determine_priority(self, issue_type: str, duration: int | None = None) -> MessagePriority:
         """Determine message priority based on issue type and duration.
 
         Args:

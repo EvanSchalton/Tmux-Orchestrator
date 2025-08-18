@@ -103,13 +103,13 @@ class MyClass:
     def test_mypy_type_checking_validation(self):
         """Test that mypy catches type annotation issues."""
         # Create temporary Python file with type issues
-        type_issues_code = """from typing import List, Dict
+        type_issues_code = """
 
 def function_with_type_issues(x: int, y: str) -> str:
     # Type error: returning int instead of str
     return x + len(y)
 
-def another_function() -> List[str]:
+def another_function() -> list[str]:
     # Type error: returning dict instead of list
     return {"key": "value"}
 
@@ -117,7 +117,7 @@ class TypedClass:
     def __init__(self, name: str):
         self.name = name
 
-    def get_items(self) -> Dict[str, int]:
+    def get_items(self) -> dict[str, int]:
         # Type error: returning list instead of dict
         return ["item1", "item2"]
 """
@@ -201,7 +201,6 @@ def another_security_issue():
             # Code that should pass all hooks after auto-fixes
             good_code = '''"""Test module for pre-commit validation."""
 
-from typing import List, Optional
 
 
 class TestClass:
@@ -215,7 +214,7 @@ class TestClass:
         """Return the name."""
         return self.name
 
-    def process_items(self, items: List[str]) -> Optional[str]:
+    def process_items(self, items: list[str]) -> str | None:
         """Process a list of items safely."""
         if not items:
             return None
@@ -464,9 +463,9 @@ class TestPreCommitFixVerification:
     def test_type_annotation_fixes(self):
         """Test that type annotation issues are properly resolved."""
         # Test the specific patterns that were causing mypy failures
-        test_code = '''from typing import Any, Dict, List
+        test_code = '''from typing import Any
 
-async def check_agent_status_async(target: str) -> Dict[str, Any]:
+async def check_agent_status_async(target: str) -> dict[str, Any]:
     """Properly typed async function."""
     return {
         "target": target,
@@ -474,9 +473,9 @@ async def check_agent_status_async(target: str) -> Dict[str, Any]:
         "timestamp": "now"
     }
 
-async def monitor_agents_batch(agents: List[str]) -> Dict[str, Dict[str, Any]]:
+async def monitor_agents_batch(agents: list[str]) -> dict[str, dict[str, Any]]:
     """Properly typed batch monitoring function."""
-    result: Dict[str, Dict[str, Any]] = {}
+    result: dict[str, dict[str, Any]] = {}
     for agent in agents:
         result[agent] = await check_agent_status_async(agent)
     return result
@@ -530,7 +529,7 @@ async def monitor_agents_batch(agents: List[str]) -> Dict[str, Dict[str, Any]]:
 
             # Should contain proper 'Any' imports and usage
             assert "from typing import Any" in content, "Missing proper Any import"
-            assert "Dict[str, Any]" in content, "Missing proper Dict[str, Any] usage"
+            assert "dict[str, Any]" in content, "Missing proper dict[str, Any] usage"
 
 
 if __name__ == "__main__":

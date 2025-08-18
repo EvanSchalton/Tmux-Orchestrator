@@ -1,11 +1,11 @@
 """Business logic for getting session status information."""
 
-from typing import Any, Dict
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-def get_session_status(tmux: TMUXManager, session_name: str) -> tuple[bool, Dict[str, Any]]:
+def get_session_status(tmux: TMUXManager, session_name: str) -> tuple[bool, dict[str, Any]]:
     """Get comprehensive status information for a tmux session.
 
     Args:

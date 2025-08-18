@@ -6,7 +6,7 @@ and the service container, ensuring smooth plugin lifecycle management.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .interfaces import MonitoringStrategyInterface, ServiceContainerInterface
 from .plugin_loader import PluginLoader
@@ -26,9 +26,9 @@ class PluginIntegrationBridge:
         self.container = container
         self.logger = logger
         self.plugin_loader = PluginLoader(logger)
-        self._active_strategy: Optional[str] = None
+        self._active_strategy: str | None = None
 
-    def discover_and_register_plugins(self) -> List[PluginInfo]:
+    def discover_and_register_plugins(self) -> list[PluginInfo]:
         """Discover all plugins and register them with the container.
 
         Returns:
@@ -91,7 +91,7 @@ class PluginIntegrationBridge:
         self.logger.info(f"Activated strategy: {strategy_name}")
         return True
 
-    def get_active_strategy(self) -> Optional[MonitoringStrategyInterface]:
+    def get_active_strategy(self) -> MonitoringStrategyInterface | None:
         """Get the currently active monitoring strategy.
 
         Returns:
@@ -102,7 +102,7 @@ class PluginIntegrationBridge:
 
         return self.container.get_plugin(self._active_strategy)
 
-    def create_strategy_context(self) -> Dict[str, Any]:
+    def create_strategy_context(self) -> dict[str, Any]:
         """Create execution context for strategy.
 
         Returns:
@@ -191,7 +191,7 @@ class PluginIntegrationBridge:
 
         return False
 
-    def get_available_strategies(self) -> Dict[str, Dict[str, Any]]:
+    def get_available_strategies(self) -> dict[str, dict[str, Any]]:
         """Get all available monitoring strategies.
 
         Returns:

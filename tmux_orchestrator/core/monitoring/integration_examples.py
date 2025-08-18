@@ -8,7 +8,6 @@ the modular components with the existing monitor.py.
 import logging
 import time
 from datetime import datetime
-from typing import Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -24,7 +23,7 @@ def example_basic_integration():
     """Example of basic integration with feature flags."""
 
     class ModularIdleMonitor:
-        def __init__(self, tmux: TMUXManager, config: Optional[Config] = None):
+        def __init__(self, tmux: TMUXManager, config: Config | None = None):
             self.tmux = tmux
             self.config = config or Config.load()
             self.logger = logging.getLogger(__name__)
@@ -224,7 +223,7 @@ def example_performance_comparison():
 def example_cli_integration():
     """Example of integrating with the CLI."""
 
-    def monitor_command(start: bool = False, stop: bool = False, status: bool = False, strategy: Optional[str] = None):
+    def monitor_command(start: bool = False, stop: bool = False, status: bool = False, strategy: str | None = None):
         """Enhanced monitor command with new features."""
         config = Config.load()
         tmux = TMUXManager()

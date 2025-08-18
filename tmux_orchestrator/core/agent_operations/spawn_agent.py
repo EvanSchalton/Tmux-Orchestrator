@@ -3,7 +3,6 @@
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -12,10 +11,10 @@ def spawn_agent(
     tmux: TMUXManager,
     agent_type: str,
     session: str,
-    window: Optional[str] = None,
-    briefing: Optional[str] = None,
-    context_file: Optional[str] = None,
-    start_directory: Optional[str] = None,
+    window: str | None = None,
+    briefing: str | None = None,
+    context_file: str | None = None,
+    start_directory: str | None = None,
 ) -> tuple[bool, str]:
     """Spawn a new Claude agent in a tmux session.
 

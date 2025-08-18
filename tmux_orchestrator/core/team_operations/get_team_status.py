@@ -1,12 +1,12 @@
 """Business logic for getting team status."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-def get_team_status(tmux: TMUXManager, session: str) -> Optional[dict[str, Any]]:
+def get_team_status(tmux: TMUXManager, session: str) -> dict[str, Any | None]:
     """Get detailed team status for a session.
 
     Args:
@@ -22,7 +22,7 @@ def get_team_status(tmux: TMUXManager, session: str) -> Optional[dict[str, Any]]
 
     # Get session info
     sessions: list[dict[str, str]] = tmux.list_sessions()
-    session_info: Optional[dict[str, str]] = next((s for s in sessions if s["name"] == session), None)
+    session_info: dict[str, str | None] = next((s for s in sessions if s["name"] == session), None)
 
     if not session_info:
         return None

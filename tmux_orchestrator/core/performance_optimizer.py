@@ -4,7 +4,7 @@ import asyncio
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -43,7 +43,7 @@ class OptimizationConfig:
 class PerformanceOptimizer:
     """Optimize TMUX Orchestrator for 50+ agent deployments."""
 
-    def __init__(self, tmux: TMUXManager, config: Optional[OptimizationConfig] = None) -> None:
+    def __init__(self, tmux: TMUXManager, config: OptimizationConfig | None = None) -> None:
         """Initialize performance optimizer."""
         self.tmux = tmux
         self.config = config or OptimizationConfig()
@@ -193,7 +193,7 @@ class PerformanceOptimizer:
 
     # Private helper methods
 
-    def _get_cached(self, key: str) -> Optional[Any]:
+    def _get_cached(self, key: str) -> Any | None:
         """Get cached value if not expired."""
         if key in self._cache:
             value, timestamp = self._cache[key]

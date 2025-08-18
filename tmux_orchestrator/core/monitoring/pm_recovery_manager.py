@@ -9,7 +9,6 @@ import logging
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -22,9 +21,9 @@ class PMRecoveryState:
     """Track PM recovery state and history."""
 
     def __init__(self):
-        self.recovery_attempts: Dict[str, List[datetime]] = {}
-        self.recovery_in_progress: Dict[str, datetime] = {}
-        self.last_recovery: Dict[str, datetime] = {}
+        self.recovery_attempts: dict[str, list[datetime]] = {}
+        self.recovery_in_progress: dict[str, datetime] = {}
+        self.last_recovery: dict[str, datetime] = {}
         self.recovery_grace_period = timedelta(minutes=3)  # 3-minute grace after recovery
         self.recovery_cooldown = timedelta(minutes=5)  # 5-minute cooldown between attempts
 
@@ -37,7 +36,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
         tmux: TMUXManager,
         config: Config,
         logger: logging.Logger,
-        crash_detector: Optional[CrashDetectorInterface] = None,
+        crash_detector: CrashDetectorInterface | None = None,
     ):
         """Initialize PM Recovery Manager.
 
@@ -84,7 +83,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
         # Clear in-memory state
         self.recovery_state = PMRecoveryState()
 
-    def check_pm_health(self, session_name: str) -> Tuple[bool, Optional[str], Optional[str]]:
+    def check_pm_health(self, session_name: str) -> tuple[bool, str | None, str | None]:
         """Check PM health in a session with grace period protection.
 
         Args:
@@ -144,7 +143,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
 
         return True
 
-    def recover_pm(self, session_name: str, crashed_target: Optional[str] = None) -> bool:
+    def recover_pm(self, session_name: str, crashed_target: str | None = None) -> bool:
         """Recover a crashed or missing PM.
 
         Args:
@@ -214,7 +213,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
         time_since_recovery = datetime.now() - self.recovery_state.last_recovery[session_name]
         return time_since_recovery < self.recovery_state.recovery_grace_period
 
-    def _get_recent_recovery_attempts(self, session_name: str) -> List[datetime]:
+    def _get_recent_recovery_attempts(self, session_name: str) -> list[datetime]:
         """Get recent recovery attempts within the recovery window.
 
         Args:
@@ -248,7 +247,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
 
         self.recovery_state.recovery_attempts[session_name].append(datetime.now())
 
-    def _write_recovery_state(self, session_name: str, crashed_target: Optional[str]) -> Path:
+    def _write_recovery_state(self, session_name: str, crashed_target: str | None) -> Path:
         """Write recovery state to disk for persistence.
 
         Args:
@@ -272,7 +271,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
         state_file.write_text(json.dumps(state_data, indent=2))
         return state_file
 
-    def _spawn_replacement_pm(self, session_name: str, crashed_target: Optional[str]) -> bool:
+    def _spawn_replacement_pm(self, session_name: str, crashed_target: str | None) -> bool:
         """Spawn a replacement PM for the session.
 
         Args:
@@ -397,7 +396,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
         except Exception as e:
             self.logger.error(f"Error resuming incomplete recoveries: {e}")
 
-    def get_recovery_status(self) -> Dict[str, any]:
+    def get_recovery_status(self) -> dict[str, any]:
         """Get current recovery status information.
 
         Returns:

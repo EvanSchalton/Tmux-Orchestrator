@@ -11,7 +11,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Callable, TypeVar
 
 from .interfaces import MonitorComponent
 
@@ -78,7 +78,7 @@ class AsyncMonitorComponent(MonitorComponent, ABC):
 class AsyncBatchProcessor:
     """Process items in batches for improved performance."""
 
-    def __init__(self, batch_size: int = 10, max_wait_time: float = 0.5, logger: Optional[logging.Logger] = None):
+    def __init__(self, batch_size: int = 10, max_wait_time: float = 0.5, logger: logging.Logger | None = None):
         """Initialize the batch processor.
 
         Args:
@@ -90,7 +90,7 @@ class AsyncBatchProcessor:
         self.max_wait_time = max_wait_time
         self.logger = logger or logging.getLogger(__name__)
         self._queue: asyncio.Queue = asyncio.Queue()
-        self._processing_task: Optional[asyncio.Task] = None
+        self._processing_task: asyncio.Task | None = None
         self._shutdown = False
 
     async def add_item(self, item: Any) -> None:
@@ -104,7 +104,7 @@ class AsyncBatchProcessor:
 
         await self._queue.put(item)
 
-    async def process_batches(self, processor: Callable[[List[Any]], Any]) -> None:
+    async def process_batches(self, processor: Callable[[list[Any]], Any]) -> None:
         """Process batches using the provided processor function.
 
         Args:
@@ -112,7 +112,7 @@ class AsyncBatchProcessor:
         """
         self._processing_task = asyncio.create_task(self._process_loop(processor))
 
-    async def _process_loop(self, processor: Callable[[List[Any]], Any]) -> None:
+    async def _process_loop(self, processor: Callable[[list[Any]], Any]) -> None:
         """Main processing loop."""
         while not self._shutdown:
             batch = []
@@ -225,7 +225,7 @@ class AsyncCircuitBreaker:
         self.expected_exception = expected_exception
 
         self._failure_count = 0
-        self._last_failure_time: Optional[float] = None
+        self._last_failure_time: float | None = None
         self._state = "closed"  # closed, open, half-open
 
     @property
@@ -286,7 +286,7 @@ class AsyncResourcePool:
     """Generic async resource pool implementation."""
 
     def __init__(
-        self, factory: Callable[[], Any], min_size: int = 1, max_size: int = 10, logger: Optional[logging.Logger] = None
+        self, factory: Callable[[], Any], min_size: int = 1, max_size: int = 10, logger: logging.Logger | None = None
     ):
         """Initialize the resource pool.
 
@@ -377,7 +377,7 @@ async def example_async_component():
 
         @with_timeout(5.0)
         @with_retry(max_attempts=3, delay=0.5)
-        async def fetch_data(self, target: str) -> Dict[str, Any]:
+        async def fetch_data(self, target: str) -> dict[str, Any]:
             async with self.resource_pool.acquire() as _conn:
                 # Use connection to fetch data
                 return {"target": target, "data": "example"}

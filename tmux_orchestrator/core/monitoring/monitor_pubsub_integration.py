@@ -9,7 +9,6 @@ import json
 import logging
 import subprocess
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from tmux_orchestrator.core.communication.pm_pubsub_integration import MessageCategory, MessagePriority
 
@@ -17,7 +16,7 @@ from tmux_orchestrator.core.communication.pm_pubsub_integration import MessageCa
 class MonitorPubsubIntegration:
     """Handles monitor daemon integration with pubsub messaging."""
 
-    def __init__(self, session: str = "monitoring-daemon", logger: Optional[logging.Logger] = None):
+    def __init__(self, session: str = "monitoring-daemon", logger: logging.Logger | None = None):
         """Initialize monitor pubsub integration.
 
         Args:
@@ -26,7 +25,7 @@ class MonitorPubsubIntegration:
         """
         self.session = session
         self.logger = logger or logging.getLogger(__name__)
-        self._message_queue: List[Dict] = []
+        self._message_queue: list[dict] = []
         self._batch_threshold = 10  # Batch low priority messages
 
     def publish_agent_crash(
@@ -191,7 +190,7 @@ class MonitorPubsubIntegration:
             tags=["monitoring", "status", "fresh_agent", "normal"],
         )
 
-    def publish_team_idle(self, session_name: str, idle_agents: List[str], total_agents: int) -> bool:
+    def publish_team_idle(self, session_name: str, idle_agents: list[str], total_agents: int) -> bool:
         """Publish team-wide idle notification with high priority.
 
         Args:
@@ -228,7 +227,7 @@ class MonitorPubsubIntegration:
         )
 
     def publish_rate_limit(
-        self, session_name: str, reset_time: Optional[datetime] = None, affected_agents: Optional[List[str]] = None
+        self, session_name: str, reset_time: datetime | None = None, affected_agents: list[str | None] = None
     ) -> bool:
         """Publish rate limit notification with critical priority.
 
@@ -264,7 +263,7 @@ class MonitorPubsubIntegration:
         )
 
     def publish_monitoring_report(
-        self, session_name: str, summary: Dict[str, int], issues: Optional[List[Dict]] = None
+        self, session_name: str, summary: dict[str, int], issues: list[dict | None] = None
     ) -> bool:
         """Publish periodic monitoring status report.
 
@@ -305,7 +304,7 @@ class MonitorPubsubIntegration:
             return 0
 
         # Group messages by target
-        messages_by_target: Dict[str, List[Dict]] = {}
+        messages_by_target: dict[str, list[dict]] = {}
         for msg_info in self._message_queue:
             target = msg_info["target"]
             if target not in messages_by_target:
@@ -350,9 +349,9 @@ class MonitorPubsubIntegration:
         priority: MessagePriority,
         subject: str,
         body: str,
-        context: Dict,
+        context: dict,
         requires_ack: bool = False,
-    ) -> Dict:
+    ) -> dict:
         """Build a structured message following the defined format.
 
         Args:
@@ -384,7 +383,7 @@ class MonitorPubsubIntegration:
             },
         }
 
-    def _publish_message(self, target: str, message: str, priority: str, tags: List[str]) -> bool:
+    def _publish_message(self, target: str, message: str, priority: str, tags: list[str]) -> bool:
         """Publish message through pubsub system.
 
         Args:
@@ -412,7 +411,7 @@ class MonitorPubsubIntegration:
             self.logger.error(f"stderr: {e.stderr}")
             return False
 
-    def _queue_message(self, message: Dict, agent: str, session_name: str) -> None:
+    def _queue_message(self, message: dict, agent: str, session_name: str) -> None:
         """Queue low-priority message for batching.
 
         Args:

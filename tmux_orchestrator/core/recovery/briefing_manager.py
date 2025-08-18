@@ -7,7 +7,7 @@ with comprehensive type annotations and error handling.
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -16,9 +16,9 @@ def restore_agent_briefing(
     tmux: TMUXManager,
     target: str,
     agent_role: str,
-    project_context: Optional[dict[str, Any]] = None,
-    custom_briefing: Optional[str] = None,
-    logger: Optional[logging.Logger] = None,
+    project_context: dict[str, Any | None] = None,
+    custom_briefing: str | None = None,
+    logger: logging.Logger | None = None,
 ) -> tuple[bool, str, dict[str, Any]]:
     """
     Restore agent briefing after restart with role-specific intelligence.
@@ -148,7 +148,7 @@ def restore_agent_briefing(
 def _generate_role_briefing(
     agent_role: str,
     target: str,
-    project_context: Optional[dict[str, Any]],
+    project_context: dict[str, Any | None],
     logger: logging.Logger,
 ) -> str:
     """Generate role-specific briefing text."""

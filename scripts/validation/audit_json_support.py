@@ -8,7 +8,7 @@ import asyncio
 import json
 import subprocess
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 
 class JSONSupportAuditor:
@@ -18,7 +18,7 @@ class JSONSupportAuditor:
         self.results = {}
         self.cli_structure = None
 
-    async def get_cli_structure(self) -> Dict[str, Any]:
+    async def get_cli_structure(self) -> dict[str, Any]:
         """Get complete CLI structure."""
         try:
             result = subprocess.run(
@@ -31,7 +31,7 @@ class JSONSupportAuditor:
             print(f"Failed to get CLI structure: {e}")
             return {}
 
-    def extract_all_commands(self) -> List[str]:
+    def extract_all_commands(self) -> list[str]:
         """Extract all command names from CLI structure."""
         if not self.cli_structure:
             return []
@@ -56,7 +56,7 @@ class JSONSupportAuditor:
 
         return sorted(commands)
 
-    def get_group_subcommands(self, group_name: str) -> List[str]:
+    def get_group_subcommands(self, group_name: str) -> list[str]:
         """Get subcommands for a group by running --help."""
         try:
             result = subprocess.run(["tmux-orc", group_name, "--help"], capture_output=True, text=True, timeout=10)
@@ -87,7 +87,7 @@ class JSONSupportAuditor:
             print(f"Failed to get subcommands for {group_name}: {e}")
             return []
 
-    async def test_json_support(self, command_parts: List[str]) -> Dict[str, Any]:
+    async def test_json_support(self, command_parts: list[str]) -> dict[str, Any]:
         """Test if a command supports --json flag."""
         cmd_name = " ".join(command_parts)
         print(f"Testing JSON support: {cmd_name}")

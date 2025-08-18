@@ -10,7 +10,7 @@ import multiprocessing
 import os
 import signal
 import time
-from typing import Any, Optional
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -27,7 +27,7 @@ class ModularIdleMonitor:
     and maintainable implementation using separated concerns.
     """
 
-    def __init__(self, tmux: TMUXManager, config: Optional[Config] = None):
+    def __init__(self, tmux: TMUXManager, config: Config | None = None):
         """Initialize the modular idle monitor."""
         self.tmux = tmux
 
@@ -48,12 +48,12 @@ class ModularIdleMonitor:
         self.graceful_stop_file = project_dir / "idle-monitor.graceful"
 
         # Process management
-        self.daemon_process: Optional[multiprocessing.Process] = None
+        self.daemon_process: multiprocessing.Process | None = None
 
         # Component manager for monitoring logic
-        self.component_manager: Optional[ComponentManager] = None
+        self.component_manager: ComponentManager | None = None
         # New monitor service facade
-        self.monitor_service: Optional[MonitorService] = None
+        self.monitor_service: MonitorService | None = None
 
         # Monitoring statistics
         self._cycle_count = 0
@@ -280,7 +280,7 @@ class ModularIdleMonitor:
 
         return logger
 
-    def _cleanup_daemon(self, signum: Optional[int] = None, is_graceful: bool = False) -> None:
+    def _cleanup_daemon(self, signum: int | None = None, is_graceful: bool = False) -> None:
         """Clean up daemon resources."""
         try:
             # Stop monitor service

@@ -7,7 +7,6 @@ import signal
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 import click
 import psutil
@@ -222,13 +221,13 @@ def _is_daemon_running() -> bool:
             pid = int(f.read().strip())
 
         # Check if process exists
-        return psutil.pid_exists(pid)
+        return bool(psutil.pid_exists(pid))
 
     except (FileNotFoundError, ValueError, PermissionError):
         return False
 
 
-def _start_daemon_process(socket_path: str) -> Optional[int]:
+def _start_daemon_process(socket_path: str) -> int | None:
     """Start daemon as background process."""
     import subprocess
 

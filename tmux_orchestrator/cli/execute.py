@@ -111,7 +111,7 @@ def generate_team_briefings_from_prd(prd_path: Path, project_name: str, team_typ
     """Generate role-specific briefings based on PRD content.
 
     Returns:
-        Dict mapping role to customized briefing
+        dict mapping role to customized briefing
     """
     try:
         prd_content = prd_path.read_text()

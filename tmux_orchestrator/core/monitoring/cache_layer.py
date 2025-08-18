@@ -10,7 +10,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from .metrics_collector import MetricsCollector
 
@@ -35,7 +35,7 @@ class CacheEntry:
     access_count: int = 0
     ttl: float = 60.0  # Time to live in seconds
     stale_time: float = 30.0  # Time before considered stale
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
     def is_expired(self) -> bool:
         """Check if entry has expired."""
@@ -61,8 +61,8 @@ class CacheLayer:
 
     def __init__(
         self,
-        metrics_collector: Optional[MetricsCollector] = None,
-        logger: Optional[logging.Logger] = None,
+        metrics_collector: MetricsCollector | None = None,
+        logger: logging.Logger | None = None,
         max_entries: int = 10000,
         default_ttl: float = 60.0,
         cleanup_interval: float = 300.0,
@@ -86,13 +86,13 @@ class CacheLayer:
         self.enable_background_refresh = enable_background_refresh
 
         # Cache storage
-        self._cache: Dict[str, CacheEntry] = {}
+        self._cache: dict[str, CacheEntry] = {}
         self._lock = asyncio.Lock()
 
         # Background tasks
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
         self._refresh_queue: asyncio.Queue = asyncio.Queue()
-        self._refresh_task: Optional[asyncio.Task] = None
+        self._refresh_task: asyncio.Task | None = None
 
         # Cache statistics
         self.stats = {
@@ -140,7 +140,7 @@ class CacheLayer:
         if self.metrics:
             self.metrics.set_gauge("cache.initialized", 0.0)
 
-    async def get(self, key: str, refresh_if_stale: bool = True) -> Tuple[Optional[Any], CacheEntryStatus]:
+    async def get(self, key: str, refresh_if_stale: bool = True) -> tuple[Any | None, CacheEntryStatus]:
         """Get a value from cache.
 
         Args:
@@ -187,9 +187,9 @@ class CacheLayer:
         self,
         key: str,
         value: Any,
-        ttl: Optional[float] = None,
-        stale_time: Optional[float] = None,
-        tags: Optional[List[str]] = None,
+        ttl: float | None = None,
+        stale_time: float | None = None,
+        tags: list[str | None] = None,
     ) -> None:
         """Set a value in cache.
 
@@ -245,7 +245,7 @@ class CacheLayer:
                 return True
             return False
 
-    async def invalidate_by_tags(self, tags: List[str]) -> int:
+    async def invalidate_by_tags(self, tags: list[str]) -> int:
         """Invalidate all entries with specified tags.
 
         Args:
@@ -345,7 +345,7 @@ class CacheLayer:
             except Exception as e:
                 self.logger.error(f"Error in cache refresh: {e}")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics.
 
         Returns:
@@ -364,7 +364,7 @@ class CacheLayer:
             "max_entries": self.max_entries,
         }
 
-    async def warmup(self, keys: List[str], loader_func) -> int:
+    async def warmup(self, keys: list[str], loader_func) -> int:
         """Pre-populate cache with specified keys.
 
         Args:
@@ -415,7 +415,7 @@ class AgentContentCache(CacheLayer):
         """
         return f"agent_content:{session}:{window}"
 
-    async def get_agent_content(self, session: str, window: str) -> Tuple[Optional[str], CacheEntryStatus]:
+    async def get_agent_content(self, session: str, window: str) -> tuple[str | None, CacheEntryStatus]:
         """Get cached agent content.
 
         Args:
@@ -469,18 +469,18 @@ class TMuxCommandCache(CacheLayer):
         kwargs.setdefault("max_entries", 500)
         super().__init__(*args, **kwargs)
 
-    async def get_sessions(self) -> Tuple[Optional[List[Dict]], CacheEntryStatus]:
+    async def get_sessions(self) -> tuple[list[dict | None], CacheEntryStatus]:
         """Get cached session list."""
         return await self.get("tmux:sessions")
 
-    async def set_sessions(self, sessions: List[Dict]) -> None:
+    async def set_sessions(self, sessions: list[dict]) -> None:
         """Cache session list."""
         await self.set("tmux:sessions", sessions, ttl=60.0)  # Shorter TTL
 
-    async def get_windows(self, session: str) -> Tuple[Optional[List[Dict]], CacheEntryStatus]:
+    async def get_windows(self, session: str) -> tuple[list[dict | None], CacheEntryStatus]:
         """Get cached window list for session."""
         return await self.get(f"tmux:windows:{session}")
 
-    async def set_windows(self, session: str, windows: List[Dict]) -> None:
+    async def set_windows(self, session: str, windows: list[dict]) -> None:
         """Cache window list for session."""
         await self.set(f"tmux:windows:{session}", windows, ttl=60.0, tags=[f"session:{session}"])

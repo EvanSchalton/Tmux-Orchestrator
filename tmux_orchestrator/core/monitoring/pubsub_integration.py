@@ -8,7 +8,6 @@ with daemon-based pubsub for sub-100ms delivery.
 import asyncio
 import logging
 import subprocess
-from typing import Dict, List, Optional, Tuple
 
 from tmux_orchestrator.core.messaging_daemon import DaemonClient
 
@@ -16,12 +15,12 @@ from tmux_orchestrator.core.messaging_daemon import DaemonClient
 class MonitorPubsubClient:
     """High-performance pubsub client for monitoring system."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: logging.Logger | None = None):
         """Initialize the pubsub client."""
         self.logger = logger or logging.getLogger(__name__)
         self._daemon_client = DaemonClient()
         self._cli_fallback = True  # Use CLI as fallback if daemon fails
-        self._performance_metrics: Dict[str, List[float]] = {
+        self._performance_metrics: dict[str, list[float]] = {
             "daemon_times": [],
             "cli_times": [],
         }
@@ -31,8 +30,8 @@ class MonitorPubsubClient:
         target: str,
         message: str,
         priority: str = "normal",
-        tags: Optional[List[str]] = None,
-    ) -> Tuple[bool, float]:
+        tags: list[str | None] = None,
+    ) -> tuple[bool, float]:
         """
         Publish notification with performance tracking.
 
@@ -87,7 +86,7 @@ class MonitorPubsubClient:
         target: str,
         message: str,
         priority: str,
-        tags: List[str],
+        tags: list[str],
     ) -> bool:
         """Fallback to CLI-based publish."""
         try:
@@ -123,8 +122,8 @@ class MonitorPubsubClient:
 
     async def batch_publish(
         self,
-        notifications: List[Dict[str, any]],
-    ) -> Dict[str, any]:
+        notifications: list[dict[str, any]],
+    ) -> dict[str, any]:
         """
         Publish multiple notifications in batch for efficiency.
 
@@ -136,7 +135,7 @@ class MonitorPubsubClient:
                 - tags: Message tags (optional)
 
         Returns:
-            Dict with batch statistics
+            dict with batch statistics
         """
         results = {
             "total": len(notifications),
@@ -180,7 +179,7 @@ class MonitorPubsubClient:
 
         return results
 
-    def get_performance_stats(self) -> Dict[str, any]:
+    def get_performance_stats(self) -> dict[str, any]:
         """Get performance statistics for monitoring."""
         stats = {
             "daemon": self._calculate_stats(self._performance_metrics["daemon_times"]),
@@ -194,7 +193,7 @@ class MonitorPubsubClient:
 
         return stats
 
-    def _calculate_stats(self, times: List[float]) -> Dict[str, float]:
+    def _calculate_stats(self, times: list[float]) -> dict[str, float]:
         """Calculate performance statistics."""
         if not times:
             return {
@@ -232,7 +231,7 @@ class PriorityMessageRouter:
         """Initialize the priority router."""
         self.client = pubsub_client
         self.logger = logging.getLogger(__name__)
-        self._batch_queue: Dict[str, List[Dict]] = {
+        self._batch_queue: dict[str, list[dict]] = {
             "low": [],
         }
 
@@ -241,7 +240,7 @@ class PriorityMessageRouter:
         target: str,
         message: str,
         priority: str = "normal",
-        tags: Optional[List[str]] = None,
+        tags: list[str | None] = None,
     ) -> bool:
         """Route message based on priority."""
         route = self.PRIORITY_ROUTES.get(priority, self.PRIORITY_ROUTES["normal"])
@@ -274,7 +273,7 @@ class PriorityMessageRouter:
 
             return success
 
-    async def flush_batch_queue(self) -> Dict[str, int]:
+    async def flush_batch_queue(self) -> dict[str, int]:
         """Flush all batched messages."""
         flushed = {"low": 0}
 

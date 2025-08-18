@@ -8,7 +8,6 @@ when agents are discussing failures, errors, or killed processes in normal conve
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -30,7 +29,7 @@ class CrashDetector(CrashDetectorInterface):
         self.logger = logger
 
         # Observation tracking for confirmation-based detection
-        self._crash_observations: Dict[str, List[datetime]] = {}
+        self._crash_observations: dict[str, list[datetime]] = {}
         self._crash_observation_window = 30  # seconds
 
         # Focused crash indicators - only actual process crashes
@@ -103,7 +102,7 @@ class CrashDetector(CrashDetectorInterface):
             "├",  # Tool output formatting
         ]
 
-    def detect_crash(self, agent: AgentInfo, content: str) -> Tuple[bool, Optional[str]]:
+    def detect_crash(self, agent: AgentInfo, content: str) -> tuple[bool, str | None]:
         """Detect if an agent has crashed based on content analysis.
 
         Args:
@@ -347,7 +346,7 @@ class CrashDetector(CrashDetectorInterface):
 
         return False
 
-    def detect_pm_crash(self, session_name: str) -> Tuple[bool, Optional[str]]:
+    def detect_pm_crash(self, session_name: str) -> tuple[bool, str | None]:
         """Detect if PM has crashed in the given session.
 
         Args:
@@ -397,7 +396,7 @@ class CrashDetector(CrashDetectorInterface):
             self.logger.error(f"Error detecting PM crash in session {session_name}: {e}")
             return (True, None)
 
-    def _find_pm_window(self, session_name: str) -> Optional[str]:
+    def _find_pm_window(self, session_name: str) -> str | None:
         """Find PM window in the given session.
 
         Args:

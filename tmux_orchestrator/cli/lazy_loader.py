@@ -4,7 +4,7 @@ Reduces CLI startup time from 1-2.4s to <200ms by deferring imports until needed
 """
 
 import importlib
-from typing import Any, Dict, Optional
+from typing import Any
 
 import click
 
@@ -14,15 +14,15 @@ class LazyCommandGroup(click.Group):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._lazy_commands: Dict[str, Dict[str, Any]] = {}
+        self._lazy_commands: dict[str, dict[str, Any]] = {}
 
     def add_lazy_command(
         self,
         name: str,
         module_path: str,
         command_attr: str,
-        fallback_module: Optional[str] = None,
-        fallback_attr: Optional[str] = None,
+        fallback_module: str | None = None,
+        fallback_attr: str | None = None,
     ) -> None:
         """Register a command for lazy loading.
 
@@ -42,7 +42,7 @@ class LazyCommandGroup(click.Group):
             "command": None,
         }
 
-    def get_command(self, ctx: click.Context, cmd_name: str) -> Optional[click.Command]:
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         """Get command, loading lazily if needed."""
         # Check if already loaded
         if cmd_name in self.commands:
@@ -60,7 +60,7 @@ class LazyCommandGroup(click.Group):
         commands.extend(self._lazy_commands.keys())
         return sorted(commands)
 
-    def _load_lazy_command(self, cmd_name: str) -> Optional[click.Command]:
+    def _load_lazy_command(self, cmd_name: str) -> click.Command | None:
         """Load a lazy command on demand."""
         cmd_info = self._lazy_commands[cmd_name]
 
@@ -159,7 +159,7 @@ class LazyCommand(click.Command):
     def __init__(self, name: str, module_path: str, command_attr: str, **kwargs):
         self.module_path = module_path
         self.command_attr = command_attr
-        self._loaded_command: Optional[click.Command] = None
+        self._loaded_command: click.Command | None = None
         super().__init__(name, **kwargs)
 
     def invoke(self, ctx: click.Context) -> Any:
@@ -181,7 +181,7 @@ class LazyCommand(click.Command):
 
         return self._loaded_command.get_usage(ctx)
 
-    def get_help(self, ctx: click.Context) -> Optional[str]:
+    def get_help(self, ctx: click.Context) -> str | None:
         """Get help text, loading command if needed."""
         if self._loaded_command is None:
             try:

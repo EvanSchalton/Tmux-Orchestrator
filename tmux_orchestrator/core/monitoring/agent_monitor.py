@@ -9,7 +9,7 @@ import hashlib
 import logging
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -24,8 +24,8 @@ class AgentMonitor(AgentMonitorInterface):
     def __init__(self, tmux: TMUXManager, config: Config, logger: logging.Logger):
         """Initialize the agent monitor."""
         super().__init__(tmux, config, logger)
-        self._agent_cache: Dict[str, AgentInfo] = {}
-        self._last_discovery_time: Optional[datetime] = None
+        self._agent_cache: dict[str, AgentInfo] = {}
+        self._last_discovery_time: datetime | None = None
         self._crash_detector = CrashDetector(tmux, logger)
 
     def initialize(self) -> bool:
@@ -48,7 +48,7 @@ class AgentMonitor(AgentMonitorInterface):
         self.logger.info("Cleaning up AgentMonitor")
         self._agent_cache.clear()
 
-    def discover_agents(self) -> List[AgentInfo]:
+    def discover_agents(self) -> list[AgentInfo]:
         """
         Discover active agents to monitor.
 
@@ -283,11 +283,11 @@ class AgentMonitor(AgentMonitorInterface):
                 error_type="analysis_failed",
             )
 
-    def get_cached_agent_info(self, target: str) -> Optional[AgentInfo]:
+    def get_cached_agent_info(self, target: str) -> AgentInfo | None:
         """Get cached agent info if available."""
         return self._agent_cache.get(target)
 
-    def get_all_cached_agents(self) -> List[AgentInfo]:
+    def get_all_cached_agents(self) -> list[AgentInfo]:
         """Get all cached agent info."""
         return list(self._agent_cache.values())
 
@@ -295,7 +295,7 @@ class AgentMonitor(AgentMonitorInterface):
         """Clear the agent cache."""
         self._agent_cache.clear()
 
-    def _create_agent_info(self, target: str, session: str, window: str, window_info: Dict[str, Any]) -> AgentInfo:
+    def _create_agent_info(self, target: str, session: str, window: str, window_info: dict[str, Any]) -> AgentInfo:
         """Create AgentInfo object from window information."""
         window_name = window_info.get("name", "Unknown")
 

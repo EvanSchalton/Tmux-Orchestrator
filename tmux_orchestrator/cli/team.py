@@ -1,7 +1,7 @@
 """Team management commands."""
 
 import builtins
-from typing import Any, Optional
+from typing import Any
 
 import click
 from rich.console import Console
@@ -80,7 +80,7 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
     tmux: TMUXManager = ctx.obj["tmux"]
 
     # Delegate to business logic
-    team_status: Optional[dict[str, Any]] = get_team_status(tmux, session)
+    team_status: dict[str, Any | None] = get_team_status(tmux, session)
 
     if not team_status:
         console.print(f"[red]✗ Session '{session}' not found[/red]")
@@ -286,7 +286,7 @@ def deploy(
     ctx: click.Context,
     team_type: str,
     size: int,
-    project_name: Optional[str],
+    project_name: str | None,
     json: bool,
 ) -> None:
     """Deploy a complete multi-agent team with specialized roles.

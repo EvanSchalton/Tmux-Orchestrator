@@ -1,11 +1,11 @@
 """Business logic for getting individual agent status information."""
 
-from typing import Any, Dict
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-def get_agent_status(tmux: TMUXManager, target: str) -> tuple[bool, Dict[str, Any]]:
+def get_agent_status(tmux: TMUXManager, target: str) -> tuple[bool, dict[str, Any]]:
     """Get detailed status information for a specific agent.
 
     Args:

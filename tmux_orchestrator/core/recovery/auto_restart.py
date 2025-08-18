@@ -8,7 +8,7 @@ type annotations.
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from tmux_orchestrator.core.recovery.restart_agent import restart_agent
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -20,7 +20,7 @@ def auto_restart_agent(
     logger: logging.Logger,
     max_retries: int = 3,
     preserve_context: bool = True,
-    briefing_text: Optional[str] = None,
+    briefing_text: str | None = None,
 ) -> tuple[bool, str, dict[str, Any]]:
     """
     Automatically restart a failed agent with context preservation.

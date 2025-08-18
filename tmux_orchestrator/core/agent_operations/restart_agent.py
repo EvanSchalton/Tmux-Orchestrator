@@ -2,7 +2,7 @@
 
 import time
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -12,9 +12,9 @@ def restart_agent(
     target: str,
     health_check: bool = True,
     preserve_context: bool = True,
-    custom_command: Optional[str] = None,
+    custom_command: str | None = None,
     timeout: int = 10,
-) -> tuple[bool, str, Dict[str, Any]]:
+) -> tuple[bool, str, dict[str, Any]]:
     """Restart a specific Claude agent with advanced options.
 
     Args:
@@ -126,7 +126,7 @@ def restart_agent(
         return False, f"Agent restart at {target} timed out after {timeout}s", details
 
 
-def _analyze_agent_health(pane_content: str) -> Dict[str, Any]:
+def _analyze_agent_health(pane_content: str) -> dict[str, Any]:
     """Analyze agent health from pane content.
 
     Args:
@@ -159,7 +159,7 @@ def _analyze_agent_health(pane_content: str) -> Dict[str, Any]:
     return health_status
 
 
-def _extract_agent_context(tmux: TMUXManager, target: str, window_info: Dict[str, str]) -> Optional[Dict[str, Any]]:
+def _extract_agent_context(tmux: TMUXManager, target: str, window_info: dict[str, str]) -> dict[str, Any | None]:
     """Extract agent context and briefing information.
 
     Args:
@@ -190,7 +190,7 @@ def _extract_agent_context(tmux: TMUXManager, target: str, window_info: Dict[str
     return {"agent_type": agent_type, "window_name": window_name, "briefing": briefing, "session": target.split(":")[0]}
 
 
-def _extract_briefing_from_content(content: str) -> Optional[str]:
+def _extract_briefing_from_content(content: str) -> str | None:
     """Extract briefing message from pane content.
 
     Args:
@@ -217,7 +217,7 @@ def _extract_briefing_from_content(content: str) -> Optional[str]:
     return None
 
 
-def _restore_agent_context(tmux: TMUXManager, target: str, context: Dict[str, Any]) -> None:
+def _restore_agent_context(tmux: TMUXManager, target: str, context: dict[str, Any]) -> None:
     """Restore agent context after restart.
 
     Args:

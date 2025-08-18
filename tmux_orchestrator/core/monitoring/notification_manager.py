@@ -8,7 +8,6 @@ Extracted from the monolithic monitor.py to improve maintainability and testabil
 import logging
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -22,9 +21,9 @@ class NotificationManager(NotificationManagerInterface):
     def __init__(self, tmux: TMUXManager, config: Config, logger: logging.Logger):
         """Initialize the notification manager."""
         super().__init__(tmux, config, logger)
-        self._queued_notifications: List[NotificationEvent] = []
-        self._pm_notifications: Dict[str, List[str]] = defaultdict(list)
-        self._last_notification_times: Dict[str, datetime] = {}
+        self._queued_notifications: list[NotificationEvent] = []
+        self._pm_notifications: dict[str, list[str]] = defaultdict(list)
+        self._last_notification_times: dict[str, datetime] = {}
         self._notification_cooldown = 300  # 5 minutes between duplicate notifications
 
     def initialize(self) -> bool:
@@ -88,7 +87,7 @@ class NotificationManager(NotificationManagerInterface):
 
         return sent_count
 
-    def notify_agent_crash(self, target: str, error_type: str, session: str, metadata: Optional[Dict] = None) -> None:
+    def notify_agent_crash(self, target: str, error_type: str, session: str, metadata: dict | None = None) -> None:
         """
         Send agent crash notification.
 
@@ -115,9 +114,7 @@ class NotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.warning(f"Agent crash notification queued for {target}: {error_type}")
 
-    def notify_agent_idle(
-        self, target: str, idle_type: IdleType, session: str, metadata: Optional[Dict] = None
-    ) -> None:
+    def notify_agent_idle(self, target: str, idle_type: IdleType, session: str, metadata: dict | None = None) -> None:
         """
         Send agent idle notification.
 
@@ -149,7 +146,7 @@ class NotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.info(f"Agent idle notification queued for {target}: {idle_type.value}")
 
-    def notify_fresh_agent(self, target: str, session: str, metadata: Optional[Dict] = None) -> None:
+    def notify_fresh_agent(self, target: str, session: str, metadata: dict | None = None) -> None:
         """
         Send fresh agent notification.
 
@@ -175,7 +172,7 @@ class NotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.info(f"Fresh agent notification queued for {target}")
 
-    def notify_team_idle(self, session: str, agent_count: int, metadata: Optional[Dict] = None) -> None:
+    def notify_team_idle(self, session: str, agent_count: int, metadata: dict | None = None) -> None:
         """
         Send team idle notification.
 
@@ -201,7 +198,7 @@ class NotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.warning(f"Team idle notification queued for {session}")
 
-    def notify_recovery_needed(self, target: str, issue: str, session: str, metadata: Optional[Dict] = None) -> None:
+    def notify_recovery_needed(self, target: str, issue: str, session: str, metadata: dict | None = None) -> None:
         """
         Send recovery needed notification.
 
@@ -323,7 +320,7 @@ class NotificationManager(NotificationManagerInterface):
 
         return sent_count
 
-    def _find_pm_in_session(self, session: str) -> Optional[str]:
+    def _find_pm_in_session(self, session: str) -> str | None:
         """
         Find PM agent in the specified session.
 
@@ -346,7 +343,7 @@ class NotificationManager(NotificationManagerInterface):
             self.logger.error(f"Error finding PM in session {session}: {e}")
             return None
 
-    def get_notification_stats(self) -> Dict[str, int]:
+    def get_notification_stats(self) -> dict[str, int]:
         """Get notification statistics."""
         return {
             "queued_notifications": len(self._queued_notifications),

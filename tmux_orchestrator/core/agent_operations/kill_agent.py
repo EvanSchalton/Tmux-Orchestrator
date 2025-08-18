@@ -2,7 +2,7 @@
 
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -14,7 +14,7 @@ def kill_agent(
     save_state: bool = True,
     kill_session: bool = False,
     graceful_timeout: int = 5,
-) -> tuple[bool, str, Dict[str, Any]]:
+) -> tuple[bool, str, dict[str, Any]]:
     """Kill a specific agent window or entire session.
 
     Args:
@@ -69,12 +69,12 @@ def kill_agent(
 def _kill_session(
     tmux: TMUXManager,
     session: str,
-    windows: List[Dict[str, str]],
+    windows: list[dict[str, str]],
     force: bool,
     save_state: bool,
     graceful_timeout: int,
-    details: Dict[str, Any],
-) -> tuple[bool, str, Dict[str, Any]]:
+    details: dict[str, Any],
+) -> tuple[bool, str, dict[str, Any]]:
     """Kill an entire session."""
 
     # Save state if requested
@@ -115,12 +115,12 @@ def _kill_window(
     tmux: TMUXManager,
     session: str,
     window: str,
-    windows: List[Dict[str, str]],
+    windows: list[dict[str, str]],
     force: bool,
     save_state: bool,
     graceful_timeout: int,
-    details: Dict[str, Any],
-) -> tuple[bool, str, Dict[str, Any]]:
+    details: dict[str, Any],
+) -> tuple[bool, str, dict[str, Any]]:
     """Kill a specific window."""
 
     # Find window info
@@ -166,7 +166,7 @@ def _kill_window(
         return False, f"Error killing window '{window}': {e}", details
 
 
-def _save_session_state(tmux: TMUXManager, session: str, windows: List[Dict[str, str]]) -> Dict[str, Any]:
+def _save_session_state(tmux: TMUXManager, session: str, windows: list[dict[str, str]]) -> dict[str, Any]:
     """Save session state before killing.
 
     Args:
@@ -196,7 +196,7 @@ def _save_session_state(tmux: TMUXManager, session: str, windows: List[Dict[str,
     return state
 
 
-def _save_window_state(tmux: TMUXManager, target: str, window_info: Dict[str, str]) -> Dict[str, Any]:
+def _save_window_state(tmux: TMUXManager, target: str, window_info: dict[str, str]) -> dict[str, Any]:
     """Save window state before killing.
 
     Args:

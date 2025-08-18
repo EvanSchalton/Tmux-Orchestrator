@@ -7,7 +7,7 @@ at regular intervals.
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..interfaces import (
     AgentMonitorInterface,
@@ -36,7 +36,7 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
         self.poll_interval = 30  # seconds
         self.batch_size = 10  # agents to check concurrently
 
-    async def execute(self, context: Dict[str, Any]) -> MonitorStatus:
+    async def execute(self, context: dict[str, Any]) -> MonitorStatus:
         """Execute the polling monitoring strategy.
 
         Args:
@@ -105,8 +105,8 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
             )
 
     async def _check_pm_health(
-        self, sessions: List[str], pm_recovery_manager: PMRecoveryManagerInterface, logger: Optional[Any]
-    ) -> List[Dict[str, Any]]:
+        self, sessions: list[str], pm_recovery_manager: PMRecoveryManagerInterface, logger: Any | None
+    ) -> list[dict[str, Any]]:
         """Check health of PMs in all sessions.
 
         Args:
@@ -146,11 +146,11 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
 
     async def _check_agent_health(
         self,
-        agents: List[AgentInfo],
+        agents: list[AgentInfo],
         agent_monitor: AgentMonitorInterface,
         state_tracker: StateTrackerInterface,
-        logger: Optional[Any],
-    ) -> tuple[List[AgentInfo], List[AgentInfo]]:
+        logger: Any | None,
+    ) -> tuple[list[AgentInfo], list[AgentInfo]]:
         """Check health of all agents.
 
         Args:
@@ -197,7 +197,7 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
         agent: AgentInfo,
         agent_monitor: AgentMonitorInterface,
         state_tracker: StateTrackerInterface,
-        logger: Optional[Any],
+        logger: Any | None,
     ) -> tuple[bool, bool]:
         """Check health of a single agent.
 
@@ -235,12 +235,12 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
 
     async def _process_notifications(
         self,
-        idle_agents: List[AgentInfo],
-        crashed_agents: List[AgentInfo],
-        pm_issues: List[Dict[str, Any]],
+        idle_agents: list[AgentInfo],
+        crashed_agents: list[AgentInfo],
+        pm_issues: list[dict[str, Any]],
         notification_manager: NotificationManagerInterface,
         state_tracker: StateTrackerInterface,
-        logger: Optional[Any],
+        logger: Any | None,
     ) -> None:
         """Process and send notifications.
 

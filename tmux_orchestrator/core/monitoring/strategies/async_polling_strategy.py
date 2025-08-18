@@ -8,7 +8,7 @@ for improved performance while maintaining the sequential monitoring pattern.
 import asyncio
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..cache_layer import AgentContentCache, TMuxCommandCache
 from ..interfaces import (
@@ -29,10 +29,10 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
 
     def __init__(
         self,
-        tmux_pool: Optional[TMuxConnectionPool] = None,
-        agent_cache: Optional[AgentContentCache] = None,
-        command_cache: Optional[TMuxCommandCache] = None,
-        metrics: Optional[MetricsCollector] = None,
+        tmux_pool: TMuxConnectionPool | None = None,
+        agent_cache: AgentContentCache | None = None,
+        command_cache: TMuxCommandCache | None = None,
+        metrics: MetricsCollector | None = None,
     ):
         """Initialize async polling strategy.
 
@@ -46,7 +46,7 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
         self.agent_cache = agent_cache
         self.command_cache = command_cache
         self.metrics = metrics
-        self._async_tmux: Optional[AsyncTMUXManager] = None
+        self._async_tmux: AsyncTMUXManager | None = None
 
     def get_name(self) -> str:
         """Get strategy name."""
@@ -56,7 +56,7 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
         """Get strategy description."""
         return "Async-enhanced polling with caching and connection pooling"
 
-    async def execute(self, context: Dict[str, Any]) -> MonitorStatus:
+    async def execute(self, context: dict[str, Any]) -> MonitorStatus:
         """Execute the async polling strategy.
 
         Args:
@@ -137,7 +137,7 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
             status.end_time = datetime.now()
             return status
 
-    async def _ensure_async_components(self, context: Dict[str, Any]) -> None:
+    async def _ensure_async_components(self, context: dict[str, Any]) -> None:
         """Ensure async components are initialized."""
         # Initialize pool if not provided
         if not self.tmux_pool:
@@ -156,7 +156,7 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
             self.command_cache = TMuxCommandCache(metrics_collector=self.metrics, logger=context.get("logger"))
             await self.command_cache.initialize()
 
-    async def _discover_agents_cached(self, agent_monitor: AgentMonitorInterface) -> List[AgentInfo]:
+    async def _discover_agents_cached(self, agent_monitor: AgentMonitorInterface) -> list[AgentInfo]:
         """Discover agents with caching."""
         # Check cache first
         if self.command_cache:
@@ -203,13 +203,13 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
 
     async def _monitor_agents_optimized(
         self,
-        agents: List[AgentInfo],
+        agents: list[AgentInfo],
         agent_monitor: AgentMonitorInterface,
         state_tracker: StateTrackerInterface,
         crash_detector: CrashDetectorInterface,
         notification_manager: NotificationManagerInterface,
         status: MonitorStatus,
-        logger: Optional[Any],
+        logger: Any | None,
     ) -> None:
         """Monitor agents with caching and async optimizations."""
         for agent_info in agents:
@@ -286,10 +286,10 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
 
     async def _check_pm_health_async(
         self,
-        sessions: List[str],
+        sessions: list[str],
         pm_recovery_manager: PMRecoveryManagerInterface,
         notification_manager: NotificationManagerInterface,
-        logger: Optional[Any],
+        logger: Any | None,
     ) -> None:
         """Check PM health asynchronously."""
         # Create tasks for parallel PM checks
@@ -311,7 +311,7 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
         session: str,
         pm_recovery_manager: PMRecoveryManagerInterface,
         notification_manager: NotificationManagerInterface,
-        logger: Optional[Any],
+        logger: Any | None,
     ) -> None:
         """Check a single PM asynchronously."""
         try:
@@ -341,7 +341,7 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
                 logger.error(f"Error in async PM health check: {e}")
             raise
 
-    def get_required_components(self) -> List[type]:
+    def get_required_components(self) -> list[type]:
         """Get required component interfaces."""
         return [
             AgentMonitorInterface,

@@ -8,7 +8,6 @@ Extracted from the monolithic monitor.py to improve maintainability and testabil
 import hashlib
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional, Set
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -24,28 +23,28 @@ class StateTracker(StateTrackerInterface):
         super().__init__(tmux, config, logger)
 
         # Agent state tracking
-        self._agent_states: Dict[str, AgentState] = {}
+        self._agent_states: dict[str, AgentState] = {}
 
         # Session tracking
-        self._session_agents: Dict[str, Dict[str, Dict[str, str]]] = {}
+        self._session_agents: dict[str, dict[str, dict[str, str]]] = {}
 
         # Idle tracking
-        self._idle_agents: Dict[str, datetime] = {}
+        self._idle_agents: dict[str, datetime] = {}
 
         # Submission tracking
-        self._submission_attempts: Dict[str, int] = {}
-        self._last_submission_time: Dict[str, datetime] = {}
+        self._submission_attempts: dict[str, int] = {}
+        self._last_submission_time: dict[str, datetime] = {}
 
         # Team idle tracking
-        self._team_idle_at: Dict[str, Optional[datetime]] = {}
+        self._team_idle_at: dict[str, datetime | None] = {}
 
         # Missing agent tracking
-        self._missing_agent_grace: Dict[str, datetime] = {}
-        self._missing_agent_notifications: Dict[str, datetime] = {}
+        self._missing_agent_grace: dict[str, datetime] = {}
+        self._missing_agent_notifications: dict[str, datetime] = {}
 
         # Content caching for change detection
-        self._content_cache: Dict[str, str] = {}
-        self._content_hashes: Dict[str, str] = {}
+        self._content_cache: dict[str, str] = {}
+        self._content_hashes: dict[str, str] = {}
 
     def initialize(self) -> bool:
         """Initialize the state tracker."""
@@ -127,7 +126,7 @@ class StateTracker(StateTrackerInterface):
 
         return state
 
-    def get_agent_state(self, target: str) -> Optional[AgentState]:
+    def get_agent_state(self, target: str) -> AgentState | None:
         """
         Get current agent state.
 
@@ -162,7 +161,7 @@ class StateTracker(StateTrackerInterface):
 
         self.logger.debug(f"Reset all state tracking for {target}")
 
-    def get_session_agents(self, session: str) -> List[AgentState]:
+    def get_session_agents(self, session: str) -> list[AgentState]:
         """
         Get all agents in a session.
 
@@ -201,7 +200,7 @@ class StateTracker(StateTrackerInterface):
 
         self.logger.debug(f"Tracking agent {target} in session {session}")
 
-    def get_session_agent_registry(self, session: str) -> Dict[str, Dict[str, str]]:
+    def get_session_agent_registry(self, session: str) -> dict[str, dict[str, str]]:
         """
         Get agent registry for a session.
 
@@ -225,7 +224,7 @@ class StateTracker(StateTrackerInterface):
         """
         return target in self._idle_agents
 
-    def get_idle_duration(self, target: str) -> Optional[float]:
+    def get_idle_duration(self, target: str) -> float | None:
         """
         Get duration agent has been idle.
 
@@ -241,7 +240,7 @@ class StateTracker(StateTrackerInterface):
         idle_start = self._idle_agents[target]
         return (datetime.now() - idle_start).total_seconds()
 
-    def get_all_idle_agents(self) -> Dict[str, datetime]:
+    def get_all_idle_agents(self) -> dict[str, datetime]:
         """Get all currently idle agents with their idle start times."""
         return self._idle_agents.copy()
 
@@ -269,7 +268,7 @@ class StateTracker(StateTrackerInterface):
         """
         return self._submission_attempts.get(target, 0)
 
-    def get_last_submission_time(self, target: str) -> Optional[datetime]:
+    def get_last_submission_time(self, target: str) -> datetime | None:
         """
         Get last submission time for an agent.
 
@@ -329,7 +328,7 @@ class StateTracker(StateTrackerInterface):
         """
         return session in self._team_idle_at and self._team_idle_at[session] is not None
 
-    def get_team_idle_duration(self, session: str) -> Optional[float]:
+    def get_team_idle_duration(self, session: str) -> float | None:
         """
         Get duration team has been idle.
 
@@ -383,7 +382,7 @@ class StateTracker(StateTrackerInterface):
         """
         return target in self._missing_agent_grace
 
-    def get_missing_duration(self, target: str) -> Optional[float]:
+    def get_missing_duration(self, target: str) -> float | None:
         """
         Get duration agent has been missing.
 
@@ -399,14 +398,14 @@ class StateTracker(StateTrackerInterface):
         missing_start = self._missing_agent_grace[target]
         return (datetime.now() - missing_start).total_seconds()
 
-    def get_all_sessions(self) -> Set[str]:
+    def get_all_sessions(self) -> set[str]:
         """Get all tracked sessions."""
         sessions = set()
         for state in self._agent_states.values():
             sessions.add(state.session)
         return sessions
 
-    def get_state_summary(self) -> Dict[str, int]:
+    def get_state_summary(self) -> dict[str, int]:
         """Get summary of current state tracking."""
         return {
             "total_agents": len(self._agent_states),

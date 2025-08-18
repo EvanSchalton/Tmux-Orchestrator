@@ -10,7 +10,7 @@ import importlib.util
 import inspect
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from .interfaces import MonitoringStrategyInterface
 from .types import PluginInfo, PluginStatus
@@ -19,7 +19,7 @@ from .types import PluginInfo, PluginStatus
 class PluginLoader:
     """Loads and manages monitoring strategy plugins."""
 
-    def __init__(self, logger: logging.Logger, plugin_dirs: Optional[List[Path]] = None):
+    def __init__(self, logger: logging.Logger, plugin_dirs: list[Path | None] = None):
         """Initialize the plugin loader.
 
         Args:
@@ -27,8 +27,8 @@ class PluginLoader:
             plugin_dirs: List of directories to search for plugins
         """
         self.logger = logger
-        self._plugins: Dict[str, PluginInfo] = {}
-        self._strategies: Dict[str, MonitoringStrategyInterface] = {}
+        self._plugins: dict[str, PluginInfo] = {}
+        self._strategies: dict[str, MonitoringStrategyInterface] = {}
 
         # Default plugin directories
         if plugin_dirs is None:
@@ -43,7 +43,7 @@ class PluginLoader:
                 self.plugin_dirs.append(dir_path)
                 self.logger.debug(f"Added plugin directory: {dir_path}")
 
-    def discover_plugins(self) -> List[PluginInfo]:
+    def discover_plugins(self) -> list[PluginInfo]:
         """Discover all available plugins.
 
         Returns:
@@ -70,7 +70,7 @@ class PluginLoader:
 
         return discovered
 
-    def load_plugin(self, plugin_name: str) -> Optional[MonitoringStrategyInterface]:
+    def load_plugin(self, plugin_name: str) -> MonitoringStrategyInterface | None:
         """Load a specific plugin by name.
 
         Args:
@@ -158,7 +158,7 @@ class PluginLoader:
             self.logger.error(f"Error unloading plugin {plugin_name}: {e}")
             return False
 
-    def get_loaded_strategies(self) -> Dict[str, MonitoringStrategyInterface]:
+    def get_loaded_strategies(self) -> dict[str, MonitoringStrategyInterface]:
         """Get all loaded strategies.
 
         Returns:
@@ -166,7 +166,7 @@ class PluginLoader:
         """
         return self._strategies.copy()
 
-    def get_plugin_info(self, plugin_name: str) -> Optional[PluginInfo]:
+    def get_plugin_info(self, plugin_name: str) -> PluginInfo | None:
         """Get information about a specific plugin.
 
         Args:
@@ -177,7 +177,7 @@ class PluginLoader:
         """
         return self._plugins.get(plugin_name)
 
-    def get_all_plugins(self) -> List[PluginInfo]:
+    def get_all_plugins(self) -> list[PluginInfo]:
         """Get information about all discovered plugins.
 
         Returns:
@@ -185,7 +185,7 @@ class PluginLoader:
         """
         return list(self._plugins.values())
 
-    def validate_plugin(self, plugin_name: str) -> Tuple[bool, Optional[str]]:
+    def validate_plugin(self, plugin_name: str) -> tuple[bool, str | None]:
         """Validate a plugin's implementation.
 
         Args:
@@ -257,7 +257,7 @@ class PluginLoader:
 
         return False
 
-    def _inspect_plugin_file(self, file_path: Path) -> Optional[PluginInfo]:
+    def _inspect_plugin_file(self, file_path: Path) -> PluginInfo | None:
         """Inspect a plugin file and extract metadata.
 
         Args:
