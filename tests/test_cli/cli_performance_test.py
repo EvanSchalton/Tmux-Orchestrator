@@ -46,7 +46,7 @@ class TestCLIPerformance:
         mock_tmux_manager.return_value.session_exists.return_value = True
 
         start_time = time.time()
-        result = cli_runner.invoke(cli, ["agent", "status", "session1:1"])
+        cli_runner.invoke(cli, ["agent", "status", "session1:1"])
         execution_time = time.time() - start_time
 
         # Should complete quickly even if command functionality isn't fully implemented

@@ -6,19 +6,17 @@ feedback when things go wrong - from a frontend developer's perspective.
 """
 
 import json
-import subprocess
-from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 from click.testing import CliRunner
 
 from tmux_orchestrator.cli.agent import agent
+from tmux_orchestrator.cli.monitor import monitor
+from tmux_orchestrator.cli.orchestrator import orchestrator
 from tmux_orchestrator.cli.setup_claude import setup
 from tmux_orchestrator.cli.spawn import spawn
-from tmux_orchestrator.cli.monitor import monitor
 from tmux_orchestrator.cli.team import team
-from tmux_orchestrator.cli.orchestrator import orchestrator
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
@@ -139,7 +137,7 @@ class TestErrorMessageClarity:
         """
         with patch("requests.get", side_effect=Exception("Connection refused")):
             # Simulate API call failure
-            result = cli_runner.invoke(monitor, ["dashboard"])
+            cli_runner.invoke(monitor, ["dashboard"])
 
         # Should handle network errors gracefully
         # Pattern: network errors include connectivity checks
@@ -174,8 +172,8 @@ class TestUserGuidanceQuality:
         # Test common typos
         typos = [
             ("statsu", "status"),  # Transposition
-            ("satus", "status"),   # Missing letter
-            ("staatus", "status"), # Extra letter
+            ("satus", "status"),  # Missing letter
+            ("staatus", "status"),  # Extra letter
         ]
 
         for typo, correct in typos:
@@ -206,6 +204,7 @@ class TestUserGuidanceQuality:
             # Simulate slow operation
             def slow_spawn(*args, **kwargs):
                 import time
+
                 time.sleep(0.1)
                 return {"success": True}
 
@@ -246,13 +245,13 @@ class TestRecoveryGuidance:
             {
                 "error": "Agent crashed",
                 "expected_guidance": ["restart", "check logs", "spawn new"],
-                "recovery_commands": ["tmux-orc agent restart", "tmux-orc spawn"]
+                "recovery_commands": ["tmux-orc agent restart", "tmux-orc spawn"],
             },
             {
                 "error": "Session not found",
                 "expected_guidance": ["list sessions", "create new"],
-                "recovery_commands": ["tmux-orc agent list", "tmux-orc spawn"]
-            }
+                "recovery_commands": ["tmux-orc agent list", "tmux-orc spawn"],
+            },
         ]
 
         for scenario in error_scenarios:
@@ -280,11 +279,7 @@ class TestRecoveryGuidance:
         Test: Resource limits provide scaling guidance
         UX Goal: Users understand system limits and workarounds
         """
-        resource_errors = [
-            "Too many open files",
-            "Cannot allocate memory",
-            "No space left on device"
-        ]
+        resource_errors = ["Too many open files", "Cannot allocate memory", "No space left on device"]
 
         for error_msg in resource_errors:
             # Pattern: resource errors explain limits and solutions
@@ -302,16 +297,13 @@ class TestRecoveryGuidance:
                 "success": False,
                 "deployed": ["pm", "backend-dev"],
                 "failed": ["frontend-dev", "qa"],
-                "errors": {
-                    "frontend-dev": "Session creation failed",
-                    "qa": "Agent spawn timeout"
-                }
+                "errors": {"frontend-dev": "Session creation failed", "qa": "Agent spawn timeout"},
             }
 
             result = cli_runner.invoke(team, ["deploy", "test-team"])
 
         if result.exit_code != 0:
-            output = result.output
+            pass
             # Should list what worked
             # Should list what failed
             # Should provide recovery for each failure
@@ -341,16 +333,16 @@ class TestContextualHelp:
         common_mistakes = [
             {
                 "command": ["spawn", "pm", "test"],  # Missing :window
-                "expected_hint": "session:window format"
+                "expected_hint": "session:window format",
             },
             {
                 "command": ["agent", "send", "test", ""],  # Empty message
-                "expected_hint": "message cannot be empty"
+                "expected_hint": "message cannot be empty",
             },
             {
                 "command": ["monitor", "start", "--interval", "0"],  # Invalid interval
-                "expected_hint": "interval must be positive"
-            }
+                "expected_hint": "interval must be positive",
+            },
         ]
 
         for mistake in common_mistakes:
@@ -394,6 +386,7 @@ class TestContextualHelp:
         if "version" in result.output.lower():
             # Should indicate minimum version
             # Should provide upgrade instructions
+            pass
 
 
 class TestErrorMessageFormatting:
@@ -477,10 +470,10 @@ class TestDynamicCommandDiscovery:
         """
         # Pattern for command failure logging
         with patch("pathlib.Path.exists", return_value=True):
-            with patch("pathlib.Path.open", mock_open()) as mock_file:
+            with patch("pathlib.Path.open", mock_open()):
                 # Simulate command failure that should be logged
                 with patch("tmux_orchestrator.utils.tmux.TMUXManager", side_effect=Exception("Command failed")):
-                    result = cli_runner.invoke(agent, ["status"])
+                    cli_runner.invoke(agent, ["status"])
 
                 # Pattern: failures logged to briefing file
                 # This helps track hardcoded commands that need updating

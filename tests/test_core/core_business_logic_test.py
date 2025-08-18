@@ -70,7 +70,7 @@ class TestConfigManagement:
     def test_config_environment_variables(self, test_uuid: str) -> None:
         """Test configuration respects environment variables."""
         with patch.dict("os.environ", {"TMUX_ORC_MAX_AGENTS": "25"}):
-            config = Config()
+            Config()
             # If env var support is implemented, it should respect it
             # This tests the interface even if not fully implemented yet
 
@@ -120,11 +120,11 @@ class TestTMUXManager:
         mock_run.return_value.returncode = 0
 
         # Test normal message sending
-        result = tmux.send_keys("session:1", "test message")
+        tmux.send_keys("session:1", "test message")
         mock_run.assert_called()
 
         # Test empty message handling
-        result = tmux.send_keys("session:1", "")
+        tmux.send_keys("session:1", "")
         # Should handle gracefully
 
     @patch("subprocess.run")
@@ -134,16 +134,16 @@ class TestTMUXManager:
         mock_run.return_value.returncode = 0
 
         # Test window creation
-        result = tmux.new_window("session:1", "window-name")
+        tmux.new_window("session:1", "window-name")
         assert mock_run.called, f"new_window should call subprocess - Test ID: {test_uuid}"
 
         # Test window killing
-        result = tmux.kill_window("session:1")
+        tmux.kill_window("session:1")
         assert mock_run.called, f"kill_window should call subprocess - Test ID: {test_uuid}"
 
     def test_session_name_validation(self, test_uuid: str) -> None:
         """Test session name validation for developer tool patterns."""
-        tmux = TMUXManager()
+        TMUXManager()
 
         # Test valid session patterns
         valid_sessions = ["project:1", "team-frontend:2", "backend-dev:3", "test-session:0"]
@@ -163,7 +163,7 @@ class TestErrorHandler:
 
     def test_error_categorization(self, test_uuid: str) -> None:
         """Test error categorization for different types."""
-        handler = ErrorHandler()
+        ErrorHandler()
 
         # Test different error types that might occur in local developer tool
         errors = [
@@ -180,7 +180,7 @@ class TestErrorHandler:
 
     def test_error_recovery_suggestions(self, test_uuid: str) -> None:
         """Test error recovery suggestion logic."""
-        handler = ErrorHandler()
+        ErrorHandler()
 
         # Test common developer tool errors
         common_errors = ["tmux not found", "session does not exist", "permission denied", "port already in use"]
@@ -192,7 +192,7 @@ class TestErrorHandler:
 
     def test_error_logging_performance(self, test_uuid: str) -> None:
         """Test error logging doesn't impact performance."""
-        handler = ErrorHandler()
+        ErrorHandler()
 
         import time
 
@@ -222,7 +222,7 @@ class TestAgentOperations:
         mock_tmux.return_value.new_window.return_value = True
 
         # Test agent spawning with valid parameters
-        result = restart_agent("test-session:1", "developer")
+        restart_agent("test-session:1", "developer")
         # Should handle the operation without crashing
 
     def test_agent_type_validation(self, test_uuid: str) -> None:

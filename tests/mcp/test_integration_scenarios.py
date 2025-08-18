@@ -75,7 +75,7 @@ class TestPipInstallableIntegration:
             pytest.fail(f"Invalid JSON from CLI reflection: {e} - Test ID: {test_uuid}")
 
 
-class TestScenario0_PipInstallWorkflow:
+class TestScenario0PipInstallWorkflow:
     """Scenario 0: Pip install and setup workflow."""
 
     def test_setup_command_available(self, test_uuid: str) -> None:
@@ -93,7 +93,7 @@ class TestScenario0_PipInstallWorkflow:
         assert result.returncode in [0, 2], f"tmux-orc-mcp script not accessible - Test ID: {test_uuid}"
 
 
-class TestScenario1_TeamDeploymentWorkflow:
+class TestScenario1TeamDeploymentWorkflow:
     """Scenario 1: Complete team deployment workflow (local development)."""
 
     @pytest.mark.asyncio
@@ -162,7 +162,7 @@ class TestScenario1_TeamDeploymentWorkflow:
         ), f"PRD execution step missing - Test ID: {test_uuid}"
 
 
-class TestScenario2_AgentLifecycle:
+class TestScenario2AgentLifecycle:
     """Scenario 2: Agent lifecycle management."""
 
     @pytest.mark.asyncio
@@ -193,9 +193,7 @@ class TestScenario2_AgentLifecycle:
                 assert agent_found, f"Spawned agent not found in list - Test ID: {test_uuid}"
 
             # Step 3: Kill agent
-            kill_result = subprocess.run(
-                ["tmux-orc", "kill", f"{session_name}:0"], capture_output=True, text=True, timeout=5
-            )
+            subprocess.run(["tmux-orc", "kill", f"{session_name}:0"], capture_output=True, text=True, timeout=5)
 
             # Step 4: Verify agent is gone
             await asyncio.sleep(1)
@@ -219,7 +217,7 @@ class TestScenario2_AgentLifecycle:
             pytest.fail(f"Command timed out during agent lifecycle test - Test ID: {test_uuid}")
 
 
-class TestScenario3_MultiTeamCoordination:
+class TestScenario3MultiTeamCoordination:
     """Scenario 3: Multiple team coordination."""
 
     @pytest.mark.asyncio
@@ -274,7 +272,7 @@ class TestScenario3_MultiTeamCoordination:
                 subprocess.run(["tmux-orc", "team", "kill", team], capture_output=True, timeout=5)
 
 
-class TestScenario4_ErrorRecovery:
+class TestScenario4ErrorRecovery:
     """Scenario 4: Error handling and recovery."""
 
     def test_invalid_command_handling(self, test_uuid: str) -> None:

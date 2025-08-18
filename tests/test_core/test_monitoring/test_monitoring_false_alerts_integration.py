@@ -43,7 +43,7 @@ class TestMonitoringFalseAlertPrevention:
 
             # Attempt to start second monitor - should detect existing
             mock_daemon_manager.is_running.return_value = True
-            result2 = mock_daemon_manager.start()
+            mock_daemon_manager.start()
 
             # Should not start duplicate (implementation dependent)
             # This tests the pattern for preventing duplicates

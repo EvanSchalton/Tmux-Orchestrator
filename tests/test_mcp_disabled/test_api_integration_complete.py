@@ -442,9 +442,7 @@ class TestAPIIntegrationComplete:
         assert len(successful_results) > 0
 
         # Check for rate limit responses
-        rate_limited = [
-            r for r in results if isinstance(r, dict) and "RateLimitExceeded" in str(r.get("error_type", ""))
-        ]
+        [r for r in results if isinstance(r, dict) and "RateLimitExceeded" in str(r.get("error_type", ""))]
 
         # Rate limiting might or might not trigger depending on configuration
         # This test verifies the system handles rapid requests gracefully
@@ -548,7 +546,6 @@ class TestRestAPIEndpoints:
 
                 # Check for expected endpoints
                 paths = spec["paths"]
-                expected_endpoints = ["/docs", "/redoc"]
 
                 # Note: Actual API endpoints depend on server implementation
                 print(f"Available endpoints: {list(paths.keys())}")

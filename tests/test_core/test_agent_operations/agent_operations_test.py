@@ -109,7 +109,6 @@ class TestSpawnAgent:
         assert "spawned successfully" in message
 
         # Verify context was loaded
-        expected_target = f"{session}:{agent_type}"
         context_calls = [
             call for call in mock_tmux.send_message.call_args_list if f"Context: {context_content}" in str(call)
         ]

@@ -412,7 +412,6 @@ Valid examples:
 
     def evaluate_error_clarity(self, error_response: dict[str, Any], scenario: ErrorScenario) -> dict[str, Any]:
         """Evaluate clarity of an error response."""
-        scores = {}
 
         # Check each clarity criterion
         met_criteria = 0

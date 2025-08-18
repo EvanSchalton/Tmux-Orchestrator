@@ -188,7 +188,7 @@ class TestFreshCLIMCPServer:
             }
 
             start_time = time.time()
-            result = await server._execute_cli_command("test", {})
+            await server._execute_cli_command("test", {})
             execution_time = time.time() - start_time
 
             assert execution_time < 1.0, f"Tool execution took {execution_time:.3f}s (>1s limit) - Test ID: {test_uuid}"
@@ -211,7 +211,7 @@ class TestCLIReflectionIntegration:
             )
 
             if result.returncode == 0:
-                cli_structure = json.loads(result.stdout)
+                json.loads(result.stdout)
                 workflow_steps.append("CLI_DISCOVERY_SUCCESS")
             else:
                 workflow_steps.append("CLI_DISCOVERY_FAILED")
@@ -222,7 +222,7 @@ class TestCLIReflectionIntegration:
         # Step 2: Tool Generation (mock)
         if CLI_REFLECTION_AVAILABLE:
             try:
-                server = FreshCLIMCPServer("integration-test")
+                FreshCLIMCPServer("integration-test")
                 workflow_steps.append("SERVER_INIT_SUCCESS")
             except Exception:
                 workflow_steps.append("SERVER_INIT_FAILED")
@@ -248,7 +248,7 @@ class TestCLIReflectionPerformance:
             pytest.skip("CLI reflection not available")
 
         start_time = time.time()
-        server = FreshCLIMCPServer("perf-test")
+        FreshCLIMCPServer("perf-test")
         startup_time = time.time() - start_time
 
         assert startup_time < 0.5, f"Server startup took {startup_time:.3f}s (>0.5s limit) - Test ID: {test_uuid}"

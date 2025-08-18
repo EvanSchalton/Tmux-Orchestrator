@@ -408,6 +408,6 @@ class TestConcurrentUserOperations:
             mock_tmux.session_exists.return_value = True
 
             with patch("tmux_orchestrator.cli.spawn.get_available_agents", return_value=["pm"]):
-                result2 = cli_runner.invoke(spawn, ["pm", "test:1"])
+                cli_runner.invoke(spawn, ["pm", "test:1"])
                 # Should either succeed with different name or provide clear error
                 # Exact behavior depends on implementation

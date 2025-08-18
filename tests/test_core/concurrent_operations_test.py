@@ -28,7 +28,6 @@ class TestConcurrentAgentLimits:
         assert config.max_agents >= 1, f"Must allow at least one agent - Test ID: {test_uuid}"
 
         # Default should be 20 for good developer experience
-        expected_default = 20
         if hasattr(config, "max_agents"):
             # If explicitly set, should be reasonable
             assert 1 <= config.max_agents <= 50, f"Max agents should be 1-50 - Test ID: {test_uuid}"

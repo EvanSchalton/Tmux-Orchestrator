@@ -249,7 +249,7 @@ class TestCrashDetectorInterface:
         class TestDetector(CrashDetectorInterface):
             pass
 
-        detector = TestDetector()
+        TestDetector()
 
         with pytest.raises(TypeError):
             # Should fail to instantiate due to abstract methods
