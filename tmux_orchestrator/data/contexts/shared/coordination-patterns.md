@@ -24,6 +24,7 @@ Spawn an assistant agent in the governing PM's session that:
 ### Implementation Example
 ```bash
 # In governing PM session:
+# First discover spawn command: tmux-orc reflect --filter "spawn.*agent"
 tmux-orc spawn agent admin-assistant session:2 --briefing "
 You are an Administrative Assistant monitoring cross-session work.
 

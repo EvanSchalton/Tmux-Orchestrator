@@ -23,9 +23,9 @@ def server():
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--test", is_flag=True, help="Run in test mode with sample output")
 def start(verbose, test):
-    """Start MCP server for Claude Desktop integration.
+    """Start MCP server for Claude Code CLI integration.
 
-    This command is registered with Claude Desktop and will be
+    This command is registered with Claude Code CLI and will be
     executed automatically when Claude needs MCP tools.
 
     Runs in stdio mode: reads from stdin, writes to stdout.
@@ -39,12 +39,17 @@ def start(verbose, test):
 
     if test:
         # Test mode for verification
-        click.echo('{"status": "ready", "tools": ["list", "spawn", "status"]}')
+        click.echo('{"status": "ready", "tools": ["list", "spawn", "status"], "mode": "claude_code_cli"}')
         return
 
     try:
         # Import here to avoid circular imports
+        # Set environment to indicate Claude Code CLI mode
+        import os
+
         from tmux_orchestrator.mcp_server import main
+
+        os.environ["TMUX_ORC_MCP_MODE"] = "claude_code"
 
         # Run the server
         asyncio.run(main())

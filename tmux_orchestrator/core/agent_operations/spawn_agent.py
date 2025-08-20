@@ -50,8 +50,17 @@ def spawn_agent(
     target = f"{session}:{window}"
 
     try:
+        # Build Claude command with MCP configuration
+        claude_cmd = "claude --dangerously-skip-permissions"
+
+        # Check for MCP config file and add to command if present
+        project_root = Path.cwd()
+        mcp_config_path = project_root / ".mcp.json"
+        if mcp_config_path.exists():
+            claude_cmd += f" --mcp-config {mcp_config_path}"
+
         # Start Claude Code in the window
-        if not tmux.send_keys(target, "claude --dangerously-skip-permissions"):
+        if not tmux.send_keys(target, claude_cmd):
             return False, f"Failed to start Claude in {target}"
 
         time.sleep(0.5)
@@ -102,7 +111,7 @@ def _send_agent_message(tmux: TMUXManager, target: str, message: str) -> bool:
     except Exception:
         # Fallback to the tmux-message script if available
         try:
-            script_path = Path("/workspaces/Tmux-Orchestrator/bin/tmux-message")
+            script_path = Path.cwd() / "bin" / "tmux-message"
             if script_path.exists():
                 result = subprocess.run(
                     [str(script_path), target, message], capture_output=True, text=True, timeout=30, check=False

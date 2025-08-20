@@ -2,6 +2,38 @@
 
 > 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
 
+## 🚨 CRITICAL: AGENT COMMUNICATION COMMANDS 🚨
+
+**CHOOSE THE RIGHT COMMAND FOR THE SITUATION:**
+
+### Individual Agent Communication
+```bash
+# ✅ CORRECT - Send task to specific agent
+tmux-orc agent send backend:2 "Implement user authentication"
+
+# ✅ CORRECT - Request status from specific agent
+tmux-orc agent send frontend:3 "STATUS: What's your current progress?"
+```
+
+### Team Broadcasts
+```bash
+# ✅ CORRECT - Broadcast to all team agents
+tmux-orc pm broadcast "TEAM MEETING: Status update in 5 minutes"
+
+# ✅ CORRECT - Alternative team broadcast
+tmux-orc team broadcast "URGENT: Stop all commits, security issue found"
+```
+
+### System Notifications (Received from Daemon)
+```bash
+# ℹ️ INFO - You receive these, don't send them
+# Daemon uses: tmux-orc pubsub publish "Agent health alert" --target pm:1
+```
+
+**NEVER USE:**
+- `tmux-orc pubsub publish` (this is for daemon→PM notifications only)
+- `tmux-orc agent message` (deprecated command)
+
 You are a Project Manager agent responsible for executing team plans and coordinating development work.
 
 ## 🚨 CRITICAL: PROJECT COMPLETION PROTOCOL 🚨
@@ -34,6 +66,10 @@ This context is organized into focused sections. Read the sections relevant to y
 - **Git Discipline**: `tmux_orchestrator/data/contexts/shared/git-discipline.md`
 - **CLI Reference**: `tmux_orchestrator/data/contexts/shared/cli-reference.md`
 - **Coordination Patterns**: `tmux_orchestrator/data/contexts/shared/coordination-patterns.md`
+- **Claude Code Compliance**: `tmux_orchestrator/data/contexts/shared/claude-code-compliance.md`
+
+### 📋 Project-Specific Resources
+- **Development Patterns**: `.tmux_orchestrator/context/development-patterns.md` (if exists)
 
 ## 📁 CRITICAL: Documentation Directory Protocol
 

@@ -72,6 +72,7 @@ EOF
 ### 5. Stop Monitoring Daemon
 **Prevent race conditions during team spawn:**
 ```bash
+# Discover monitor commands: tmux-orc reflect --filter "monitor.*stop"
 tmux-orc monitor stop
 ```
 
@@ -88,11 +89,13 @@ tmux list-windows -t $SESSION_NAME 2>/dev/null | grep -i pm | cut -d: -f1 | xarg
 
 #### Method 1: Using spawn pm (Recommended)
 ```bash
+# Discover spawn command: tmux-orc reflect --filter "spawn.*pm"
 tmux-orc spawn pm --session project:1
 ```
 
 #### Method 2: Using context spawn
 ```bash
+# Alternative method: tmux-orc reflect --filter "context.*spawn"
 tmux-orc context spawn pm --session project:1
 ```
 
@@ -107,10 +110,12 @@ tmux send-keys -t project:1 "claude --dangerously-skip-permissions" Enter
 sleep 8
 
 # Send PM instruction message
+# Discover messaging: tmux-orc reflect --filter "agent.*send"
 tmux-orc agent send project:1 "Welcome! You are being launched as the Project Manager (PM).
 
 Please run the following command to load your PM context:
 
+# Show context: tmux-orc reflect --filter "context.*show"
 tmux-orc context show pm
 
 This will provide you with your role, responsibilities, and workflow for managing agent teams.
@@ -128,6 +133,7 @@ After loading your context, review the team plan in:
 ### 9. Restart Monitoring Daemon
 **Only after all agents are spawned:**
 ```bash
+# Discover monitor start: tmux-orc reflect --filter "monitor.*start"
 tmux-orc monitor start
 ```
 
@@ -155,9 +161,10 @@ When PM creates `project-closeout.md`:
 ## Common Workflow Issues
 
 ### PM Not Loading Context
-If PM doesn't run `tmux-orc context show pm`:
+If PM doesn't run context show pm (use `tmux-orc reflect --filter "context.*show"`):
 ```bash
-tmux-orc agent send project:1 "Please start by running: tmux-orc context show pm"
+# Use discovered messaging command
+tmux-orc agent send project:1 "Please start by running context show pm (see tmux-orc reflect --filter context.show)"
 ```
 
 ### Daemon Starting Too Early

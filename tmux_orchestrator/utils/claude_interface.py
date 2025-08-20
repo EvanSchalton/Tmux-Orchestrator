@@ -8,7 +8,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Use secure project directory instead of /tmp
-PROJECT_DIR = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+PROJECT_DIR = Path.cwd() / ".tmux_orchestrator"
 PROJECT_DIR.mkdir(exist_ok=True)
 BRIEFINGS_DIR = PROJECT_DIR / "briefings"
 BRIEFINGS_DIR.mkdir(exist_ok=True)
@@ -96,7 +96,7 @@ class ClaudeInterface:
         return any(indicator in content for indicator in indicators)
 
     @staticmethod
-    def _clear_input(target: str):
+    def _clear_input(target: str) -> None:
         """Clear any existing input in multiple ways."""
         # Try various clear methods
         subprocess.run(["tmux", "send-keys", "-t", target, "C-c"], check=False, timeout=10)

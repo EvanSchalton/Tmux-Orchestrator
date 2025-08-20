@@ -16,7 +16,9 @@ tmux send-keys -t project:1 "message"  # FAILS TO SUBMIT!
 ### ✅ CORRECT (Guaranteed Delivery):
 ```bash
 # Use tmux-orc commands that handle message submission properly:
+# Discover spawn: tmux-orc reflect --filter "spawn.*pm"
 tmux-orc spawn pm --session project:1
+# Discover messaging: tmux-orc reflect --filter "agent.*send"
 tmux-orc agent send project:1 "message"
 ```
 
@@ -24,19 +26,19 @@ tmux-orc agent send project:1 "message"
 
 ### Method 1: spawn pm (Recommended)
 ```bash
-# Simplest and most reliable
+# Discover command: tmux-orc reflect --filter "spawn.*pm"
 tmux-orc spawn pm --session project:1
 ```
 
 ### Method 2: context spawn
 ```bash
-# Alternative if spawn pm fails
+# Alternative: tmux-orc reflect --filter "context.*spawn"
 tmux-orc context spawn pm --session project:1
 ```
 
 ### Method 3: Manual with Instructions
 ```bash
-# 1. Stop daemon first
+# 1. Stop daemon first - discover: tmux-orc reflect --filter "monitor.*stop"
 tmux-orc monitor stop
 
 # 2. Create tmux session and launch Claude

@@ -15,7 +15,7 @@ class EnhancedMonitor:
 
     def __init__(self):
         # Use secure project directory instead of /tmp
-        project_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+        project_dir = Path.cwd() / ".tmux_orchestrator"
         project_dir.mkdir(exist_ok=True)
         logs_dir = project_dir / "logs"
         logs_dir.mkdir(exist_ok=True)

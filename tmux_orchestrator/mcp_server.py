@@ -39,6 +39,12 @@ logger = logging.getLogger(__name__)
 HIERARCHICAL_MODE = os.getenv("TMUX_ORC_HIERARCHICAL", "true").lower() == "true"
 ENHANCED_DESCRIPTIONS = os.getenv("TMUX_ORC_ENHANCED_DESCRIPTIONS", "true").lower() == "true"
 
+# Claude Code CLI environment detection
+CLAUDE_CODE_CLI_MODE = os.getenv("TMUX_ORC_MCP_MODE", "").lower() == "claude"
+CLAUDE_CODE_CLI_DETECTED = (
+    os.getenv("CLAUDE_CODE_CLI") is not None or "claude-code" in os.getcwd().lower() or CLAUDE_CODE_CLI_MODE
+)
+
 
 class EnhancedHierarchicalSchema:
     """Enhanced schema builder from successful hierarchical prototypes."""
@@ -157,7 +163,60 @@ class EnhancedCLIToMCPServer:
         self.hierarchical_groups = {}
 
         mode = "hierarchical" if HIERARCHICAL_MODE else "flat"
-        logger.info(f"Initializing enhanced CLI reflection MCP server: {server_name} (mode: {mode})")
+        environment = "Claude Code CLI" if CLAUDE_CODE_CLI_DETECTED else "Standard"
+        logger.info(
+            f"Initializing enhanced CLI reflection MCP server: {server_name} (mode: {mode}, env: {environment})"
+        )
+
+    async def validate_claude_code_cli_connectivity(self) -> bool:
+        """
+        Validate that the MCP server can properly communicate with Claude Code CLI.
+
+        Returns:
+            bool: True if connectivity is validated, False otherwise
+        """
+        if not CLAUDE_CODE_CLI_DETECTED:
+            logger.info("Claude Code CLI not detected, skipping CLI-specific validation")
+            return True
+
+        try:
+            # Test basic MCP protocol functionality
+            logger.info("Validating Claude Code CLI MCP connectivity...")
+
+            # Validate environment variables are set correctly
+            mcp_mode = os.getenv("TMUX_ORC_MCP_MODE", "")
+            if mcp_mode.lower() == "claude":
+                logger.info("✅ Claude Code CLI MCP mode detected")
+            else:
+                logger.warning(f"⚠️  MCP mode is '{mcp_mode}', expected 'claude'")
+
+            # Check for Claude CLI availability
+            try:
+                result = subprocess.run(["claude", "mcp", "list"], capture_output=True, text=True, timeout=10)
+
+                if result.returncode == 0:
+                    if "tmux-orchestrator" in result.stdout:
+                        logger.info("✅ tmux-orchestrator MCP server is registered with Claude CLI")
+                        return True
+                    else:
+                        logger.warning("⚠️  tmux-orchestrator not found in Claude CLI MCP servers")
+                        logger.warning("   Run 'tmux-orc setup all' to register MCP server")
+                        return True  # Don't fail server startup, just warn
+                else:
+                    logger.warning(f"⚠️  Claude CLI MCP check failed: {result.stderr}")
+                    return True  # Don't fail server startup
+
+            except subprocess.TimeoutExpired:
+                logger.warning("⚠️  Claude CLI MCP check timed out")
+                return True  # Don't fail server startup
+            except FileNotFoundError:
+                logger.warning("⚠️  Claude CLI not found in PATH")
+                logger.warning("   Install Claude Code CLI or run setup in Desktop environment")
+                return True  # Don't fail server startup
+
+        except Exception as e:
+            logger.error(f"❌ Claude Code CLI connectivity validation failed: {e}")
+            return False
 
     async def discover_cli_structure(self) -> dict[str, Any]:
         """
@@ -333,22 +392,26 @@ class EnhancedCLIToMCPServer:
 
             # Validate action
             if not action:
+                error_context = "for Claude Code CLI agent" if CLAUDE_CODE_CLI_DETECTED else ""
                 return {
                     "success": False,
-                    "error": "Missing required 'action' parameter",
+                    "error": f"Missing required 'action' parameter {error_context}",
                     "valid_actions": subcommands,
                     "example": f"{group_name}(action='{subcommands[0] if subcommands else 'status'}')",
+                    "environment": "Claude Code CLI" if CLAUDE_CODE_CLI_DETECTED else "Standard",
                 }
 
             if action not in subcommands:
                 # Enhanced error with suggestions
                 suggestions = difflib.get_close_matches(action, subcommands, n=3, cutoff=0.6)
+                error_context = "in Claude Code CLI environment" if CLAUDE_CODE_CLI_DETECTED else ""
                 return {
                     "success": False,
-                    "error": f"Invalid action '{action}' for {group_name}",
+                    "error": f"Invalid action '{action}' for {group_name} {error_context}",
                     "valid_actions": subcommands,
                     "suggestions": suggestions,
                     "example": f"{group_name}(action='{suggestions[0] if suggestions else subcommands[0]}')",
+                    "environment": "Claude Code CLI" if CLAUDE_CODE_CLI_DETECTED else "Standard",
                 }
 
             try:
@@ -805,6 +868,12 @@ class EnhancedCLIToMCPServer:
         """Run the MCP server with auto-generated tools."""
         logger.info("Starting fresh CLI reflection MCP server...")
 
+        # Validate Claude Code CLI connectivity if detected
+        if CLAUDE_CODE_CLI_DETECTED:
+            connectivity_valid = await self.validate_claude_code_cli_connectivity()
+            if not connectivity_valid:
+                logger.warning("⚠️  Claude Code CLI connectivity validation failed, proceeding anyway")
+
         # Discover CLI structure
         await self.discover_cli_structure()
 
@@ -816,17 +885,19 @@ class EnhancedCLIToMCPServer:
             return
 
         # Log generated tools
-        logger.info("Generated MCP Tools:")
+        environment_note = " (Claude Code CLI optimized)" if CLAUDE_CODE_CLI_DETECTED else ""
+        logger.info(f"Generated MCP Tools{environment_note}:")
         for tool_name in sorted(self.generated_tools.keys()):
             cmd_name = self.generated_tools[tool_name]["command_name"]
             logger.info(f"  • {tool_name} → tmux-orc {cmd_name}")
 
         # Start the server
-        logger.info("Starting FastMCP server...")
+        server_type = "Claude Code CLI MCP" if CLAUDE_CODE_CLI_DETECTED else "FastMCP"
+        logger.info(f"Starting {server_type} server...")
         await self.mcp.run_stdio_async()
 
 
-async def main():
+async def main() -> None:
     """Main entry point for the enhanced MCP server."""
     try:
         # Check if tmux-orc is available
@@ -841,10 +912,18 @@ async def main():
         # Log configuration
         mode = "hierarchical" if HIERARCHICAL_MODE else "flat"
         descriptions = "enhanced" if ENHANCED_DESCRIPTIONS else "basic"
-        logger.info(f"MCP Server Configuration: mode={mode}, descriptions={descriptions}")
+        environment = "Claude Code CLI" if CLAUDE_CODE_CLI_DETECTED else "Standard"
+
+        logger.info("MCP Server Configuration:")
+        logger.info(f"  • Mode: {mode}")
+        logger.info(f"  • Descriptions: {descriptions}")
+        logger.info(f"  • Environment: {environment}")
+        if CLAUDE_CODE_CLI_DETECTED:
+            logger.info(f"  • MCP Mode: {os.getenv('TMUX_ORC_MCP_MODE', 'not set')}")
 
         # Create and run the enhanced MCP server
-        server = EnhancedCLIToMCPServer("tmux-orchestrator-enhanced")
+        server_name = "tmux-orchestrator-claude-cli" if CLAUDE_CODE_CLI_DETECTED else "tmux-orchestrator-enhanced"
+        server = EnhancedCLIToMCPServer(server_name)
         await server.run_server()
 
     except KeyboardInterrupt:
@@ -854,7 +933,7 @@ async def main():
         sys.exit(1)
 
 
-def sync_main():
+def sync_main() -> None:
     """Synchronous entry point for script execution."""
     asyncio.run(main())
 

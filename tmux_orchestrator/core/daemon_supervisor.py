@@ -53,7 +53,7 @@ class DaemonSupervisor:
         logger.handlers.clear()
 
         # Create logs directory
-        logs_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator/logs")
+        logs_dir = Path.cwd() / ".tmux_orchestrator" / "logs"
         logs_dir.mkdir(exist_ok=True)
 
         # File handler

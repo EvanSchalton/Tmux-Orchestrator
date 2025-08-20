@@ -47,7 +47,7 @@ def send_message(
             return True, f"Message sent to {target}"
         else:
             # Try fallback method using the tmux-message script
-            script_path = Path("/workspaces/Tmux-Orchestrator/bin/tmux-message")
+            script_path = Path.cwd() / "bin" / "tmux-message"
             if script_path.exists():
                 result = subprocess.run(
                     [str(script_path), target, message],

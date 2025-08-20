@@ -1,8 +1,8 @@
 """Spawn orchestrator command - entry point for human interaction.
 
-TODO: Consider refactoring this to be under an 'orchestrator' command group
-      (e.g., 'tmux-orc orchestrator spawn') for better consistency with other
-      nested commands like 'agent spawn' and 'context spawn'.
+This command is now available as 'tmux-orc spawn orc' for consistency
+with other spawn commands. The implementation remains here as a module
+that can be imported by the spawn command group.
 """
 
 import json

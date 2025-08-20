@@ -192,7 +192,7 @@ tmux-orc orchestrator start
 
 ### 🌐 MCP Server Setup
 
-The Model Context Protocol (MCP) server enables Claude Code and other MCP-compatible tools to manage agents directly using a stdio-based interface.
+The Model Context Protocol (MCP) server enables Claude Code CLI agents to coordinate with each other through tmux-orchestrator tools using a stdio-based interface.
 
 #### Quick Setup (Recommended)
 ```bash
@@ -202,8 +202,8 @@ tmux-orc server setup
 
 This will:
 1. Verify tmux-orc is installed correctly
-2. Configure Claude Code to use `tmux-orc server mcp-serve`
-3. Make all orchestration tools available in Claude Code
+2. Configure Claude Code CLI to use `tmux-orc server mcp-serve`
+3. Make all orchestration tools available for Claude Code agent coordination
 
 #### Available MCP Tools
 - **list_agents** - List all active tmux sessions and agents
@@ -213,10 +213,11 @@ This will:
 - **deploy_team** - Deploy specialized agent teams
 - **get_agent_status** - Get detailed agent status information
 
-#### Claude Code Integration
-After setup, in Claude Code:
-- Run `/mcp` to see available tools
-- Tools appear with 'tmux-orchestrator' prefix
+#### Claude Code CLI Integration
+After setup, Claude Code CLI agents can:
+- Access tmux-orchestrator tools for inter-agent coordination
+- Spawn and manage other Claude Code agents
+- Coordinate development work across tmux sessions
 - You may need to restart Claude Code after setup
 
 #### Manual Testing
@@ -227,7 +228,7 @@ tmux-orc server mcp-serve
 ```
 
 #### HTTP Server (Alternative)
-For programmatic access via REST API:
+For non-Claude Code programmatic access via HTTP server:
 ```bash
 # Start HTTP server
 tmux-orc server start
@@ -243,8 +244,7 @@ tmux-orc server stop
 ```
 
 Once running, you can access:
-- **API Documentation**: http://127.0.0.1:8000/docs
-- **OpenAPI Schema**: http://127.0.0.1:8000/openapi.json
+- **Health Check**: http://127.0.0.1:8000/health
 - **Health Check**: http://127.0.0.1:8000/health
 
 ### 🔧 Integrating into Your Project
@@ -317,7 +317,7 @@ Building on the original's solid foundation, this fork adds:
 | **Monitoring** | Enhanced idle detection and automatic recovery |
 | **Organization** | Centralized task management in `.tmux_orchestrator/` |
 | **Agent Variety** | Expanded to 20+ specialized agent templates |
-| **API Access** | Added MCP Server with REST API for integrations |
+| **API Access** | Added MCP Server for Claude Code integrations |
 
 ### 🎯 Document-Driven Team Workflow
 Claude Code acts as orchestrator, creating bespoke teams through planning documents:
@@ -355,7 +355,7 @@ tmux-orc agent status     # Monitor agents
 ```
 
 ### 🔌 MCP Server & VS Code Integration
-- **REST API** via Model Context Protocol
+- **MCP Server integration**
 - **VS Code tasks** for quick agent access
 - **Claude Code slash commands** for orchestration
 - **Monitoring dashboards** in your editor

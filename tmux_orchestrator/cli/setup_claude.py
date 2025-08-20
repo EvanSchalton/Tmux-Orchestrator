@@ -315,6 +315,56 @@ def check_requirements() -> None:
     console.print("4. Or run all setups: [cyan]tmux-orc setup all[/cyan]")
 
 
+def detect_claude_environment():
+    """Detect whether Claude Desktop or Claude Code CLI is available."""
+    # Check for Claude CLI in PATH
+    claude_cli_available = shutil.which("claude") is not None
+
+    # Check for Claude Desktop using existing function
+    from tmux_orchestrator.utils.claude_config import check_claude_installation
+
+    claude_desktop_available = check_claude_installation()[0]
+
+    return {
+        "cli_available": claude_cli_available,
+        "desktop_available": claude_desktop_available,
+        "preferred": "cli" if claude_cli_available else "desktop",
+    }
+
+
+def register_mcp_with_claude_cli():
+    """Register MCP server with Claude Code CLI."""
+    try:
+        # Correct Claude Code CLI syntax for adding MCP server
+        cmd = [
+            "claude",
+            "mcp",
+            "add",
+            "tmux-orchestrator",
+            "tmux-orc",
+            "server",
+            "start",
+            "--scope",
+            "user",
+            "--env",
+            "TMUX_ORC_MCP_MODE=claude_code",
+            "--env",
+            "PYTHONUNBUFFERED=1",
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+        if result.returncode == 0:
+            return True, f"MCP server registered with Claude Code CLI (project scope)\nOutput: {result.stdout}"
+        else:
+            return (
+                False,
+                f"Registration failed (code {result.returncode})\nStderr: {result.stderr}\nStdout: {result.stdout}\nCommand: {' '.join(cmd)}",
+            )
+    except Exception as e:
+        return False, f"CLI registration error: {e}"
+
+
 @setup.command(name="claude-code")
 @click.option(
     "--root-dir",
@@ -473,20 +523,32 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
 
         progress.update(task, advance=1)
 
-        # Task 3: Configure MCP server with Claude Desktop
+        # Task 3: Configure MCP server (CLI-first approach)
         progress.update(task, description="Configuring MCP server...")
 
-        # Import Claude config utilities
-        from tmux_orchestrator.utils.claude_config import (
-            check_claude_installation,
-            get_registration_status,
-            register_mcp_server,
-        )
+        # Detect available Claude environments
+        claude_env = detect_claude_environment()
 
-        # First check if Claude Desktop is installed
-        is_installed, config_path = check_claude_installation()
+        if claude_env["cli_available"]:
+            # Priority 1: Claude Code CLI
+            console.print("[green]✓ Found Claude Code CLI[/green]")
+            success, message = register_mcp_with_claude_cli()
+            if success:
+                console.print(f"[green]✓ {message}[/green]")
+                console.print("[dim]   Project-scoped MCP server now available[/dim]")
+            else:
+                console.print(f"[yellow]⚠ CLI registration failed: {message}[/yellow]")
+                console.print("[yellow]   Will create local config as fallback[/yellow]")
 
-        if is_installed:
+        elif claude_env["desktop_available"]:
+            # Priority 2: Claude Desktop (existing logic)
+            from tmux_orchestrator.utils.claude_config import (
+                check_claude_installation,
+                get_registration_status,
+                register_mcp_server,
+            )
+
+            is_installed, config_path = check_claude_installation()
             console.print(f"[green]✓ Found Claude Desktop config: {config_path}[/green]")
 
             # Attempt registration
@@ -502,21 +564,14 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
             else:
                 console.print(f"[yellow]⚠ {message}[/yellow]")
                 console.print("[yellow]   Will create local MCP config as fallback[/yellow]")
+
         else:
-            # Claude Desktop not installed - provide platform-specific guidance
-            system = platform.system()
-            console.print(f"[yellow]⚠ Claude Desktop not detected on {system}[/yellow]")
+            # Priority 3: Create local configs for future use
+            console.print("[yellow]⚠ No Claude environment detected[/yellow]")
+            console.print("[dim]   Creating local MCP configs for future use...[/dim]")
 
-            if system == "Darwin":
-                console.print("[dim]   Expected at: ~/Library/Application Support/Claude/[/dim]")
-            elif system == "Windows":
-                console.print("[dim]   Expected at: %APPDATA%\\Claude\\[/dim]")
-            else:
-                console.print("[dim]   Expected at: ~/.config/Claude/[/dim]")
-
-            console.print("[dim]   Install from: https://claude.ai/download[/dim]")
-            console.print("[yellow]   Creating local MCP config for future use...[/yellow]")
-        # Create local MCP config (always useful for reference)
+        # Always create local MCP configs for reference/fallback
+        # Create Claude Desktop format config
         mcp_config_path = claude_path / "config" / "mcp.json"
         mcp_config_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -545,14 +600,23 @@ def setup_claude_code(root_dir: str | None, force: bool, non_interactive: bool) 
 
         console.print(f"[green]✓ Created local MCP config: {mcp_config_path}[/green]")
 
-        # If Claude Desktop is installed but registration failed, show manual steps
-        if is_installed and not success:
-            console.print("\n[yellow]Manual registration steps:[/yellow]")
-            console.print("1. Copy the MCP config from local file to Claude Desktop:")
-            console.print(f"   [cyan]cat {mcp_config_path}[/cyan]")
-            console.print("2. Add to Claude Desktop config manually:")
-            console.print(f"   [cyan]edit {config_path}[/cyan]")
-            console.print("3. Restart Claude Desktop")
+        # Create Claude Code CLI format config (.mcp.json in project root)
+        project_mcp_path = Path.cwd() / ".mcp.json"
+        cli_mcp_config = {
+            "mcpServers": {
+                "tmux-orchestrator": {
+                    "type": "stdio",
+                    "command": "tmux-orc",
+                    "args": ["server", "start"],
+                    "env": {"TMUX_ORC_MCP_MODE": "claude", "PYTHONUNBUFFERED": "1"},
+                }
+            }
+        }
+
+        with open(project_mcp_path, "w") as f:
+            json.dump(cli_mcp_config, f, indent=2)
+
+        console.print(f"[green]✓ Created CLI MCP config: {project_mcp_path}[/green]")
 
         progress.update(task, advance=1)
 

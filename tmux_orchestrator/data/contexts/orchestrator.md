@@ -26,6 +26,7 @@ This context is organized into focused sections. Read the sections relevant to y
 - **CLI Reference**: `tmux_orchestrator/data/contexts/shared/cli-reference.md`
 - **Git Discipline**: `tmux_orchestrator/data/contexts/shared/git-discipline.md`
 - **Coordination Patterns**: `tmux_orchestrator/data/contexts/shared/coordination-patterns.md`
+- **Claude Code Compliance**: `tmux_orchestrator/data/contexts/shared/claude-code-compliance.md`
 
 ### 📡 Communication
 - **TMUX Comms**: Run `tmux-orc context show tmux-comms` for detailed messaging guide
@@ -47,9 +48,9 @@ You PLAN and DELEGATE. PMs and teams EXECUTE.
 
 1. **Human gives request** → Document in planning/
 2. **Create team plan** → Define agents and tasks
-3. **Stop daemon** → `tmux-orc monitor stop`
+3. **Stop daemon** → Use `tmux-orc reflect --filter "monitor.*stop"` to find current command
 4. **Kill existing PMs** → Prevent conflicts
-5. **Spawn PM** → `tmux-orc spawn pm --session project:1`
+5. **Spawn PM** → Use `tmux-orc reflect --filter "spawn.*pm"` for current syntax
 6. **PM builds team** → Wait for completion
 7. **Monitor progress** → Check for closeouts
 8. **Report results** → Back to human
@@ -69,26 +70,43 @@ Always use ISO timestamp format:
 │   └── project-closeout.md  # PM's completion report
 ```
 
-## MCP Server Endpoints
+## MCP Server Architecture
 
-The MCP server provides REST API access:
+The tmux-orchestrator operates as an MCP (Model Context Protocol) server using the FastMCP framework:
 
-### Context Endpoints
-- `GET /contexts/list` - List available contexts
-- `GET /contexts/{role}` - Get specific context
-- `POST /contexts/spawn/{role}` - Spawn agent with context
+### Protocol Details
+- **Transport**: JSON-RPC over stdio (NOT HTTP)
+- **Framework**: FastMCP with automatic CLI reflection
+- **Client Integration**: Claude Code CLI agents connect as MCP clients for coordination
 
-### Agent Endpoints
-- `POST /agents/spawn` - Spawn new agent
-- `GET /agents/list` - List all agents
-- `GET /agents/status/{target}` - Get agent status
-- `POST /agents/message` - Send message to agent
-- `POST /agents/kill/{target}` - Kill agent
+### Available MCP Tools
+The MCP server dynamically generates tools from CLI commands using hierarchical organization:
 
-### Monitoring Endpoints
-- `GET /monitor/status` - System health status
-- `GET /monitor/dashboard` - Dashboard data
-- `POST /monitor/start` - Start monitoring
+#### Primary Tool Categories
+- **agent** - Agent lifecycle management (deploy, kill, list, status, restart, etc.)
+- **monitor** - Daemon monitoring and health checks (start, stop, dashboard, recovery, etc.)
+- **team** - Team coordination (deploy, status, broadcast, recover, etc.)
+- **spawn** - Create new agents (agent, pm, orchestrator)
+- **context** - Access role contexts and documentation (orchestrator, pm, list, show)
+
+#### Tool Interface
+Each hierarchical tool accepts:
+- `action` - Specific operation (e.g., "deploy", "status", "list")
+- `target` - Optional session:window target (e.g., "myapp:0")
+- `args` - Positional arguments array
+- `options` - Named options/flags object
+
+#### Examples
+```json
+// List all agents
+{"action": "list"}
+
+// Deploy agent to session
+{"action": "deploy", "args": ["developer", "backend:1"]}
+
+// Get agent status
+{"action": "status", "target": "frontend:0"}
+```
 
 ## Domain Flexibility
 

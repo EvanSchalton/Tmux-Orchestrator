@@ -15,7 +15,7 @@ class SimpleMonitor:
 
     def __init__(self):
         # Use secure project directory instead of /tmp
-        project_dir = Path("/workspaces/Tmux-Orchestrator/.tmux_orchestrator")
+        project_dir = Path.cwd() / ".tmux_orchestrator"
         project_dir.mkdir(exist_ok=True)
         logs_dir = project_dir / "logs"
         logs_dir.mkdir(exist_ok=True)
@@ -24,7 +24,7 @@ class SimpleMonitor:
         self.log_file = logs_dir / "simple-monitor.log"
         self.agent_states = {}  # Track last known state of each agent
 
-    def setup_logging(self):
+    def setup_logging(self) -> logging.Logger:
         """Configure logging."""
         logging.basicConfig(
             level=logging.INFO,
@@ -156,7 +156,7 @@ class SimpleMonitor:
 
         return True
 
-    def notify_pm(self, pm_target: str, idle_agents: list, logger):
+    def notify_pm(self, pm_target: str, idle_agents: list[str], logger: logging.Logger) -> None:
         """Notify PM about idle agents."""
         if not idle_agents:
             return
@@ -174,7 +174,7 @@ class SimpleMonitor:
         except Exception as e:
             logger.error(f"Failed to notify PM: {e}")
 
-    def run_daemon(self, interval: int = 10):
+    def run_daemon(self, interval: int = 10) -> None:
         """Main daemon loop."""
         logger = self.setup_logging()
 
