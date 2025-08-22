@@ -47,6 +47,8 @@ def agent() -> None:
 def deploy(ctx: click.Context, agent_type: str, role: str, json: bool) -> None:
     """Deploy an individual specialized agent.
 
+    <mcp>Deploy new specialized agent to a session (args: [agent_type, session:window]). Use this instead of spawn.agent for individual agents with type/role combinations. Different from team deploy which creates multiple agents.</mcp>
+
     Creates a new tmux session with a single Claude agent configured for
     the specified type and role combination.
 
@@ -90,6 +92,8 @@ def deploy(ctx: click.Context, agent_type: str, role: str, json: bool) -> None:
 @click.pass_context
 def message(ctx: click.Context, target: str, message: str, json: bool) -> None:
     """Send a message directly to a specific agent.
+
+    <mcp>Send message to specific agent (not broadcast). Requires target session:window format. Use for direct communication with individual agents. Different from team broadcast which messages all team members.</mcp>
 
     Delivers a message to the Claude agent running in the specified tmux window.
     The message appears as user input to the agent, allowing for real-time
@@ -139,6 +143,8 @@ def message(ctx: click.Context, target: str, message: str, json: bool) -> None:
 @click.pass_context
 def send(ctx: click.Context, target: str, message: str, delay: float, json: bool) -> None:
     """Send a message to a specific agent with advanced delivery control.
+
+    <mcp>Send message with enhanced control options (requires: target, args[0]=message). More reliable than basic message command, includes timing controls and error handling. Use for production agent communication.</mcp>
 
     Delivers messages to Claude agents with sophisticated target validation,
     timing controls, and robust error handling. Implements production-grade
@@ -397,6 +403,8 @@ def send(ctx: click.Context, target: str, message: str, delay: float, json: bool
 def attach(ctx: click.Context, target: str) -> None:
     """Attach to an agent's terminal for direct interaction.
 
+    <mcp>Attach to agent's terminal for direct interaction (requires: target session:window). Opens tmux attachment for real-time monitoring and direct agent interaction. Different from agent.info which just shows status.</mcp>
+
     Opens a direct terminal connection to the specified agent's tmux window,
     allowing you to see the agent's output and interact directly.
 
@@ -440,6 +448,8 @@ def restart(
     json: bool,
 ) -> None:
     """Restart a specific agent that has become unresponsive.
+
+    <mcp>Restart unresponsive agent to recover it (requires: target session:window). Terminates current agent process and starts fresh instance. Use for agents that are frozen, crashed, or stuck. Preserves context by default.</mcp>
 
     Terminates the current Claude process in the specified window and starts
     a fresh instance with the same configuration and briefing.
@@ -516,6 +526,8 @@ def restart(
 def status(ctx: click.Context, json: bool) -> None:
     """Show comprehensive status of all active agents.
 
+    <mcp>Show comprehensive status of all agents (replaces 'show agents'). Displays summary of all Claude agents across all tmux sessions with health metrics, activity status, and response times. Different from monitor.dashboard which shows system health.</mcp>
+
     Displays a summary of all Claude agents currently running across
     all tmux sessions, including their current state, activity, and tasks.
 
@@ -571,6 +583,8 @@ def kill(
     ctx: click.Context, target: str, session: bool, force: bool, no_save_state: bool, timeout: int, json: bool
 ) -> None:
     """Terminate a specific agent or entire session.
+
+    <mcp>Terminate specific agent (requires target, not 'kill all'). By default kills only the specified agent window. Use --session flag to kill entire session. Different from agent.kill-all which terminates ALL agents across ALL sessions.</mcp>
 
     By default, kills only the specified agent window. Use --session flag
     to kill an entire session with all its agents.
@@ -658,6 +672,8 @@ def kill(
 def info(ctx: click.Context, target: str, json: bool) -> None:
     """Get detailed diagnostic information about a specific agent.
 
+    <mcp>Get detailed diagnostic info about specific agent (requires: target session:window). Shows comprehensive agent details including activity history, resource usage, system health. Different from agent.attach which provides interactive access.</mcp>
+
     Provides comprehensive details about an agent's current state,
     including activity history, resource usage, and system health.
 
@@ -725,6 +741,8 @@ def info(ctx: click.Context, target: str, json: bool) -> None:
 @click.pass_context
 def list_agents(ctx: click.Context, session: str, json: bool) -> None:
     """List all agents across sessions with their status.
+
+    <mcp>List all agents with health info (different from 'show'). Shows all active Claude agents with session/window location, agent type, status indicators, last activity time. Use --session to filter. Different from team.list which shows team summaries.</mcp>
 
     Shows all active Claude agents in the system with their:
     - Session and window location

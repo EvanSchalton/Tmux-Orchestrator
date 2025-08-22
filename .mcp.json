@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "tmux-orchestrator": {
+      "type": "stdio",
+      "command": "tmux-orc",
+      "args": [
+        "server",
+        "start"
+      ],
+      "env": {
+        "TMUX_ORC_MCP_MODE": "claude",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

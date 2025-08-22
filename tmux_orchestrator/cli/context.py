@@ -48,7 +48,7 @@ def context() -> None:
     project-specific details when spawning agents.
 
     Examples:
-        tmux-orc context orchestrator    # Show orchestrator briefing
+        tmux-orc context orc             # Show orchestrator briefing
         tmux-orc context pm              # Show PM briefing
         tmux-orc context list            # List all available contexts
     """
@@ -65,7 +65,7 @@ def show(role: str, raw: bool, json: bool) -> None:
     ROLE: The agent role to show context for
 
     Examples:
-        tmux-orc context show orchestrator
+        tmux-orc context show orc
         tmux-orc context show pm --raw  # For copying into briefings
     """
     try:
@@ -162,7 +162,7 @@ def list(json: bool) -> None:
 @click.option("--extend", help="Additional project-specific context")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 def spawn(role: str, session: str, extend: str | None = None, json: bool = False) -> None:
-    """Spawn an agent with standardized context (orchestrator/pm only).
+    """Spawn an agent with standardized context (orc/pm only).
 
     This command creates a complete agent setup:
     1. Creates a new window at the end of the session
@@ -174,7 +174,7 @@ def spawn(role: str, session: str, extend: str | None = None, json: bool = False
 
     Examples:
         tmux-orc context spawn pm --session project
-        tmux-orc context spawn orchestrator --session main --extend "Working on API project"
+        tmux-orc context spawn orc --session main --extend "Working on API project"
         tmux-orc context spawn pm --session project:1  # Legacy format (index ignored)
     """
     import subprocess
@@ -197,7 +197,7 @@ def spawn(role: str, session: str, extend: str | None = None, json: bool = False
             console.print(json_module.dumps(result, indent=2))
             return
         console.print(f"[red]Error: {e}[/red]")
-        console.print("\n[yellow]Note:[/yellow] Only system roles (orchestrator, pm) have standard contexts.")
+        console.print("\n[yellow]Note:[/yellow] Only system roles (orc, pm) have standard contexts.")
         console.print("Other agents should be spawned with custom briefings from your team plan.")
         return
 
@@ -275,10 +275,61 @@ def spawn(role: str, session: str, extend: str | None = None, json: bool = False
     # Send instruction message instead of full context
     if role == "pm":
         message = (
-            "You're the PM for our team, please run 'tmux-orc context show pm' for more information about your role"
+            "You're the PM for our team, please run 'tmux-orc context show pm' for more information about your role\n\n"
+            "## Context Rehydration\n"
+            "If you experience compaction or memory issues, you can rehydrate your context at any time by running:\n"
+            "```bash\n"
+            "tmux-orc context show pm\n"
+            "```\n"
+            "This will reload your complete PM role context and restore your capabilities."
+        )
+    elif role == "orc":
+        message = (
+            "You're the orchestrator for our team, please run 'tmux-orc context show orc' for more information about your role\n\n"
+            "## Context Rehydration\n"
+            "If you experience compaction or memory issues, you can rehydrate your context at any time by running:\n"
+            "```bash\n"
+            "tmux-orc context show orc\n"
+            "```\n"
+            "This will reload your complete orchestrator role context and restore your capabilities."
         )
     else:
-        message = f"You're the {role} for our team, please run 'tmux-orc context show {role}' for more information about your role"
+        message = (
+            f"You're the {role} for our team, please run 'tmux-orc context show {role}' for more information about your role\n\n"
+            "## Context Rehydration\n"
+            f"If you experience compaction or memory issues, you can rehydrate your context at any time by running:\n"
+            "```bash\n"
+            f"tmux-orc context show {role}\n"
+            "```\n"
+            "This will reload your complete role context and restore your capabilities."
+        )
+
+    # Add MCP guidance
+    message += """
+
+## MCP Tool Access
+
+The tmux-orchestrator provides 92 auto-generated MCP tools through Claude Code's MCP integration.
+
+**For complete MCP guidance, run:**
+```bash
+tmux-orc context show mcp
+```
+
+This will show you:
+- How to use MCP tools effectively
+- Complete reference for all 92 tools
+- Friendly tutorial for getting started
+- Integration with Claude Code
+
+Quick overview of tool categories:
+- **agent** - Agent lifecycle management (deploy, kill, list, status, restart, etc.)
+- **monitor** - Daemon monitoring and health checks (start, stop, dashboard, recovery, etc.)
+- **team** - Team coordination (deploy, status, broadcast, recover, etc.)
+- **spawn** - Create new agents (agent, pm, orchestrator)
+- **context** - Access role contexts and documentation
+
+To check if MCP tools are available, look for the tools icon in Claude Code's interface. If not available, you can still use all features via the standard CLI commands."""
 
     # Add extension if provided
     if extend:

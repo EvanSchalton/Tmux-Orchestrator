@@ -22,6 +22,11 @@ MISSING_AGENT_NOTIFICATION_COOLDOWN_MINUTES = 30  # Cooldown between repeated mi
 DAEMON_CONTROL_LOOP_SECONDS = 10  # How often the daemon checks agent status
 DAEMON_CONTROL_LOOP_COOLDOWN_SECONDS = 60  # Cooldown after notifying any PM
 
+# PM messaging constants
+ENABLE_PM_BUSY_STATE_DETECTION = True  # Enable/disable busy-state detection for PM messaging
+PM_MESSAGE_QUEUE_MAX_SIZE = 50  # Maximum queued messages per PM
+PM_MESSAGE_QUEUE_RETRY_INTERVAL_SECONDS = 30  # Retry queued messages every 30s
+
 
 class AgentState(Enum):
     """Enumeration of possible agent states."""
@@ -225,6 +230,78 @@ def detect_claude_state(content: str) -> str:
     return "idle"
 
 
+def is_pm_busy(content: str) -> bool:
+    """Check if PM is currently busy and should not be interrupted.
+
+    Detects various busy states:
+    - Claude is actively thinking/processing
+    - PM has unsubmitted message being composed
+    - PM is in the middle of tool execution
+    - PM is receiving streamed responses
+
+    Args:
+        content: Terminal content to analyze
+
+    Returns:
+        True if PM is busy and should not receive messages, False otherwise
+    """
+    lines = content.strip().split("\n")
+
+    # Check for active thinking/processing indicators
+    for line in lines:
+        # Claude thinking patterns
+        if "💭 Thinking..." in line or "Thinking..." in line:
+            return True
+        # Processing patterns with ellipsis
+        if "·" in line and "…" in line:
+            return True
+        # Tool execution indicators
+        if "⎿" in line:  # Tool output indicator
+            return True
+        # Streaming response indicators
+        if "━━━━━━━" in line:  # Progress bars
+            return True
+        # Enhanced processing indicators
+        if any(
+            pattern in line.lower()
+            for pattern in [
+                "working...",
+                "processing...",
+                "analyzing...",
+                "searching...",
+                "reading...",
+                "executing...",
+                "compiling...",
+                "building...",
+                "installing...",
+                "updating...",
+                "loading...",
+                "generating...",
+            ]
+        ):
+            return True
+        # Tool call patterns
+        if "antml:function_calls" in line or "<invoke" in line:
+            return True
+        # Code execution patterns
+        if "Running command:" in line or "Executing:" in line:
+            return True
+
+    # Check if PM has unsubmitted message (composing response)
+    if has_unsubmitted_message(content):
+        return True
+
+    # Check for recent activity by looking for very recent assistant responses
+    # (within the last few lines, indicating ongoing conversation)
+    recent_lines = lines[-10:] if len(lines) > 10 else lines
+    for line in recent_lines:
+        if line.strip().startswith("assistant:") or "Claude Code:" in line:
+            # Look for incomplete responses or active conversation
+            return True
+
+    return False
+
+
 def has_unsubmitted_message(content: str) -> bool:
     """Check if agent has unsubmitted message in Claude prompt.
 
@@ -333,8 +410,12 @@ def should_notify_pm(state: AgentState, target: str, notification_history: dict[
     Returns:
         True if PM should be notified, False otherwise
     """
-    # Always notify for crashes, errors, and rate limits (with cooldown)
-    if state in [AgentState.CRASHED, AgentState.ERROR, AgentState.RATE_LIMITED]:
+    # Rate limits need immediate notification - no cooldown
+    if state == AgentState.RATE_LIMITED:
+        return True
+
+    # Crashes and errors have cooldown to prevent spam
+    if state in [AgentState.CRASHED, AgentState.ERROR]:
         # 5 minute cooldown for crash/error notifications
         last_notified = notification_history.get(f"crash_{target}")
         if last_notified:
@@ -543,7 +624,7 @@ def calculate_sleep_duration(reset_time_str: str, now: datetime) -> int:
     elif meridiem == "am" and hour == 12:
         hour = 0
 
-    # Create reset datetime for today
+    # Create reset datetime for today, preserving timezone
     reset_dt = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
     # If reset time has passed today, use tomorrow
@@ -554,12 +635,10 @@ def calculate_sleep_duration(reset_time_str: str, now: datetime) -> int:
     diff = reset_dt - now
     sleep_seconds = int(diff.total_seconds())
 
-    # Add buffer to ensure rate limit has fully reset
+    # Add buffer to ensure rate limit has fully reset (2 minutes = 120 seconds)
     sleep_seconds += RATE_LIMIT_BUFFER_SECONDS
 
-    # Cap at maximum rate limit duration
-    # If it's more than MAX_RATE_LIMIT_SECONDS, it's likely a stale/misread rate limit
-    if sleep_seconds > (MAX_RATE_LIMIT_SECONDS + RATE_LIMIT_BUFFER_SECONDS):
-        return 0
+    # Remove the 4-hour cap - daemon should wait however long necessary
+    # for the rate limit to reset, even if it's 20+ hours
 
     return sleep_seconds

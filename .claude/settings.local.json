@@ -19,5 +19,9 @@
       "Bash(chmod:*)"
     ],
     "deny": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "tmux-orchestrator"
+  ],
+  "enableAllProjectMcpServers": true
 }

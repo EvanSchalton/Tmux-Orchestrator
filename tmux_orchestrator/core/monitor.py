@@ -238,6 +238,10 @@ class IdleMonitor:
         # Initialize status writer for daemon-based status updates
         self.status_writer = StatusWriter()
 
+        # PM message queuing system for busy-state handling
+        self._pm_message_queues: dict[str, list[tuple[str, datetime]]] = {}  # PM -> [(message, timestamp)]
+        self._pm_queue_last_retry: dict[str, datetime] = {}  # PM -> last retry timestamp
+
         # Activity tracking for intelligent idle detection
         # Terminal content caches per agent with resource limits
         self._terminal_caches: dict[str, TerminalCache] = {}
@@ -1619,6 +1623,9 @@ monitor._run_monitoring_daemon({interval})
                 # Discover and monitor agents
                 self._monitor_cycle(tmux, logger)
 
+                # Process PM message queues for busy-state delivery
+                self._process_pm_message_queues(tmux, logger)
+
                 # Periodic cache cleanup to prevent unbounded growth
                 if time.time() - self._last_cache_cleanup > self._cache_cleanup_interval:
                     self._cleanup_terminal_caches(logger)
@@ -1865,83 +1872,91 @@ monitor._run_monitoring_daemon({interval})
             for target in agents:
                 try:
                     content = tmux.capture_pane(target, lines=50)
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                    logger.error(f"Error capturing pane content for {target}: {e}")
+                    continue
 
-                    # Check for rate limit message
-                    if (
-                        "claude usage limit reached" in content.lower()
-                        and "your limit will reset at" in content.lower()
-                    ):
+                # Check for rate limit message
+                if "claude usage limit reached" in content.lower() and "your limit will reset at" in content.lower():
+                    try:
                         reset_time = extract_rate_limit_reset_time(content)
-                        if reset_time:
-                            # Calculate sleep duration
-                            now = datetime.now(timezone.utc)
-                            sleep_seconds = calculate_sleep_duration(reset_time, now)
+                        if not reset_time:
+                            logger.warning(f"Could not parse rate limit reset time from {target}")
+                            continue
 
-                            # If sleep_seconds is 0, it means the rate limit is stale/invalid (>4 hours away)
-                            if sleep_seconds == 0:
-                                logger.warning(
-                                    f"Rate limit message appears stale (reset time {reset_time} is >4 hours away). "
-                                    f"Ignoring and continuing normal monitoring."
-                                )
-                                continue
+                        # Calculate sleep duration
+                        now = datetime.now(timezone.utc)
+                        sleep_seconds = calculate_sleep_duration(reset_time, now)
 
-                            # Calculate resume time
-                            resume_time = now + timedelta(seconds=sleep_seconds)
-
-                            logger.warning(f"Rate limit detected on agent {target}. Reset time: {reset_time} UTC")
-
-                            # Try to notify PM (may also be rate limited)
-                            pm_target = self._find_pm_agent(tmux)
-                            if pm_target:
-                                # Check if PM has active Claude interface before sending message
-                                pm_content = tmux.capture_pane(pm_target, lines=10)
-                                if is_claude_interface_present(pm_content):
-                                    message = (
-                                        f"🚨 RATE LIMIT REACHED: All Claude agents are rate limited.\n"
-                                        f"Will reset at {reset_time} UTC.\n\n"
-                                        f"The monitoring daemon will pause and resume at {resume_time.strftime('%H:%M')} UTC "
-                                        f"(2 minutes after reset for safety).\n"
-                                        f"All agents will become responsive after the rate limit resets."
-                                    )
-                                    try:
-                                        tmux.send_message(pm_target, message)
-                                        logger.info(f"PM {pm_target} notified about rate limit")
-                                    except Exception:
-                                        logger.warning("Could not notify PM - may also be rate limited")
-                                else:
-                                    logger.debug(
-                                        f"PM {pm_target} does not have active Claude interface - skipping rate limit notification"
-                                    )
-
-                            # Log and sleep
-                            logger.debug(
-                                f"Rate limit detected. Sleeping for {sleep_seconds} seconds until {reset_time} UTC"
+                        # If sleep_seconds is 0, it means the rate limit is stale/invalid (>4 hours away)
+                        if sleep_seconds == 0:
+                            logger.warning(
+                                f"Rate limit message appears stale (reset time {reset_time} is >4 hours away). "
+                                f"Ignoring and continuing normal monitoring."
                             )
-                            time.sleep(sleep_seconds)
+                            continue
 
-                            # After waking up, notify that monitoring has resumed
-                            logger.info("Rate limit period ended, resuming monitoring")
-                            if pm_target:
-                                # Check if PM has active Claude interface before sending resume message
-                                pm_content = tmux.capture_pane(pm_target, lines=10)
-                                if is_claude_interface_present(pm_content):
-                                    try:
-                                        tmux.send_message(
-                                            pm_target,
-                                            "🎉 Rate limit reset! Monitoring resumed. All agents should now be responsive.",
-                                        )
-                                    except Exception:
-                                        pass
-                                else:
-                                    logger.debug(
-                                        f"PM {pm_target} does not have active Claude interface - skipping resume notification"
-                                    )
+                        # Calculate resume time
+                        resume_time = now + timedelta(seconds=sleep_seconds)
 
-                            # Return to restart the monitoring cycle
-                            return
+                        logger.warning(f"Rate limit detected on agent {target}. Reset time: {reset_time} UTC")
 
-                except Exception as e:
-                    logger.error(f"Error checking rate limit for {target}: {e}")
+                        # Try to notify PM (may also be rate limited)
+                        pm_target = self._find_pm_agent(tmux)
+                        if pm_target:
+                            try:
+                                # Always attempt to send notification, even if PM might be rate limited
+                                # Removing Claude interface check as it blocks notifications
+                                message = (
+                                    f"🚨 RATE LIMIT REACHED: All Claude agents are rate limited.\n"
+                                    f"Will reset at {reset_time} UTC.\n\n"
+                                    f"The monitoring daemon will pause and resume at {resume_time.strftime('%H:%M')} UTC "
+                                    f"(2 minutes after reset for safety).\n"
+                                    f"All agents will become responsive after the rate limit resets."
+                                )
+                                # Use centralized PM messaging with critical priority for rate limits
+                                self._send_pm_message_with_busy_check(
+                                    tmux, pm_target, message, logger, priority="critical"
+                                )
+                            except Exception as e:
+                                logger.warning(f"Error accessing PM {pm_target} for rate limit notification: {e}")
+                        else:
+                            logger.warning("No PM agent found to notify about rate limit")
+
+                        # Log and sleep - CRITICAL: This must execute for rate limiting to work
+                        logger.info(f"Rate limit detected. Sleeping for {sleep_seconds} seconds until {reset_time} UTC")
+                        time.sleep(sleep_seconds)
+
+                        # After waking up, notify that monitoring has resumed
+                        logger.info("Rate limit period ended, resuming monitoring")
+                        if pm_target:
+                            try:
+                                # Always attempt resume notification with critical priority
+                                resume_message = (
+                                    "🎉 Rate limit reset! Monitoring resumed. All agents should now be responsive."
+                                )
+                                self._send_pm_message_with_busy_check(
+                                    tmux, pm_target, resume_message, logger, priority="critical"
+                                )
+                                logger.info(f"PM {pm_target} notified about rate limit resolution")
+                            except Exception as e:
+                                logger.debug(f"Could not send resume notification to PM: {e}")
+
+                        # Return to restart the monitoring cycle
+                        return
+
+                    except ValueError as e:
+                        logger.error(f"Error parsing rate limit time for {target}: {e}")
+                        # Continue monitoring - this is just a parsing error, not critical
+                        continue
+                    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                        logger.error(f"Error communicating with tmux for {target}: {e}")
+                        # Continue monitoring - tmux communication error shouldn't crash daemon
+                        continue
+                    except Exception as e:
+                        logger.error(f"Unexpected error processing rate limit for {target}: {e}")
+                        # Log but continue - don't let unexpected errors crash the daemon
+                        continue
 
             # Check for PM recovery need before monitoring agents
             self._check_pm_recovery(tmux, agents, logger)
@@ -2705,13 +2720,12 @@ monitor._run_monitoring_daemon({interval})
                 logger.debug(f"PM {pm_target} does not have active Claude interface - skipping restart notification")
                 return
 
-            # Send notification
-            success_sent = tmux.send_message(pm_target, message)
-
-            if success_sent:
+            # Send notification with busy state detection
+            success = self._send_pm_message_with_busy_check(tmux, pm_target, message, logger)
+            if success:
                 logger.info(f"Sent restart notification to PM at {pm_target} for {target}")
             else:
-                logger.warning(f"Failed to send restart notification to PM at {pm_target}")
+                logger.info(f"Queued restart notification for PM at {pm_target} for {target}")
 
         except Exception as e:
             logger.error(f"Failed to send restart notification: {e}")
@@ -2729,11 +2743,11 @@ monitor._run_monitoring_daemon({interval})
                 return
 
             message = f"🔴 AGENT RECOVERY MAY BE NEEDED: {target} is idle and Claude interface is not responding. Please restart this agent if it wasn't intentionally released from duty."
-            try:
-                tmux.send_message(pm_target, message)
+            success = self._send_pm_message_with_busy_check(tmux, pm_target, message, logger)
+            if success:
                 logger.info(f"Sent recovery notification to PM at {pm_target}")
-            except Exception as e:
-                logger.error(f"Failed to notify PM: {e}")
+            else:
+                logger.info(f"Queued recovery notification for PM at {pm_target}")
         else:
             logger.warning(f"No PM agent found in session {session_name} to notify about recovery")
 
@@ -2749,12 +2763,13 @@ monitor._run_monitoring_daemon({interval})
 
                     # Check if this looks like a PM window
                     if any(pm_indicator in window_name for pm_indicator in ["pm", "manager", "project"]):
-                        # Verify it has Claude interface
-                        content = tmux.capture_pane(target, lines=10)
-                        if is_claude_interface_present(content):
-                            return target
+                        # Return PM window regardless of Claude interface status
+                        # This ensures notifications can be sent even if PM is rate limited
+                        self.logger.debug(f"Found PM window: {target}")
+                        return target
             return None
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Error finding PM agent: {e}")
             return None
 
     def _find_pm_window(self, tmux: TMUXManager, session_name: str | None = None) -> str | None:
@@ -3549,7 +3564,7 @@ monitor._run_monitoring_daemon({interval})
             time.sleep(2)
             pm_content = tmux.capture_pane(pm_target, lines=10)
             if is_claude_interface_present(pm_content):
-                success = tmux.send_message(pm_target, message)
+                success = self._send_pm_message_with_busy_check(tmux, pm_target, message, logger, priority="critical")
                 if success:
                     logger.info(f"Successfully spawned PM at {pm_target} with instruction")
                     return pm_target
@@ -3774,8 +3789,13 @@ Please focus on project continuity and team coordination."""
                         # Additional validation: verify PM can receive messages
                         try:
                             test_message = "🔄 PM recovery complete. You are now active."
-                            tmux.send_message(pm_target, test_message)
-                            logger.debug("Successfully sent test message to recovered PM")
+                            success = self._send_pm_message_with_busy_check(
+                                tmux, pm_target, test_message, logger, priority="critical"
+                            )
+                            if success:
+                                logger.debug("Successfully sent test message to recovered PM")
+                            else:
+                                logger.debug("Queued test message for recovered PM")
                         except Exception as msg_error:
                             logger.warning(f"Failed to send test message to PM: {msg_error}")
 
@@ -4379,6 +4399,30 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
             if not messages:
                 continue
 
+            # EARLY PM BUSY-STATE SHORT-CIRCUIT: Check PM state before building report
+            from tmux_orchestrator.core.monitor_helpers import ENABLE_PM_BUSY_STATE_DETECTION, is_pm_busy
+
+            if ENABLE_PM_BUSY_STATE_DETECTION:
+                # Quick Claude interface check first to avoid unnecessary processing
+                pm_content = tmux.capture_pane(pm_target, lines=10)
+                if not is_claude_interface_present(pm_content):
+                    logger.debug(
+                        f"PM {pm_target} does not have active Claude interface - skipping {len(messages)} notifications"
+                    )
+                    continue
+
+                # Enhanced busy-state detection with extended context
+                pm_full_content = tmux.capture_pane(pm_target, lines=60)
+                if is_pm_busy(pm_full_content):
+                    logger.info(f"PM {pm_target} is currently busy - queuing {len(messages)} notifications")
+                    # Queue consolidated message for later delivery
+                    # Build header for queued message
+                    timestamp = datetime.now().strftime("%H:%M:%S UTC")
+                    message_header = f"🔔 MONITORING REPORT - {timestamp}\n"
+                    consolidated_message = "\n".join([message_header] + [f"- {msg}" for msg in messages])
+                    self._queue_pm_message(pm_target, consolidated_message, logger)
+                    continue
+
             # Build consolidated report
             timestamp = datetime.now().strftime("%H:%M:%S UTC")
             report_header = f"🔔 MONITORING REPORT - {timestamp}\n"
@@ -4462,11 +4506,7 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
 
             report_parts.append("\nAs the PM, please review and take appropriate action.")
 
-            # Check if PM has active Claude interface before sending consolidated report
-            pm_content = tmux.capture_pane(pm_target, lines=10)
-            if not is_claude_interface_present(pm_content):
-                logger.debug(f"PM {pm_target} does not have active Claude interface - skipping consolidated report")
-                continue
+            # PM state already validated in early short-circuit above
 
             # Send consolidated report
             consolidated_message = "\n".join(report_parts)
@@ -4478,6 +4518,165 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
                     logger.error(f"Failed to send consolidated report to PM at {pm_target}")
             except Exception as e:
                 logger.error(f"Error sending consolidated report to {pm_target}: {e}")
+
+    def _queue_pm_message(self, pm_target: str, message: str, logger: logging.Logger) -> None:
+        """Queue message for PM when they are busy.
+
+        Args:
+            pm_target: PM target identifier
+            message: Message to queue
+            logger: Logger instance
+        """
+        from tmux_orchestrator.core.monitor_helpers import PM_MESSAGE_QUEUE_MAX_SIZE
+
+        if pm_target not in self._pm_message_queues:
+            self._pm_message_queues[pm_target] = []
+
+        queue = self._pm_message_queues[pm_target]
+
+        # Prevent queue overflow
+        if len(queue) >= PM_MESSAGE_QUEUE_MAX_SIZE:
+            # Remove oldest message
+            removed_msg, removed_time = queue.pop(0)
+            logger.warning(f"PM {pm_target} message queue full - dropped oldest message from {removed_time}")
+
+        # Add new message to queue
+        queue.append((message, datetime.now()))
+        logger.info(f"Queued message for busy PM {pm_target} - queue size: {len(queue)}")
+
+    def _process_pm_message_queues(self, tmux: TMUXManager, logger: logging.Logger) -> None:
+        """Process queued messages for PMs that are no longer busy.
+
+        Args:
+            tmux: TMUXManager instance
+            logger: Logger instance
+        """
+        from tmux_orchestrator.core.monitor_helpers import (
+            ENABLE_PM_BUSY_STATE_DETECTION,
+            PM_MESSAGE_QUEUE_RETRY_INTERVAL_SECONDS,
+            is_pm_busy,
+        )
+
+        if not ENABLE_PM_BUSY_STATE_DETECTION:
+            return
+
+        current_time = datetime.now()
+
+        for pm_target, queue in list(self._pm_message_queues.items()):
+            if not queue:
+                continue
+
+            # Check retry interval
+            last_retry = self._pm_queue_last_retry.get(pm_target)
+            if last_retry:
+                time_since_retry = (current_time - last_retry).total_seconds()
+                if time_since_retry < PM_MESSAGE_QUEUE_RETRY_INTERVAL_SECONDS:
+                    continue
+
+            try:
+                # Check if PM is still busy
+                pm_content = tmux.capture_pane(pm_target, lines=10)
+                if not is_claude_interface_present(pm_content):
+                    logger.debug(f"PM {pm_target} no Claude interface - keeping {len(queue)} messages queued")
+                    continue
+
+                pm_full_content = tmux.capture_pane(pm_target, lines=60)
+                if is_pm_busy(pm_full_content):
+                    logger.debug(f"PM {pm_target} still busy - keeping {len(queue)} messages queued")
+                    self._pm_queue_last_retry[pm_target] = current_time
+                    continue
+
+                # PM is available - send queued messages
+                messages_sent = 0
+                failed_messages = []
+
+                for message, queued_time in queue:
+                    try:
+                        success = tmux.send_message(pm_target, message)
+                        if success:
+                            messages_sent += 1
+                            logger.info(f"Delivered queued message to PM {pm_target} (queued at {queued_time})")
+                        else:
+                            failed_messages.append((message, queued_time))
+                            logger.warning(f"Failed to deliver queued message to PM {pm_target}")
+                    except Exception as e:
+                        failed_messages.append((message, queued_time))
+                        logger.error(f"Exception delivering queued message to PM {pm_target}: {e}")
+
+                # Update queue with failed messages only
+                self._pm_message_queues[pm_target] = failed_messages
+                self._pm_queue_last_retry[pm_target] = current_time
+
+                if messages_sent > 0:
+                    logger.info(f"Delivered {messages_sent} queued messages to PM {pm_target}")
+
+            except Exception as e:
+                logger.error(f"Error processing message queue for PM {pm_target}: {e}")
+                self._pm_queue_last_retry[pm_target] = current_time
+
+    def _send_pm_message_with_busy_check(
+        self, tmux: TMUXManager, pm_target: str, message: str, logger: logging.Logger, priority: str = "normal"
+    ) -> bool:
+        """Send message to PM with busy state detection and queuing.
+
+        Args:
+            tmux: TMUXManager instance
+            pm_target: PM target identifier
+            message: Message to send
+            logger: Logger instance
+            priority: Message priority ("critical", "normal") - critical messages bypass some checks
+
+        Returns:
+            True if message sent immediately, False if queued or failed
+        """
+        from tmux_orchestrator.core.monitor_helpers import ENABLE_PM_BUSY_STATE_DETECTION, is_pm_busy
+
+        try:
+            # Check Claude interface first
+            pm_content = tmux.capture_pane(pm_target, lines=10)
+            if not is_claude_interface_present(pm_content):
+                logger.debug(f"PM {pm_target} no Claude interface - queuing message")
+                self._queue_pm_message(pm_target, message, logger)
+                return False
+
+            # For critical messages (like rate limits), send immediately but still check busy state
+            if priority == "critical":
+                try:
+                    success = tmux.send_message(pm_target, message)
+                    if success:
+                        logger.info(f"Sent critical message to PM {pm_target}")
+                        return True
+                    else:
+                        logger.warning(f"Failed to send critical message to PM {pm_target} - queuing")
+                        self._queue_pm_message(pm_target, message, logger)
+                        return False
+                except Exception as e:
+                    logger.error(f"Exception sending critical message to PM {pm_target}: {e}")
+                    self._queue_pm_message(pm_target, message, logger)
+                    return False
+
+            # For normal messages, check busy state if enabled
+            if ENABLE_PM_BUSY_STATE_DETECTION:
+                pm_full_content = tmux.capture_pane(pm_target, lines=60)
+                if is_pm_busy(pm_full_content):
+                    logger.info(f"PM {pm_target} is busy - queuing message")
+                    self._queue_pm_message(pm_target, message, logger)
+                    return False
+
+            # PM available - send immediately
+            success = tmux.send_message(pm_target, message)
+            if success:
+                logger.info(f"Sent message to PM {pm_target}")
+                return True
+            else:
+                logger.warning(f"Failed to send message to PM {pm_target} - queuing")
+                self._queue_pm_message(pm_target, message, logger)
+                return False
+
+        except Exception as e:
+            logger.error(f"Exception in PM messaging for {pm_target}: {e}")
+            self._queue_pm_message(pm_target, message, logger)
+            return False
 
     def _check_claude_interface(self, target: str, content: str) -> bool:
         """Check if Claude interface is present in pane content.

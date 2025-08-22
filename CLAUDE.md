@@ -52,6 +52,37 @@ As the Claude Code orchestrator, you are the interface between the human and the
 6. **Researcher**: Technology evaluation
 7. **Documentation Writer**: Technical documentation
 
+## 🔄 Context Rehydration - AGENT RECOVERY
+
+### When You Need Context Rehydration
+If you experience memory compaction, context loss, or capability degradation:
+
+**For Orchestrators:**
+```bash
+tmux-orc context show orc
+```
+
+**For Project Managers:**
+```bash
+tmux-orc context show pm
+```
+
+**For Custom Agents:**
+```bash
+tmux-orc context show [your-role]
+```
+
+### Auto-Rehydration in Spawn Commands
+- New spawned agents automatically receive rehydration instructions
+- Spawn commands now include context recovery guidance
+- All agents are briefed on their recovery procedures during initialization
+
+### When to Use Context Rehydration
+- After extended periods of inactivity
+- When you notice reduced capability or awareness
+- After system restarts or Claude Code reinitialization
+- When explicitly requested by team coordination
+
 ## 🔐 Git Discipline - MANDATORY FOR ALL AGENTS
 
 ### Git Commit Guidelines

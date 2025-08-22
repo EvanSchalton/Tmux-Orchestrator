@@ -1,7 +1,21 @@
-# Pre-Commit Workflow - Systematic Code Quality Enforcement
+# Pre-Commit Workflow - Orchestrator Action Command
 
-## Overview
-This document defines the standardized workflow for systematically fixing pre-commit issues and pushing code to GitHub, using the automatic version bump as final validation that work is complete.
+## 🚨 ORCHESTRATOR INSTRUCTION
+**When this slash command is invoked, the Orchestrator should:**
+
+1. **Assess Current State**: Check git status and run `pre-commit run --all-files` to identify issues
+2. **Create Planning Documents**: Generate briefing and team plan for pre-commit fixes
+3. **Spawn Pre-Commit Team**: Deploy specialized team to execute systematic workflow
+4. **Monitor Progress**: Oversee team through completion and version bump validation
+
+**This is an ACTION COMMAND, not documentation to show the user.**
+
+---
+
+## Pre-Commit Workflow - Systematic Code Quality Enforcement
+
+### Overview
+This workflow systematically fixes pre-commit issues and pushes code to GitHub, using the automatic version bump as final validation that work is complete.
 
 ## Success Pattern Reference
 Successfully executed in: `.tmux_orchestrator/planning/completed/2025-08-18T02-40-53-pre-commit-workflow/`

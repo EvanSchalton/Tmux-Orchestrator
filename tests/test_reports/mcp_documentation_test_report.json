@@ -1,0 +1,78 @@
+{
+  "test_run": "2025-08-22 17:42:05",
+  "summary": "6/7 passed",
+  "results": [
+    {
+      "test": "context_command_integration",
+      "passed": true,
+      "command_success": true,
+      "output_length": 13763,
+      "has_mcp_content": true
+    },
+    {
+      "test": "mcp_tool_format",
+      "passed": true,
+      "total_tools": 57,
+      "valid_tools": 57,
+      "invalid_tools": []
+    },
+    {
+      "test": "cli_commands_exist",
+      "passed": false,
+      "documented_commands": 57,
+      "available_commands": 20,
+      "missing_commands": [
+        "pubsub_subscribe",
+        "agent_kill",
+        "agent_info",
+        "team_broadcast",
+        "agent_send"
+      ]
+    },
+    {
+      "test": "json_examples_syntax",
+      "passed": true,
+      "total_json_blocks": 0,
+      "invalid_blocks": []
+    },
+    {
+      "test": "error_handling_patterns",
+      "passed": true,
+      "patterns_found": {
+        "success_check": 24,
+        "error_key": 0,
+        "not_success": 7,
+        "try_except": 1
+      },
+      "error_handling_coverage": "31/12"
+    },
+    {
+      "test": "tool_categories",
+      "passed": true,
+      "expected_categories": [
+        "agent",
+        "monitor",
+        "team",
+        "spawn",
+        "context"
+      ],
+      "found_categories": [
+        "agent",
+        "monitor",
+        "context",
+        "team",
+        "spawn"
+      ],
+      "missing_categories": []
+    },
+    {
+      "test": "mcp_for_agents_tutorial",
+      "passed": true,
+      "file_exists": true,
+      "has_quickstart": true,
+      "has_examples": true,
+      "has_tool_reference": true,
+      "file_size": 9779
+    }
+  ]
+}

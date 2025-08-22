@@ -30,6 +30,9 @@ from typing import Any, Callable
 # FastMCP for MCP server implementation
 from fastmcp import FastMCP
 
+# Import the auto-generation system
+from tmux_orchestrator.mcp_auto_generator import MCPAutoGenerator
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -49,51 +52,23 @@ CLAUDE_CODE_CLI_DETECTED = (
 class EnhancedHierarchicalSchema:
     """Enhanced schema builder from successful hierarchical prototypes."""
 
-    # Complete action descriptions from successful prototype
-    COMPLETE_ACTION_DESCRIPTIONS = {
-        "agent": {
-            "attach": "Attach to agent's terminal for direct interaction (requires: target session:window)",
-            "deploy": "Deploy new specialized agent to a session (args: [agent_type, session:window])",
-            "info": "Get detailed diagnostic info about specific agent (requires: target session:window)",
-            "kill": "Terminate specific agent (requires target, not 'kill all')",
-            "kill-all": "Terminate ALL agents across all sessions (replaces 'terminate all', 'stop all')",
-            "list": "List all agents with health info (different from 'show')",
-            "message": "Send message to specific agent (not broadcast)",
-            "restart": "Restart unresponsive agent to recover it (requires: target session:window)",
-            "send": "Send message with enhanced control options (requires: target, args[0]=message)",
-            "status": "Show comprehensive status of all agents (replaces 'show agents')",
-        },
-        "monitor": {
-            "start": "Start monitoring daemon with interval (options: interval=seconds)",
-            "stop": "Stop the monitoring daemon completely",
-            "status": "Check monitoring daemon status and health (not 'show status')",
-            "dashboard": "Show live interactive monitoring dashboard (replaces 'show')",
-            "logs": "View monitoring logs with follow option (options: follow=true, lines=N)",
-            "recovery-start": "Enable automatic agent recovery when failures detected",
-            "recovery-stop": "Disable automatic agent recovery feature",
-            "recovery-status": "Check if auto-recovery is enabled and recent recovery actions",
-            "health-check": "Run immediate health check on all agents",
-            "metrics": "Display performance metrics and system statistics",
-        },
-        "team": {
-            "deploy": "Create new team of agents (args: [team_type, size])",
-            "status": "Check specific team health (args: [team_name], not general 'show')",
-            "list": "Show all active teams with member counts (replaces 'show teams')",
-            "broadcast": "Send message to all team members (args: [team_name, message], replaces 'tell everyone')",
-            "recover": "Recover failed agents in team (args: [team_name])",
-        },
-        "spawn": {
-            "agent": "Create new agent with role (CORRECT for 'deploy agent', not agent.deploy)",
-            "pm": "Create new Project Manager agent (args: [project_name, session:window])",
-            "orchestrator": "Create system orchestrator agent (args: [session:window])",
-        },
-        "context": {
-            "orchestrator": "Show orchestrator role context and guidelines",
-            "pm": "Show Project Manager role context and guidelines",
-            "list": "List all available context templates (replaces 'show contexts')",
-            "show": "Display specific context content (args: [context_name], not dashboard)",
-        },
-    }
+    # Auto-generated action descriptions (replaces hardcoded COMPLETE_ACTION_DESCRIPTIONS)
+    _cached_descriptions = None
+
+    @classmethod
+    def get_action_descriptions(cls) -> dict[str, dict[str, str]]:
+        """Get action descriptions using auto-generation system."""
+        if cls._cached_descriptions is None:
+            logger.info("Auto-generating MCP action descriptions from CLI commands...")
+            try:
+                auto_generator = MCPAutoGenerator()
+                cls._cached_descriptions = auto_generator.generate_action_descriptions()
+                logger.info(f"Successfully generated descriptions for {len(cls._cached_descriptions)} command groups")
+            except Exception as e:
+                logger.error(f"Failed to auto-generate descriptions, no fallbacks available: {e}")
+                cls._cached_descriptions = {}
+
+        return cls._cached_descriptions
 
     # Disambiguation rules from successful prototype
     DISAMBIGUATION_RULES = {
@@ -107,7 +82,8 @@ class EnhancedHierarchicalSchema:
     @staticmethod
     def build_hierarchical_schema(group_name: str, subcommands: list[str]) -> dict[str, Any]:
         """Build enhanced hierarchical schema with enumDescriptions."""
-        descriptions = EnhancedHierarchicalSchema.COMPLETE_ACTION_DESCRIPTIONS.get(group_name, {})
+        action_descriptions = EnhancedHierarchicalSchema.get_action_descriptions()
+        descriptions = action_descriptions.get(group_name, {})
 
         # Build enumDescriptions
         enum_descriptions = [descriptions.get(action, f"Execute {action} operation") for action in subcommands]

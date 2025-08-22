@@ -1,0 +1,57 @@
+{
+  "test_start_time": "2025-08-20T17:46:50.418625+00:00",
+  "scenarios": [
+    {
+      "scenario": "short_rate_limit",
+      "duration_minutes": 2,
+      "success": false,
+      "daemon_sleep_verified": false,
+      "pm_notifications": {
+        "pause_notification": false,
+        "resume_notification": false,
+        "proper_timing": false
+      },
+      "session_crash_detected": false,
+      "error": null,
+      "start_time": "2025-08-20T17:46:50.418641+00:00",
+      "end_time": "2025-08-20T17:46:56.567280+00:00"
+    },
+    {
+      "scenario": "medium_rate_limit",
+      "duration_minutes": 5,
+      "success": false,
+      "daemon_sleep_verified": false,
+      "pm_notifications": {
+        "pause_notification": false,
+        "resume_notification": false,
+        "proper_timing": false
+      },
+      "session_crash_detected": false,
+      "error": null,
+      "start_time": "2025-08-20T17:46:56.567317+00:00",
+      "end_time": "2025-08-20T17:47:03.032907+00:00"
+    },
+    {
+      "scenario": "concurrent_agents",
+      "duration_minutes": 3,
+      "success": false,
+      "daemon_sleep_verified": false,
+      "pm_notifications": {
+        "pause_notification": false,
+        "resume_notification": false,
+        "proper_timing": false
+      },
+      "session_crash_detected": false,
+      "error": null,
+      "start_time": "2025-08-20T17:47:03.032955+00:00",
+      "end_time": "2025-08-20T17:47:08.979867+00:00"
+    }
+  ],
+  "overall_success": false,
+  "critical_failures": [
+    "short_rate_limit: None",
+    "medium_rate_limit: None",
+    "concurrent_agents: None"
+  ],
+  "test_end_time": "2025-08-20T17:47:08.979902+00:00"
+}

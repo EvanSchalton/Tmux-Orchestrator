@@ -105,6 +105,8 @@ def monitor() -> None:
 def start(ctx: click.Context, interval: int, supervised: bool, json: bool) -> None:
     """Start the intelligent idle detection and monitoring daemon.
 
+    <mcp>Start monitoring daemon with interval (options: interval=seconds). Launches sophisticated background service for continuous agent health tracking, performance metrics, automated failure detection. Use --supervised for production.</mcp>
+
     Launches a sophisticated background monitoring service that continuously
     tracks all Claude agents for responsiveness, health patterns, and performance
     metrics. Provides automated failure detection and optional self-healing
@@ -330,6 +332,8 @@ def start(ctx: click.Context, interval: int, supervised: bool, json: bool) -> No
 def stop(ctx: click.Context, json: bool) -> None:
     """Stop the monitoring daemon and disable automated health checks.
 
+    <mcp>Stop the monitoring daemon completely. Gracefully shuts down background monitoring service, disabling automated health checks, failure detection, and recovery operations. Use for maintenance or debugging.</mcp>
+
     Gracefully shuts down the monitoring daemon, stopping all automated
     health checks and recovery operations.
 
@@ -478,6 +482,8 @@ def stop(ctx: click.Context, json: bool) -> None:
 def logs(follow: bool, lines: int) -> None:
     """View monitoring daemon logs and diagnostic information.
 
+    <mcp>View monitoring daemon logs (options: --follow, --lines). Displays detailed diagnostic information from monitoring system including health checks, agent events, error conditions. Use --follow for real-time log streaming.</mcp>
+
     Displays detailed logs from the monitoring system, including agent
     health checks, detection events, and system diagnostics.
 
@@ -522,6 +528,8 @@ def logs(follow: bool, lines: int) -> None:
 @click.pass_context
 def status(ctx: click.Context, json: bool) -> None:
     """Display comprehensive monitoring system status and health.
+
+    <mcp>Check monitoring daemon status and health (not 'show status'). Shows detailed monitoring daemon information including operational state, performance metrics, agent health summary. Different from overall system status.</mcp>
 
     Shows detailed information about the monitoring daemon, including
     operational status, performance metrics, and agent health summary.
@@ -814,6 +822,8 @@ def recovery_logs(follow: bool, lines: int) -> None:
 @click.pass_context
 def dashboard(ctx: click.Context, session: str | None, refresh: int, json: bool) -> None:
     """Launch interactive real-time monitoring dashboard with live updates.
+
+    <mcp>Launch real-time monitoring dashboard with live updates (options: --session, --refresh). Interactive comprehensive overview of all system components, agent health, performance metrics. Use for active system monitoring and troubleshooting.</mcp>
 
     Displays a comprehensive, continuously updating overview of all system
     components, agent health, performance metrics, and operational status.

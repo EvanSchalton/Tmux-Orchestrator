@@ -1,0 +1,81 @@
+{
+  "last_updated": "2025-08-22T21:01:17.107757+00:00",
+  "daemon_status": {
+    "monitor": {
+      "running": true,
+      "pid": 28299,
+      "uptime_seconds": 9929,
+      "last_check": "2025-08-22T21:01:17.074320"
+    },
+    "messaging": {
+      "running": false,
+      "pid": null
+    }
+  },
+  "agents": {
+    "precommit:2": {
+      "name": "claude-qa-engineer",
+      "type": "QA Engineer",
+      "status": "active",
+      "last_activity": "2025-08-22T21:01:16.926168",
+      "pane_id": null,
+      "session": "precommit",
+      "window": 2,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-22T21:01:16.926186"
+      }
+    },
+    "precommit:3": {
+      "name": "claude-devops-engineer",
+      "type": "DevOps",
+      "status": "active",
+      "last_activity": "2025-08-22T21:01:16.988104",
+      "pane_id": null,
+      "session": "precommit",
+      "window": 3,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-22T21:01:16.988123"
+      }
+    },
+    "precommit:4": {
+      "name": "claude-senior-dev",
+      "type": "Developer",
+      "status": "active",
+      "last_activity": "2025-08-22T21:01:17.037728",
+      "pane_id": null,
+      "session": "precommit",
+      "window": 4,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-22T21:01:17.037747"
+      }
+    },
+    "precommit:5": {
+      "name": "claude-pm",
+      "type": "Project Manager",
+      "status": "idle",
+      "last_activity": "2025-08-22T21:01:17.074278",
+      "pane_id": null,
+      "session": "precommit",
+      "window": 5,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-22T21:01:17.074300"
+      }
+    }
+  },
+  "summary": {
+    "total_agents": 4,
+    "active": 3,
+    "idle": 1,
+    "error": 0,
+    "busy": 0,
+    "unknown": 0
+  }
+}

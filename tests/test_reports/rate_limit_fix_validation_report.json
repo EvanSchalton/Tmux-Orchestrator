@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-08-20T17:48:55.781252+00:00",
+  "tests": {
+    "regex_detection": true,
+    "sleep_calculation": true,
+    "end_to_end_workflow": false
+  },
+  "overall_success": false,
+  "expected_workflow": [
+    "1. Daemon detects rate limit message with correct regex",
+    "2. Calculates sleep duration until reset time + 2 min buffer",
+    "3. Logs rate limit detection and sleep duration",
+    "4. Daemon sleeps for calculated period",
+    "5. Session remains alive during sleep",
+    "6. Daemon resumes after sleep period"
+  ],
+  "findings": {
+    "rate_limit_regex": "Matches 'Your limit will reset at X (UTC)' pattern",
+    "sleep_calculation": "Adds 2-minute buffer to reset time",
+    "daemon_behavior": "Should maintain session during sleep"
+  }
+}

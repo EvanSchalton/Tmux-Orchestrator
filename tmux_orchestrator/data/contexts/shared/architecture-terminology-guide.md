@@ -27,7 +27,7 @@ This guide ensures consistent terminology when documenting the tmux-orchestrator
 These terms are acceptable when describing applications that tmux-orchestrator helps develop:
 
 - "Implement user authentication endpoints" ✅ (project requirement)
-- "Create REST API for user management" ✅ (project deliverable)  
+- "Create REST API for user management" ✅ (project deliverable)
 - "Test the login/logout endpoints" ✅ (testing managed applications)
 - "Document public APIs" ✅ (documenting managed applications)
 
@@ -41,7 +41,7 @@ These terms are acceptable when describing applications that tmux-orchestrator h
 ```json
 {
   "action": "specific_operation",
-  "target": "session:window", 
+  "target": "session:window",
   "args": ["positional", "arguments"],
   "options": {"flag": "value"}
 }
@@ -49,7 +49,7 @@ These terms are acceptable when describing applications that tmux-orchestrator h
 
 ### Tool Categories
 - **agent** - Agent lifecycle (deploy, kill, list, status, restart)
-- **monitor** - Monitoring daemon (start, stop, dashboard, recovery) 
+- **monitor** - Monitoring daemon (start, stop, dashboard, recovery)
 - **team** - Team coordination (deploy, status, broadcast, recover)
 - **spawn** - Create agents (agent, pm, orchestrator)
 - **context** - Documentation access (orchestrator, pm, list, show)
@@ -62,7 +62,7 @@ These terms are acceptable when describing applications that tmux-orchestrator h
 3. **Refer to MCP tools** - Not "endpoints" or generic "API"
 4. **Emphasize CLI reflection** - Tools generated from CLI commands
 
-### When Writing About Managed Projects  
+### When Writing About Managed Projects
 1. **Context is key** - Make clear you're describing the target application
 2. **Use project-specific terms** - REST API, endpoints, etc. are fine for managed apps
 3. **Separate concerns** - Don't mix tmux-orchestrator architecture with project requirements
@@ -75,7 +75,7 @@ These terms are acceptable when describing applications that tmux-orchestrator h
 ```
 
 ### ✅ Correct Version
-```markdown  
+```markdown
 "The tmux-orchestrator MCP server provides tools for spawning agents"
 ```
 
@@ -97,7 +97,7 @@ These terms are acceptable when describing applications that tmux-orchestrator h
 - Built with FastMCP framework
 - Manages tmux sessions and AI agents
 
-### Projects Under Management  
+### Projects Under Management
 - May use any architecture (REST, GraphQL, etc.)
 - Have their own APIs and endpoints
 - Are developed by spawned AI agents

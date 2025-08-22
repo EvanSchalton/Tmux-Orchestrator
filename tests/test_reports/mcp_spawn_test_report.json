@@ -1,0 +1,41 @@
+{
+  "test_run": "2025-08-22 17:23:54",
+  "summary": "4/5 passed",
+  "results": [
+    {
+      "test": "mcp_guidance_content",
+      "passed": true,
+      "has_mcp_section": true,
+      "has_tool_count": true,
+      "has_categories": true,
+      "has_availability_check": true
+    },
+    {
+      "test": "agent_mcp_injection",
+      "passed": false,
+      "spawn_success": true,
+      "window_created": false,
+      "error": null
+    },
+    {
+      "test": "backward_compatibility",
+      "passed": true,
+      "spawn_success": true,
+      "legacy_warning": true,
+      "output": "Note: Window index in 'mcp-test-session:2' will be ignored. New window will be \nadded to end of session.\n\u2713 Spawned custom agent 'legacy-agent' at mcp-test-session:3\n  Window name: Claude-legacy-agent\n"
+    },
+    {
+      "test": "pm_spawn",
+      "passed": true,
+      "spawn_success": true,
+      "error": null
+    },
+    {
+      "test": "spawn_performance",
+      "passed": true,
+      "spawn_time": 10.601202011108398,
+      "reasonable_time": true,
+      "error": null
+    }
+  ]
+}

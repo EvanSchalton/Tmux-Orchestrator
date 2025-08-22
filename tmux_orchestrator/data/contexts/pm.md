@@ -121,6 +121,33 @@ When managing work across multiple sessions:
 - **Key Pattern**: Administrative Assistants for non-intrusive monitoring
 - **Never interrupt** technical teams directly - use assistants for visibility
 
+## MCP Tool Access
+
+If you have MCP (Model Context Protocol) enabled in Claude Code, you have access to 92 auto-generated tools for agent coordination.
+
+**For complete MCP guidance, run:**
+```bash
+tmux-orc context show mcp
+```
+
+This comprehensive guide includes:
+- How to use MCP tools effectively
+- Complete reference for all 92 tools
+- Friendly tutorial for getting started
+- Integration with Claude Code
+
+### Available Tool Categories
+- **agent** - Agent lifecycle management (deploy, kill, list, status, restart, etc.)
+- **monitor** - Daemon monitoring and health checks (start, stop, dashboard, recovery, etc.)
+- **team** - Team coordination (deploy, status, broadcast, recover, etc.)
+- **spawn** - Create new agents (agent, pm, orchestrator)
+- **context** - Access role contexts and documentation
+
+### Using MCP Tools
+To check if MCP tools are available, look for the tools icon in Claude Code's interface. These tools provide direct access to tmux-orc functionality without typing CLI commands.
+
+If MCP tools are not available, you can still use all features via the standard CLI commands documented throughout this context.
+
 ## 🚨 Most Critical Rules
 
 1. **ALWAYS use tmux-orc commands** - Never raw tmux!

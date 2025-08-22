@@ -1,0 +1,552 @@
+{
+  "list": {
+    "type": "command",
+    "help": "List all active agents across sessions with comprehensive status.\n\n    Provides a system-wide overview of all Claude agents currently running\n    in tmux sessions, including their specializations, health status, and\n    recent activity patterns.\n\n    Examples:\n        tmux-orc list                    # Show formatted agent overview\n        tmux-orc list --json            # JSON output for scripts/monitoring\n\n    Agent Information Displayed:\n        \u2022 Session name and window location\n        \u2022 Agent type and specialization\n        \u2022 Current status (Active, Idle, Busy, Error)\n        \u2022 Last activity timestamp\n        \u2022 Response time and health metrics\n\n    Status Indicators:\n        \ud83d\udfe2 Active:  Agent is responsive and working\n        \ud83d\udfe1 Idle:    Agent is waiting for tasks\n        \ud83d\udd35 Busy:    Agent is processing complex work\n        \ud83d\udd34 Error:   Agent encountered issues\n        \u26ab Unknown: Status cannot be determined\n\n    Use Cases:\n        \u2022 System health monitoring\n        \u2022 Resource utilization assessment\n        \u2022 Identifying unresponsive agents\n        \u2022 Planning team deployments\n        \u2022 Integration with monitoring tools (JSON)\n\n    If no agents are found, provides guidance on deploying teams.\n    ",
+    "short_help": ""
+  },
+  "reflect": {
+    "type": "command",
+    "help": "Generate complete CLI command structure via runtime introspection.\n    \n    Dynamically discovers and documents all available tmux-orc commands by\n    introspecting the Click command hierarchy. Useful for generating documentation,\n    building auto-completion systems, or understanding the full CLI surface.\n    \n    Args:\n        ctx: Click context containing the command hierarchy\n        format: Output format - tree (human-readable), json (machine-readable), \n               or markdown (documentation)\n        include_hidden: Include internal/hidden commands in output\n        \n    Output Formats:\n        \u2022 tree: Hierarchical display with emojis and descriptions\n        \u2022 json: Structured data suitable for tooling integration  \n        \u2022 markdown: Documentation-ready format with headers\n        \n    Examples:\n        Interactive exploration:\n        $ tmux-orc reflect                    # Browse all commands\n        $ tmux-orc reflect --filter agent     # Show only agent commands\n        $ tmux-orc reflect --filter \"^spawn\"  # Commands starting with \"spawn\"\n        $ tmux-orc reflect --filter \"send|message\"  # Commands matching pattern\n        \n        Generate documentation:\n        $ tmux-orc reflect --format markdown > CLI_REFERENCE.md\n        $ tmux-orc reflect --format markdown --filter team > TEAM_COMMANDS.md\n        \n        Build tooling integration:\n        $ tmux-orc reflect --format json | jq '.agent.type'\n        $ tmux-orc reflect --format json --filter pubsub\n        \n        Include internal commands:\n        $ tmux-orc reflect --include-hidden\n        \n    Use Cases:\n        \u2022 Creating CLI documentation automatically\n        \u2022 Building shell completion scripts\n        \u2022 Validating command structure in tests\n        \u2022 Discovering available functionality\n        \u2022 Integration with external tools\n        \n    Performance:\n        Command discovery is fast (<100ms) as it uses Click's built-in\n        introspection rather than importing all modules.\n        \n    Note:\n        Output goes directly to stdout for easy piping and redirection.\n        Hidden commands are typically internal utilities not meant for\n        general use.\n    ",
+    "short_help": ""
+  },
+  "status": {
+    "type": "command",
+    "help": "Display comprehensive system status dashboard with intelligent caching.\n    \n    Provides a sophisticated real-time view of the entire TMUX Orchestrator\n    ecosystem with automatic performance optimization through daemon-based\n    status caching and intelligent freshness detection.\n    \n    Args:\n        ctx: Click context containing TMUX manager and configuration\n        json: Output in JSON format for automation and monitoring integration\n        \n    Status Data Sources:\n        Primary (Cached): Real-time daemon-maintained status file\n        - Updated every 15 seconds by monitoring daemon\n        - Atomic writes ensure data consistency\n        - Sub-second response times for dashboard queries\n        - Includes agent states, daemon health, and performance metrics\n        \n        Fallback (Live): Direct TMUX query when cache unavailable\n        - Used when daemon not running or data stale (>30s)\n        - Higher latency but always current\n        - Graceful degradation ensures reliability\n        \n    Intelligent Caching System:\n        Cache Validation:\n        - Automatic freshness checking with 30-second threshold\n        - Graceful handling of corrupted or missing cache files\n        - Transparent fallback to live queries when needed\n        \n        Performance Optimization:\n        - Cached queries: <100ms response time\n        - Live queries: 1-3 seconds depending on agent count\n        - Automatic cache warming through background monitoring\n        - Memory-efficient status file format (JSON)\n        \n    Comprehensive Dashboard Information:\n        \n        Session Management:\n        \u2022 Active session count and attachment status\n        \u2022 Session creation times and uptime tracking\n        \u2022 Window counts and configuration details\n        \u2022 TMUX server health and connectivity status\n        \n        Agent Health Analytics:\n        \u2022 Individual agent states (Active/Idle/Error/Busy/Unknown)\n        \u2022 Last activity timestamps with precision timing\n        \u2022 Response time metrics and performance trends\n        \u2022 Communication pathway health verification\n        \u2022 Agent type distribution and specialization mapping\n        \n        Daemon Status Integration:\n        \u2022 Monitor daemon operational state and uptime\n        \u2022 Messaging daemon availability and performance\n        \u2022 Process ID tracking and resource utilization\n        \u2022 Health check frequency and success rates\n        \u2022 Automatic restart history and stability metrics\n        \n        System Resource Monitoring:\n        \u2022 Memory usage patterns and thresholds\n        \u2022 CPU utilization by daemon and agent processes\n        \u2022 Disk I/O for status file operations\n        \u2022 Network socket health (TMUX communication)\n        \n    Health Status Indicators:\n        \ud83d\udfe2 Healthy:    All systems operational, no issues detected\n        \ud83d\udfe1 Warning:    Minor issues (stale cache, slow responses)\n        \ud83d\udd34 Critical:   Major problems (daemon failures, agent crashes)\n        \u26ab Offline:    System components not responding\n        \ud83d\udd35 Busy:       Agents processing complex tasks\n        \n    Output Formats:\n        \n        Interactive Dashboard (default):\n        - Color-coded status indicators with emoji\n        - Hierarchical information display\n        - Real-time freshness indicators\n        - Actionable next steps and command suggestions\n        - Human-readable formatting with Rich library\n        \n        JSON Format (--json):\n        - Machine-readable structured data\n        - Complete status information including metadata\n        - Timestamp information for trend analysis\n        - Daemon health details for monitoring integration\n        - Cache age and freshness metrics\n        - Compatible with monitoring tools (Prometheus, Grafana)\n        \n    Advanced Features:\n        \n        Freshness Tracking:\n        - Displays cache age and freshness warnings\n        - Automatic transition between cached and live data\n        - Visual indicators for data source (cached vs live)\n        - Performance impact notifications\n        \n        Error Recovery:\n        - Graceful handling of daemon communication failures\n        - Automatic retry logic with exponential backoff\n        - Comprehensive error reporting with troubleshooting hints\n        - Status consistency validation across data sources\n        \n    Examples:\n        \n        Standard system overview:\n        $ tmux-orc status\n        \n        Automation and monitoring integration:\n        $ tmux-orc status --json | jq '.summary.active'\n        \n        Continuous monitoring with watch:\n        $ watch -n 10 'tmux-orc status'\n        \n        Performance benchmarking:\n        $ time tmux-orc status --json >/dev/null\n        \n    Integration Points:\n        \n        Monitoring Ecosystem:\n        - Compatible with `tmux-orc monitor dashboard` for live visualization\n        - Provides data for `tmux-orc monitor performance` analysis\n        - Supports `tmux-orc agent status` detailed views\n        - Enables `tmux-orc team status` project-specific filtering\n        \n        Automation and CI/CD:\n        - JSON output suitable for build system health checks\n        - Exit codes reflect system health status\n        - Scriptable status validation for deployment pipelines\n        - Integration with external alerting systems\n        \n    Performance Characteristics:\n        \n        Response Times:\n        - Cached mode: 50-100ms (typical)\n        - Live mode: 1-3 seconds (depending on agent count)\n        - JSON serialization: <10ms additional overhead\n        - Network latency: Minimal (local TMUX socket)\n        \n        Resource Usage:\n        - Memory: <5MB for status processing\n        - CPU: <1% during status generation\n        - Disk I/O: Single read operation (atomic)\n        - Network: Local socket communication only\n        \n    Troubleshooting:\n        \n        Common Issues:\n        - Stale cache warnings: Restart monitoring daemon\n        - Missing status file: Start monitoring with `tmux-orc monitor start`\n        - Slow responses: Check TMUX server load and agent count\n        - Empty agent lists: Verify agent deployment and session health\n        \n        Diagnostic Commands:\n        - `tmux-orc monitor status` - Check daemon health\n        - `tmux-orc monitor logs` - Review monitoring activity\n        - `tmux list-sessions` - Verify TMUX server accessibility\n        - `tmux-orc reflect` - Validate CLI functionality\n        \n    Security Considerations:\n        - Status file readable only by owner (600 permissions)\n        - No sensitive information in status output\n        - Local-only operations (no network exposure)\n        - Process isolation through TMUX session boundaries\n    ",
+    "short_help": ""
+  },
+  "quick-deploy": {
+    "type": "command",
+    "help": "Rapidly deploy optimized team configurations for immediate productivity.\n\n    Creates a complete, ready-to-work team using battle-tested configurations\n    and role distributions. Perfect for getting projects started quickly.\n\n    TEAM_TYPE: Team specialization (frontend, backend, fullstack, testing)\n    SIZE: Number of agents (recommended: 2-6)\n\n    Examples:\n        tmux-orc quick-deploy frontend 3        # 3-agent frontend team\n        tmux-orc quick-deploy backend 4         # 4-agent backend team\n        tmux-orc quick-deploy fullstack 5       # 5-agent fullstack team\n        tmux-orc quick-deploy testing 2         # 2-agent testing team\n        tmux-orc quick-deploy frontend 4 --project-name my-app\n\n    Optimized Team Configurations:\n\n    Frontend (2-6 agents):\n        2 agents: Developer + PM\n        3 agents: Developer + UI/UX + PM\n        4+ agents: + Performance Expert + CSS Specialist\n\n    Backend (2-6 agents):\n        2 agents: API Developer + PM\n        3 agents: + Database Engineer\n        4+ agents: + DevOps Engineer + Security Specialist\n\n    Fullstack (3-8 agents):\n        3 agents: Lead + Frontend + Backend\n        4 agents: + Project Manager\n        5+ agents: + QA + DevOps + Specialists\n\n    Testing (2-4 agents):\n        2 agents: Manual + Automation Tester\n        3 agents: + QA Lead\n        4+ agents: + Performance + Security Tester\n\n    Quick Deploy Benefits:\n        \u2022 Instant team setup with optimized roles\n        \u2022 Pre-configured communication protocols\n        \u2022 Battle-tested role distributions\n        \u2022 Immediate project context and briefings\n        \u2022 No configuration complexity\n\n    Perfect for hackathons, quick prototypes, urgent projects,\n    or when you need a team running in under 2 minutes.\n    ",
+    "short_help": ""
+  },
+  "agent": {
+    "type": "group",
+    "help": "Manage individual agents across tmux sessions.\n\n    The agent command group provides comprehensive management of Claude agents,\n    including deployment, messaging, monitoring, and lifecycle operations.\n\n    Examples:\n        tmux-orc agent status                    # Show all agent statuses\n        tmux-orc agent restart my-project:0     # Restart specific agent\n        tmux-orc agent message frontend:1 \"Please update the UI\"\n        tmux-orc agent info backend:2 --json    # Get detailed agent info\n        tmux-orc agent kill stuck-session:3     # Terminate unresponsive agent\n        tmux-orc agent attach my-app:0          # Attach to agent terminal\n\n    Target Format:\n        Most commands accept targets in 'session:window' format (e.g., 'my-project:0')\n    ",
+    "short_help": "",
+    "subcommands": {
+      "deploy": {
+        "type": "command",
+        "help": "Deploy an individual specialized agent.\n\n    Creates a new tmux session with a single Claude agent configured for\n    the specified type and role combination.\n\n    AGENT_TYPE: Specialization area (frontend, backend, testing, database, docs, devops)\n    ROLE: Agent role (developer, pm, qa, reviewer)\n\n    Examples:\n        tmux-orc agent deploy frontend developer   # Frontend development agent\n        tmux-orc agent deploy backend pm          # Backend project manager\n        tmux-orc agent deploy testing qa          # QA testing agent\n        tmux-orc agent deploy database devops     # Database operations agent\n        tmux-orc agent deploy docs reviewer       # Documentation reviewer\n\n    The agent will be briefed with role-specific instructions and tools.\n    ",
+        "short_help": ""
+      },
+      "message": {
+        "type": "command",
+        "help": "Send a message directly to a specific agent.\n\n    Delivers a message to the Claude agent running in the specified tmux window.\n    The message appears as user input to the agent, allowing for real-time\n    communication and task delegation.\n\n    TARGET: Target agent in format session:window (e.g., 'my-project:0')\n    MESSAGE: The message text to send to the agent\n\n    Examples:\n        tmux-orc agent message frontend:0 \"Please fix the login form validation\"\n        tmux-orc agent message backend:1 \"STATUS UPDATE: What's your current progress?\"\n        tmux-orc agent message testing:2 \"Run the integration tests for the API\"\n        tmux-orc agent message docs:0 \"Update the deployment guide with new steps\"\n\n    Usage Tips:\n        - Use quotes for multi-word messages\n        - Messages appear instantly to the agent\n        - Agents respond in their tmux window\n        - Use 'tmux-orc agent attach TARGET' to see the response\n    ",
+        "short_help": ""
+      },
+      "send": {
+        "type": "command",
+        "help": "Send a message to a specific agent with advanced delivery control.\n    \n    Delivers messages to Claude agents with sophisticated target validation,\n    timing controls, and robust error handling. Implements production-grade\n    message delivery patterns optimized for agent responsiveness and reliability.\n    \n    Args:\n        ctx: Click context containing TMUX manager and configuration\n        target: Agent target in session:window or session:window.pane format\n        message: Message text to deliver to the agent\n        delay: Inter-operation delay for timing control (0.1-5.0 seconds)\n        json: Output structured results for automation integration\n        \n    Target Format Specification:\n        Standard Window Targeting:\n        - Format: session:window (e.g., 'my-project:0')\n        - Targets the active pane within the specified window\n        - Most common usage pattern for agent communication\n        - Automatic pane resolution for multi-pane windows\n        \n        Specific Pane Targeting:\n        - Format: session:window.pane (e.g., 'my-project:0.1')\n        - Targets exact pane for precise message delivery\n        - Required for complex multi-pane agent configurations\n        - Enables parallel agent operation within single window\n        \n    Advanced Message Delivery Pipeline:\n        \n        Input Validation Phase:\n        - Regex-based target format validation\n        - Session existence verification through TMUX API\n        - Window and pane accessibility checks\n        - Message content sanitization and encoding\n        \n        Pre-delivery Preparation:\n        - Input line clearing (Ctrl+U) to prevent interference\n        - Configurable delay injection for timing control\n        - Terminal state synchronization with agent\n        - Buffer management for large message content\n        \n        Message Transmission:\n        - Atomic text delivery via TMUX send-keys\n        - Unicode and special character handling\n        - Multi-line message support with proper encoding\n        - Progress tracking for long message delivery\n        \n        Delivery Confirmation:\n        - Enter key transmission for message submission\n        - Extended processing time for complex messages (6x delay + 3s minimum)\n        - Delivery verification through terminal state monitoring\n        - Error detection and recovery mechanisms\n        \n    Timing Control System:\n        \n        Delay Configuration:\n        - Default: 0.5 seconds (balanced performance/reliability)\n        - Range: 0.1-5.0 seconds (configurable based on system needs)\n        - Adaptive scaling: Message processing time = 6x delay + 3s minimum\n        - Environment-specific optimization recommendations\n        \n        System-Specific Tuning:\n        - Fast systems: 0.1-0.3 seconds for rapid iteration\n        - Standard systems: 0.5-1.0 seconds for reliable delivery\n        - Slow/loaded systems: 1.0-2.0 seconds for stability\n        - High-latency environments: 2.0-5.0 seconds for robustness\n        \n    Error Handling and Recovery:\n        \n        Target Validation Errors:\n        - Invalid format: Clear error messages with format examples\n        - Session not found: Guidance on session creation and verification\n        - Window/pane inaccessible: TMUX state diagnostic suggestions\n        - Permission issues: User access and TMUX configuration guidance\n        \n        Delivery Failure Recovery:\n        - Automatic retry logic for transient failures\n        - Progressive delay escalation for unstable connections\n        - Graceful degradation during system stress\n        - Comprehensive error logging for troubleshooting\n        \n    Production Features:\n        \n        JSON Output Integration:\n        - Structured response format for automation\n        - Timestamp tracking for delivery analysis\n        - Success/failure status with detailed error information\n        - Performance metrics including delivery time\n        - Integration-friendly data structure\n        \n        Agent Compatibility:\n        - Claude Code optimized delivery (Enter key, not Ctrl+Enter)\n        - Intelligent input clearing without process termination\n        - Unicode message support for international content\n        - Multi-line handling with proper formatting preservation\n        \n    Examples and Use Cases:\n        \n        Standard Agent Communication:\n        $ tmux-orc agent send frontend:0 \"Please implement the login form\"\n        \n        Status Inquiries:\n        $ tmux-orc agent send backend:1 \"STATUS: What's your current progress?\"\n        \n        Multi-line Instructions:\n        $ tmux-orc agent send testing:2 \"Run the integration tests\n        Please focus on API endpoints and authentication flows\"\n        \n        High-Precision Pane Targeting:\n        $ tmux-orc agent send my-project:0.1 \"Primary agent instructions\"\n        $ tmux-orc agent send my-project:0.2 \"Secondary agent tasks\"\n        \n        System-Optimized Delivery:\n        $ tmux-orc agent send qa:3 \"Performance testing\" --delay 1.0\n        \n        Automation Integration:\n        $ tmux-orc agent send deploy:1 \"Start deployment\" --json\n        \n    Integration Patterns:\n        \n        Scripting and Automation:\n        - Batch message delivery with timing controls\n        - Conditional messaging based on agent status\n        - Pipeline integration for CI/CD workflows\n        - Error handling for automated systems\n        \n        Monitoring and Orchestration:\n        - Status polling with structured responses\n        - Health check message delivery\n        - Performance monitoring through delivery metrics\n        - Integration with external monitoring systems\n        \n    Performance Characteristics:\n        \n        Delivery Speed:\n        - Standard messages: 2-5 seconds end-to-end\n        - Large messages: 5-10 seconds with proper buffering\n        - Multi-line content: Additional 1-2 seconds per line\n        - System scaling: Linear with message complexity\n        \n        Resource Efficiency:\n        - Memory: <1MB per message operation\n        - CPU: Minimal overhead (<1% during delivery)\n        - Network: Local TMUX socket only\n        - Disk: No persistent storage requirements\n        \n    Troubleshooting Guide:\n        \n        Common Issues:\n        - Agent not responding: Check agent status and TMUX accessibility\n        - Message truncation: Increase delay for large content\n        - Special characters: Verify Unicode handling and terminal encoding\n        - Delivery timeouts: Review system load and TMUX performance\n        \n        Diagnostic Commands:\n        - `tmux-orc agent info TARGET` - Check agent accessibility\n        - `tmux-orc agent status` - Verify agent health\n        - `tmux list-sessions` - Validate TMUX server state\n        - `tmux-orc agent attach TARGET` - Direct agent observation\n        \n    Security and Safety:\n        - Input sanitization prevents command injection\n        - Local-only operation (no network exposure)\n        - Agent isolation through TMUX session boundaries\n        - No persistent message storage or logging\n    ",
+        "short_help": ""
+      },
+      "attach": {
+        "type": "command",
+        "help": "Attach to an agent's terminal for direct interaction.\n\n    Opens a direct terminal connection to the specified agent's tmux window,\n    allowing you to see the agent's output and interact directly.\n\n    TARGET: Target agent in format session:window (e.g., 'my-project:0')\n\n    Examples:\n        tmux-orc agent attach frontend:0      # Attach to frontend agent\n        tmux-orc agent attach backend:2       # Attach to backend agent\n        tmux-orc agent attach testing:1       # Attach to testing agent\n\n    Usage Tips:\n        - Press Ctrl+B then D to detach without stopping the agent\n        - Use this to monitor agent progress in real-time\n        - Type directly to interact with the agent\n        - The agent continues running after you detach\n\n    Note: This opens a new tmux attachment. Use proper tmux detach commands\n    to avoid disrupting the agent's operation.\n    ",
+        "short_help": ""
+      },
+      "restart": {
+        "type": "command",
+        "help": "Restart a specific agent that has become unresponsive.\n\n    Terminates the current Claude process in the specified window and starts\n    a fresh instance with the same configuration and briefing.\n\n    TARGET: Target agent in format session:window (e.g., 'my-project:0')\n\n    Examples:\n        tmux-orc agent restart frontend:0     # Restart unresponsive frontend agent\n        tmux-orc agent restart backend:1      # Restart crashed backend agent\n        tmux-orc agent restart testing:2      # Restart stuck testing agent\n\n    When to Use:\n        - Agent is not responding to messages\n        - Agent output shows errors or crashes\n        - Agent appears frozen or stuck\n        - After system updates that affect Claude\n\n    The restart process:\n        1. Captures current agent state and context\n        2. Terminates the existing Claude process\n        3. Starts a new Claude instance\n        4. Restores the agent's role and briefing\n        5. Provides context about the restart reason\n    ",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Show comprehensive status of all active agents.\n\n    Displays a summary of all Claude agents currently running across\n    all tmux sessions, including their current state, activity, and tasks.\n\n    Examples:\n        tmux-orc agent status                 # Show all agent statuses\n\n    Status Information Includes:\n        - Agent ID and session:window location\n        - Current state (Active, Idle, Error, etc.)\n        - Last activity timestamp\n        - Current task or operation\n        - Response time and health metrics\n\n    Status States:\n        \u2022 Active:   Agent is responding and working\n        \u2022 Idle:     Agent is waiting for tasks\n        \u2022 Busy:     Agent is processing a complex task\n        \u2022 Error:    Agent encountered an issue\n        \u2022 Stuck:    Agent may need restart\n        \u2022 Unknown:  Unable to determine status\n\n    Use this command regularly to monitor agent health and identify\n    agents that may need attention or restart.\n    ",
+        "short_help": ""
+      },
+      "kill": {
+        "type": "command",
+        "help": "Terminate a specific agent or entire session.\n\n    By default, kills only the specified agent window. Use --session flag\n    to kill an entire session with all its agents.\n\n    TARGET:\n        - Without --session: session:window format (e.g., 'my-project:0')\n        - With --session: session name only (e.g., 'my-project')\n\n    Examples:\n        tmux-orc agent kill frontend:0        # Kill only frontend agent window\n        tmux-orc agent kill backend:2         # Kill only backend agent window\n        tmux-orc agent kill my-project --session  # Kill entire session (with confirmation)\n\n    \u26a0\ufe0f  WARNING:\n        - Window kill: Terminates only the specified agent\n        - Session kill: Terminates ALL agents in the session\n\n    When to Use Window Kill:\n        - Agent is frozen or unresponsive\n        - Agent completed its task\n        - Need to replace specific agent\n\n    When to Use Session Kill:\n        - Project is complete\n        - Need to clean up all agents at once\n        - Session is corrupted\n\n    The kill operation loses all context and conversation history.\n    ",
+        "short_help": ""
+      },
+      "info": {
+        "type": "command",
+        "help": "Get detailed diagnostic information about a specific agent.\n\n    Provides comprehensive details about an agent's current state,\n    including activity history, resource usage, and system health.\n\n    TARGET: Target agent in format session:window (e.g., 'my-project:0')\n\n    Examples:\n        tmux-orc agent info frontend:0        # Show detailed frontend agent info\n        tmux-orc agent info backend:1 --json  # Get machine-readable info\n        tmux-orc agent info testing:2         # Diagnostic info for testing agent\n\n    Information Provided:\n        - Agent existence and accessibility\n        - Current status and health state\n        - Recent terminal activity (last 20 lines)\n        - Resource usage and performance metrics\n        - Session and window configuration\n        - Last response time and communication status\n\n    Output Formats:\n        - Default: Human-readable formatted output\n        - --json: Machine-readable JSON for automation\n\n    Use Cases:\n        - Debugging unresponsive agents\n        - Monitoring agent performance\n        - Gathering data for system optimization\n        - Integration with monitoring tools (JSON mode)\n    ",
+        "short_help": ""
+      },
+      "list": {
+        "type": "command",
+        "help": "List all agents across sessions with their status.\n\n    Shows all active Claude agents in the system with their:\n    - Session and window location\n    - Agent type and role\n    - Current status (active/idle)\n    - Last activity time\n\n    Options:\n        --session: Filter agents by session name\n        --json: Output in machine-readable JSON format\n\n    Examples:\n        tmux-orc agent list                     # List all agents\n        tmux-orc agent list --session my-project  # List agents in specific session\n        tmux-orc agent list --json              # Get JSON output for automation\n\n    Status Indicators:\n        Active: Agent is currently working or responding\n        Idle: Agent is waiting for tasks or instructions\n    ",
+        "short_help": ""
+      },
+      "kill-all": {
+        "type": "command",
+        "help": "Terminate all agents across all sessions.\n\n    This command kills ALL Claude agents in ALL tmux sessions.\n    Use with extreme caution as it will terminate all active work.\n\n    Options:\n        --force: Skip the confirmation prompt (dangerous!)\n        --json: Output results in JSON format\n\n    Examples:\n        tmux-orc agent kill-all                # Kill all agents (with confirmation)\n        tmux-orc agent kill-all --force        # Kill all agents without confirmation\n        tmux-orc agent kill-all --json         # Kill all agents and output JSON\n\n    \u26a0\ufe0f  WARNING:\n        - This terminates ALL agents in ALL sessions\n        - All agent contexts and conversations will be lost\n        - Cannot be undone\n\n    Safety Features:\n        - Requires explicit confirmation (unless --force)\n        - Shows count of agents to be killed\n        - Lists all affected sessions before proceeding\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "monitor": {
+    "type": "group",
+    "help": "Advanced monitoring and health management for agent systems.\n\n    The monitor command group provides comprehensive monitoring capabilities,\n    including real-time dashboards, automated recovery, health checks, and\n    diagnostic tools for maintaining optimal system performance.\n\n    Examples:\n        tmux-orc monitor start --interval 30    # Start monitoring daemon\n        tmux-orc monitor dashboard              # Live system dashboard\n        tmux-orc monitor recovery-start         # Start automated recovery\n        tmux-orc monitor status                 # Check monitoring status\n        tmux-orc monitor logs -f                # Follow monitor logs\n\n    Monitoring Features:\n        \u2022 Real-time agent health tracking\n        \u2022 Automated failure detection and recovery\n        \u2022 Performance metrics and analytics\n        \u2022 Interactive dashboard with live updates\n        \u2022 Comprehensive logging and diagnostics\n        \u2022 Bulletproof idle detection algorithms\n\n    Critical for maintaining 24/7 agent operations and ensuring\n    system reliability in production environments.\n    ",
+    "short_help": "",
+    "subcommands": {
+      "start": {
+        "type": "command",
+        "help": "Start the intelligent idle detection and monitoring daemon.\n    \n    Launches a sophisticated background monitoring service that continuously\n    tracks all Claude agents for responsiveness, health patterns, and performance\n    metrics. Provides automated failure detection and optional self-healing\n    supervision for production environments.\n    \n    Args:\n        ctx: Click context containing configuration and TMUX manager\n        interval: Health check interval in seconds (5-300 recommended range)\n        supervised: Enable automatic daemon restart on failures (production recommended)\n        json: Output results in JSON format for automation integration\n        \n    Monitoring Architecture:\n        \u2022 Multi-threaded health checking with configurable intervals\n        \u2022 Advanced idle detection using 4-snapshot algorithm\n        \u2022 Real-time agent state tracking with status file caching\n        \u2022 Performance metrics collection and trend analysis\n        \u2022 Automatic failure escalation and notification system\n        \u2022 Resource usage monitoring with threshold alerts\n        \n    Deployment Modes:\n        Supervised Mode (--supervised):\n        - Automatic daemon restart on crashes or hangs\n        - Self-healing supervision with exponential backoff\n        - Production-grade reliability and fault tolerance\n        - Continuous monitoring even during system stress\n        \n        Standard Mode (default):\n        - Direct daemon startup with manual recovery\n        - Lower resource overhead for development\n        - Manual intervention required for failures\n        - Suitable for development and testing environments\n        \n    Health Check Intervals:\n        \u2022 High-frequency (5-10s): Critical production systems requiring\n          immediate failure detection and sub-minute recovery times\n        \u2022 Standard (10-30s): Most production deployments balancing\n          responsiveness with resource efficiency\n        \u2022 Conservative (30-60s): Development environments or systems\n          with limited resources but still requiring monitoring\n        \u2022 Low-impact (60s+): Background monitoring for non-critical\n          systems where resource usage must be minimized\n          \n    Status File Integration:\n        The daemon maintains a real-time status file at:\n        `.tmux_orchestrator/status.json` containing:\n        - Individual agent states (active/idle/error/busy)\n        - Daemon health and uptime statistics  \n        - Performance metrics and response times\n        - Last activity timestamps and trend data\n        - System resource utilization metrics\n        \n    Error Handling and Recovery:\n        - Graceful degradation during TMUX connection issues\n        - Automatic retry logic with exponential backoff\n        - Comprehensive error logging for troubleshooting\n        - Signal handling for clean shutdown on SIGTERM/SIGINT\n        - PID file management with stale process detection\n        \n    Examples:\n        Production deployment with self-healing:\n        $ tmux-orc monitor start --supervised --interval 30\n        \n        High-frequency development monitoring:\n        $ tmux-orc monitor start --interval 5\n        \n        Automation-friendly JSON output:\n        $ tmux-orc monitor start --json --supervised\n        \n        Resource-conscious background monitoring:\n        $ tmux-orc monitor start --interval 60\n        \n    Integration with Other Commands:\n        - Works seamlessly with `tmux-orc status` for real-time data\n        - Provides data for `tmux-orc monitor dashboard` visualizations\n        - Supports `tmux-orc monitor recovery-start` for automated fixes\n        - Enables performance analysis via `tmux-orc monitor performance`\n        \n    Performance Impact:\n        - Minimal CPU overhead (<1% on most systems)\n        - Memory usage scales with agent count (~10MB baseline + 1MB per 50 agents)\n        - Network overhead negligible (local TMUX socket communication)\n        - Disk I/O limited to periodic status file writes (atomic operations)\n        \n    Security Considerations:\n        - Daemon runs with same permissions as CLI user\n        - Status file written with restrictive permissions (600)\n        - No network exposure (local TMUX socket only)\n        - PID file protection against unauthorized access\n        \n    Troubleshooting:\n        - Use `tmux-orc monitor logs` to view detailed operation history\n        - Check `tmux-orc monitor status` for daemon health information\n        - Verify TMUX socket accessibility if startup fails\n        - Review system resource availability for high-frequency monitoring\n        \n    Returns:\n        JSON mode: Structured result with success status and daemon details\n        Standard mode: Human-readable status messages with color coding\n    ",
+        "short_help": ""
+      },
+      "stop": {
+        "type": "command",
+        "help": "Stop the monitoring daemon and disable automated health checks.\n\n    Gracefully shuts down the monitoring daemon, stopping all automated\n    health checks and recovery operations.\n\n    Examples:\n        tmux-orc monitor stop                  # Stop monitoring daemon\n\n    Impact of Stopping:\n        \u2022 No automatic agent health monitoring\n        \u2022 No automated failure detection\n        \u2022 No idle agent identification\n        \u2022 Manual intervention required for issues\n        \u2022 Loss of performance metrics collection\n\n    \u26a0\ufe0f  Warning: Stopping monitoring disables automated recovery\n\n    Use this when:\n        \u2022 Performing system maintenance\n        \u2022 Debugging monitoring issues\n        \u2022 Temporarily reducing system load\n        \u2022 Switching to manual management mode\n\n    Remember to restart monitoring after maintenance to ensure\n    continued system reliability.\n    ",
+        "short_help": ""
+      },
+      "logs": {
+        "type": "command",
+        "help": "View monitoring daemon logs and diagnostic information.\n\n    Displays detailed logs from the monitoring system, including agent\n    health checks, detection events, and system diagnostics.\n\n    Examples:\n        tmux-orc monitor logs                  # Show last 20 log lines\n        tmux-orc monitor logs -n 50           # Show last 50 lines\n        tmux-orc monitor logs -f              # Follow live log output\n        tmux-orc monitor logs -f -n 100      # Follow with more history\n\n    Log Information Includes:\n        \u2022 Agent health check results\n        \u2022 Idle detection events\n        \u2022 Performance metrics\n        \u2022 Error conditions and recovery actions\n        \u2022 System resource usage\n        \u2022 Communication statistics\n\n    Log Levels:\n        \u2022 INFO: Normal operations and status updates\n        \u2022 WARN: Minor issues and degraded performance\n        \u2022 ERROR: Failures and recovery actions\n        \u2022 DEBUG: Detailed diagnostic information\n\n    Use for troubleshooting monitoring issues, understanding system\n    behavior, and analyzing agent performance patterns.\n    ",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Display comprehensive monitoring system status and health.\n\n    Shows detailed information about the monitoring daemon, including\n    operational status, performance metrics, and agent health summary.\n\n    Examples:\n        tmux-orc monitor status                # Show monitoring system status\n\n    Status Information:\n        \u2022 Monitoring daemon operational state\n        \u2022 Check interval and timing configuration\n        \u2022 Number of agents under monitoring\n        \u2022 Recent health check results\n        \u2022 Performance metrics and statistics\n        \u2022 Error rates and recovery actions\n\n    Daemon Status Indicators:\n        \ud83d\udfe2 Running:   Daemon active and monitoring\n        \ud83d\udd34 Stopped:   Daemon not running (no monitoring)\n        \ud83d\udfe1 Warning:   Daemon running but issues detected\n        \u26ab Error:     Daemon in error state\n\n    Use this to verify monitoring is working correctly and to\n    get an overview of system health before making changes.\n    ",
+        "short_help": ""
+      },
+      "recovery-start": {
+        "type": "command",
+        "help": "Start the advanced recovery daemon with bulletproof agent restoration.\n\n    Launches an intelligent recovery system that automatically detects and\n    restores failed, crashed, or unresponsive agents using advanced algorithms.\n\n    Examples:\n        tmux-orc monitor recovery-start        # Start with default config\n        tmux-orc monitor recovery-start -c custom.conf\n\n    Recovery Features:\n        \u2022 4-snapshot idle detection algorithm\n        \u2022 Intelligent failure pattern recognition\n        \u2022 Graduated recovery escalation\n        \u2022 Context-preserving agent restoration\n        \u2022 Communication pathway recovery\n        \u2022 Resource conflict resolution\n\n    Detection Algorithms:\n        \u2022 Activity-based monitoring\n        \u2022 Response time analysis\n        \u2022 Resource usage patterns\n        \u2022 Communication health checks\n        \u2022 Process state verification\n\n    Recovery Actions:\n        1. Soft restart: Gentle agent refresh\n        2. Hard restart: Complete agent recreation\n        3. Session recovery: Full session restoration\n        4. Escalation: Human operator notification\n\n    Essential for production environments where 24/7 agent availability\n    is critical and manual intervention isn't feasible.\n    ",
+        "short_help": ""
+      },
+      "recovery-stop": {
+        "type": "command",
+        "help": "Stop the recovery daemon.",
+        "short_help": ""
+      },
+      "recovery-status": {
+        "type": "command",
+        "help": "Display comprehensive recovery daemon status and agent health analytics.\n\n    Provides detailed information about the recovery system status, including\n    daemon health, agent monitoring statistics, and recovery operation history.\n\n    Examples:\n        tmux-orc monitor recovery-status       # Show recovery system status\n        tmux-orc monitor recovery-status -v   # Detailed diagnostics\n\n    Recovery Status Information:\n        \u2022 Recovery daemon operational state\n        \u2022 Monitoring configuration and intervals\n        \u2022 Agent health summary and statistics\n        \u2022 Recent recovery operations\n        \u2022 Performance metrics and trends\n        \u2022 Error rates and success statistics\n\n    Agent Health Categories:\n        \ud83d\udfe2 Healthy:      Agent fully operational\n        \ud83d\udfe1 Warning:      Minor performance issues\n        \ud83d\udd34 Critical:     Major problems detected\n        \u26ab Unresponsive:  Agent not responding\n        \ud83d\udd35 Idle:         Agent waiting for tasks\n\n    Verbose Mode Includes:\n        \u2022 Individual agent diagnostic details\n        \u2022 Recent activity patterns\n        \u2022 Failure analysis and root causes\n        \u2022 Recovery action history\n        \u2022 Resource utilization metrics\n        \u2022 Communication pathway health\n\n    Use for monitoring system health, troubleshooting issues,\n    and analyzing recovery effectiveness.\n    ",
+        "short_help": ""
+      },
+      "recovery-logs": {
+        "type": "command",
+        "help": "View recovery daemon logs.",
+        "short_help": ""
+      },
+      "dashboard": {
+        "type": "command",
+        "help": "Launch interactive real-time monitoring dashboard with live updates.\n\n    Displays a comprehensive, continuously updating overview of all system\n    components, agent health, performance metrics, and operational status.\n\n    Examples:\n        tmux-orc monitor dashboard             # Full system dashboard\n        tmux-orc monitor dashboard --session my-project\n        tmux-orc monitor dashboard --refresh 10  # 10-second updates\n        tmux-orc monitor dashboard --json     # JSON output for integration\n\n    Dashboard Components:\n\n    System Overview:\n        \u2022 Total sessions and agent counts\n        \u2022 System health indicators\n        \u2022 Resource utilization metrics\n        \u2022 Recent activity summary\n\n    Agent Status Grid:\n        \u2022 Individual agent health and status\n        \u2022 Response times and performance\n        \u2022 Current tasks and activity\n        \u2022 Error states and recovery actions\n\n    Session Management:\n        \u2022 Session creation times and uptime\n        \u2022 Window counts and configuration\n        \u2022 Attachment status and accessibility\n        \u2022 Resource consumption per session\n\n    Performance Metrics:\n        \u2022 Average response times\n        \u2022 Task completion rates\n        \u2022 Error frequencies\n        \u2022 Recovery success rates\n\n    Interactive Features:\n        \u2022 Live updates without page refresh\n        \u2022 Session filtering and focus\n        \u2022 Customizable refresh intervals\n        \u2022 Export to JSON for automation\n\n    Dashboard Controls:\n        \u2022 Press Ctrl+C to exit live mode\n        \u2022 Use --refresh 0 for static snapshot\n        \u2022 Filter by --session for project focus\n        \u2022 Use --json for machine-readable output\n\n    Perfect for operations centers, development monitoring,\n    and integration with external monitoring systems.\n    ",
+        "short_help": ""
+      },
+      "performance": {
+        "type": "command",
+        "help": "Monitor and optimize performance for large-scale deployments.\n\n    Provides performance metrics, analysis, and optimization recommendations\n    for deployments with 50+ agents. Includes caching, batching, and\n    connection pooling optimizations.\n\n    Examples:\n        tmux-orc monitor performance                    # Show current metrics\n        tmux-orc monitor performance --analyze          # Run performance analysis\n        tmux-orc monitor performance --optimize         # Get optimization tips\n        tmux-orc monitor performance --agent-count 75   # Optimize for 75 agents\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "pm": {
+    "type": "group",
+    "help": "Project Manager operations and team coordination.\n\n    The PM command group provides tools for creating and managing Project Managers,\n    specialized Claude agents responsible for team coordination, quality assurance,\n    and project oversight.\n\n    Examples:\n        tmux-orc pm create my-project           # Create PM for project\n        tmux-orc pm status                      # Check PM and team status\n        tmux-orc pm checkin                     # Trigger team status review\n        tmux-orc pm message \"Sprint review at 3pm\"\n        tmux-orc pm broadcast \"Deploy to staging now\"\n\n    Project Manager Responsibilities:\n        \u2022 Team coordination and communication\n        \u2022 Quality standards enforcement\n        \u2022 Progress monitoring and reporting\n        \u2022 Risk identification and mitigation\n        \u2022 Resource allocation and optimization\n\n    PM agents work alongside development teams to ensure projects\n    stay on track and meet quality standards.\n    ",
+    "short_help": "",
+    "subcommands": {
+      "checkin": {
+        "type": "command",
+        "help": "Trigger comprehensive team status review by Project Manager.\n\n    Initiates a systematic status check where the PM requests updates\n    from all team agents and compiles a comprehensive progress report.\n\n    Examples:\n        tmux-orc pm checkin                    # Trigger standard status review\n\n    Review Process:\n        1. \ud83d\udd0d PM identifies all team agents\n        2. \ud83d\udcf9 Sends status request to each agent\n        3. \ud83d\udcc4 Collects and analyzes responses\n        4. \ud83d\udcca Generates progress summary\n        5. \u26a0\ufe0f Identifies blockers and risks\n        6. \ud83d\udce8 Reports findings to orchestrator\n\n    When to Use:\n        \u2022 Daily standup coordination\n        \u2022 Sprint milestone reviews\n        \u2022 Pre-deployment assessments\n        \u2022 Troubleshooting team issues\n        \u2022 Orchestrator status requests\n\n    The PM will provide structured feedback including task completion\n    status, identified blockers, resource needs, and timeline updates.\n    ",
+        "short_help": ""
+      },
+      "message": {
+        "type": "command",
+        "help": "Send a direct message to the Project Manager.\n\n    Delivers a message directly to the PM agent, useful for providing\n    instructions, updates, or requesting specific PM actions.\n\n    MESSAGE: Message text to send to the Project Manager\n\n    Examples:\n        tmux-orc pm message \"Prioritize the API testing tasks\"\n        tmux-orc pm message \"Client meeting moved to tomorrow 2pm\"\n        tmux-orc pm message \"Generate weekly progress report\"\n        tmux-orc pm message \"Review code quality metrics\"\n\n    Common PM Message Types:\n        \u2022 Priority changes and urgent updates\n        \u2022 Meeting schedules and deadlines\n        \u2022 Resource allocation decisions\n        \u2022 Quality standards clarifications\n        \u2022 Stakeholder communication requests\n        \u2022 Risk assessment instructions\n\n    The PM will acknowledge the message and take appropriate action\n    based on the content and current project context.\n    ",
+        "short_help": ""
+      },
+      "broadcast": {
+        "type": "command",
+        "help": "Have the Project Manager broadcast a message to all team agents.\n\n    Uses the PM as a communication hub to send coordinated messages to\n    the entire development team, maintaining proper chain of command.\n\n    MESSAGE: Message text for PM to broadcast to all team agents\n\n    Examples:\n        tmux-orc pm broadcast \"Code freeze begins now for release candidate\"\n        tmux-orc pm broadcast \"Daily standup moved to 10am tomorrow\"\n        tmux-orc pm broadcast \"Focus on critical bugs for next 2 hours\"\n        tmux-orc pm broadcast \"Demo preparation starts after lunch\"\n\n    PM Broadcast Features:\n        \u2022 Consistent message formatting and context\n        \u2022 Role-appropriate message delivery\n        \u2022 Delivery confirmation and failure handling\n        \u2022 Follow-up coordination as needed\n        \u2022 Integration with project timeline\n\n    Difference from Direct Team Broadcast:\n        \u2022 PM broadcast: Goes through PM with context and follow-up\n        \u2022 Team broadcast: Direct message to all agents\n\n    The PM adds project context, ensures message clarity, and\n    coordinates any follow-up actions required from the team.\n    ",
+        "short_help": ""
+      },
+      "custom-checkin": {
+        "type": "command",
+        "help": "Send customized status check-in request to all team agents.\n\n    Allows the PM to send a tailored status request instead of the\n    standard check-in message, useful for specific project phases.\n\n    Examples:\n        tmux-orc pm custom-checkin --custom-message \"Report testing progress for release\"\n        tmux-orc pm custom-checkin --custom-message \"Status on API endpoint implementation\"\n        tmux-orc pm custom-checkin --custom-message \"Update on database migration tasks\"\n\n    Custom Check-in Use Cases:\n        \u2022 Feature-specific progress updates\n        \u2022 Bug fix status during critical periods\n        \u2022 Pre-deployment readiness checks\n        \u2022 Performance optimization reports\n        \u2022 Security audit preparations\n        \u2022 Client demo preparation status\n\n    Default Message (if none provided):\n        \"Please provide a status update on your current work.\"\n\n    The PM will collect all responses, analyze them for patterns and\n    issues, and provide a consolidated report with actionable insights.\n    ",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Display comprehensive Project Manager and team status overview.\n\n    Shows detailed information about the PM agent status, team composition,\n    agent health, and overall project coordination metrics.\n\n    Examples:\n        tmux-orc pm status                     # Show PM and team status\n        tmux-orc pm status --json             # JSON output for monitoring\n\n    PM Status Information:\n        \u2022 PM agent location and responsiveness\n        \u2022 Current PM session and window details\n        \u2022 PM health and activity metrics\n        \u2022 Communication channel status\n\n    Team Overview Includes:\n        \u2022 Total number of team agents\n        \u2022 Agent types and specializations\n        \u2022 Individual agent status and activity\n        \u2022 Team coordination health\n        \u2022 Recent communication patterns\n        \u2022 Project progress indicators\n\n    Status Indicators:\n        \ud83d\udfe2 Active:    PM and team functioning normally\n        \ud83d\udfe1 Warning:   Some coordination issues detected\n        \ud83d\udd34 Critical:  PM unresponsive or major team problems\n        \u26ab Unknown:   Unable to determine status\n\n    If no PM is found, provides guidance on creating one.\n    JSON mode outputs machine-readable data for integration\n    with monitoring and automation systems.\n    ",
+        "short_help": ""
+      },
+      "create": {
+        "type": "command",
+        "help": "Create a new Project Manager for team coordination and oversight.\n\n    Deploys a specialized Claude agent configured as a Project Manager\n    with team coordination, quality assurance, and project management\n    capabilities.\n\n    SESSION: Session name where PM will be created (e.g., 'my-project')\n\n    Examples:\n        tmux-orc pm create my-project          # Create PM for 'my-project' session\n        tmux-orc pm create frontend-team       # Create PM for frontend team\n        tmux-orc pm create testing-suite --project-dir /path/to/project\n\n    PM Creation Process:\n        1. \ud83c\udfe7 Creates session if it doesn't exist\n        2. \ud83d\uddfa\ufe0f Sets up PM window in specified project directory\n        3. \ud83e\udd16 Starts Claude agent with PM specialization\n        4. \ud83d\udcdc Provides comprehensive PM briefing and responsibilities\n        5. \ud83d\udd17 Establishes team communication protocols\n        6. \ud83d\udd0d Analyzes project structure and creates initial plan\n\n    PM Capabilities:\n        \u2022 Team coordination and communication\n        \u2022 Quality standards enforcement\n        \u2022 Progress tracking and milestone management\n        \u2022 Risk identification and mitigation\n        \u2022 Resource allocation optimization\n        \u2022 Stakeholder communication\n        \u2022 Code review coordination\n        \u2022 Testing and deployment oversight\n\n    PM Briefing Includes:\n        \u2022 Team leadership and coordination principles\n        \u2022 Quality assurance methodologies\n        \u2022 Project management best practices\n        \u2022 Communication protocols and escalation paths\n        \u2022 Tool usage for project tracking\n        \u2022 Reporting and status update procedures\n\n    The PM will immediately begin analyzing the project structure,\n    identifying team members, and establishing coordination workflows.\n\n    Note: Only one PM should be created per project session to\n    maintain clear chain of command and avoid coordination conflicts.\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "context": {
+    "type": "group",
+    "help": "Provide standardized context briefings for common agent roles.\n\n    These contexts serve as starting points that can be extended with\n    project-specific details when spawning agents.\n\n    Examples:\n        tmux-orc context orchestrator    # Show orchestrator briefing\n        tmux-orc context pm              # Show PM briefing\n        tmux-orc context list            # List all available contexts\n    ",
+    "short_help": "",
+    "subcommands": {
+      "show": {
+        "type": "command",
+        "help": "Display context briefing for a specific role.\n\n    ROLE: The agent role to show context for\n\n    Examples:\n        tmux-orc context show orchestrator\n        tmux-orc context show pm --raw  # For copying into briefings\n    ",
+        "short_help": ""
+      },
+      "list": {
+        "type": "command",
+        "help": "List all available context templates.",
+        "short_help": ""
+      },
+      "spawn": {
+        "type": "command",
+        "help": "Spawn an agent with standardized context (orchestrator/pm only).\n\n    This command creates a complete agent setup:\n    1. Creates a new window at the end of the session\n    2. Starts Claude with appropriate permissions\n    3. Waits for initialization\n    4. Sends the role context\n\n    For other agent types, use custom briefings from your team plan.\n\n    Examples:\n        tmux-orc context spawn pm --session project\n        tmux-orc context spawn orchestrator --session main --extend \"Working on API project\"\n        tmux-orc context spawn pm --session project:1  # Legacy format (index ignored)\n    ",
+        "short_help": ""
+      },
+      "export": {
+        "type": "command",
+        "help": "Export a system role context to a file for customization.\n\n    Only orchestrator and PM have standard contexts. All other agents\n    (developers, writers, engineers, artists, etc.) should have custom\n    briefings defined in your team plan.\n\n    Examples:\n        tmux-orc context export my-pm-briefing.md --role pm\n        tmux-orc context export orchestrator-api.md --role orchestrator --project \"API Service\"\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "team": {
+    "type": "group",
+    "help": "Manage multi-agent teams across tmux sessions.\n\n    The team command group provides comprehensive management of agent teams,\n    including deployment, monitoring, communication, and recovery operations.\n    Teams consist of multiple specialized Claude agents working together.\n\n    Examples:\n        tmux-orc team deploy frontend 4         # Deploy 4-agent frontend team\n        tmux-orc team status my-project         # Check team health\n        tmux-orc team list                      # Show all active teams\n        tmux-orc team broadcast frontend \"Update status\"\n        tmux-orc team recover stuck-project    # Recover failed agents\n\n    Team Types:\n        \u2022 frontend:  UI/UX development team\n        \u2022 backend:   Server-side development team\n        \u2022 fullstack: Full-stack development team\n        \u2022 testing:   QA and testing team\n\n    Each team includes specialized roles like developers, project managers,\n    QA engineers, and code reviewers working in coordination.\n    ",
+    "short_help": "",
+    "subcommands": {
+      "status": {
+        "type": "command",
+        "help": "Show comprehensive team status and health metrics.\n\n    Displays detailed information about all agents in a team session,\n    including individual agent status, activity levels, and team coordination.\n\n    SESSION: Session name to check (e.g., 'my-project', 'frontend-team')\n\n    Examples:\n        tmux-orc team status my-project        # Check project team status\n        tmux-orc team status frontend-team     # Check frontend team health\n        tmux-orc team status testing-suite     # Check testing team progress\n\n    Status Information:\n        \u2022 Session metadata (creation time, attachment status)\n        \u2022 Individual agent status and last activity\n        \u2022 Agent types and specializations\n        \u2022 Communication and coordination health\n        \u2022 Resource usage and performance metrics\n        \u2022 Team productivity summary\n\n    Use this regularly to monitor team health and identify agents\n    that may need attention, restart, or additional resources.\n    ",
+        "short_help": ""
+      },
+      "list": {
+        "type": "command",
+        "help": "List all active team sessions with summary information.\n\n    Provides an overview of all team sessions currently running,\n    including team size, agent count, and overall status.\n\n    Examples:\n        tmux-orc team list                     # Show all active teams\n\n    Information Displayed:\n        \u2022 Session name and creation time\n        \u2022 Number of windows (workspaces) per team\n        \u2022 Active agent count and types\n        \u2022 Overall team status (Healthy, Warning, Critical)\n        \u2022 Resource utilization summary\n\n    Team Status Indicators:\n        \ud83d\udfe2 Healthy:  All agents responsive and productive\n        \ud83d\udfe1 Warning:  Some agents need attention\n        \ud83d\udd34 Critical: Multiple failed agents or system issues\n        \u26ab Unknown:  Unable to determine team status\n\n    Use this for system-wide monitoring and to identify teams\n    that may need management intervention.\n    ",
+        "short_help": ""
+      },
+      "broadcast": {
+        "type": "command",
+        "help": "Broadcast a coordinated message to all agents in a team.\n\n    Sends the same message simultaneously to all Claude agents in the\n    specified team session, enabling coordinated team communication.\n\n    SESSION: Target team session name (e.g., 'my-project', 'frontend-team')\n    MESSAGE: Message text to broadcast to all team agents\n\n    Examples:\n        tmux-orc team broadcast frontend \"Sprint planning meeting in 30 minutes\"\n        tmux-orc team broadcast my-project \"Deploy to staging environment now\"\n        tmux-orc team broadcast testing \"Focus on API endpoint testing today\"\n        tmux-orc team broadcast backend \"Database migration scheduled for 3pm\"\n\n    Common Use Cases:\n        \u2022 Sprint announcements and coordination\n        \u2022 Priority shifts and urgent updates\n        \u2022 Deployment instructions and timing\n        \u2022 Status update requests from all agents\n        \u2022 Emergency notifications and alerts\n\n    Message Delivery:\n        \u2022 Delivered instantly to all responsive agents\n        \u2022 Failed deliveries are reported individually\n        \u2022 Agents receive messages as direct user input\n        \u2022 No message queuing for offline agents\n\n    Best Practices:\n        \u2022 Use clear, actionable messages\n        \u2022 Include context and urgency level\n        \u2022 Follow up with individual agents if needed\n        \u2022 Coordinate timing for synchronized actions\n    ",
+        "short_help": ""
+      },
+      "deploy": {
+        "type": "command",
+        "help": "Deploy a complete multi-agent team with specialized roles.\n\n    Creates a new tmux session with multiple coordinated Claude agents,\n    each with specialized roles and responsibilities based on team type.\n\n    TEAM_TYPE: Specialization focus (frontend, backend, fullstack, testing)\n    SIZE: Number of agents to deploy (recommended: 2-8, max: 20)\n\n    Examples:\n        tmux-orc team deploy frontend 4              # 4-agent frontend team\n        tmux-orc team deploy backend 3               # 3-agent backend team\n        tmux-orc team deploy fullstack 6             # 6-agent fullstack team\n        tmux-orc team deploy testing 2               # 2-agent testing team\n        tmux-orc team deploy frontend 5 --project-name my-app\n\n    Team Compositions by Type:\n\n    Frontend Team:\n        \u2022 UI/UX Developer: Component design and user experience\n        \u2022 Frontend Developer: React/Vue/Angular implementation\n        \u2022 CSS/Styling Expert: Responsive design and animations\n        \u2022 Performance Optimizer: Bundle optimization and speed\n        \u2022 Project Manager: Coordination and quality assurance\n\n    Backend Team:\n        \u2022 API Developer: REST/GraphQL endpoint development\n        \u2022 Database Engineer: Schema design and optimization\n        \u2022 DevOps Engineer: Deployment and infrastructure\n        \u2022 Security Specialist: Authentication and authorization\n        \u2022 Project Manager: Architecture and coordination\n\n    Fullstack Team:\n        \u2022 Lead Developer: Architecture and technical decisions\n        \u2022 Frontend Specialist: Client-side development\n        \u2022 Backend Specialist: Server-side development\n        \u2022 Database Expert: Data layer and optimization\n        \u2022 QA Engineer: Testing and quality assurance\n        \u2022 DevOps Engineer: Deployment and monitoring\n\n    Testing Team:\n        \u2022 QA Lead: Test strategy and planning\n        \u2022 Automation Engineer: Test framework and CI/CD\n        \u2022 Manual Tester: User acceptance and edge cases\n        \u2022 Performance Tester: Load and stress testing\n\n    The deployment process:\n        1. Creates project-specific tmux session\n        2. Assigns specialized roles to each agent\n        3. Provides role-specific briefings and tools\n        4. Establishes team communication protocols\n        5. Initializes project context and objectives\n\n    Recommended Team Sizes:\n        \u2022 Small project: 2-3 agents\n        \u2022 Medium project: 4-6 agents\n        \u2022 Large project: 6-8 agents\n        \u2022 Enterprise: 8+ agents (requires careful coordination)\n    ",
+        "short_help": ""
+      },
+      "recover": {
+        "type": "command",
+        "help": "Recover and restore failed or unresponsive team agents.\n\n    Automatically detects and restarts failed agents in the specified\n    team session, restoring them to their original roles and context.\n\n    SESSION: Team session name to recover (e.g., 'my-project', 'frontend-team')\n\n    Examples:\n        tmux-orc team recover my-project           # Recover failed project agents\n        tmux-orc team recover frontend-team       # Fix unresponsive frontend team\n        tmux-orc team recover testing-suite       # Restore crashed testing agents\n\n    Recovery Process:\n        1. \ud83d\udd0d Scans all windows in the team session\n        2. \ud83c\udfe5 Identifies failed, crashed, or unresponsive agents\n        3. \ud83d\udcbe Captures current context and work state\n        4. \ud83d\udd04 Restarts failed agents with fresh Claude instances\n        5. \ud83d\udccb Restores agent roles, briefings, and context\n        6. \ud83d\udd17 Re-establishes team communication protocols\n        7. \u2705 Verifies all agents are responsive\n\n    When to Use Recovery:\n        \u2022 Multiple agents in team are unresponsive\n        \u2022 System crash or restart affected agents\n        \u2022 Agents showing error states or stuck processes\n        \u2022 Team coordination has broken down\n        \u2022 After system updates or configuration changes\n\n    Recovery Features:\n        \u2022 Preserves agent specializations and roles\n        \u2022 Maintains project context and objectives\n        \u2022 Restores inter-agent communication\n        \u2022 Minimal disruption to working agents\n        \u2022 Detailed recovery status reporting\n\n    Prevention Tips:\n        \u2022 Monitor team status regularly with 'tmux-orc team status'\n        \u2022 Use proper tmux detach commands\n        \u2022 Avoid forcefully killing tmux sessions\n        \u2022 Keep system resources adequate for team size\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "orchestrator": {
+    "type": "group",
+    "help": "High-level orchestrator operations for system-wide management.\n\n    The orchestrator command group provides strategic oversight and coordination\n    capabilities for managing multiple projects, teams, and agents across the\n    entire TMUX Orchestrator ecosystem.\n\n    Examples:\n        tmux-orc orchestrator start            # Start main orchestrator\n        tmux-orc orchestrator status           # System-wide status\n        tmux-orc orchestrator schedule 30 \"Check progress\"\n        tmux-orc orchestrator broadcast \"Deploy now\"\n        tmux-orc orchestrator list --all-sessions\n\n    Orchestrator Responsibilities:\n        \u2022 Strategic project coordination across teams\n        \u2022 Resource allocation and optimization\n        \u2022 Cross-project dependency management\n        \u2022 Quality standards enforcement\n        \u2022 System health monitoring and alerts\n        \u2022 Automated scheduling and reminders\n\n    The orchestrator operates at the highest level, managing Project Managers\n    who in turn coordinate individual development teams.\n    ",
+    "short_help": "",
+    "subcommands": {
+      "start": {
+        "type": "command",
+        "help": "Start the master orchestrator for enterprise-wide project coordination.\n\n    Creates and initializes the main orchestrator agent with comprehensive\n    system oversight capabilities, strategic planning tools, and multi-project\n    coordination workflows.\n\n    Examples:\n        tmux-orc orchestrator start           # Start with default session 'tmux-orc'\n        tmux-orc orchestrator start --session main-control\n        tmux-orc orchestrator start --project-dir /workspace/projects\n\n    Orchestrator Initialization:\n        1. \ud83c\udfe7 Creates dedicated orchestrator session\n        2. \ud83e\udd16 Starts Claude agent with orchestrator specialization\n        3. \ud83d\udccb Provides comprehensive strategic briefing\n        4. \ud83d\udd0d Analyzes current system state and projects\n        5. \ud83d\udd17 Establishes communication with existing teams\n        6. \u2699\ufe0f Sets up monitoring and scheduling systems\n\n    Orchestrator Capabilities:\n        \u2022 Multi-project portfolio management\n        \u2022 Strategic resource allocation\n        \u2022 Cross-team dependency coordination\n        \u2022 Quality gate enforcement\n        \u2022 Risk assessment and mitigation\n        \u2022 Automated progress tracking\n        \u2022 Stakeholder communication\n        \u2022 Performance optimization\n\n    Strategic Focus Areas:\n        \u2022 Big-picture architectural decisions\n        \u2022 Timeline and milestone coordination\n        \u2022 Resource utilization optimization\n        \u2022 Quality standards maintenance\n        \u2022 Team productivity enhancement\n        \u2022 Technology stack alignment\n\n    The orchestrator operates with elevated permissions and system-wide\n    visibility, making strategic decisions that affect multiple teams.\n    ",
+        "short_help": ""
+      },
+      "schedule": {
+        "type": "command",
+        "help": "Schedule automated reminders and orchestrator check-ins.\n\n    Creates time-based reminders for the orchestrator to perform specific\n    actions, ensuring consistent oversight and preventing important tasks\n    from being forgotten.\n\n    MINUTES: Minutes from now to schedule (1-1440, max 24 hours)\n    NOTE: Reminder message or action description\n\n    Examples:\n        tmux-orc orchestrator schedule 30 \"Review team progress\"\n        tmux-orc orchestrator schedule 120 \"Check deployment pipeline\"\n        tmux-orc orchestrator schedule 15 \"Sprint planning preparation\"\n        tmux-orc orchestrator schedule 60 \"Client demo rehearsal\"\n\n    Common Scheduling Use Cases:\n        \u2022 Regular progress check-ins\n        \u2022 Meeting preparation reminders\n        \u2022 Deployment coordination windows\n        \u2022 Quality gate assessments\n        \u2022 Resource utilization reviews\n        \u2022 Stakeholder communication\n        \u2022 System health evaluations\n\n    Scheduling Features:\n        \u2022 Precision timing with system integration\n        \u2022 Automatic target window detection\n        \u2022 Context-aware reminder delivery\n        \u2022 Integration with orchestrator workflows\n        \u2022 Flexible time ranges (1 minute to 24 hours)\n\n    Recommended Intervals:\n        \u2022 Status checks: 15-30 minutes\n        \u2022 Progress reviews: 60-120 minutes\n        \u2022 Planning activities: 2-4 hours\n        \u2022 Strategic assessments: 4-8 hours\n\n    Essential for maintaining consistent oversight in complex,\n    multi-team environments where timing is critical.\n    ",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Display enterprise-wide orchestrator status and strategic overview.\n\n    Provides a comprehensive view of the entire orchestrator ecosystem,\n    including all sessions, teams, agents, and strategic performance metrics\n    from the orchestrator's perspective.\n\n    Examples:\n        tmux-orc orchestrator status          # Strategic status overview\n        tmux-orc orchestrator status --json   # JSON for integration\n\n    Strategic Status Components:\n\n    Orchestrator Health:\n        \u2022 Main orchestrator session status\n        \u2022 Orchestrator agent responsiveness\n        \u2022 System integration health\n        \u2022 Communication pathway status\n\n    Portfolio Overview:\n        \u2022 Total active projects and teams\n        \u2022 Resource allocation across projects\n        \u2022 Cross-project dependency mapping\n        \u2022 Strategic milestone tracking\n\n    Team Coordination:\n        \u2022 Project Manager status and health\n        \u2022 Team productivity metrics\n        \u2022 Inter-team communication patterns\n        \u2022 Coordination bottlenecks\n\n    System Performance:\n        \u2022 Overall system utilization\n        \u2022 Agent efficiency metrics\n        \u2022 Quality gate compliance\n        \u2022 Error rates and recovery statistics\n\n    Strategic Indicators:\n        \ud83d\udfe2 Optimal:   All systems performing at peak efficiency\n        \ud83d\udfe1 Monitor:   Some areas need attention\n        \ud83d\udd34 Critical:  Strategic intervention required\n        \u26ab Unknown:   Insufficient data for assessment\n\n    Use this for executive reporting, strategic planning sessions,\n    and high-level system health assessments.\n    ",
+        "short_help": ""
+      },
+      "list": {
+        "type": "command",
+        "help": "List sessions under orchestrator management with strategic context.\n\n    Displays all sessions relevant to orchestrator oversight, categorized\n    by type and importance, with strategic information for decision-making.\n\n    Examples:\n        tmux-orc orchestrator list             # Show orchestrator sessions\n        tmux-orc orchestrator list --all-sessions  # Include all sessions\n        tmux-orc orchestrator list --json     # JSON for automation\n\n    Session Categories:\n\n    Orchestrator Sessions:\n        \ud83c\udfad Main orchestrator and control sessions\n        \u2022 Primary strategic coordination\n        \u2022 System-wide monitoring\n        \u2022 Cross-project management\n\n    Project Teams:\n        \ud83d\udc65 Active development teams\n        \u2022 Frontend, backend, fullstack teams\n        \u2022 Testing and QA teams\n        \u2022 Specialized project teams\n\n    Project Management:\n        \ud83d\udc54 Project Manager sessions\n        \u2022 Team coordination hubs\n        \u2022 Quality oversight\n        \u2022 Progress tracking\n\n    Support Services:\n        \ud83d\udd27 Infrastructure and support\n        \u2022 DevOps and deployment\n        \u2022 Database management\n        \u2022 Security and compliance\n\n    Session Information:\n        \u2022 Session name and creation time\n        \u2022 Attachment status and accessibility\n        \u2022 Window count and configuration\n        \u2022 Session type and specialization\n        \u2022 Resource utilization\n        \u2022 Strategic importance level\n\n    Use for portfolio management, resource planning, and\n    strategic session organization.\n    ",
+        "short_help": ""
+      },
+      "kill": {
+        "type": "command",
+        "help": "Terminate sessions with strategic oversight and safety checks.\n\n    Carefully terminates specified sessions with proper orchestrator-level\n    safety checks, dependency verification, and graceful shutdown procedures.\n\n    SESSION: Session name to terminate (e.g., 'old-project', 'failed-team')\n\n    Examples:\n        tmux-orc orchestrator kill old-project    # Kill with safety check\n        tmux-orc orchestrator kill failed-team --force\n\n    Strategic Safety Features:\n\n    Pre-termination Checks:\n        \u2022 Dependency analysis across projects\n        \u2022 Active work preservation warnings\n        \u2022 Resource impact assessment\n        \u2022 Communication pathway disruption\n\n    Protected Sessions:\n        \u2022 Main orchestrator sessions require --force\n        \u2022 Active production deployments\n        \u2022 Critical infrastructure services\n        \u2022 Sessions with unsaved work\n\n    Termination Process:\n        1. \ud83d\udd0d Analyze session dependencies\n        2. \ud83d\udcbe Capture session state and logs\n        3. \ud83d\udce2 Notify affected teams and PMs\n        4. \ud83d\udccb Update project status tracking\n        5. \ud83d\uddd1\ufe0f Graceful agent shutdown\n        6. \u2699\ufe0f Resource cleanup and reallocation\n\n    \u26a0\ufe0f  Strategic Considerations:\n        \u2022 Impact on other projects and teams\n        \u2022 Resource reallocation opportunities\n        \u2022 Timeline adjustments needed\n        \u2022 Communication to stakeholders\n\n    Use with careful consideration of broader strategic impact\n    and always verify dependencies before termination.\n    ",
+        "short_help": ""
+      },
+      "kill-all": {
+        "type": "command",
+        "help": "Terminate ALL tmux sessions with strategic oversight and safety controls.\n\n    Provides emergency shutdown capabilities for the entire tmux ecosystem\n    with proper safety checks and selective preservation options.\n\n    Examples:\n        tmux-orc orchestrator kill-all              # Interactive confirmation\n        tmux-orc orchestrator kill-all --force      # Skip confirmation\n        tmux-orc orchestrator kill-all --exclude main,prod-deploy\n\n    Safety Features:\n\n    Interactive Confirmation:\n        \u2022 Lists all sessions before termination\n        \u2022 Requires explicit confirmation unless --force\n        \u2022 Shows impact assessment and warnings\n        \u2022 Provides cancellation opportunity\n\n    Selective Preservation:\n        \u2022 --exclude option to preserve critical sessions\n        \u2022 Automatic detection of production systems\n        \u2022 Protection of active deployment sessions\n        \u2022 Preservation of logged work sessions\n\n    Termination Process:\n        1. \ud83d\udd0d Discovery: Scan all active sessions\n        2. \ud83d\udccb Assessment: Categorize by importance\n        3. \u26a0\ufe0f  Warning: Show impact and ask confirmation\n        4. \ud83d\udee1\ufe0f  Protection: Apply exclusion filters\n        5. \ud83d\udcf8 Capture: Save session logs/state\n        6. \ud83d\uddd1\ufe0f  Terminate: Graceful shutdown sequence\n        7. \u2705 Verification: Confirm all sessions ended\n\n    Use Cases:\n        \u2022 End-of-day workspace cleanup\n        \u2022 Development environment reset\n        \u2022 Emergency system shutdown\n        \u2022 Resource reclamation\n        \u2022 Environment switching\n\n    \u26a0\ufe0f  CRITICAL WARNING:\n    This command will terminate ALL development work, agent sessions,\n    and orchestrator coordination. Use only when intentionally ending\n    all work or during emergency situations.\n    ",
+        "short_help": ""
+      },
+      "broadcast": {
+        "type": "command",
+        "help": "Orchestrator-level strategic broadcasts to project teams and PMs.\n\n    Sends high-priority, strategically important communications from the\n    orchestrator to Project Managers and teams, maintaining proper command\n    hierarchy and strategic context.\n\n    MESSAGE: Strategic message to broadcast across the organization\n\n    Examples:\n        tmux-orc orchestrator broadcast \"Emergency deployment window opens at 3pm\"\n        tmux-orc orchestrator broadcast \"All teams: code freeze for release\" --all-sessions\n        tmux-orc orchestrator broadcast \"Frontend focus on performance\" --session-filter frontend\n\n    Strategic Broadcast Features:\n\n    Message Routing:\n        \u2022 Intelligent PM and team lead targeting\n        \u2022 Strategic context preservation\n        \u2022 Command hierarchy respect\n        \u2022 Delivery confirmation tracking\n\n    Broadcast Scopes:\n        \u2022 Default: Project teams only (excludes orchestrator)\n        \u2022 --all-sessions: Every session in system\n        \u2022 --session-filter: Pattern-based targeting\n\n    Message Types:\n\n    Strategic Directives:\n        \u2022 Portfolio-wide priority changes\n        \u2022 Resource reallocation decisions\n        \u2022 Quality standard updates\n        \u2022 Timeline adjustments\n\n    Operational Coordination:\n        \u2022 Deployment windows and freezes\n        \u2022 Cross-team synchronization\n        \u2022 Emergency response procedures\n        \u2022 System-wide maintenance\n\n    Communication Coordination:\n        \u2022 Stakeholder meeting schedules\n        \u2022 Demo and presentation timing\n        \u2022 Reporting requirement changes\n        \u2022 Documentation updates\n\n    Message Delivery Process:\n        1. \ud83c\udfaf Strategic message composition\n        2. \ud83d\udd0d Target audience identification\n        3. \ud83d\udce1 Multi-channel delivery (PMs first)\n        4. \u2705 Delivery confirmation collection\n        5. \ud83d\udcc8 Impact tracking and follow-up\n        6. \ud83d\udce2 Escalation for non-responsive teams\n\n    Use for critical communications that require immediate\n    attention and coordinated response across the organization.\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "setup": {
+    "type": "group",
+    "help": "Setup and configuration commands for development environments.\n\n    The setup command group provides automated configuration for various\n    development tools and environments to work seamlessly with the TMUX\n    Orchestrator system.\n\n    Available Setups:\n        \u2022 claude-code: Install slash commands and MCP server\n        \u2022 vscode: Configure VS Code tasks and debugging\n        \u2022 tmux: Configure tmux with mouse support and keybindings\n        \u2022 git-hooks: Install pre-commit hooks for quality\n\n    Examples:\n        tmux-orc setup                  # Check system requirements\n        tmux-orc setup claude-code      # Setup Claude Code integration\n        tmux-orc setup vscode ./project # Configure VS Code\n        tmux-orc setup tmux             # Configure tmux settings\n        tmux-orc setup all              # Run all setup commands\n    ",
+    "short_help": "",
+    "subcommands": {
+      "mcp": {
+        "type": "command",
+        "help": "Register MCP server with Claude Desktop.\n\n    This command specifically handles MCP server registration without\n    running the full Claude Code setup. Useful for:\n    - Re-registering after Claude Desktop updates\n    - Fixing registration issues\n    - Checking registration status\n\n    Examples:\n        tmux-orc setup mcp          # Register MCP server\n        tmux-orc setup mcp --force  # Force re-registration\n    ",
+        "short_help": ""
+      },
+      "check-requirements": {
+        "type": "command",
+        "help": "Check system requirements and provide setup guidance.\n\n    Verifies that all required dependencies are installed and provides\n    platform-specific installation instructions if any are missing.\n\n    Examples:\n        tmux-orc setup        # Run system check\n    ",
+        "short_help": ""
+      },
+      "claude-code": {
+        "type": "command",
+        "help": "Install slash commands and MCP server for Claude Code.\n\n    Sets up complete Claude Code integration including:\n    - Slash commands for PRD creation and task management\n    - MCP server configuration for agent control\n    - Auto-restart of Claude Code if needed\n\n    Examples:\n        tmux-orc setup claude-code\n        tmux-orc setup claude-code --force\n        tmux-orc setup claude-code --root-dir /workspaces/myproject\n    ",
+        "short_help": ""
+      },
+      "vscode": {
+        "type": "command",
+        "help": "Configure VS Code tasks and settings for the project.\n\n    PROJECT_DIR: Directory to configure (default: current directory)\n\n    Sets up:\n    - tasks.json with orchestrator commands\n    - Recommended extensions\n    - Debugging configuration\n    - Workspace settings\n\n    Examples:\n        tmux-orc setup vscode\n        tmux-orc setup vscode ./my-project --force\n    ",
+        "short_help": ""
+      },
+      "tmux": {
+        "type": "command",
+        "help": "Configure tmux with optimal settings for agent development.\n\n    Configures:\n    - Mouse support for easy window navigation\n    - Scrollback buffer for reviewing agent output\n    - Status bar customization\n    - Key bindings for common operations\n\n    Examples:\n        tmux-orc setup tmux\n        tmux-orc setup tmux --force\n    ",
+        "short_help": ""
+      },
+      "all": {
+        "type": "command",
+        "help": "Run all setup commands for complete environment configuration.\n\n    Configures:\n    - Claude Code integration (slash commands + MCP)\n    - MCP server for agent coordination\n    - VS Code tasks and settings\n    - Tmux configuration with mouse support\n    - Git hooks for quality checks\n    - Shell completions\n\n    Examples:\n        tmux-orc setup all\n        tmux-orc setup all --force\n    ",
+        "short_help": ""
+      },
+      "check": {
+        "type": "command",
+        "help": "Check current setup status and configurations.\n\n    Verifies:\n    - Claude Code installation and configuration\n    - VS Code tasks configuration\n    - MCP server availability\n    - Slash command installation\n\n    Examples:\n        tmux-orc setup check\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "spawn": {
+    "type": "group",
+    "help": "Spawn orchestrators, project managers, and custom agents.\n\n    This is the primary entry point for creating Claude agents in tmux sessions.\n    Use these commands to spawn various types of agents with appropriate contexts\n    and configurations. New windows are automatically added to the end of sessions.\n\n    Examples:\n        tmux-orc spawn orc                      # Spawn orchestrator (human entry point)\n        tmux-orc spawn pm --session proj        # Spawn PM with standard context\n        tmux-orc spawn agent api-dev proj --briefing \"...\"  # Custom agent\n\n    Agent Types:\n        - orc: Orchestrator for human interaction (launches new terminal)\n        - pm: Project Manager with standardized context\n        - agent: Custom agents with flexible briefings\n    ",
+    "short_help": "",
+    "subcommands": {
+      "orc": {
+        "type": "command",
+        "help": "Launch Claude Code as an orchestrator in a new terminal.\n\n    This is the primary entry point for humans to start working with tmux-orchestrator.\n    It will:\n    1. Create a new terminal window\n    2. Launch Claude Code with the --dangerously-skip-permissions flag\n    3. Automatically load the orchestrator context\n\n    After launching, you'll be ready to create feature requests and use /create-prd\n    to generate PRDs that will spawn autonomous agent teams.\n\n    Examples:\n        tmux-orc spawn orc                      # Launch with auto-detected terminal\n        tmux-orc spawn orc --terminal konsole   # Use specific terminal\n        tmux-orc spawn orc --no-gui             # Run in current terminal (SSH)\n        tmux-orc spawn orc --profile work       # Use specific Claude profile\n    ",
+        "short_help": ""
+      },
+      "pm": {
+        "type": "command",
+        "help": "Spawn a Project Manager with standardized context.\n\n    This command creates a complete PM agent setup:\n    1. Creates a new window at the end of the session\n    2. Starts Claude with appropriate permissions\n    3. Waits for initialization\n    4. Sends the PM context\n\n    The PM will receive the standard PM context from the system contexts,\n    which includes quality-focused coordination guidelines and workflow patterns.\n\n    Examples:\n        tmux-orc spawn pm --session project\n        tmux-orc spawn pm --session main --extend \"Working on API refactoring\"\n        tmux-orc spawn pm --session project:1  # Legacy format (index ignored)\n    ",
+        "short_help": ""
+      },
+      "agent": {
+        "type": "command",
+        "help": "Spawn a custom agent into a specific session.\n\n    This command creates a new Claude agent with complete customization.\n    Allows ANY agent name and custom system prompts for maximum flexibility.\n    The new window will be automatically added to the end of the session.\n\n    NAME: Custom agent name (e.g., 'api-specialist', 'ui-architect')\n    TARGET: Target session name (e.g., 'myproject') or session:window for legacy compatibility\n\n    Examples:\n        # Spawn a custom API specialist (recommended)\n        tmux-orc spawn agent api-specialist myproject \\\n            --briefing \"You are an API design specialist focused on RESTful principles...\"\n\n        # Spawn a performance engineer\n        tmux-orc spawn agent perf-engineer backend \\\n            --working-dir /workspaces/backend \\\n            --briefing \"You are a performance optimization engineer...\"\n\n        # Legacy format (window index will be ignored)\n        tmux-orc spawn agent researcher project:4 \\\n            --briefing \"$(cat .tmux_orchestrator/planning/researcher-briefing.md)\"\n\n    The orchestrator typically uses this command to create custom agents\n    tailored to specific project needs, as defined in the team composition plan.\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "recovery": {
+    "type": "group",
+    "help": "Automatic agent recovery system management.\n\n    The recovery system provides continuous monitoring and automatic\n    recovery of failed Claude agents across all tmux sessions.\n\n    Features:\n        \u2022 Continuous health monitoring\n        \u2022 Automatic failure detection\n        \u2022 Context-preserving restarts\n        \u2022 Intelligent briefing restoration\n        \u2022 Notification throttling\n        \u2022 Comprehensive event logging\n    ",
+    "short_help": "",
+    "subcommands": {
+      "start": {
+        "type": "command",
+        "help": "Start the recovery daemon for continuous agent monitoring.\n\n    The recovery daemon continuously monitors all Claude agents and\n    automatically recovers failed agents using the integrated recovery system.\n\n    Examples:\n        tmux-orc recovery start                    # Start with defaults\n        tmux-orc recovery start --interval 15     # Check every 15 seconds\n        tmux-orc recovery start --dry-run         # Monitor only, no recovery\n        tmux-orc recovery start --daemon          # Run in background\n        tmux-orc recovery start --verbose         # Debug logging\n\n    Configuration:\n        --interval: How often to check agent health (default: 30s)\n        --max-concurrent: Max simultaneous recoveries (default: 3)\n        --failure-threshold: Failures before recovery (default: 3)\n        --cooldown: Wait time between recovery attempts (default: 300s)\n\n    The daemon will run until stopped with Ctrl+C or 'tmux-orc recovery stop'.\n    ",
+        "short_help": ""
+      },
+      "stop": {
+        "type": "command",
+        "help": "Stop the running recovery daemon.\n\n    Gracefully stops the background recovery daemon, allowing active\n    recovery operations to complete before shutdown.\n\n    The daemon will wait up to 2 minutes for active recoveries to finish.\n    ",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Show recovery system status and statistics.\n\n    Displays comprehensive information about the recovery system including:\n        \u2022 Daemon status and uptime\n        \u2022 Agent health overview\n        \u2022 Recovery statistics\n        \u2022 Recent recovery events\n        \u2022 Performance metrics\n\n    Use --json for machine-readable output suitable for monitoring systems.\n    ",
+        "short_help": ""
+      },
+      "test": {
+        "type": "command",
+        "help": "Test recovery system with specific agent or run comprehensive tests.\n\n    TARGET: Agent target in format 'session:window' (e.g., 'tmux-orc-dev:4')\n            Optional - if not provided, will auto-discover test agents\n\n    Test Modes:\n        Single Agent Test (default):\n            \u2022 Health check and failure detection\n            \u2022 Recovery coordination (if enabled)\n            \u2022 Context preservation\n            \u2022 Briefing restoration\n            \u2022 Notification system\n\n        Comprehensive Test Suite (--comprehensive):\n            \u2022 Failure detection validation\n            \u2022 Recovery coordination testing\n            \u2022 Context preservation testing\n            \u2022 Notification system testing\n            \u2022 Optional stress testing (--stress-test)\n\n    Examples:\n        tmux-orc recovery test tmux-orc-dev:4          # Single agent test\n        tmux-orc recovery test --no-restart            # Detection only\n        tmux-orc recovery test --comprehensive         # Full test suite\n        tmux-orc recovery test --comprehensive --stress-test  # Include stress tests\n        tmux-orc recovery test --comprehensive --verbose      # Detailed output\n\n    Use --no-restart to test detection without actually restarting agents.\n    Use --comprehensive to run the complete test suite on all available agents.\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "session": {
+    "type": "group",
+    "help": "Manage tmux sessions for the orchestrator.\n\n    Sessions are the top-level containers in tmux that contain one or more windows.\n    The orchestrator uses sessions to organize different agents and their workspaces.\n\n    Examples:\n        List all tmux sessions:\n        $ tmux-orc session list\n\n        List sessions in JSON format:\n        $ tmux-orc session list --json\n\n        Attach to an existing session:\n        $ tmux-orc session attach my-session\n\n        Attach to a session in read-only mode:\n        $ tmux-orc session attach my-session --read-only\n    ",
+    "short_help": "",
+    "subcommands": {
+      "list": {
+        "type": "command",
+        "help": "List all tmux sessions with details.\n\n    Shows all tmux sessions including their name, number of windows,\n    attached status, and creation time.\n\n    Examples:\n        List all sessions:\n        $ tmux-orc session list\n\n        Get machine-readable output:\n        $ tmux-orc session list --json\n    ",
+        "short_help": ""
+      },
+      "attach": {
+        "type": "command",
+        "help": "Attach to an existing tmux session.\n\n    Attaches to the specified tmux session. If the session doesn't exist,\n    an error will be displayed.\n\n    Arguments:\n        SESSION_NAME: Name of the tmux session to attach to\n\n    Examples:\n        Attach to a session:\n        $ tmux-orc session attach my-session\n\n        Attach in read-only mode:\n        $ tmux-orc session attach my-session --read-only\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "pubsub": {
+    "type": "group",
+    "help": "High-performance pubsub messaging via daemon backend.\n\n    Target: <100ms message delivery (vs 5000ms CLI overhead).\n\n    Examples:\n        tmux-orc pubsub publish --target pm:0 \"Message\"\n        tmux-orc pubsub read --target qa:0\n        tmux-orc pubsub status\n    ",
+    "short_help": "",
+    "subcommands": {
+      "publish": {
+        "type": "command",
+        "help": "Publish message via high-performance daemon (target: <100ms).",
+        "short_help": ""
+      },
+      "read": {
+        "type": "command",
+        "help": "Read from target via daemon with optional filtering.",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Show daemon status and performance metrics.",
+        "short_help": ""
+      },
+      "stats": {
+        "type": "command",
+        "help": "Show detailed performance statistics.",
+        "short_help": ""
+      },
+      "query": {
+        "type": "command",
+        "help": "Query structured messages with advanced filtering.",
+        "short_help": ""
+      }
+    }
+  },
+  "daemon": {
+    "type": "group",
+    "help": "Manage high-performance messaging daemon.\n\n    The daemon provides sub-100ms message delivery vs 5000ms CLI overhead.\n    Essential for real-time agent communication.\n\n    Examples:\n        tmux-orc daemon start       # Start daemon\n        tmux-orc daemon stop        # Stop daemon\n        tmux-orc daemon status      # Check status\n        tmux-orc daemon restart     # Restart daemon\n    ",
+    "short_help": "",
+    "subcommands": {
+      "start": {
+        "type": "command",
+        "help": "Start the high-performance messaging daemon.",
+        "short_help": ""
+      },
+      "stop": {
+        "type": "command",
+        "help": "Stop the messaging daemon.",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Check daemon status and performance.",
+        "short_help": ""
+      },
+      "restart": {
+        "type": "command",
+        "help": "Restart the messaging daemon.",
+        "short_help": ""
+      },
+      "logs": {
+        "type": "command",
+        "help": "Show daemon logs (last 50 lines).",
+        "short_help": ""
+      }
+    }
+  },
+  "tasks": {
+    "type": "group",
+    "help": "Task list management for PRD-driven development workflow.\n\n    The tasks command group provides comprehensive task management\n    capabilities for organizing PRDs, master task lists, and agent-specific\n    sub-tasks across development teams.\n\n    Directory Structure:\n        .tmux_orchestrator/\n        \u251c\u2500\u2500 projects/           # Active projects\n        \u2502   \u2514\u2500\u2500 {project}/      # Per-project organization\n        \u2502       \u251c\u2500\u2500 prd.md      # Product Requirements\n        \u2502       \u251c\u2500\u2500 tasks.md    # Master task list\n        \u2502       \u2514\u2500\u2500 agents/     # Agent sub-tasks\n        \u251c\u2500\u2500 templates/          # Reusable templates\n        \u2514\u2500\u2500 archive/            # Completed projects\n\n    Workflow:\n        1. Create project structure\n        2. Import or create PRD\n        3. Generate master task list\n        4. Distribute to agent teams\n        5. Track progress\n        6. Archive when complete\n\n    Examples:\n        tmux-orc tasks create my-feature\n        tmux-orc tasks import-prd my-feature ./prd.md\n        tmux-orc tasks distribute my-feature\n        tmux-orc tasks status my-feature\n    ",
+    "short_help": "",
+    "subcommands": {
+      "create": {
+        "type": "command",
+        "help": "Create a new project task structure.\n\n    PROJECT_NAME: Name of the project (will be directory name)\n\n    Creates the complete directory structure for a new project including\n    folders for PRD, tasks, agent sub-tasks, and status tracking.\n\n    Examples:\n        tmux-orc tasks create user-auth\n        tmux-orc tasks create payment-system --prd ./payment-prd.md\n        tmux-orc tasks create new-feature --template\n    ",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Display task status for a project.\n\n    PROJECT_NAME: Name of the project to check\n\n    Shows comprehensive task status including master task list progress,\n    agent-specific progress, and overall project health.\n\n    Examples:\n        tmux-orc tasks status my-project\n        tmux-orc tasks status my-project --agent frontend\n        tmux-orc tasks status my-project --tree\n    ",
+        "short_help": ""
+      },
+      "distribute": {
+        "type": "command",
+        "help": "Distribute tasks from master list to agent teams.\n\n    PROJECT_NAME: Project to distribute tasks for\n\n    Creates agent-specific task files by analyzing the master task list\n    and distributing work according to agent specializations.\n\n    Examples:\n        tmux-orc tasks distribute my-project\n        tmux-orc tasks distribute my-project --frontend 3 --backend 3\n    ",
+        "short_help": ""
+      },
+      "export": {
+        "type": "command",
+        "help": "Export project task data.\n\n    PROJECT_NAME: Project to export\n\n    Exports task lists, status, and progress data in various formats\n    for reporting and integration with other tools.\n\n    Examples:\n        tmux-orc tasks export my-project\n        tmux-orc tasks export my-project --format json --output report.json\n    ",
+        "short_help": ""
+      },
+      "archive": {
+        "type": "command",
+        "help": "Archive a completed project.\n\n    PROJECT_NAME: Project to archive\n\n    Moves completed projects to the archive directory with timestamp,\n    preserving all task history and status reports.\n\n    Examples:\n        tmux-orc tasks archive old-project\n        tmux-orc tasks archive completed-feature --force\n    ",
+        "short_help": ""
+      },
+      "list": {
+        "type": "command",
+        "help": "List all projects and their status.\n\n    Shows all projects in the task management system with their\n    current status and progress information.\n\n    Examples:\n        tmux-orc tasks list\n        tmux-orc tasks list --active\n        tmux-orc tasks list --archived\n    ",
+        "short_help": ""
+      },
+      "generate": {
+        "type": "command",
+        "help": "Generate task list from PRD using AI analysis.\n\n    PROJECT_NAME: Project with PRD to analyze\n\n    Reads the project's PRD and generates a comprehensive task list\n    following the development standards and patterns.\n\n    Examples:\n        tmux-orc tasks generate my-project\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "execute": {
+    "type": "command",
+    "help": "Execute a PRD by deploying an agent team for manual orchestration.\n\n    PRD_FILE: Path to the Product Requirements Document\n\n    This command sets up a manual orchestration workflow where Claude (you)\n    acts as the orchestrator to oversee an autonomous AI agent team.\n\n    WORKFLOW:\n    1. Creates project structure and copies PRD\n    2. Analyzes PRD to suggest optimal team composition\n    3. Deploys the agent team with role-specific briefings\n    4. PM agent autonomously reads PRD and creates tasks\n    5. PM distributes tasks to team members\n    6. Team works independently with PM coordination\n    7. You monitor and guide at a high level\n\n    ORCHESTRATOR RESPONSIBILITIES:\n    - Review PRD and approve team composition\n    - Monitor overall project health\n    - Make architectural decisions\n    - Resolve cross-team blockers\n    - Ensure quality standards\n    - NOT micromanage individual agents\n\n    TEAM COMPOSITION:\n    - --auto: Analyzes PRD to determine optimal team\n    - --team-type: Use predefined team templates\n    - --team-size: Override suggested team size\n\n    IMPORTANT: This is NOT automatic PRD parsing. The PM agent reads\n    the actual PRD document and creates the implementation plan. You\n    oversee the process but let agents work autonomously.\n\n    Examples:\n        tmux-orc execute ./prd.md\n        tmux-orc execute ./prd.md --auto\n        tmux-orc execute ./prd.md --project-name myapp\n        tmux-orc execute ./prd.md --team-type backend --team-size 4\n        tmux-orc execute ./prd.md --no-monitor --skip-planning\n\n    After execution:\n        - Monitor PM: tmux-orc read --session project:0\n        - Check tasks: tmux-orc tasks status project\n        - View team: tmux-orc team status project\n        - Message PM: tmux-orc send project:0 \"status?\"\n    ",
+    "short_help": ""
+  },
+  "errors": {
+    "type": "group",
+    "help": "Error management and reporting utilities.\n\n    Provides commands for viewing error logs, analyzing error patterns,\n    and managing error history for the TMUX Orchestrator system.\n\n    Examples:\n        tmux-orc errors summary       # Show error summary\n        tmux-orc errors recent        # Show recent errors\n        tmux-orc errors clear         # Clear old error logs\n        tmux-orc errors stats         # Show error statistics\n    ",
+    "short_help": "",
+    "subcommands": {
+      "summary": {
+        "type": "command",
+        "help": "Display comprehensive error summary and statistics.\n\n    Shows an overview of all errors tracked by the system, including\n    categorization, severity distribution, and recovery success rates.\n\n    Examples:\n        tmux-orc errors summary       # Show error summary\n        tmux-orc errors summary --json  # JSON output for automation\n    ",
+        "short_help": ""
+      },
+      "recent": {
+        "type": "command",
+        "help": "Display recent errors with details.\n\n    Shows the most recent errors recorded by the system, with options\n    to filter by severity and category.\n\n    Examples:\n        tmux-orc errors recent               # Show last 10 errors\n        tmux-orc errors recent -n 20         # Show last 20 errors\n        tmux-orc errors recent --severity critical  # Critical errors only\n        tmux-orc errors recent --category tmux     # TMUX errors only\n    ",
+        "short_help": ""
+      },
+      "clear": {
+        "type": "command",
+        "help": "Clear old error logs to save disk space.\n\n    Removes error log files older than the specified number of days.\n    Use --dry-run to preview what would be deleted.\n\n    Examples:\n        tmux-orc errors clear              # Clear errors older than 7 days\n        tmux-orc errors clear --age-days 30  # Clear errors older than 30 days\n        tmux-orc errors clear --dry-run    # Preview what would be cleared\n    ",
+        "short_help": ""
+      },
+      "stats": {
+        "type": "command",
+        "help": "Display detailed error statistics and trends.\n\n    Shows comprehensive error analysis including patterns, trends,\n    and recommendations for system improvement.\n\n    Examples:\n        tmux-orc errors stats    # Show error statistics\n    ",
+        "short_help": ""
+      }
+    }
+  },
+  "server": {
+    "type": "group",
+    "help": "MCP server management for Claude integration.",
+    "short_help": "",
+    "subcommands": {
+      "start": {
+        "type": "command",
+        "help": "Start MCP server for Claude Code CLI integration.\n\n    This command is registered with Claude Code CLI and will be\n    executed automatically when Claude needs MCP tools.\n\n    Runs in stdio mode: reads from stdin, writes to stdout.\n    ",
+        "short_help": ""
+      },
+      "status": {
+        "type": "command",
+        "help": "Check MCP server registration status with Claude.",
+        "short_help": ""
+      },
+      "tools": {
+        "type": "command",
+        "help": "List available MCP tools that Claude can use.",
+        "short_help": ""
+      },
+      "setup": {
+        "type": "command",
+        "help": "Setup MCP server registration with Claude Desktop.\n\n    This command will:\n    1. Detect Claude Desktop installation\n    2. Register tmux-orchestrator MCP server\n    3. Verify the configuration\n    ",
+        "short_help": ""
+      },
+      "toggle": {
+        "type": "command",
+        "help": "Enable or disable MCP server in Claude Desktop.",
+        "short_help": ""
+      }
+    }
+  }
+}

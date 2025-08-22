@@ -15,7 +15,19 @@ logger = logging.getLogger(__name__)
 
 @click.group()
 def server():
-    """MCP server management for Claude integration."""
+    """MCP server management for Claude integration.
+
+    <mcp>MCP (Model Context Protocol) server management for Claude Code integration. Provides 92 auto-generated tools for agent coordination. Use 'server start' to launch MCP server, 'server status' to check health, 'server validate' to test functionality.</mcp>
+
+    The server command group manages the MCP server that provides Claude agents
+    with direct access to tmux-orchestrator functionality through 92 auto-generated
+    tools organized hierarchically for optimal agent performance.
+
+    Examples:
+        tmux-orc server start        # Start MCP server (for Claude Code CLI)
+        tmux-orc server status       # Check MCP server health
+        tmux-orc server validate     # Test MCP server functionality
+    """
     pass
 
 

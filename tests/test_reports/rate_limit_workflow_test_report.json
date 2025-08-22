@@ -1,0 +1,132 @@
+{
+  "test_timestamp": "2025-08-20T21:33:58.435717+00:00",
+  "workflow_steps": [
+    {
+      "step": "Rate Limit Detection",
+      "total_tests": 5,
+      "passed": 5,
+      "details": [
+        {
+          "message": "Your limit will reset at 6pm (UTC)....",
+          "expected": "6pm",
+          "detected": "6pm",
+          "pass": true
+        },
+        {
+          "message": "API rate limited. Your limit will reset at 12:30am...",
+          "expected": "12:30am",
+          "detected": "12:30am",
+          "pass": true
+        },
+        {
+          "message": "Your limit will reset at  11am  (UTC)....",
+          "expected": "11am",
+          "detected": "11am",
+          "pass": true
+        },
+        {
+          "message": "No rate limit here...",
+          "expected": null,
+          "detected": null,
+          "pass": true
+        },
+        {
+          "message": "Your limit will reset at 25pm (UTC)....",
+          "expected": null,
+          "detected": null,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "step": "Sleep Duration Calculation",
+      "total_tests": 5,
+      "passed": 0,
+      "details": [
+        {
+          "reset_time": "10pm",
+          "hours_ahead": 1,
+          "calculated_seconds": 1681,
+          "expected_range": [
+            3300,
+            3900
+          ],
+          "pass": false
+        },
+        {
+          "reset_time": "11pm",
+          "hours_ahead": 2,
+          "calculated_seconds": 5281,
+          "expected_range": [
+            6900,
+            7500
+          ],
+          "pass": false
+        },
+        {
+          "reset_time": "1am",
+          "hours_ahead": 4,
+          "calculated_seconds": 12481,
+          "expected_range": [
+            14100,
+            14700
+          ],
+          "pass": false
+        },
+        {
+          "reset_time": "5am",
+          "hours_ahead": 8,
+          "calculated_seconds": 26881,
+          "expected_range": [
+            28500,
+            29100
+          ],
+          "pass": false
+        },
+        {
+          "reset_time": "9am",
+          "hours_ahead": 12,
+          "calculated_seconds": 41281,
+          "expected_range": [
+            42900,
+            43500
+          ],
+          "pass": false
+        }
+      ]
+    },
+    {
+      "step": "PM Pause Notification",
+      "notification_expected": true,
+      "notification_sent": false,
+      "pass": false,
+      "message_format": "Rate limit detected, pausing until {reset_time}"
+    },
+    {
+      "step": "Daemon Sleep Execution",
+      "expected_duration": 5,
+      "actual_duration": 5.000500440597534,
+      "tolerance": 0.5,
+      "pass": true
+    },
+    {
+      "step": "PM Resume Notification",
+      "notification_expected": true,
+      "notification_sent": false,
+      "pass": false,
+      "message_format": "Rate limit period ended, resuming monitoring"
+    },
+    {
+      "step": "Agent Restart",
+      "agents_to_restart": [
+        "agent1",
+        "agent2"
+      ],
+      "agents_restarted": [],
+      "pass": false,
+      "restart_method": "PM sends recovery commands"
+    }
+  ],
+  "overall_success": false,
+  "success_rate": "16.7%"
+}

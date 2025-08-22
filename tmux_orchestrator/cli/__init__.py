@@ -66,6 +66,8 @@ def cli(ctx: click.Context, config_file: str | None, json: bool, verbose: bool) 
 def list(ctx: click.Context, json: bool) -> None:
     """List all active agents across sessions with comprehensive status.
 
+    <mcp>Show all active Claude agents across tmux sessions (output: table or JSON). Use this to see which agents are running, their locations (session:window), and status. Different from 'status' which shows system overview, and 'agent status' which shows agent-specific details.</mcp>
+
     Provides a system-wide overview of all Claude agents currently running
     in tmux sessions, including their specializations, health status, and
     recent activity patterns.
@@ -192,6 +194,8 @@ def _filter_commands(
 @click.pass_context
 def reflect(ctx: click.Context, format: str, include_hidden: bool, filter: str | None) -> None:
     """Generate complete CLI command structure via runtime introspection.
+
+    <mcp>Discover all available CLI commands dynamically (args: format=tree/json/markdown, filter=pattern). Use this to explore CLI structure, build documentation, or find specific commands. Essential for understanding the full command surface area.</mcp>
 
     Dynamically discovers and documents all available tmux-orc commands by
     introspecting the Click command hierarchy. Useful for generating documentation,
@@ -362,6 +366,8 @@ def reflect(ctx: click.Context, format: str, include_hidden: bool, filter: str |
 @click.pass_context
 def status(ctx: click.Context, json: bool) -> None:
     """Display comprehensive system status dashboard with intelligent caching.
+
+    <mcp>Show comprehensive system status dashboard (output: rich table or JSON). Displays sessions, agents, daemon health with intelligent caching. Use for system health overview. Different from 'list' (agent-focused) and 'agent status' (individual agents).</mcp>
 
     Provides a sophisticated real-time view of the entire TMUX Orchestrator
     ecosystem with automatic performance optimization through daemon-based
@@ -670,6 +676,8 @@ def status(ctx: click.Context, json: bool) -> None:
 @click.pass_context
 def quick_deploy(ctx: click.Context, team_type: str, size: int, project_name: str | None, output_json: bool) -> None:
     """Rapidly deploy optimized team configurations for immediate productivity.
+
+    <mcp>Deploy pre-configured team with optimized roles (requires: team_type, size). Creates battle-tested team configurations instantly. Different from 'team deploy' which allows custom configurations, and 'agent deploy' for individual agents.</mcp>
 
     Creates a complete, ready-to-work team using battle-tested configurations
     and role distributions. Perfect for getting projects started quickly.

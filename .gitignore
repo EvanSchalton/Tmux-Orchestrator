@@ -194,3 +194,4 @@ kubernetes/
 helm/
 deploy/
 deployment/
+references/claude-code-guide/

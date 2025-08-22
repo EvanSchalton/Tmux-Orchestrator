@@ -1,0 +1,27 @@
+{
+  "test_timestamp": "2025-08-20T21:36:51.233381+00:00",
+  "critical_bugs": {
+    "sleep_duration_early_resume": {
+      "status": "PASS",
+      "failures": [],
+      "impact": "Daemon resumes before rate limit resets"
+    },
+    "pm_notifications_broken": {
+      "status": "PASS",
+      "failures": [],
+      "impact": "PM never informed about rate limits"
+    }
+  },
+  "recommendations": {
+    "sleep_duration": [
+      "Check timezone handling in calculate_sleep_duration()",
+      "Verify day rollover logic for times past midnight",
+      "Test AM/PM parsing edge cases"
+    ],
+    "pm_notifications": [
+      "Remove PM interface check requirement",
+      "Send notifications regardless of PM window state",
+      "Consider using pubsub for reliable delivery"
+    ]
+  }
+}

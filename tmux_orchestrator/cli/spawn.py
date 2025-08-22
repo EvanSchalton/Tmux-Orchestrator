@@ -42,6 +42,8 @@ def spawn() -> None:
 def orc(ctx: click.Context, profile: str | None, terminal: str, no_launch: bool, no_gui: bool) -> None:
     """Launch Claude Code as an orchestrator in a new terminal.
 
+    <mcp>Create system orchestrator agent (human entry point). Launches new terminal with Claude Code and auto-loads orchestrator context. Context rehydration: Automatically applies orchestrator role context including planning workflows, team coordination patterns, and human interface responsibilities. Use for human-driven project initialization.</mcp>
+
     This is the primary entry point for humans to start working with tmux-orchestrator.
     It will:
     1. Create a new terminal window
@@ -71,6 +73,8 @@ def orc(ctx: click.Context, profile: str | None, terminal: str, no_launch: bool,
 @click.pass_context
 def pm(ctx: click.Context, session: str, extend: str | None = None, json: bool = False) -> None:
     """Spawn a Project Manager with standardized context.
+
+    <mcp>Create new Project Manager agent with standardized PM context (args: [session]). Context rehydration: Automatically applies PM role context including quality-focused coordination, team management patterns, task distribution workflows, and status reporting. Optional --extend for project-specific context. Creates new window at session end.</mcp>
 
     This command creates a complete PM agent setup:
     1. Creates a new window at the end of the session
@@ -105,6 +109,8 @@ def agent(
 ) -> None:
     """Spawn a custom agent into a specific session.
 
+    <mcp>Create new custom agent with specialized role and briefing (args: [name, target, --briefing]). Context rehydration: Applies custom briefing as system prompt along with base agent context including tmux-orchestrator awareness, communication protocols, and collaborative workflows. Use --working-dir for workspace context. Creates new window at session end. Correct choice for 'deploy agent' requests.</mcp>
+
     This command creates a new Claude agent with complete customization.
     Allows ANY agent name and custom system prompts for maximum flexibility.
     The new window will be automatically added to the end of the session.
@@ -126,7 +132,7 @@ def agent(
         tmux-orc spawn agent researcher project:4 \\
             --briefing "$(cat .tmux_orchestrator/planning/researcher-briefing.md)"
 
-    The orchestrator typically uses this command to create custom agents
+    The orc typically uses this command to create custom agents
     tailored to specific project needs, as defined in the team composition plan.
     """
     import time
@@ -288,8 +294,38 @@ def agent(
     # CRITICAL: Wait for Claude to fully initialize to prevent Ctrl+C interruption
     time.sleep(8)  # Give Claude sufficient time to load completely
 
-    # Send briefing (required in this new implementation)
-    tmux.send_message(actual_target, briefing)
+    # Prepare enhanced briefing with MCP guidance
+    enhanced_briefing = (
+        briefing
+        + """
+
+## MCP Tool Access
+
+The tmux-orchestrator provides 92 auto-generated MCP tools through Claude Code's MCP integration.
+
+**For complete MCP guidance, run:**
+```bash
+tmux-orc context show mcp
+```
+
+This will show you:
+- How to use MCP tools effectively
+- Complete reference for all 92 tools
+- Friendly tutorial for getting started
+- Integration with Claude Code
+
+Quick overview of tool categories:
+- **agent** - Agent lifecycle management (deploy, kill, list, status, restart, etc.)
+- **monitor** - Daemon monitoring and health checks (start, stop, dashboard, recovery, etc.)
+- **team** - Team coordination (deploy, status, broadcast, recover, etc.)
+- **spawn** - Create new agents (agent, pm, orchestrator)
+- **context** - Access role contexts and documentation
+
+To check if MCP tools are available, look for the tools icon in Claude Code's interface. If not available, you can still use all features via the standard CLI commands."""
+    )
+
+    # Send enhanced briefing
+    tmux.send_message(actual_target, enhanced_briefing)
 
     # Prepare result
     result_data = {

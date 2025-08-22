@@ -42,10 +42,11 @@ def serve(verbose, test):
 
     try:
         # Import here to avoid circular imports
-        from tmux_orchestrator.mcp_server import main
-
         # Set environment to indicate Claude Code CLI mode
         import os
+
+        from tmux_orchestrator.mcp_server import main
+
         os.environ["TMUX_ORC_MCP_MODE"] = "claude_code"
 
         # Run the server

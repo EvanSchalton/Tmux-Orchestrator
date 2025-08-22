@@ -76,9 +76,33 @@ Welcome! You are being launched as the Tmux Orchestrator.
 
 Please run the following command to load your orchestrator context:
 
-tmux-orc context show orchestrator
+tmux-orc context show orc
 
 This will provide you with your role, responsibilities, and workflow for managing AI agent teams.
+
+## MCP Tool Access
+
+The tmux-orchestrator provides 92 auto-generated MCP tools for agent coordination through Claude Code's MCP integration.
+
+**For complete MCP guidance, run:**
+```bash
+tmux-orc context show mcp
+```
+
+This will show you:
+- How to use MCP tools effectively
+- Complete reference for all 92 tools
+- Friendly tutorial for getting started
+- Integration with Claude Code
+
+Quick overview of tool categories:
+- **agent** - Agent lifecycle management (deploy, kill, list, status, restart, etc.)
+- **monitor** - Daemon monitoring and health checks (start, stop, dashboard, recovery, etc.)
+- **team** - Team coordination (deploy, status, broadcast, recover, etc.)
+- **spawn** - Create new agents (agent, pm, orchestrator)
+- **context** - Access role contexts and documentation
+
+To check if MCP tools are available, look for the tools icon in Claude Code's interface. If not available, you can still use all features via the standard CLI commands.
 EOF
 
 # Launch Claude with the instruction
@@ -129,9 +153,33 @@ rm -f "$0"
 
 Please run the following command to load your orchestrator context:
 
-tmux-orc context show orchestrator
+tmux-orc context show orc
 
-This will provide you with your role, responsibilities, and workflow for managing AI agent teams."""
+This will provide you with your role, responsibilities, and workflow for managing AI agent teams.
+
+## MCP Tool Access
+
+The tmux-orchestrator provides 92 auto-generated MCP tools for agent coordination through Claude Code's MCP integration.
+
+**For complete MCP guidance, run:**
+```bash
+tmux-orc context show mcp
+```
+
+This will show you:
+- How to use MCP tools effectively
+- Complete reference for all 92 tools
+- Friendly tutorial for getting started
+- Integration with Claude Code
+
+Quick overview of tool categories:
+- **agent** - Agent lifecycle management (deploy, kill, list, status, restart, etc.)
+- **monitor** - Daemon monitoring and health checks (start, stop, dashboard, recovery, etc.)
+- **team** - Team coordination (deploy, status, broadcast, recover, etc.)
+- **spawn** - Create new agents (agent, pm, orchestrator)
+- **context** - Access role contexts and documentation
+
+To check if MCP tools are available, look for the tools icon in Claude Code's interface. If not available, you can still use all features via the standard CLI commands."""
 
         try:
             # Launch Claude and send instruction via stdin

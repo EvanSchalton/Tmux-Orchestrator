@@ -56,6 +56,8 @@ def team() -> None:
 def status(ctx: click.Context, session: str, json: bool) -> None:
     """Show comprehensive team status and health metrics.
 
+    <mcp>Check specific team health (args: [team_name], not general 'show'). Displays detailed information about all agents in a team session including status, activity, coordination health. Different from agent.status which shows all agents across all sessions.</mcp>
+
     Displays detailed information about all agents in a team session,
     including individual agent status, activity levels, and team coordination.
 
@@ -132,6 +134,8 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
 def list(ctx: click.Context, json: bool) -> None:
     """List all active team sessions with summary information.
 
+    <mcp>Show all active teams with member counts (replaces 'show teams'). Provides overview of all team sessions including team size, agent count, status indicators. Different from agent.list which shows individual agents across all sessions.</mcp>
+
     Provides an overview of all team sessions currently running,
     including team size, agent count, and overall status.
 
@@ -205,6 +209,8 @@ def broadcast(
     ctx: click.Context, session: str, message: str, exclude: tuple, priority: str, agent_type: tuple, json: bool
 ) -> None:
     """Broadcast a coordinated message to all agents in a team.
+
+    <mcp>Send message to all team members (args: [team_name, message], replaces 'tell everyone'). Broadcasts same message simultaneously to all agents in team session. Different from agent.message which targets individual agents.</mcp>
 
     Sends the same message simultaneously to all Claude agents in the
     specified team session, enabling coordinated team communication.
@@ -290,6 +296,8 @@ def deploy(
     json: bool,
 ) -> None:
     """Deploy a complete multi-agent team with specialized roles.
+
+    <mcp>Create new team of agents (args: [team_type, size]). Deploys complete multi-agent team with specialized roles in new tmux session. Different from spawn.agent which creates individual agents. Use for coordinated team projects.</mcp>
 
     Creates a new tmux session with multiple coordinated Claude agents,
     each with specialized roles and responsibilities based on team type.
@@ -384,6 +392,8 @@ def deploy(
 @click.pass_context
 def recover(ctx: click.Context, session: str, json: bool) -> None:
     """Recover and restore failed or unresponsive team agents.
+
+    <mcp>Recover failed agents in team session (args: [team_name]). Automatically detects and restarts unresponsive agents while preserving roles and context. Use for team-wide agent failures or system recovery after crashes.</mcp>
 
     Automatically detects and restarts failed agents in the specified
     team session, restoring them to their original roles and context.
