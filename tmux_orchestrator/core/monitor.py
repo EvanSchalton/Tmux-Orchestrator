@@ -4504,7 +4504,9 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
                     if first_line:
                         report_parts.append(f"- {first_line}")
 
-            report_parts.append("\nAs the PM, please review and take appropriate action.")
+            report_parts.append(
+                "\nAs the PM, please review their terminal(s)/current progress and take appropriate action."
+            )
 
             # PM state already validated in early short-circuit above
 

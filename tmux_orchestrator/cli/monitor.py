@@ -580,6 +580,8 @@ def status(ctx: click.Context, json: bool) -> None:
 def recovery_start(ctx: click.Context, config: str | None) -> None:
     """Start the advanced recovery daemon with bulletproof agent restoration.
 
+    <mcp>Start advanced recovery daemon (options: --config). Launches intelligent recovery system with automated agent restoration, failure pattern recognition, and bulletproof recovery algorithms. Use for production-grade agent reliability.</mcp>
+
     Launches an intelligent recovery system that automatically detects and
     restores failed, crashed, or unresponsive agents using advanced algorithms.
 
@@ -659,7 +661,10 @@ def recovery_start(ctx: click.Context, config: str | None) -> None:
 
 @monitor.command("recovery-stop")
 def recovery_stop() -> None:
-    """Stop the recovery daemon."""
+    """Stop the recovery daemon.
+
+    <mcp>Stop advanced recovery daemon. Gracefully shuts down intelligent recovery system, disabling automated agent restoration and recovery operations. Use for maintenance or system shutdown.</mcp>
+    """
     if not os.path.exists(RECOVERY_PID_FILE):
         console.print("[yellow]Recovery daemon is not running[/yellow]")
         return
@@ -682,6 +687,8 @@ def recovery_stop() -> None:
 @click.pass_context
 def recovery_status(ctx: click.Context, verbose: bool) -> None:
     """Display comprehensive recovery daemon status and agent health analytics.
+
+    <mcp>Show recovery daemon status and analytics (options: --verbose). Displays detailed recovery system information including daemon health, agent monitoring statistics, recovery operation history. Different from main monitor status.</mcp>
 
     Provides detailed information about the recovery system status, including
     daemon health, agent monitoring statistics, and recovery operation history.
@@ -801,7 +808,10 @@ def recovery_status(ctx: click.Context, verbose: bool) -> None:
 @click.option("--follow", "-f", is_flag=True, help="Follow log output")
 @click.option("--lines", "-n", default=20, help="Number of lines to show")
 def recovery_logs(follow: bool, lines: int) -> None:
-    """View recovery daemon logs."""
+    """View recovery daemon logs.
+
+    <mcp>View recovery daemon logs (options: --follow, --lines). Displays detailed recovery system diagnostic logs including restoration events, failure detection, recovery operations. Use --follow for real-time monitoring.</mcp>
+    """
     if not os.path.exists(RECOVERY_LOG_FILE):
         console.print("[yellow]No recovery log file found[/yellow]")
         return
@@ -984,6 +994,8 @@ def dashboard(ctx: click.Context, session: str | None, refresh: int, json: bool)
 @click.pass_context
 def performance(ctx: click.Context, agent_count: int | None, analyze: bool, optimize: bool) -> None:
     """Monitor and optimize performance for large-scale deployments.
+
+    <mcp>Monitor system performance and get optimization recommendations (options: --analyze, --optimize, --agent-count). Provides performance metrics, analysis for large-scale deployments. Essential for 50+ agent environments.</mcp>
 
     Provides performance metrics, analysis, and optimization recommendations
     for deployments with 50+ agents. Includes caching, batching, and

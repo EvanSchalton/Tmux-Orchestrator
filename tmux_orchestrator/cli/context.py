@@ -62,6 +62,8 @@ def context() -> None:
 def show(role: str, raw: bool, json: bool) -> None:
     """Display context briefing for a specific role.
 
+    <mcp>Show standardized agent role context (args: [role_name], options: --raw). Displays full context briefing for orchestrator/pm roles. Use --raw for copying into custom briefings. Essential for context rehydration.</mcp>
+
     ROLE: The agent role to show context for
 
     Examples:
@@ -108,7 +110,10 @@ def show(role: str, raw: bool, json: bool) -> None:
 @context.command()
 @click.option("--json", is_flag=True, help="Output in JSON format")
 def list(json: bool) -> None:
-    """List all available context templates."""
+    """List all available context templates.
+
+    <mcp>List available role contexts (no args). Shows all standardized context templates available for agent roles including orchestrator, pm, and specialty roles. Use to discover context options.</mcp>
+    """
     contexts = get_available_contexts()
 
     if not contexts:
@@ -163,6 +168,8 @@ def list(json: bool) -> None:
 @click.option("--json", is_flag=True, help="Output in JSON format")
 def spawn(role: str, session: str, extend: str | None = None, json: bool = False) -> None:
     """Spawn an agent with standardized context (orc/pm only).
+
+    <mcp>Create agent with standard role context (args: [role, session], options: --extend). Creates complete agent with standardized orchestrator/pm context plus optional project-specific extensions. For other roles use spawn.agent with custom briefings.</mcp>
 
     This command creates a complete agent setup:
     1. Creates a new window at the end of the session
@@ -373,6 +380,8 @@ To check if MCP tools are available, look for the tools icon in Claude Code's in
 @click.option("--json", is_flag=True, help="Output in JSON format")
 def export(output_file: str, role: str, project: str | None = None, json: bool = False) -> None:
     """Export a system role context to a file for customization.
+
+    <mcp>Export role context to file for customization (args: [output_file, --role], options: --project). Exports standardized context template to file for project-specific customization. Use to create custom agent briefings based on standard roles.</mcp>
 
     Only orchestrator and PM have standard contexts. All other agents
     (developers, writers, engineers, artists, etc.) should have custom

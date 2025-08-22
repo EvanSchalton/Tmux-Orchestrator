@@ -155,7 +155,7 @@ class TestNotificationBatchingSystem:
         assert "🚨 CRASHED AGENTS:" in message
         assert "⚠️ IDLE AGENTS:" in message
         assert "📍 MISSING AGENTS:" in message
-        assert "As the PM, please review and take appropriate action." in message
+        assert "As the PM, please review their terminal(s)/current progress and take appropriate action." in message
 
     def test_no_pm_edge_case(self, idle_monitor, mock_tmux):
         """Test behavior when no PM is available."""
