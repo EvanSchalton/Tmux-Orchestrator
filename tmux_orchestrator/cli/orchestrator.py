@@ -159,6 +159,8 @@ Begin by analyzing the current system state and available projects."""
 def schedule(ctx: click.Context, minutes: int, note: str, target: str | None) -> None:
     """Schedule automated reminders and orchestrator check-ins.
 
+    <mcp>Schedule orchestrator reminders (args: [minutes, note], options: --target). Creates automated notifications and task reminders for strategic oversight. Use for milestone tracking and deadline management.</mcp>
+
     Creates time-based reminders for the orchestrator to perform specific
     actions, ensuring consistent oversight and preventing important tasks
     from being forgotten.

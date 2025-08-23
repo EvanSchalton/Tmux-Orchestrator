@@ -42,6 +42,8 @@ def pm() -> None:
 def checkin(ctx: click.Context, json: bool) -> None:
     """Trigger comprehensive team status review by Project Manager.
 
+    <mcp>Trigger PM team status review (no args, options: --json). PM requests updates from all team agents and compiles progress report. Use for standups, milestone reviews, troubleshooting. Different from custom-checkin which allows custom message.</mcp>
+
     Initiates a systematic status check where the PM requests updates
     from all team agents and compiles a comprehensive progress report.
 
@@ -99,6 +101,8 @@ def checkin(ctx: click.Context, json: bool) -> None:
 @click.pass_context
 def message(ctx: click.Context, message: str, json: bool) -> None:
     """Send a direct message to the Project Manager.
+
+    <mcp>Send message directly to PM (args: [message], options: --json). Delivers instructions, updates, or requests to PM agent. Use for priority changes, deadlines, reporting requests. Different from broadcast which PM sends to team.</mcp>
 
     Delivers a message directly to the PM agent, useful for providing
     instructions, updates, or requesting specific PM actions.
@@ -178,6 +182,8 @@ def message(ctx: click.Context, message: str, json: bool) -> None:
 def broadcast(ctx: click.Context, message: str, json: bool) -> None:
     """Have the Project Manager broadcast a message to all team agents.
 
+    <mcp>PM broadcasts message to all team agents (args: [message], options: --json). Uses PM as communication hub with context and follow-up coordination. Different from team broadcast which sends direct messages.</mcp>
+
     Uses the PM as a communication hub to send coordinated messages to
     the entire development team, maintaining proper chain of command.
 
@@ -246,6 +252,8 @@ def broadcast(ctx: click.Context, message: str, json: bool) -> None:
 def custom_checkin(ctx: click.Context, custom_message: str | None, json: bool) -> None:
     """Send customized status check-in request to all team agents.
 
+    <mcp>Send custom status check-in to team (no args, options: --custom-message, --json). PM sends tailored status request instead of standard checkin. Use for feature-specific updates, deployment readiness, bug fix status.</mcp>
+
     Allows the PM to send a tailored status request instead of the
     standard check-in message, useful for specific project phases.
 
@@ -303,6 +311,8 @@ def custom_checkin(ctx: click.Context, custom_message: str | None, json: bool) -
 @click.pass_context
 def status(ctx: click.Context, json: bool) -> None:
     """Display comprehensive Project Manager and team status overview.
+
+    <mcp>Show PM and team status with detailed overview (no args, options: --json). Displays PM location, team composition, agent health, coordination metrics. Different from team status and system status which have different scopes.</mcp>
 
     Shows detailed information about the PM agent status, team composition,
     agent health, and overall project coordination metrics.
@@ -408,6 +418,8 @@ def status(ctx: click.Context, json: bool) -> None:
 @click.pass_context
 def create(ctx: click.Context, session: str, project_dir: str | None, json: bool) -> None:
     """Create a new Project Manager for team coordination and oversight.
+
+    <mcp>Create PM agent in session for team coordination (args: [session], options: --project-dir, --json). Deploys specialized Claude PM with team leadership capabilities. Use vs spawn pm for session-specific PM creation.</mcp>
 
     Deploys a specialized Claude agent configured as a Project Manager
     with team coordination, quality assurance, and project management

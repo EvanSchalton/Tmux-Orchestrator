@@ -40,7 +40,10 @@ def daemon() -> None:
 @click.option("--detach/--no-detach", default=True, help="Run daemon in background")
 @click.option("--socket", default=DAEMON_SOCKET, help="Unix socket path")
 def start(detach: bool, socket: str) -> None:
-    """Start the high-performance messaging daemon."""
+    """Start the high-performance messaging daemon.
+
+    <mcp>Start messaging daemon for sub-100ms agent communication (no args, options: --detach, --socket). Provides performance boost over 5000ms CLI overhead. Use for real-time agent coordination. Different from monitor start which starts monitoring daemon.</mcp>
+    """
 
     # Check if already running
     if _is_daemon_running():
@@ -72,7 +75,10 @@ def start(detach: bool, socket: str) -> None:
 
 @daemon.command()
 def stop() -> None:
-    """Stop the messaging daemon."""
+    """Stop the messaging daemon.
+
+    <mcp>Stop messaging daemon gracefully (no args). Sends SIGTERM then SIGKILL if needed. Cleans up PID file and socket. Use when shutting down agent communication system. Different from monitor stop.</mcp>
+    """
 
     if not _is_daemon_running():
         console.print("[yellow]⚠️  Daemon not running[/yellow]")
@@ -115,7 +121,10 @@ def stop() -> None:
 @daemon.command()
 @click.option("--format", type=click.Choice(["table", "json"]), default="table")
 def status(format: str) -> None:
-    """Check daemon status and performance."""
+    """Check daemon status and performance.
+
+    <mcp>Check messaging daemon health and performance stats (no args, options: --format). Shows uptime, message throughput, delivery times. Output as table or JSON. Different from monitor status and system status.</mcp>
+    """
 
     if not _is_daemon_running():
         if format == "json":
@@ -161,7 +170,10 @@ def status(format: str) -> None:
 
 @daemon.command()
 def restart() -> None:
-    """Restart the messaging daemon."""
+    """Restart the messaging daemon.
+
+    <mcp>Restart messaging daemon cleanly (no args). Stops current daemon and starts new instance. Use when daemon becomes unresponsive or after configuration changes. Maintains socket and PID file consistency.</mcp>
+    """
     console.print("[blue]Restarting daemon...[/blue]")
 
     # Stop if running
@@ -179,7 +191,10 @@ def restart() -> None:
 
 @daemon.command()
 def logs() -> None:
-    """Show daemon logs (last 50 lines)."""
+    """Show daemon logs (last 50 lines).
+
+    <mcp>Display messaging daemon logs with color-coded levels (no args). Shows last 50 lines from /tmp/tmux-orc-msgd.log. Use for troubleshooting daemon issues and performance monitoring. Different from monitor logs.</mcp>
+    """
     log_file = Path("/tmp/tmux-orc-msgd.log")
 
     if not log_file.exists():

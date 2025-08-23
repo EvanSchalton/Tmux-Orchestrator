@@ -130,6 +130,12 @@ tmux-orc [COMMAND] --help
 - "Bypassing Permissions" is not an error, and is simply a system status update
 - "Auto-update failed" is a routine status message and not indicative of a critical issue
 
+## Usability Issues and Enhancement Tracking
+
+### MCP Server Failures
+- Document any tmux-orc MCP server failures due to syntax or other reasons as potential usability issues for future enhancement
+- Track context and specifics of failures to improve system robustness and error handling
+
 # ROLES
 
 If you are filling one of these roles, please adhere to these instructions.

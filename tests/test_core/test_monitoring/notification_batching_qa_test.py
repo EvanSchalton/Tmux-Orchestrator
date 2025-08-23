@@ -77,11 +77,13 @@ class TestNotificationBatchingSystem:
         # Initialize notification collection
         pm_notifications = {}
 
-        # Simulate checking each crashed agent
+        # Simulate notification collection for crashed agents
         for agent in crashed_agents:
-            idle_monitor._check_agent_status(mock_tmux, agent, Mock(), pm_notifications)
+            session = agent.split(":")[0]
+            message = f"🚨 AGENT CRASH ALERT:\n\nClaude Code has crashed for agent at {agent}"
+            idle_monitor._collect_notification(pm_notifications, session, message, mock_tmux)
 
-        # Verify notifications were collected, not sent immediately
+        # Verify notifications were collected
         assert len(pm_notifications) == 1  # Only one PM target
         pm_target = list(pm_notifications.keys())[0]
         assert pm_target == "dev-session:1"
