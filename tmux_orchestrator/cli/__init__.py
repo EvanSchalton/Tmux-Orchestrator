@@ -66,7 +66,14 @@ def cli(ctx: click.Context, config_file: str | None, json: bool, verbose: bool) 
 def list(ctx: click.Context, json: bool) -> None:
     """List all active agents across sessions with comprehensive status.
 
-    <mcp>Show all active Claude agents across tmux sessions (output: table or JSON). Use this to see which agents are running, their locations (session:window), and status. Different from 'status' which shows system overview, and 'agent status' which shows agent-specific details.</mcp>
+    <mcp>[LIST] Display all active agents across all tmux sessions.
+    Parameters: kwargs (string) - 'action=list [options={"json": true}]'
+
+    Examples:
+    - List all agents: kwargs='action=list'
+    - JSON format: kwargs='action=list options={"json": true}'
+
+    Shows all agents system-wide. For team summaries use 'team list', for agent details use 'agent status'.</mcp>
 
     Provides a system-wide overview of all Claude agents currently running
     in tmux sessions, including their specializations, health status, and

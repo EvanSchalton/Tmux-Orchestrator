@@ -42,7 +42,14 @@ def pm() -> None:
 def checkin(ctx: click.Context, json: bool) -> None:
     """Trigger comprehensive team status review by Project Manager.
 
-    <mcp>Trigger PM team status review (no args, options: --json). PM requests updates from all team agents and compiles progress report. Use for standups, milestone reviews, troubleshooting. Different from custom-checkin which allows custom message.</mcp>
+    <mcp>[PM CHECKIN] Trigger Project Manager team status review.
+    Parameters: kwargs (string) - 'action=checkin [options={"json": true}]'
+
+    Examples:
+    - Standard checkin: kwargs='action=checkin'
+    - JSON response: kwargs='action=checkin options={"json": true}'
+
+    PM polls all team members for status. For custom message checkin, use 'pm custom-checkin' instead.</mcp>
 
     Initiates a systematic status check where the PM requests updates
     from all team agents and compiles a comprehensive progress report.
@@ -102,7 +109,15 @@ def checkin(ctx: click.Context, json: bool) -> None:
 def message(ctx: click.Context, message: str, json: bool) -> None:
     """Send a direct message to the Project Manager.
 
-    <mcp>Send message directly to PM (args: [message], options: --json). Delivers instructions, updates, or requests to PM agent. Use for priority changes, deadlines, reporting requests. Different from broadcast which PM sends to team.</mcp>
+    <mcp>[PM MESSAGE] Send direct message to Project Manager agent.
+    Parameters: kwargs (string) - 'action=message args=["message text"] [options={"json": true}]'
+
+    Examples:
+    - Priority update: kwargs='action=message args=["Focus on API testing"]'
+    - Deadline change: kwargs='action=message args=["Sprint ends Friday"]'
+    - With JSON: kwargs='action=message args=["Status report needed"] options={"json": true}'
+
+    Messages TO the PM. For PM to broadcast TO team, use 'pm broadcast' instead.</mcp>
 
     Delivers a message directly to the PM agent, useful for providing
     instructions, updates, or requesting specific PM actions.
@@ -182,7 +197,15 @@ def message(ctx: click.Context, message: str, json: bool) -> None:
 def broadcast(ctx: click.Context, message: str, json: bool) -> None:
     """Have the Project Manager broadcast a message to all team agents.
 
-    <mcp>PM broadcasts message to all team agents (args: [message], options: --json). Uses PM as communication hub with context and follow-up coordination. Different from team broadcast which sends direct messages.</mcp>
+    <mcp>[PM BROADCAST] Project Manager broadcasts message to entire team.
+    Parameters: kwargs (string) - 'action=broadcast args=["message text"] [options={"json": true}]'
+
+    Examples:
+    - Team update: kwargs='action=broadcast args=["Code freeze at 5pm"]'
+    - Priority alert: kwargs='action=broadcast args=["Critical bug in production"]'
+    - With tracking: kwargs='action=broadcast args=["Sprint review in 30min"] options={"json": true}'
+
+    PM adds context and coordinates responses. For direct team broadcast, use 'team broadcast' instead.</mcp>
 
     Uses the PM as a communication hub to send coordinated messages to
     the entire development team, maintaining proper chain of command.

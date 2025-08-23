@@ -311,14 +311,39 @@ class EnhancedCLIToMCPServer:
         # Store hierarchical structure
         self.hierarchical_groups[group_name] = subcommands
 
-        # Build enhanced schema with enumDescriptions
+        # Build enhanced schema with kwargs string format support
         if ENHANCED_DESCRIPTIONS:
-            input_schema = EnhancedHierarchicalSchema.build_hierarchical_schema(group_name, subcommands)
-        else:
-            # Simple schema for compatibility
+            # Get the original enhanced schema
+            base_schema = EnhancedHierarchicalSchema.build_hierarchical_schema(group_name, subcommands)
+
+            # Add kwargs string parameter as the primary interface
             input_schema = {
                 "type": "object",
                 "properties": {
+                    "kwargs": {
+                        "type": "string",
+                        "description": "Parameters as a string: 'action=<action> [target=session:window] [args=[...]]'",
+                        "examples": [
+                            "action=list",
+                            "action=attach target=myapp:2",
+                            'action=deploy args=["role", "session:window"]',
+                        ],
+                    },
+                    # Keep original properties for backward compatibility
+                    **base_schema.get("properties", {}),
+                },
+                "required": [],  # Make kwargs optional to support both formats
+                "additionalProperties": False,
+            }
+        else:
+            # Simple schema with kwargs support
+            input_schema = {
+                "type": "object",
+                "properties": {
+                    "kwargs": {
+                        "type": "string",
+                        "description": "Parameters as a string: 'action=<action> [target=...] [args=...]'",
+                    },
                     "action": {
                         "type": "string",
                         "enum": subcommands,
@@ -328,15 +353,47 @@ class EnhancedCLIToMCPServer:
                     "args": {"type": "array", "items": {"type": "string"}, "default": []},
                     "options": {"type": "object", "default": {}},
                 },
-                "required": ["action"],
+                "required": [],
             }
 
-        # Create tool description
+        # Create enhanced tool description with examples
         description_items = subcommands[:5]  # Show first 5 actions
         if len(subcommands) > 5:
             description_items.append("...")
 
-        tool_description = f"[{group_name.upper()}] Actions: {','.join(description_items)}"
+        # Generate common examples based on group and available actions
+        common_examples = []
+
+        # Priority tools get specialized examples
+        if group_name == "session":
+            common_examples = ["kwargs='action=list'", "kwargs='action=attach target=myapp:2'"]
+        elif group_name == "agent":
+            common_examples = [
+                "kwargs='action=list'",
+                "kwargs='action=status target=backend:1'",
+                "kwargs='action=kill target=frontend:2'",
+            ]
+        elif group_name == "team":
+            common_examples = ["kwargs='action=status'", "kwargs='action=broadcast args=[\"Starting deployment\"]'"]
+        elif group_name == "pm":
+            common_examples = ["kwargs='action=message args=[\"Task completed\"]'", "kwargs='action=status'"]
+        elif group_name == "monitor":
+            common_examples = ["kwargs='action=dashboard'", "kwargs='action=status'", "kwargs='action=logs'"]
+        else:
+            # Generic examples for other tools
+            if "list" in subcommands:
+                common_examples.append("kwargs='action=list'")
+            if "status" in subcommands:
+                common_examples.append("kwargs='action=status'")
+            if subcommands and subcommands[0] not in ["list", "status"]:
+                common_examples.append(f"kwargs='action={subcommands[0]}'")
+
+        # Build description with examples
+        tool_description = f"[{group_name.upper()}] Manage {group_name} operations.\n"
+        tool_description += f"Actions: {','.join(description_items)}\n"
+        tool_description += 'Parameters: kwargs (string) - "action=<action> [target=session:window] [args=[...]]"\n'
+        if common_examples:
+            tool_description += f"Examples: {', '.join(common_examples)}"
 
         # Create the hierarchical tool function
         tool_function = self._create_hierarchical_tool_function(group_name, subcommands)
@@ -364,29 +421,59 @@ class EnhancedCLIToMCPServer:
 
         async def hierarchical_tool(**kwargs) -> dict[str, Any]:
             """Enhanced hierarchical tool function."""
+            # Check if kwargs is provided as a string (new format support)
+            if "kwargs" in kwargs and isinstance(kwargs["kwargs"], str):
+                # Parse the kwargs string format
+                parsed_kwargs = self._parse_kwargs_string(kwargs["kwargs"])
+                if isinstance(parsed_kwargs, dict) and "error" in parsed_kwargs:
+                    return parsed_kwargs
+                # Update kwargs with parsed values
+                kwargs.update(parsed_kwargs)
+
             action = kwargs.get("action")
 
             # Validate action
             if not action:
-                error_context = "for Claude Code CLI agent" if CLAUDE_CODE_CLI_DETECTED else ""
+                # Generate helpful examples
+                kwargs_examples = [
+                    f"kwargs='action={subcommands[0]}'" if subcommands else "kwargs='action=list'",
+                ]
+                if "attach" in subcommands:
+                    kwargs_examples.append("kwargs='action=attach target=session:window'")
+                if "deploy" in subcommands:
+                    kwargs_examples.append('kwargs=\'action=deploy args=["role", "session:window"]\'')
+
                 return {
                     "success": False,
-                    "error": f"Missing required 'action' parameter {error_context}",
+                    "error": "Invalid kwargs format. Use string format: 'action=<action> [target=...] [args=...]'",
                     "valid_actions": subcommands,
-                    "example": f"{group_name}(action='{subcommands[0] if subcommands else 'status'}')",
+                    "kwargs_examples": kwargs_examples,
+                    "parameter_format": "String with space-separated key=value pairs",
                     "environment": "Claude Code CLI" if CLAUDE_CODE_CLI_DETECTED else "Standard",
                 }
 
             if action not in subcommands:
                 # Enhanced error with suggestions
                 suggestions = difflib.get_close_matches(action, subcommands, n=3, cutoff=0.6)
-                error_context = "in Claude Code CLI environment" if CLAUDE_CODE_CLI_DETECTED else ""
+
+                # Generate helpful examples with suggestions
+                kwargs_examples = []
+                for suggestion in suggestions[:2]:
+                    example = f"kwargs='action={suggestion}'"
+                    if suggestion in ["attach", "kill", "send", "restart"]:
+                        example = f"kwargs='action={suggestion} target=session:window'"
+                    kwargs_examples.append(example)
+
+                if not kwargs_examples and subcommands:
+                    kwargs_examples.append(f"kwargs='action={subcommands[0]}'")
+
                 return {
                     "success": False,
-                    "error": f"Invalid action '{action}' for {group_name} {error_context}",
+                    "error": f"Invalid action '{action}' for {group_name}. Use one of: {', '.join(subcommands)}",
                     "valid_actions": subcommands,
                     "suggestions": suggestions,
-                    "example": f"{group_name}(action='{suggestions[0] if suggestions else subcommands[0]}')",
+                    "kwargs_examples": kwargs_examples,
+                    "parameter_format": "String with space-separated key=value pairs",
                     "environment": "Claude Code CLI" if CLAUDE_CODE_CLI_DETECTED else "Standard",
                 }
 
@@ -443,6 +530,106 @@ class EnhancedCLIToMCPServer:
         hierarchical_tool.__doc__ = f"Hierarchical tool for {group_name} operations"
 
         return hierarchical_tool
+
+    def _parse_kwargs_string(self, kwargs_str: str) -> dict[str, Any]:
+        """Parse kwargs string format like 'action=list target=session:window'."""
+        try:
+            parsed = {}
+
+            # Handle empty string
+            if not kwargs_str.strip():
+                return {
+                    "success": False,
+                    "error": "Empty kwargs string provided",
+                    "kwargs_examples": ["kwargs='action=list'", "kwargs='action=attach target=session:window'"],
+                    "parameter_format": "String with space-separated key=value pairs",
+                }
+
+            # Special handling for simple cases
+            kwargs_str = kwargs_str.strip()
+
+            # Handle args=[...] with proper tokenization
+            import re
+
+            # First extract args=[...] if present to handle it specially
+            args_match = re.search(r"args=\[(.*?)\]", kwargs_str)
+            if args_match:
+                # Extract the args content
+                args_content = args_match.group(1)
+                # Parse args content
+                if args_content:
+                    # Handle quoted strings within args
+                    args_list = []
+                    # Simple parsing for now - handle both quoted and unquoted
+                    if '"' in args_content or "'" in args_content:
+                        # Use shlex to parse quoted strings
+                        import shlex
+
+                        try:
+                            args_list = shlex.split(args_content)
+                        except Exception:
+                            # Fallback to comma split
+                            args_list = [a.strip().strip("\"'") for a in args_content.split(",")]
+                    else:
+                        # Simple comma-separated
+                        args_list = [a.strip() for a in args_content.split(",") if a.strip()]
+                    parsed["args"] = args_list
+                else:
+                    parsed["args"] = []
+
+                # Remove the args=[...] from the string for further processing
+                kwargs_str = kwargs_str[: args_match.start()] + kwargs_str[args_match.end() :]
+
+            # Now parse the remaining key=value pairs
+            # Split by spaces but preserve quoted strings
+            import shlex
+
+            try:
+                # Only split the remaining parts
+                remaining = kwargs_str.strip()
+                if remaining:
+                    parts = shlex.split(remaining)
+                else:
+                    parts = []
+            except ValueError:
+                # Fallback to simple space split
+                parts = remaining.split() if remaining else []
+
+            for part in parts:
+                part = part.strip()
+                if not part:
+                    continue
+
+                if "=" not in part:
+                    return {
+                        "success": False,
+                        "error": f"Invalid parameter format '{part}'. Expected key=value format",
+                        "kwargs_examples": ["kwargs='action=list'", "kwargs='action=status args=[session-name]'"],
+                        "parameter_format": "String with space-separated key=value pairs",
+                    }
+
+                key, value = part.split("=", 1)
+
+                # Skip if we already parsed args
+                if key == "args" and "args" in parsed:
+                    continue
+
+                # Regular key=value
+                parsed[key] = value
+
+            return parsed
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to parse kwargs string: {e}",
+                "kwargs_examples": [
+                    "kwargs='action=list'",
+                    "kwargs='action=status args=[mcp-usability]'",
+                    "kwargs='action=attach target=session:window'",
+                ],
+                "parameter_format": "String with space-separated key=value pairs",
+            }
 
     def _generate_tool_for_command(self, command_name: str, command_info: dict[str, Any]) -> None:
         """Generate an MCP tool for a specific CLI command."""

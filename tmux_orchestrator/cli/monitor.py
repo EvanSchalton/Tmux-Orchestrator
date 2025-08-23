@@ -105,7 +105,15 @@ def monitor() -> None:
 def start(ctx: click.Context, interval: int, supervised: bool, json: bool) -> None:
     """Start the intelligent idle detection and monitoring daemon.
 
-    <mcp>Start monitoring daemon with interval (options: interval=seconds). Launches sophisticated background service for continuous agent health tracking, performance metrics, automated failure detection. Use --supervised for production.</mcp>
+    <mcp>[MONITOR START] Launch monitoring daemon for continuous health tracking.
+    Parameters: kwargs (string) - 'action=start [options={"interval": 30, "supervised": true}]'
+
+    Examples:
+    - Default start: kwargs='action=start'
+    - Custom interval: kwargs='action=start options={"interval": 15}'
+    - Production mode: kwargs='action=start options={"supervised": true, "interval": 30}'
+
+    Starts background monitoring. To stop, use 'monitor stop'. For status, use 'monitor status'.</mcp>
 
     Launches a sophisticated background monitoring service that continuously
     tracks all Claude agents for responsiveness, health patterns, and performance
@@ -482,7 +490,15 @@ def stop(ctx: click.Context, json: bool) -> None:
 def logs(follow: bool, lines: int) -> None:
     """View monitoring daemon logs and diagnostic information.
 
-    <mcp>View monitoring daemon logs (options: --follow, --lines). Displays detailed diagnostic information from monitoring system including health checks, agent events, error conditions. Use --follow for real-time log streaming.</mcp>
+    <mcp>[MONITOR LOGS] View monitoring daemon diagnostic logs.
+    Parameters: kwargs (string) - 'action=logs [options={"follow": true, "lines": 50}]'
+
+    Examples:
+    - Last 100 lines: kwargs='action=logs'
+    - Live streaming: kwargs='action=logs options={"follow": true}'
+    - Recent errors: kwargs='action=logs options={"lines": 20}'
+
+    Shows daemon logs only. For agent logs use system tools, for dashboard use 'monitor dashboard'.</mcp>
 
     Displays detailed logs from the monitoring system, including agent
     health checks, detection events, and system diagnostics.
@@ -529,7 +545,14 @@ def logs(follow: bool, lines: int) -> None:
 def status(ctx: click.Context, json: bool) -> None:
     """Display comprehensive monitoring system status and health.
 
-    <mcp>Check monitoring daemon status and health (not 'show status'). Shows detailed monitoring daemon information including operational state, performance metrics, agent health summary. Different from overall system status.</mcp>
+    <mcp>[MONITOR STATUS] Check monitoring daemon operational state.
+    Parameters: kwargs (string) - 'action=status [options={"json": true}]'
+
+    Examples:
+    - Check daemon: kwargs='action=status'
+    - JSON output: kwargs='action=status options={"json": true}'
+
+    Shows monitoring daemon info. For agent status use 'agent status', for recovery use 'monitor recovery-status'.</mcp>
 
     Shows detailed information about the monitoring daemon, including
     operational status, performance metrics, and agent health summary.
@@ -833,7 +856,15 @@ def recovery_logs(follow: bool, lines: int) -> None:
 def dashboard(ctx: click.Context, session: str | None, refresh: int, json: bool) -> None:
     """Launch interactive real-time monitoring dashboard with live updates.
 
-    <mcp>Launch real-time monitoring dashboard with live updates (options: --session, --refresh). Interactive comprehensive overview of all system components, agent health, performance metrics. Use for active system monitoring and troubleshooting.</mcp>
+    <mcp>[MONITOR DASHBOARD] Open interactive real-time system dashboard.
+    Parameters: kwargs (string) - 'action=dashboard [options={"session": "name", "refresh": 2}]'
+
+    Examples:
+    - Full dashboard: kwargs='action=dashboard'
+    - Specific session: kwargs='action=dashboard options={"session": "frontend-team"}'
+    - Fast refresh: kwargs='action=dashboard options={"refresh": 1}'
+
+    Interactive live view. For static status use 'monitor status', for logs use 'monitor logs'.</mcp>
 
     Displays a comprehensive, continuously updating overview of all system
     components, agent health, performance metrics, and operational status.

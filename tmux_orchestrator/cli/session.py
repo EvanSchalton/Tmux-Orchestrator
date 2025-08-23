@@ -45,6 +45,15 @@ def session() -> None:
 def list(ctx: click.Context, json_output: bool) -> None:
     """List all tmux sessions with details.
 
+    <mcp>[SESSION LIST] Display all tmux sessions with window counts and status.
+    Parameters: kwargs (string) - 'action=list [options={"json": true}]'
+
+    Examples:
+    - List all sessions: kwargs='action=list'
+    - JSON format: kwargs='action=list options={"json": true}'
+
+    Use this to see available sessions before attaching. For agent-specific info, use 'agent list' instead.</mcp>
+
     Shows all tmux sessions including their name, number of windows,
     attached status, and creation time.
 
@@ -110,6 +119,16 @@ def list(ctx: click.Context, json_output: bool) -> None:
 @click.pass_context
 def attach(ctx: click.Context, session_name: str, read_only: bool) -> None:
     """Attach to an existing tmux session.
+
+    <mcp>[SESSION ATTACH] Connect to tmux session for direct terminal access.
+    Parameters: kwargs (string) - 'action=attach args=["session_name"] [options={"read-only": true}]'
+
+    Examples:
+    - Attach to session: kwargs='action=attach args=["myapp"]'
+    - Read-only mode: kwargs='action=attach args=["myapp"] options={"read-only": true}'
+    - With window: kwargs='action=attach args=["myapp:2"]'
+
+    Use this for direct terminal access. For agent interaction, use 'agent attach' instead. Cannot attach if already inside tmux.</mcp>
 
     Attaches to the specified tmux session. If the session doesn't exist,
     an error will be displayed.

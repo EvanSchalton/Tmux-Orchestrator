@@ -47,7 +47,15 @@ def agent() -> None:
 def deploy(ctx: click.Context, agent_type: str, role: str, json: bool) -> None:
     """Deploy an individual specialized agent.
 
-    <mcp>Deploy new specialized agent to a session (args: [agent_type, session:window]). Use this instead of spawn.agent for individual agents with type/role combinations. Different from team deploy which creates multiple agents.</mcp>
+    <mcp>[AGENT DEPLOY] Create specialized agent with type/role combination.
+    Parameters: kwargs (string) - 'action=deploy args=["agent_type", "role"] [options={"json": true}]'
+
+    Examples:
+    - Frontend dev: kwargs='action=deploy args=["frontend", "developer"]'
+    - Backend PM: kwargs='action=deploy args=["backend", "pm"]'
+    - Testing QA: kwargs='action=deploy args=["testing", "qa"]'
+
+    Use this for single agent deployment. For multiple agents, use 'team deploy' instead.</mcp>
 
     Creates a new tmux session with a single Claude agent configured for
     the specified type and role combination.
@@ -93,7 +101,15 @@ def deploy(ctx: click.Context, agent_type: str, role: str, json: bool) -> None:
 def message(ctx: click.Context, target: str, message: str, json: bool) -> None:
     """Send a message directly to a specific agent.
 
-    <mcp>Send message to specific agent (not broadcast). Requires target session:window format. Use for direct communication with individual agents. Different from team broadcast which messages all team members.</mcp>
+    <mcp>[AGENT MESSAGE] Send direct message to specific agent.
+    Parameters: kwargs (string) - 'action=message target=session:window args=["message text"]'
+
+    Examples:
+    - Simple message: kwargs='action=message target=backend:1 args=["Please check the API"]'
+    - Long message: kwargs='action=message target=frontend:2 args=["Update UI components with new design"]'
+    - JSON output: kwargs='action=message target=qa:0 args=["Run tests"] options={"json": true}'
+
+    Use this for individual agent messaging. For team-wide broadcasts, use 'team broadcast' instead.</mcp>
 
     Delivers a message to the Claude agent running in the specified tmux window.
     The message appears as user input to the agent, allowing for real-time
@@ -144,7 +160,15 @@ def message(ctx: click.Context, target: str, message: str, json: bool) -> None:
 def send(ctx: click.Context, target: str, message: str, delay: float, json: bool) -> None:
     """Send a message to a specific agent with advanced delivery control.
 
-    <mcp>Send message with enhanced control options (requires: target, args[0]=message). More reliable than basic message command, includes timing controls and error handling. Use for production agent communication.</mcp>
+    <mcp>[AGENT SEND] Enhanced message sending with retry and timing control.
+    Parameters: kwargs (string) - 'action=send target=session:window args=["message"] [options={...}]'
+
+    Examples:
+    - Basic send: kwargs='action=send target=backend:1 args=["Deploy the service"]'
+    - With retries: kwargs='action=send target=frontend:0 args=["Update UI"] options={"max-retries": 3}'
+    - Custom delay: kwargs='action=send target=qa:2 args=["Run tests"] options={"initial-delay": 2.0}'
+
+    More reliable than 'agent message'. Use for critical production communications.</mcp>
 
     Delivers messages to Claude agents with sophisticated target validation,
     timing controls, and robust error handling. Implements production-grade
@@ -403,7 +427,15 @@ def send(ctx: click.Context, target: str, message: str, delay: float, json: bool
 def attach(ctx: click.Context, target: str) -> None:
     """Attach to an agent's terminal for direct interaction.
 
-    <mcp>Attach to agent's terminal for direct interaction (requires: target session:window). Opens tmux attachment for real-time monitoring and direct agent interaction. Different from agent.info which just shows status.</mcp>
+    <mcp>[AGENT ATTACH] Connect to agent terminal for direct interaction.
+    Parameters: kwargs (string) - 'action=attach target=session:window [options={"read-only": true}]'
+
+    Examples:
+    - Interactive access: kwargs='action=attach target=backend:1'
+    - Read-only monitoring: kwargs='action=attach target=frontend:0 options={"read-only": true}'
+    - Specific window: kwargs='action=attach target=myapp:2'
+
+    Use for real-time agent interaction. For status info only, use 'agent info' instead.</mcp>
 
     Opens a direct terminal connection to the specified agent's tmux window,
     allowing you to see the agent's output and interact directly.
@@ -449,7 +481,15 @@ def restart(
 ) -> None:
     """Restart a specific agent that has become unresponsive.
 
-    <mcp>Restart unresponsive agent to recover it (requires: target session:window). Terminates current agent process and starts fresh instance. Use for agents that are frozen, crashed, or stuck. Preserves context by default.</mcp>
+    <mcp>[AGENT RESTART] Restart frozen or crashed agent with fresh instance.
+    Parameters: kwargs (string) - 'action=restart target=session:window [options={"preserve-context": true}]'
+
+    Examples:
+    - Quick restart: kwargs='action=restart target=backend:1'
+    - Without context: kwargs='action=restart target=frontend:2 options={"preserve-context": false}'
+    - Force restart: kwargs='action=restart target=qa:0 options={"force": true}'
+
+    Kills and restarts agent. For status check use 'agent info', for kill only use 'agent kill'.</mcp>
 
     Terminates the current Claude process in the specified window and starts
     a fresh instance with the same configuration and briefing.

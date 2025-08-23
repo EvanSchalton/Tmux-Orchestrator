@@ -56,7 +56,15 @@ def team() -> None:
 def status(ctx: click.Context, session: str, json: bool) -> None:
     """Show comprehensive team status and health metrics.
 
-    <mcp>Check specific team health (args: [team_name], not general 'show'). Displays detailed information about all agents in a team session including status, activity, coordination health. Different from agent.status which shows all agents across all sessions.</mcp>
+    <mcp>[TEAM STATUS] Check health and coordination of specific team session.
+    Parameters: kwargs (string) - 'action=status args=["session_name"] [options={"json": true}]'
+
+    Examples:
+    - Check team: kwargs='action=status args=["mcp-usability"]'
+    - Frontend team: kwargs='action=status args=["frontend-team"]'
+    - JSON output: kwargs='action=status args=["backend-project"] options={"json": true}'
+
+    Shows all agents in one team. For all agents across sessions, use 'agent status' instead.</mcp>
 
     Displays detailed information about all agents in a team session,
     including individual agent status, activity levels, and team coordination.
@@ -134,7 +142,14 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
 def list(ctx: click.Context, json: bool) -> None:
     """List all active team sessions with summary information.
 
-    <mcp>Show all active teams with member counts (replaces 'show teams'). Provides overview of all team sessions including team size, agent count, status indicators. Different from agent.list which shows individual agents across all sessions.</mcp>
+    <mcp>[TEAM LIST] Display all active team sessions with summary info.
+    Parameters: kwargs (string) - 'action=list [options={"json": true}]'
+
+    Examples:
+    - List all teams: kwargs='action=list'
+    - JSON format: kwargs='action=list options={"json": true}'
+
+    Shows team-level summaries. For individual agent details, use 'agent list' instead.</mcp>
 
     Provides an overview of all team sessions currently running,
     including team size, agent count, and overall status.
@@ -210,7 +225,15 @@ def broadcast(
 ) -> None:
     """Broadcast a coordinated message to all agents in a team.
 
-    <mcp>Send message to all team members (args: [team_name, message], replaces 'tell everyone'). Broadcasts same message simultaneously to all agents in team session. Different from agent.message which targets individual agents.</mcp>
+    <mcp>[TEAM BROADCAST] Send message to all agents in a team session.
+    Parameters: kwargs (string) - 'action=broadcast args=["session_name", "message"] [options={...}]'
+
+    Examples:
+    - Simple broadcast: kwargs='action=broadcast args=["frontend", "Meeting in 30min"]'
+    - With priority: kwargs='action=broadcast args=["backend", "Deploy now"] options={"priority": "urgent"}'
+    - Exclude windows: kwargs='action=broadcast args=["myteam", "Update"] options={"exclude": ["0", "3"]}'
+
+    Direct to all agents. For PM-coordinated broadcast, use 'pm broadcast' instead.</mcp>
 
     Sends the same message simultaneously to all Claude agents in the
     specified team session, enabling coordinated team communication.
