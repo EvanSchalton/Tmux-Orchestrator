@@ -1,6 +1,6 @@
 """TMUX Orchestrator - AI-powered tmux session management."""
 
-__version__ = "2.1.31"
+__version__ = "2.1.32"
 
 from tmux_orchestrator.sdk import Agent, Message
 
