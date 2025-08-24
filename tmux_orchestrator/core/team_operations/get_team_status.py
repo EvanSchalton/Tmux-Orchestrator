@@ -139,6 +139,56 @@ def _determine_window_type(window_name: str) -> str:
         return "Other"
 
 
+def _is_actual_error(pane_content: str) -> bool:
+    """Check if pane content indicates an actual error state.
+
+    This is more specific than just looking for 'error' keyword to avoid
+    false positives from agents discussing errors in their work.
+
+    Args:
+        pane_content: Content from the pane
+
+    Returns:
+        True if agent is in actual error state
+    """
+    content_lower = pane_content.lower()
+
+    # Look for actual error indicators, not just mentions
+    error_patterns = [
+        r"traceback.*most recent call",  # Python traceback
+        r"error:.*failed to",  # Actual error messages
+        r"exception.*at.*line",  # Exception with location
+        r"fatal error",  # Fatal errors
+        r"command not found",  # Command errors
+        r"permission denied",  # Permission errors
+        r"segmentation fault",  # Segfault
+        r"core dumped",  # Core dump
+        r"unable to.*error",  # Unable to do something due to error
+        r"crashed with",  # Crash reports
+        r"panic:",  # Go/Rust panics
+    ]
+
+    # Check for error patterns
+    import re
+
+    for pattern in error_patterns:
+        if re.search(pattern, content_lower):
+            return True
+
+    # Check for Claude-specific error states
+    if "i encountered an error" in content_lower or "i'm experiencing an error" in content_lower:
+        return True
+
+    # Check for multiple error keywords in close proximity (likely real error)
+    error_count = content_lower.count("error") + content_lower.count("exception") + content_lower.count("failed")
+    if error_count >= 3:  # Multiple error keywords suggest real issue
+        # But exclude if it's clearly discussing errors
+        if not any(discuss in content_lower for discuss in ["error handling", "error message", "error checking"]):
+            return True
+
+    return False
+
+
 def _determine_window_status(tmux: TMUXManager, pane_content: str) -> tuple[str, str, float]:
     """Determine status and activity from pane content.
 
@@ -155,19 +205,11 @@ def _determine_window_status(tmux: TMUXManager, pane_content: str) -> tuple[str,
 
     content_lower = pane_content.lower()
 
-    # Check for various states
+    # Check for various states - order matters for priority
     if tmux._is_idle(pane_content):
         status = "Idle"
         last_activity = "Waiting for task"
         health_score = 0.7
-    elif "error" in content_lower or "exception" in content_lower or "failed" in content_lower:
-        status = "Error"
-        last_activity = "Has errors"
-        health_score = 0.2
-    elif "completed" in content_lower or "finished" in content_lower:
-        status = "Complete"
-        last_activity = "Task completed"
-        health_score = 0.9
     elif "rate limit" in content_lower:
         status = "Rate Limited"
         last_activity = "Waiting for rate limit reset"
@@ -179,6 +221,19 @@ def _determine_window_status(tmux: TMUXManager, pane_content: str) -> tuple[str,
     elif any(activity in content_lower for activity in ["implementing", "working on", "creating", "updating"]):
         status = "Active"
         last_activity = "Actively working"
+        health_score = 1.0
+    elif "completed" in content_lower or "finished" in content_lower:
+        status = "Complete"
+        last_activity = "Task completed"
+        health_score = 0.9
+    elif _is_actual_error(pane_content):
+        status = "Error"
+        last_activity = "Has errors"
+        health_score = 0.2
+    else:
+        # Default to Active if no specific state detected
+        status = "Active"
+        last_activity = "Working..."
         health_score = 1.0
 
     return status, last_activity, health_score

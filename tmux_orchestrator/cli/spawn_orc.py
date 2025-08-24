@@ -26,8 +26,18 @@ console = Console()
 )
 @click.option("--no-launch", is_flag=True, help="Create config but don't launch terminal")
 @click.option("--no-gui", is_flag=True, help="Run in current terminal (for SSH/bash environments)")
+@click.option("--extend", help="Additional project-specific context (deprecated, use --briefing)")
+@click.option("--briefing", help="Additional project-specific context")
 @click.option("--json", "output_json", is_flag=True, help="Output in JSON format")
-def spawn_orc(profile: str | None, terminal: str, no_launch: bool, no_gui: bool, output_json: bool) -> None:
+def spawn_orc(
+    profile: str | None,
+    terminal: str,
+    no_launch: bool,
+    no_gui: bool,
+    extend: str | None,
+    briefing: str | None,
+    output_json: bool,
+) -> None:
     """Launch Claude Code as an orchestrator in a new terminal.
 
     This is the primary entry point for humans to start working with tmux-orchestrator.
@@ -57,22 +67,8 @@ def spawn_orc(profile: str | None, terminal: str, no_launch: bool, no_gui: bool,
         claude_cmd.extend(["--profile", profile])
     claude_cmd.append("--dangerously-skip-permissions")
 
-    # Create startup script that will run in the new terminal
-    startup_script = f"""#!/bin/bash
-# Tmux Orchestrator Startup Script
-
-echo "🚀 Starting Claude Code as Orchestrator..."
-echo ""
-echo "This will launch Claude Code with autonomous permissions."
-echo "Claude will be instructed to load the orchestrator context."
-echo ""
-echo "Starting in 3 seconds..."
-sleep 3
-
-# Create initial instruction file
-INSTRUCTION_FILE=$(mktemp /tmp/orc-instruction-XXXXXX.md)
-cat > "$INSTRUCTION_FILE" << 'EOF'
-Welcome! You are being launched as the Tmux Orchestrator.
+    # Build instruction content
+    instruction_content = """Welcome! You are being launched as the Tmux Orchestrator.
 
 Please run the following command to load your orchestrator context:
 
@@ -102,7 +98,29 @@ Quick overview of tool categories:
 - **spawn** - Create new agents (agent, pm, orchestrator)
 - **context** - Access role contexts and documentation
 
-To check if MCP tools are available, look for the tools icon in Claude Code's interface. If not available, you can still use all features via the standard CLI commands.
+To check if MCP tools are available, look for the tools icon in Claude Code's interface. If not available, you can still use all features via the standard CLI commands."""
+
+    # Handle briefing/extend context - briefing takes precedence
+    context_text = briefing or extend
+    if context_text:
+        instruction_content += f"\n\n## Additional Instructions\n\n{context_text}"
+
+    # Create startup script that will run in the new terminal
+    startup_script = f"""#!/bin/bash
+# Tmux Orchestrator Startup Script
+
+echo "🚀 Starting Claude Code as Orchestrator..."
+echo ""
+echo "This will launch Claude Code with autonomous permissions."
+echo "Claude will be instructed to load the orchestrator context."
+echo ""
+echo "Starting in 3 seconds..."
+sleep 3
+
+# Create initial instruction file
+INSTRUCTION_FILE=$(mktemp /tmp/orc-instruction-XXXXXX.md)
+cat > "$INSTRUCTION_FILE" << 'EOF'
+{instruction_content}
 EOF
 
 # Launch Claude with the instruction
@@ -148,38 +166,8 @@ rm -f "$0"
             console.print("[dim]Starting in 3 seconds...[/dim]")
             time.sleep(3)
 
-        # Run claude directly without temp file
-        instruction = """Welcome! You are being launched as the Tmux Orchestrator.
-
-Please run the following command to load your orchestrator context:
-
-tmux-orc context show orc
-
-This will provide you with your role, responsibilities, and workflow for managing AI agent teams.
-
-## MCP Tool Access
-
-The tmux-orchestrator provides 92 auto-generated MCP tools for agent coordination through Claude Code's MCP integration.
-
-**For complete MCP guidance, run:**
-```bash
-tmux-orc context show mcp
-```
-
-This will show you:
-- How to use MCP tools effectively
-- Complete reference for all 92 tools
-- Friendly tutorial for getting started
-- Integration with Claude Code
-
-Quick overview of tool categories:
-- **agent** - Agent lifecycle management (deploy, kill, list, status, restart, etc.)
-- **monitor** - Daemon monitoring and health checks (start, stop, dashboard, recovery, etc.)
-- **team** - Team coordination (deploy, status, broadcast, recover, etc.)
-- **spawn** - Create new agents (agent, pm, orchestrator)
-- **context** - Access role contexts and documentation
-
-To check if MCP tools are available, look for the tools icon in Claude Code's interface. If not available, you can still use all features via the standard CLI commands."""
+        # Use the same instruction content as GUI mode
+        instruction = instruction_content
 
         try:
             # Launch Claude and send instruction via stdin

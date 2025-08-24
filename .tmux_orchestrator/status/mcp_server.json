@@ -1,0 +1,12 @@
+{
+  "timestamp": 1756008781.1653383,
+  "pid": 960,
+  "status": "unhealthy",
+  "uptime_seconds": 0,
+  "memory_mb": 66.73828125,
+  "cpu_percent": 0.0,
+  "restart_count": 0,
+  "last_restart": null,
+  "health_check_status": "fail",
+  "tools_count": 0
+}

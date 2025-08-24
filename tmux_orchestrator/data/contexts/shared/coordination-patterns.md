@@ -1,5 +1,7 @@
 # Cross-Session Coordination Patterns
 
+> 🚀 **MCP First**: Use MCP tools when available for agent coordination. For MCP syntax: `tmux-orc context show mcp`
+
 > 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or use `--help` flags
 
 ## Administrative Assistant Pattern
@@ -22,6 +24,14 @@ Spawn an assistant agent in the governing PM's session that:
 4. **Activity Generation**: Keeps PM session active for daemon monitoring
 
 ### Implementation Example
+
+**MCP Tool (Preferred):**
+```
+# In governing PM session:
+mcp__tmux-orchestrator__spawn with kwargs="action=agent args=[admin-assistant, session:2] briefing=You are an Administrative Assistant monitoring cross-session work."
+```
+
+**CLI Fallback:**
 ```bash
 # In governing PM session:
 # First discover spawn command: tmux-orc reflect --filter "spawn.*agent"

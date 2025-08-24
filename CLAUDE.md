@@ -140,13 +140,32 @@ tmux-orc [COMMAND] --help
 
 If you are filling one of these roles, please adhere to these instructions.
 
+## 🚀 MCP Tools (All Roles)
+
+**PRIORITY ORDER FOR ALL AGENTS:**
+1. **MCP Tools (Preferred)**: Use `mcp__tmux-orchestrator__*` tools when available in Claude Code
+2. **CLI Commands (Fallback)**: Use `tmux-orc` commands when MCP unavailable
+3. **Raw tmux (Avoid)**: Only when others fail
+
+**MCP Tool Reference**: Run `tmux-orc context show mcp` for complete syntax guide.
+
 ## Project Manager (PM)
 
 Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/pm.md`
 
+**MCP Priority**: Use `mcp__tmux-orchestrator__agent` and `mcp__tmux-orchestrator__team` for communication.
+
+**🚨 CRITICAL PROJECT COMPLETION REQUIREMENT 🚨**
+- When project is complete, MUST create `project-closeout.md` in planning directory
+- MUST immediately kill session after closeout: `tmux kill-session -t $(tmux display-message -p '#S')`
+- Failure to shutdown = system assumes PM crashed!
+- See: `tmux_orchestrator/data/contexts/pm/project-completion.md` for full protocol
+
 ## Orchestrator
 
 Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrator.md`
+
+**MCP Priority**: Use `mcp__tmux-orchestrator__spawn`, `mcp__tmux-orchestrator__team`, and `mcp__tmux-orchestrator__list` for management.
 
 ## Root Directory Final State
 - **Final Root Directory Confirmed**:

@@ -268,7 +268,7 @@ def recover_team_agents(tmux: TMUXManager, session_name: str) -> tuple[bool, str
                 restart_agent,
             )
 
-            success, _ = restart_agent(tmux, target)
+            success, _, _ = restart_agent(tmux, target)
 
             if success:
                 recovered_agents += 1

@@ -38,8 +38,18 @@ def spawn() -> None:
 )
 @click.option("--no-launch", is_flag=True, help="Create config but don't launch terminal")
 @click.option("--no-gui", is_flag=True, help="Run in current terminal (for SSH/bash environments)")
+@click.option("--extend", help="Additional project-specific context (deprecated, use --briefing)")
+@click.option("--briefing", help="Additional project-specific context")
 @click.pass_context
-def orc(ctx: click.Context, profile: str | None, terminal: str, no_launch: bool, no_gui: bool) -> None:
+def orc(
+    ctx: click.Context,
+    profile: str | None,
+    terminal: str,
+    no_launch: bool,
+    no_gui: bool,
+    extend: str | None,
+    briefing: str | None,
+) -> None:
     """Launch Claude Code as an orchestrator in a new terminal.
 
     <mcp>Create system orchestrator agent (human entry point). Launches new terminal with Claude Code and auto-loads orchestrator context. Context rehydration: Automatically applies orchestrator role context including planning workflows, team coordination patterns, and human interface responsibilities. Use for human-driven project initialization.</mcp>
@@ -58,20 +68,28 @@ def orc(ctx: click.Context, profile: str | None, terminal: str, no_launch: bool,
         tmux-orc spawn orc --terminal konsole   # Use specific terminal
         tmux-orc spawn orc --no-gui             # Run in current terminal (SSH)
         tmux-orc spawn orc --profile work       # Use specific Claude profile
+        tmux-orc spawn orc --briefing "Working on API refactoring"   # With project context
+        tmux-orc spawn orc --extend "Working on API refactoring"     # Deprecated, use --briefing
     """
     # Import the implementation from spawn_orc
     from tmux_orchestrator.cli.spawn_orc import spawn_orc
 
+    # Handle deprecated --extend flag
+    context_text = briefing or extend
+
     # Call the existing implementation
-    ctx.invoke(spawn_orc, profile=profile, terminal=terminal, no_launch=no_launch, no_gui=no_gui)
+    ctx.invoke(spawn_orc, profile=profile, terminal=terminal, no_launch=no_launch, no_gui=no_gui, extend=context_text)
 
 
 @spawn.command()
 @click.option("--session", required=True, help="Target session name or session:window (legacy)")
-@click.option("--extend", help="Additional project-specific context")
+@click.option("--extend", help="Additional project-specific context (deprecated, use --briefing)")
+@click.option("--briefing", help="Additional project-specific context")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def pm(ctx: click.Context, session: str, extend: str | None = None, json: bool = False) -> None:
+def pm(
+    ctx: click.Context, session: str, extend: str | None = None, briefing: str | None = None, json: bool = False
+) -> None:
     """Spawn a Project Manager with standardized context.
 
     <mcp>Create new Project Manager agent with standardized PM context (args: [session]). Context rehydration: Automatically applies PM role context including quality-focused coordination, team management patterns, task distribution workflows, and status reporting. Optional --extend for project-specific context. Creates new window at session end.</mcp>
@@ -87,14 +105,18 @@ def pm(ctx: click.Context, session: str, extend: str | None = None, json: bool =
 
     Examples:
         tmux-orc spawn pm --session project
-        tmux-orc spawn pm --session main --extend "Working on API refactoring"
+        tmux-orc spawn pm --session main --briefing "Working on API refactoring"
+        tmux-orc spawn pm --session main --extend "Working on API refactoring"   # Deprecated
         tmux-orc spawn pm --session project:1  # Legacy format (index ignored)
     """
     # Import context functionality
     from tmux_orchestrator.cli.context import spawn as context_spawn
 
+    # Handle deprecated --extend flag
+    context_text = briefing or extend
+
     # Call the existing implementation
-    ctx.invoke(context_spawn, role="pm", session=session, extend=extend, json=json)
+    ctx.invoke(context_spawn, role="pm", session=session, extend=context_text, json=json)
 
 
 @spawn.command()

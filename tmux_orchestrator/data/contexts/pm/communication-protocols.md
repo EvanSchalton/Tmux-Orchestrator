@@ -1,8 +1,16 @@
 # Communication Protocols and Status Updates
 
+> 🚀 **MCP First**: Use MCP tools when available (look for tools icon in Claude Code). For MCP syntax guide, run `tmux-orc context show mcp`
+
 > 💡 **CLI Discovery**: For current tmux-orc command syntax, run `tmux-orc reflect` or `tmux-orc --help`
 
 > 🤖 **Daemon Coordination**: For daemon-PM pubsub integration, see `daemon-pubsub-coordination.md`
+
+## Communication Tool Priority
+
+1. **MCP Tools (Preferred)**: `mcp__tmux-orchestrator__agent with kwargs="action=send args=[target, message]"`
+2. **CLI Commands (Fallback)**: `tmux-orc agent send target "message"`
+3. **Raw tmux (Avoid)**: Only when others fail
 
 ## Standard Communication Formats
 
@@ -58,6 +66,16 @@ Encourage agents to communicate:
 ## Team Coordination Messages
 
 ### Starting Collaborative Work
+
+**MCP Tool (Preferred):**
+```
+mcp__tmux-orchestrator__agent with kwargs="action=send args=[project:2, COORDINATION: Auth Module
+- I'll work on: models/user.py
+- Please take: routes/auth.py
+- Let's sync before integration]"
+```
+
+**CLI Fallback:**
 ```bash
 tmux-orc agent send project:2 "
 COORDINATION: Auth Module
@@ -68,6 +86,18 @@ COORDINATION: Auth Module
 ```
 
 ### Handoff Communication
+
+**MCP Tool (Preferred):**
+```
+mcp__tmux-orchestrator__agent with kwargs="action=send args=[project:3, HANDOFF: User Model Ready
+- Location: src/models/user.py
+- Tests: tests/test_user_model.py
+- Coverage: 95%
+- Ready for: Integration testing
+- Docs: Updated in docstrings]"
+```
+
+**CLI Fallback:**
 ```bash
 tmux-orc agent send project:3 "
 HANDOFF: User Model Ready
@@ -80,6 +110,17 @@ HANDOFF: User Model Ready
 ```
 
 ### Dependency Notification
+
+**MCP Tool (Preferred):**
+```
+mcp__tmux-orchestrator__agent with kwargs="action=send args=[project:2, DEPENDENCY ALERT:
+- Your task needs: Completed User model
+- Status: QA is testing now
+- ETA: 30 minutes
+- Suggestion: Start on independent parts]"
+```
+
+**CLI Fallback:**
 ```bash
 tmux-orc agent send project:2 "
 DEPENDENCY ALERT:

@@ -165,8 +165,9 @@ def list(json: bool) -> None:
 @click.argument("role")
 @click.option("--session", required=True, help="Target session name or session:window (legacy)")
 @click.option("--extend", help="Additional project-specific context")
+@click.option("--briefing", help="Additional project-specific briefing (alias for --extend)")
 @click.option("--json", is_flag=True, help="Output in JSON format")
-def spawn(role: str, session: str, extend: str | None = None, json: bool = False) -> None:
+def spawn(role: str, session: str, extend: str | None = None, briefing: str | None = None, json: bool = False) -> None:
     """Spawn an agent with standardized context (orc/pm only).
 
     <mcp>Create agent with standard role context (args: [role, session], options: --extend). Creates complete agent with standardized orchestrator/pm context plus optional project-specific extensions. For other roles use spawn.agent with custom briefings.</mcp>
@@ -338,9 +339,10 @@ Quick overview of tool categories:
 
 To check if MCP tools are available, look for the tools icon in Claude Code's interface. If not available, you can still use all features via the standard CLI commands."""
 
-    # Add extension if provided
-    if extend:
-        message += f"\n\n## Additional Instructions\n\n{extend}"
+    # Add extension/briefing if provided (briefing takes precedence for compatibility)
+    additional_context = briefing if briefing else extend
+    if additional_context:
+        message += f"\n\n## Additional Instructions\n\n{additional_context}"
 
     if not json:
         console.print(f"[blue]Sending {role} instruction...[/blue]")

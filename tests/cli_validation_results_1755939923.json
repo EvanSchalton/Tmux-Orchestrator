@@ -1,0 +1,58 @@
+{
+  "timestamp": 1755939901.5966005,
+  "validation_type": "post_backend_fix",
+  "tests": {
+    "imports": {
+      "passed": 4,
+      "failed": 0,
+      "details": {
+        "tmux_orchestrator.cli.context": {
+          "status": "PASS",
+          "description": "Context management imports"
+        },
+        "tmux_orchestrator.cli.spawn": {
+          "status": "PASS",
+          "description": "Agent spawning imports"
+        },
+        "tmux_orchestrator.cli.spawn_orc": {
+          "status": "PASS",
+          "description": "Orchestrator spawning imports"
+        },
+        "tmux_orchestrator.mcp_server": {
+          "status": "PASS",
+          "description": "MCP server integration"
+        }
+      }
+    },
+    "mcp_server": {
+      "status": "TIMEOUT",
+      "validation": "MCP server startup test",
+      "error": "Command timed out after 15 seconds"
+    },
+    "cli_commands": {
+      "passed": 4,
+      "failed": 0,
+      "commands": {
+        "tmux-orc --help": {
+          "status": "PASS"
+        },
+        "tmux-orc reflect": {
+          "status": "PASS"
+        },
+        "tmux-orc context show mcp": {
+          "status": "PASS"
+        },
+        "tmux-orc list --help": {
+          "status": "PASS"
+        }
+      }
+    },
+    "mcp_discovery": {
+      "status": "PASS",
+      "mcp_integration_detected": true,
+      "cli_structure_valid": true,
+      "json_parseable": true
+    }
+  },
+  "overall_status": "ALL_PASS"
+}

@@ -41,12 +41,18 @@ logger = logging.getLogger(__name__)
 # Environment configuration
 HIERARCHICAL_MODE = os.getenv("TMUX_ORC_HIERARCHICAL", "true").lower() == "true"
 ENHANCED_DESCRIPTIONS = os.getenv("TMUX_ORC_ENHANCED_DESCRIPTIONS", "true").lower() == "true"
+FAST_STARTUP_MODE = os.getenv("TMUX_ORC_FAST_STARTUP", "false").lower() == "true"
 
 # Claude Code CLI environment detection
 CLAUDE_CODE_CLI_MODE = os.getenv("TMUX_ORC_MCP_MODE", "").lower() == "claude"
 CLAUDE_CODE_CLI_DETECTED = (
     os.getenv("CLAUDE_CODE_CLI") is not None or "claude-code" in os.getcwd().lower() or CLAUDE_CODE_CLI_MODE
 )
+
+# Performance optimization - cache CLI structure and tool definitions
+CLI_STRUCTURE_CACHE = None
+CLI_STRUCTURE_CACHE_TIME = 0
+CLI_CACHE_TTL = 300  # 5 minutes TTL for CLI structure cache
 
 
 class EnhancedHierarchicalSchema:
@@ -57,16 +63,34 @@ class EnhancedHierarchicalSchema:
 
     @classmethod
     def get_action_descriptions(cls) -> dict[str, dict[str, str]]:
-        """Get action descriptions using auto-generation system."""
+        """Get action descriptions using auto-generation system or fast fallback."""
         if cls._cached_descriptions is None:
-            logger.info("Auto-generating MCP action descriptions from CLI commands...")
-            try:
-                auto_generator = MCPAutoGenerator()
-                cls._cached_descriptions = auto_generator.generate_action_descriptions()
-                logger.info(f"Successfully generated descriptions for {len(cls._cached_descriptions)} command groups")
-            except Exception as e:
-                logger.error(f"Failed to auto-generate descriptions, no fallbacks available: {e}")
-                cls._cached_descriptions = {}
+            if FAST_STARTUP_MODE:
+                logger.info("Fast startup mode: Using minimal action descriptions")
+                # Provide minimal descriptions for common commands to avoid slow auto-generation
+                cls._cached_descriptions = {
+                    "agent": {
+                        "list": "List all agents",
+                        "status": "Show agent status",
+                        "deploy": "Deploy new agent",
+                        "message": "Send message to agent",
+                        "kill": "Terminate agent",
+                        "restart": "Restart agent",
+                    },
+                    "team": {"list": "List teams", "status": "Show team status", "deploy": "Deploy team"},
+                    "monitor": {"status": "Monitor status", "dashboard": "Show dashboard"},
+                }
+            else:
+                logger.info("Auto-generating MCP action descriptions from CLI commands...")
+                try:
+                    auto_generator = MCPAutoGenerator()
+                    cls._cached_descriptions = auto_generator.generate_action_descriptions()
+                    logger.info(
+                        f"Successfully generated descriptions for {len(cls._cached_descriptions)} command groups"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to auto-generate descriptions, using minimal fallback: {e}")
+                    cls._cached_descriptions = {}
 
         return cls._cached_descriptions
 
@@ -196,11 +220,21 @@ class EnhancedCLIToMCPServer:
 
     async def discover_cli_structure(self) -> dict[str, Any]:
         """
-        Discover the complete CLI structure using tmux-orc reflect.
+        Discover the complete CLI structure using tmux-orc reflect with caching.
 
         Returns:
             dict containing the complete CLI structure
         """
+        global CLI_STRUCTURE_CACHE, CLI_STRUCTURE_CACHE_TIME
+
+        current_time = time.time()
+
+        # Check if we have a valid cached version
+        if CLI_STRUCTURE_CACHE is not None and current_time - CLI_STRUCTURE_CACHE_TIME < CLI_CACHE_TTL:
+            logger.info("Using cached CLI structure (performance optimization)")
+            self.cli_structure = CLI_STRUCTURE_CACHE
+            return CLI_STRUCTURE_CACHE
+
         try:
             logger.info("Discovering CLI structure via tmux-orc reflect...")
 
@@ -211,7 +245,7 @@ class EnhancedCLIToMCPServer:
 
             if result.returncode != 0:
                 logger.error(f"CLI reflection failed: {result.stderr}")
-                return {}
+                return CLI_STRUCTURE_CACHE if CLI_STRUCTURE_CACHE is not None else {}
 
             # Parse CLI structure
             cli_structure = json.loads(result.stdout)
@@ -221,16 +255,19 @@ class EnhancedCLIToMCPServer:
 
             logger.info(f"Discovered {len(commands)} CLI commands")
 
-            # Store for later use
+            # Store for later use and cache it
             self.cli_structure = cli_structure
+            CLI_STRUCTURE_CACHE = cli_structure
+            CLI_STRUCTURE_CACHE_TIME = current_time
+
             return cli_structure
 
         except subprocess.TimeoutExpired:
             logger.error("CLI reflection timed out")
-            return {}
+            return CLI_STRUCTURE_CACHE if CLI_STRUCTURE_CACHE is not None else {}
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse CLI reflection JSON: {e}")
-            return {}
+            return CLI_STRUCTURE_CACHE if CLI_STRUCTURE_CACHE is not None else {}
         except Exception as e:
             logger.error(f"CLI discovery failed: {e}")
             return {}
@@ -432,6 +469,22 @@ class EnhancedCLIToMCPServer:
 
             action = kwargs.get("action")
 
+            # Handle empty kwargs - default action to command name for simple commands
+            if not action and not kwargs.get("kwargs"):
+                # For commands like 'list', 'status', 'reflect' that work without parameters
+                # Default to using the command name itself as the action
+                if group_name in ["list", "status", "reflect"]:
+                    action = "execute"  # Special action for direct commands
+                else:
+                    # For hierarchical commands, check if they have a default action
+                    if "list" in subcommands:
+                        action = "list"
+                    elif "status" in subcommands:
+                        action = "status"
+                    elif subcommands:
+                        # No reasonable default, show error
+                        action = None
+
             # Validate action
             if not action:
                 # Generate helpful examples
@@ -479,22 +532,138 @@ class EnhancedCLIToMCPServer:
 
             try:
                 # Execute the hierarchical command
-                cmd_parts = ["tmux-orc", group_name, action]
+                # Special handling for direct commands (list, status, reflect)
+                if action == "execute" and group_name in ["list", "status", "reflect"]:
+                    cmd_parts = ["tmux-orc", group_name]
+                else:
+                    cmd_parts = ["tmux-orc", group_name, action]
 
                 # Add target if provided
                 if kwargs.get("target"):
                     cmd_parts.append(kwargs["target"])
 
-                # Add args
-                cmd_parts.extend(str(arg) for arg in kwargs.get("args", []))
+                # Add positional args
+                args = kwargs.get("args", [])
+                if args:
+                    # Handle args properly - don't join them with commas
+                    for arg in args:
+                        cmd_parts.append(str(arg))
 
-                # Add options
+                # Handle special command requirements
+                if group_name == "spawn" and action in ["agent", "pm"]:
+                    # Spawn agent/pm requires --briefing parameter
+                    options = kwargs.get("options", {})
+                    if "briefing" not in options and action == "agent":
+                        # For agent, briefing is required
+                        return {
+                            "success": False,
+                            "error": "spawn agent requires --briefing parameter",
+                            "command": " ".join(cmd_parts),
+                            "suggestion": 'Use options={"briefing": "Your agent briefing here"}',
+                            "example": 'kwargs=\'action=agent target=session:window options={"briefing": "Backend developer agent"}\'',
+                            "tool_type": "hierarchical",
+                        }
+                    elif "briefing" not in options and action == "pm":
+                        # For PM, we can use a default briefing
+                        if "options" not in kwargs:
+                            kwargs["options"] = {}
+                        kwargs["options"]["briefing"] = "Project Manager with standard PM context"
+                elif group_name == "team" and action == "broadcast":
+                    # Team broadcast expects SESSION MESSAGE format, not args array
+                    # No need to join - args should already be properly parsed
+                    pass
+                elif group_name == "team" and action == "status":
+                    # Team status requires SESSION argument
+                    args = kwargs.get("args", [])
+                    if not args:
+                        # Add default session if not provided
+                        target = kwargs.get("target")
+                        if target and ":" in target:
+                            session_name = target.split(":")[0]
+                            kwargs["args"] = [session_name]
+                        else:
+                            # Use current session from tmux context
+                            kwargs["args"] = ["current-session"]
+
+                # Add options (CLI flags)
                 options = kwargs.get("options", {})
                 for opt_name, opt_value in options.items():
                     if opt_value is True:
                         cmd_parts.append(f"--{opt_name}")
                     elif opt_value is not False and opt_value is not None:
                         cmd_parts.extend([f"--{opt_name}", str(opt_value)])
+
+                # Add --json flag for consistent structured output (if supported)
+                if "--json" not in cmd_parts and self._command_supports_json(f"{group_name} {action}"):
+                    cmd_parts.append("--json")
+
+                # Add --force flag for known interactive commands in MCP mode
+                if self._command_needs_force_flag(f"{group_name} {action}") and "--force" not in cmd_parts:
+                    cmd_parts.append("--force")
+
+                # Handle daemon commands that would block MCP
+                if self._is_daemon_command(f"{group_name} {action}"):
+                    # Start the daemon command in background and return immediately
+                    daemon_cmd = " ".join(cmd_parts)
+
+                    # For daemon commands, we start them in background and return status
+                    try:
+                        # Use subprocess.Popen to start without waiting
+                        import subprocess
+
+                        process = subprocess.Popen(
+                            cmd_parts,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            start_new_session=True,  # Detach from parent
+                        )
+
+                        # Give it a moment to see if it fails immediately
+                        import time
+
+                        time.sleep(0.1)
+
+                        # Check if process is still running
+                        if process.poll() is None:
+                            return {
+                                "success": True,
+                                "status": f"Daemon command '{group_name} {action}' started successfully",
+                                "command": daemon_cmd,
+                                "pid": process.pid,
+                                "command_type": "daemon",
+                                "note": "Command is running in background. Use appropriate commands to check its status.",
+                                "tool_type": "hierarchical",
+                            }
+                        else:
+                            # Process already terminated, likely an error
+                            stderr = process.stderr.read() if process.stderr else ""
+                            return {
+                                "success": False,
+                                "error": f"Daemon command failed to start: {stderr}",
+                                "command": daemon_cmd,
+                                "command_type": "daemon",
+                                "tool_type": "hierarchical",
+                            }
+                    except Exception as e:
+                        return {
+                            "success": False,
+                            "error": f"Failed to start daemon command: {str(e)}",
+                            "command": daemon_cmd,
+                            "command_type": "daemon",
+                            "tool_type": "hierarchical",
+                        }
+
+                # Cache invalidation for agent lifecycle operations
+                if group_name == "spawn" or (group_name == "agent" and action in ["kill", "restart"]):
+                    # Import here to avoid circular imports
+                    try:
+                        from tmux_orchestrator.utils.tmux import TMUXManager
+
+                        tmux_manager = TMUXManager()
+                        tmux_manager.invalidate_cache()
+                    except Exception as e:
+                        logger.warning(f"Failed to invalidate cache: {e}")
 
                 # Execute
                 result = subprocess.run(cmd_parts, capture_output=True, text=True, timeout=60)
@@ -506,8 +675,27 @@ class EnhancedCLIToMCPServer:
                 except json.JSONDecodeError:
                     parsed_output = {"raw_output": output}
 
+                # Handle command failures with better error reporting
+                success = result.returncode == 0
+                if not success and result.stderr:
+                    # Check for common error patterns that need better handling
+                    stderr_lower = result.stderr.lower()
+                    if "missing argument" in stderr_lower or "missing option" in stderr_lower:
+                        # Command requires additional arguments
+                        return {
+                            "success": False,
+                            "error": f"Command requires additional arguments: {result.stderr.strip()}",
+                            "command": " ".join(cmd_parts),
+                            "action": action,
+                            "group": group_name,
+                            "stderr": result.stderr,
+                            "tool_type": "hierarchical",
+                            "error_type": "missing_arguments",
+                            "suggestion": "Try providing required arguments in the args parameter or target parameter",
+                        }
+
                 return {
-                    "success": result.returncode == 0,
+                    "success": success,
                     "command": " ".join(cmd_parts),
                     "action": action,
                     "group": group_name,
@@ -532,23 +720,18 @@ class EnhancedCLIToMCPServer:
         return hierarchical_tool
 
     def _parse_kwargs_string(self, kwargs_str: str) -> dict[str, Any]:
-        """Parse kwargs string format like 'action=list target=session:window'."""
+        """Parse kwargs string format like 'action=list target=session:window' with improved CLI option handling."""
         try:
             parsed = {}
 
-            # Handle empty string
+            # Handle empty string - for simple commands that don't need parameters
             if not kwargs_str.strip():
-                return {
-                    "success": False,
-                    "error": "Empty kwargs string provided",
-                    "kwargs_examples": ["kwargs='action=list'", "kwargs='action=attach target=session:window'"],
-                    "parameter_format": "String with space-separated key=value pairs",
-                }
+                return {}
 
             # Special handling for simple cases
             kwargs_str = kwargs_str.strip()
 
-            # Handle args=[...] with proper tokenization
+            # Handle args=[...] with improved CLI option parsing
             import re
 
             # First extract args=[...] if present to handle it specially
@@ -556,29 +739,97 @@ class EnhancedCLIToMCPServer:
             if args_match:
                 # Extract the args content
                 args_content = args_match.group(1)
-                # Parse args content
+                # Parse args content with CLI option detection
                 if args_content:
                     # Handle quoted strings within args
-                    args_list = []
-                    # Simple parsing for now - handle both quoted and unquoted
-                    if '"' in args_content or "'" in args_content:
-                        # Use shlex to parse quoted strings
-                        import shlex
+                    import shlex
 
-                        try:
-                            args_list = shlex.split(args_content)
-                        except Exception:
-                            # Fallback to comma split
-                            args_list = [a.strip().strip("\"'") for a in args_content.split(",")]
+                    # Parse args content - handle MCP array format properly
+                    # Always use shlex for proper quoted string handling
+                    try:
+                        # First try to parse as a JSON-like array if it contains quotes and commas
+                        if '"' in args_content and "," in args_content:
+                            # Handle comma-separated quoted strings
+                            # Split by comma but respect quotes
+                            args_tokens = []
+                            current_token = ""
+                            in_quotes = False
+
+                            for char in args_content:
+                                if char == '"' and (not current_token or current_token[-1] != "\\"):
+                                    in_quotes = not in_quotes
+                                elif char == "," and not in_quotes:
+                                    token = current_token.strip().strip('"')
+                                    if token:
+                                        args_tokens.append(token)
+                                    current_token = ""
+                                else:
+                                    current_token += char
+
+                            # Don't forget the last token
+                            token = current_token.strip().strip('"')
+                            if token:
+                                args_tokens.append(token)
+                        else:
+                            # Use shlex for space-separated args with proper quote handling
+                            args_tokens = shlex.split(args_content)
+                    except Exception:
+                        # Final fallback to simple space split
+                        args_tokens = args_content.split()
+                else:
+                    args_tokens = []
+
+                # Separate CLI options from positional arguments
+                positional_args = []
+                options = {}
+                i = 0
+                while i < len(args_tokens):
+                    token = args_tokens[i]
+                    if token.startswith("--"):
+                        # This is a CLI option
+                        option_name = token[2:]  # Remove --
+                        if i + 1 < len(args_tokens) and not args_tokens[i + 1].startswith("--"):
+                            # Option has a value
+                            option_value = args_tokens[i + 1]
+                            options[option_name] = option_value
+                            i += 2  # Skip both option and value
+                        else:
+                            # Option is a flag
+                            options[option_name] = True
+                            i += 1
                     else:
-                        # Simple comma-separated
-                        args_list = [a.strip() for a in args_content.split(",") if a.strip()]
-                    parsed["args"] = args_list
+                        # This is a positional argument
+                        positional_args.append(token)
+                        i += 1
+
+                # Set parsed values
+                if positional_args:
+                    parsed["args"] = positional_args
+                    if options:
+                        parsed["options"] = options
                 else:
                     parsed["args"] = []
 
                 # Remove the args=[...] from the string for further processing
                 kwargs_str = kwargs_str[: args_match.start()] + kwargs_str[args_match.end() :]
+
+            # Handle options={...} JSON format before general parsing
+            import re
+
+            options_match = re.search(r"options=(\{.*?\})", kwargs_str)
+            if options_match:
+                options_json = options_match.group(1)
+                try:
+                    options_dict = json.loads(options_json)
+                    parsed["options"] = options_dict
+                    # Remove options from string for further processing
+                    kwargs_str = kwargs_str[: options_match.start()] + kwargs_str[options_match.end() :]
+                except json.JSONDecodeError:
+                    return {
+                        "success": False,
+                        "error": f"Invalid JSON in options: {options_json}",
+                        "parameter_format": 'Use valid JSON for options, e.g., options={{"briefing": "value"}}',
+                    }
 
             # Now parse the remaining key=value pairs
             # Split by spaces but preserve quoted strings
@@ -604,14 +855,18 @@ class EnhancedCLIToMCPServer:
                     return {
                         "success": False,
                         "error": f"Invalid parameter format '{part}'. Expected key=value format",
-                        "kwargs_examples": ["kwargs='action=list'", "kwargs='action=status args=[session-name]'"],
-                        "parameter_format": "String with space-separated key=value pairs",
+                        "kwargs_examples": [
+                            "kwargs='action=list'",
+                            "kwargs='action=status args=[session-name]'",
+                            "kwargs='action=pm args=[--session, mcp-docs, --briefing, message text]'",
+                        ],
+                        "parameter_format": "String with space-separated key=value pairs. CLI options in args will be parsed as options.",
                     }
 
                 key, value = part.split("=", 1)
 
-                # Skip if we already parsed args
-                if key == "args" and "args" in parsed:
+                # Skip if we already processed these in args parsing
+                if key in ["args", "options"] and key in parsed:
                     continue
 
                 # Regular key=value
@@ -626,9 +881,9 @@ class EnhancedCLIToMCPServer:
                 "kwargs_examples": [
                     "kwargs='action=list'",
                     "kwargs='action=status args=[mcp-usability]'",
-                    "kwargs='action=attach target=session:window'",
+                    "kwargs='action=pm args=[--session, mcp-docs, --briefing, message text]'",
                 ],
-                "parameter_format": "String with space-separated key=value pairs",
+                "parameter_format": "String with space-separated key=value pairs. CLI options in args automatically parsed as options.",
             }
 
     def _generate_tool_for_command(self, command_name: str, command_info: dict[str, Any]) -> None:
@@ -897,10 +1152,11 @@ class EnhancedCLIToMCPServer:
         async def tool_function(**kwargs) -> dict[str, Any]:
             """Dynamically generated MCP tool function."""
             try:
-                logger.info(f"Executing CLI command: {command_name} with args: {kwargs}")
+                logger.info(f"[DEBUG] Individual command tool: {command_name} with kwargs: {kwargs}")
 
                 # Convert MCP arguments to CLI format
                 cli_args = self._convert_kwargs_to_cli_args(kwargs)
+                logger.info(f"[DEBUG] Converted CLI args: {cli_args}")
 
                 # Execute the CLI command
                 result = await self._execute_cli_command(command_name, cli_args)
@@ -936,6 +1192,15 @@ class EnhancedCLIToMCPServer:
         """Convert MCP keyword arguments to CLI arguments."""
         cli_args = []
 
+        # Handle kwargs string format (for individual command tools)
+        if "kwargs" in kwargs and isinstance(kwargs["kwargs"], str):
+            kwargs_str = kwargs["kwargs"].strip()
+            if kwargs_str:  # Only parse non-empty kwargs
+                # Parse the kwargs string format and merge results
+                parsed = self._parse_kwargs_string(kwargs_str)
+                if not isinstance(parsed, dict) or "error" not in parsed:
+                    kwargs.update(parsed)
+
         # Handle positional arguments from args array
         args = kwargs.get("args", [])
         if args:
@@ -953,7 +1218,7 @@ class EnhancedCLIToMCPServer:
 
         # Also handle any direct keyword arguments (legacy support)
         for key, value in kwargs.items():
-            if key not in ["args", "options"] and value is not None:
+            if key not in ["args", "options", "kwargs"] and value is not None:
                 if value is True:
                     cli_args.append(f"--{key}")
                 elif value is not False:
@@ -1011,7 +1276,7 @@ class EnhancedCLIToMCPServer:
 
     def _command_supports_json(self, command_name: str) -> bool:
         """Check if a command supports JSON output."""
-        # Commands known to support --json flag
+        # Individual commands known to support --json flag
         json_commands = {
             "list",
             "status",
@@ -1019,13 +1284,100 @@ class EnhancedCLIToMCPServer:
             "spawn",
             "send",
             "kill",
-            "agent-status",
-            "team-status",
-            "monitor-status",
-            "get-status",
-            "agent-info",
         }
-        return command_name in json_commands
+
+        # Check direct command support
+        if command_name in json_commands:
+            return True
+
+        # Check hierarchical command patterns (group action)
+        # Only include commands that actually support JSON output
+        hierarchical_json_patterns = {
+            "agent list",
+            "agent status",
+            "agent info",
+            "agent deploy",
+            "agent kill",
+            "agent restart",
+            "agent recover",
+            "team list",
+            "team status",
+            "team deploy",
+            "team broadcast",
+            "monitor dashboard",
+            "monitor logs",
+            "monitor events",
+            "pm status",
+            "pm message",
+            "spawn agent",
+            "spawn pm",
+            "spawn orchestrator",
+            "session list",
+            "session attach",
+            "context list",
+            "orchestrator status",
+            "orchestrator deploy",
+            "recovery status",
+            "recovery trigger",
+            "tasks status",
+            "tasks list",
+            "errors summary",
+            "errors list",
+            "errors clear",
+            "setup status",
+        }
+
+        # Commands that definitely don't support JSON
+        no_json_commands = {
+            "daemon status",
+            "daemon start",
+            "daemon stop",
+            "server status",
+            "server start",
+            "server stop",
+            "pubsub status",
+            "pubsub send",
+            "monitor status",  # monitor status doesn't support JSON
+            "monitor logs",  # monitor logs has JSON conflicts
+            "context show",  # context show outputs markdown, not JSON
+            "setup all",  # setup commands don't support JSON
+            "setup status",  # setup status doesn't support JSON
+            "tasks list",
+            "tasks status",  # tasks commands don't support JSON
+            "orchestrator kill-all",  # Interactive commands shouldn't have JSON
+            "agent kill-all",  # Interactive commands shouldn't have JSON
+        }
+
+        if command_name in no_json_commands:
+            return False
+
+        return command_name in hierarchical_json_patterns
+
+    def _command_needs_force_flag(self, command_name: str) -> bool:
+        """Check if a command needs --force flag to avoid interactive confirmation in MCP."""
+        # Commands that require user confirmation and should get --force in MCP mode
+        force_commands = {
+            "orchestrator kill-all",
+            "agent kill-all",
+            "recovery start",  # If it has interactive prompts
+            "setup all",  # Has interactive prompts
+            "agent kill",  # Individual agent kill may also prompt
+            "team kill",  # Team kill operations
+        }
+
+        return command_name in force_commands
+
+    def _is_daemon_command(self, command_name: str) -> bool:
+        """Check if a command runs as a daemon and would block MCP."""
+        # Commands that run indefinitely or as daemons
+        daemon_commands = {
+            "recovery start",  # Runs daemon process
+            "monitor dashboard",  # Interactive UI that runs continuously
+            "daemon start",  # Starts daemon processes
+            "server start",  # Starts server processes
+        }
+
+        return command_name in daemon_commands
 
     async def run_server(self):
         """Run the MCP server with auto-generated tools."""

@@ -99,6 +99,12 @@ class MCPTagParser:
 class CLICommandIntrospector:
     """Introspects CLI command modules to extract command metadata."""
 
+    # Module name mappings for commands that don't match file names
+    MODULE_NAME_MAPPINGS = {
+        "setup": "setup_claude",
+        "spawn-orc": "spawn_orc",
+    }
+
     def __init__(self, cli_package: str = "tmux_orchestrator.cli"):
         """Initialize the introspector.
 
@@ -139,8 +145,9 @@ class CLICommandIntrospector:
             Dictionary mapping subcommand names to their docstrings
         """
         try:
-            # Import the CLI module
-            module_name = f"{self.cli_package}.{command_name}"
+            # Get the actual module name (handle mappings for mismatched names)
+            actual_module_name = self.MODULE_NAME_MAPPINGS.get(command_name, command_name)
+            module_name = f"{self.cli_package}.{actual_module_name}"
             module = importlib.import_module(module_name)
 
             docstrings = {}

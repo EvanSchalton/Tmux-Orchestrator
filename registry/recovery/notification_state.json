@@ -1,0 +1,14 @@
+{
+  "Tmux-Orchestrator-frontend:4:recovery_started": {
+    "target": "Tmux-Orchestrator-frontend:4",
+    "type": "recovery_started",
+    "timestamp": "2025-08-24T01:11:41.529578",
+    "cooldown_minutes": 5
+  },
+  "Tmux-Orchestrator-frontend:4:recovery_failed": {
+    "target": "Tmux-Orchestrator-frontend:4",
+    "type": "recovery_failed",
+    "timestamp": "2025-08-24T01:11:41.532470",
+    "cooldown_minutes": 5
+  }
+}
