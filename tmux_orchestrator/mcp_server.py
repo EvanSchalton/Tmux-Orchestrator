@@ -542,12 +542,50 @@ class EnhancedCLIToMCPServer:
                 if kwargs.get("target"):
                     cmd_parts.append(kwargs["target"])
 
-                # Add positional args
+                # Process args - convert CLI flags to options for proper handling (Issue #7)
                 args = kwargs.get("args", [])
+                options = kwargs.get("options", {})
+
                 if args:
-                    # Handle args properly - don't join them with commas
-                    for arg in args:
-                        cmd_parts.append(str(arg))
+                    # Separate CLI flags/options from positional arguments
+                    processed_args = []
+                    i = 0
+                    while i < len(args):
+                        arg = str(args[i]).strip()
+                        if arg.startswith("--"):
+                            # Extract CLI option flag
+                            option_name = arg[2:]
+                            if i + 1 < len(args) and not str(args[i + 1]).startswith("--"):
+                                # Option has a value - clean string parsing (Issue #8)
+                                option_value = str(args[i + 1]).strip()
+                                # Remove any quote artifacts from parsing
+                                if option_value.startswith('"') and option_value.endswith('"'):
+                                    option_value = option_value[1:-1]
+                                options[option_name] = option_value
+                                i += 2
+                            else:
+                                # Boolean flag
+                                options[option_name] = True
+                                i += 1
+                        elif arg.startswith("-") and not arg.startswith("--"):
+                            # Single-dash flags (like -v, -h) - treat as boolean
+                            flag_name = arg[1:]
+                            options[flag_name] = True
+                            i += 1
+                        else:
+                            # Positional argument - clean string parsing (Issue #8)
+                            clean_arg = arg.strip()
+                            if clean_arg.startswith('"') and clean_arg.endswith('"'):
+                                clean_arg = clean_arg[1:-1]
+                            processed_args.append(clean_arg)
+                            i += 1
+
+                    # Update kwargs with processed options
+                    kwargs["options"] = options
+
+                    # Add cleaned positional arguments
+                    for arg in processed_args:
+                        cmd_parts.append(arg)
 
                 # Handle special command requirements
                 if group_name == "spawn" and action in ["agent", "pm"]:
@@ -758,18 +796,23 @@ class EnhancedCLIToMCPServer:
                             for char in args_content:
                                 if char == '"' and (not current_token or current_token[-1] != "\\"):
                                     in_quotes = not in_quotes
+                                    # Don't add quote characters to token content (Issue #8 fix)
                                 elif char == "," and not in_quotes:
-                                    token = current_token.strip().strip('"')
+                                    token = current_token.strip()
                                     if token:
-                                        args_tokens.append(token)
+                                        # Clean any residual quote artifacts (Issue #8)
+                                        clean_token = token.strip("\"'").strip()
+                                        if clean_token:
+                                            args_tokens.append(clean_token)
                                     current_token = ""
                                 else:
                                     current_token += char
 
-                            # Don't forget the last token
-                            token = current_token.strip().strip('"')
-                            if token:
-                                args_tokens.append(token)
+                            # Process final token with clean parsing (Issue #8)
+                            if current_token.strip():
+                                clean_token = current_token.strip().strip("\"'").strip()
+                                if clean_token:
+                                    args_tokens.append(clean_token)
                         else:
                             # Use shlex for space-separated args with proper quote handling
                             args_tokens = shlex.split(args_content)
@@ -802,13 +845,13 @@ class EnhancedCLIToMCPServer:
                         positional_args.append(token)
                         i += 1
 
-                # Set parsed values
-                if positional_args:
-                    parsed["args"] = positional_args
-                    if options:
-                        parsed["options"] = options
-                else:
-                    parsed["args"] = []
+                # Set parsed values properly for MCP
+                parsed["args"] = positional_args
+                if options:
+                    # Merge options into existing options if any
+                    existing_options = parsed.get("options", {})
+                    existing_options.update(options)
+                    parsed["options"] = existing_options
 
                 # Remove the args=[...] from the string for further processing
                 kwargs_str = kwargs_str[: args_match.start()] + kwargs_str[args_match.end() :]
@@ -1275,7 +1318,10 @@ class EnhancedCLIToMCPServer:
             return {"return_code": -1, "error": str(e), "execution_time": time.time() - start_time}
 
     def _command_supports_json(self, command_name: str) -> bool:
-        """Check if a command supports JSON output."""
+        """
+        Selective JSON flags implementation (Issue #6).
+        Check if a command supports JSON output to prevent CLI errors.
+        """
         # Individual commands known to support --json flag
         json_commands = {
             "list",
@@ -1290,9 +1336,9 @@ class EnhancedCLIToMCPServer:
         if command_name in json_commands:
             return True
 
-        # Check hierarchical command patterns (group action)
-        # Only include commands that actually support JSON output
+        # Hierarchical commands that support --json (Issue #6 comprehensive list)
         hierarchical_json_patterns = {
+            # Agent operations
             "agent list",
             "agent status",
             "agent info",
@@ -1300,57 +1346,75 @@ class EnhancedCLIToMCPServer:
             "agent kill",
             "agent restart",
             "agent recover",
+            # Team operations
             "team list",
             "team status",
             "team deploy",
             "team broadcast",
+            # Monitor operations (selective)
             "monitor dashboard",
-            "monitor logs",
             "monitor events",
+            # PM operations
             "pm status",
             "pm message",
+            # Spawn operations
             "spawn agent",
             "spawn pm",
             "spawn orchestrator",
+            # Session operations
             "session list",
             "session attach",
+            # Context operations (selective)
             "context list",
+            # Orchestrator operations
             "orchestrator status",
             "orchestrator deploy",
+            # Recovery operations
             "recovery status",
             "recovery trigger",
-            "tasks status",
-            "tasks list",
+            # Error operations
             "errors summary",
             "errors list",
             "errors clear",
-            "setup status",
         }
 
-        # Commands that definitely don't support JSON
+        # Commands that definitively DON'T support JSON (Issue #6 exclusion list)
         no_json_commands = {
+            # Daemon operations - these are system level
             "daemon status",
             "daemon start",
             "daemon stop",
+            # Server operations
             "server status",
             "server start",
             "server stop",
+            # PubSub operations
             "pubsub status",
             "pubsub send",
-            "monitor status",  # monitor status doesn't support JSON
-            "monitor logs",  # monitor logs has JSON conflicts
-            "context show",  # context show outputs markdown, not JSON
-            "setup all",  # setup commands don't support JSON
-            "setup status",  # setup status doesn't support JSON
+            # Monitor operations that conflict with JSON
+            "monitor status",  # Text-based status display
+            "monitor logs",  # Stream-based logs output
+            "monitor start",  # Daemon start command
+            "monitor stop",  # Daemon stop command
+            # Context operations that output markdown
+            "context show",  # Outputs formatted markdown, not JSON
+            # Setup operations - interactive
+            "setup all",  # Interactive setup process
+            "setup status",  # Text-based setup status
+            # Tasks operations - not JSON compatible
             "tasks list",
-            "tasks status",  # tasks commands don't support JSON
-            "orchestrator kill-all",  # Interactive commands shouldn't have JSON
-            "agent kill-all",  # Interactive commands shouldn't have JSON
+            "tasks status",
+            # Interactive/destructive operations
+            "orchestrator kill-all",  # Interactive confirmation
+            "agent kill-all",  # Interactive confirmation
+            "team kill-all",  # Interactive confirmation
         }
 
+        # Explicit exclusion takes precedence (Issue #6 priority)
         if command_name in no_json_commands:
             return False
 
+        # Check against supported patterns
         return command_name in hierarchical_json_patterns
 
     def _command_needs_force_flag(self, command_name: str) -> bool:
