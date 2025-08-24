@@ -1,11 +1,11 @@
 {
-  "last_updated": "2025-08-24T14:46:20.337271+00:00",
+  "last_updated": "2025-08-24T19:58:18.993560+00:00",
   "daemon_status": {
     "monitor": {
       "running": true,
-      "pid": 40997,
-      "uptime_seconds": 3465,
-      "last_check": "2025-08-24T14:46:20.336891"
+      "pid": 29793,
+      "uptime_seconds": 1131,
+      "last_check": "2025-08-24T19:58:18.993030"
     },
     "messaging": {
       "running": false,
@@ -13,67 +13,25 @@
     }
   },
   "agents": {
-    "mcp-core-fixes:2": {
-      "name": "unknown",
-      "type": "unknown",
-      "status": "idle",
-      "last_activity": "2025-08-24T14:46:20.319877",
+    "pre-commit-test-cleanup:2": {
+      "name": "claude-pm",
+      "type": "Project Manager",
+      "status": "active",
+      "last_activity": "2025-08-24T19:58:18.993006",
       "pane_id": null,
-      "session": "mcp-core-fixes",
+      "session": "pre-commit-test-cleanup",
       "window": 2,
       "state_details": {
         "idle_count": 0,
-        "content_based_state": "idle",
-        "last_content_check": "2025-08-24T14:46:20.319888"
-      }
-    },
-    "mcp-core-fixes:3": {
-      "name": "unknown",
-      "type": "unknown",
-      "status": "idle",
-      "last_activity": "2025-08-24T14:46:20.325580",
-      "pane_id": null,
-      "session": "mcp-core-fixes",
-      "window": 3,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "idle",
-        "last_content_check": "2025-08-24T14:46:20.325589"
-      }
-    },
-    "mcp-core-fixes:4": {
-      "name": "unknown",
-      "type": "unknown",
-      "status": "active",
-      "last_activity": "2025-08-24T14:46:20.331272",
-      "pane_id": null,
-      "session": "mcp-core-fixes",
-      "window": 4,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "idle",
-        "last_content_check": "2025-08-24T14:46:20.331282"
-      }
-    },
-    "mcp-core-fixes:5": {
-      "name": "unknown",
-      "type": "unknown",
-      "status": "active",
-      "last_activity": "2025-08-24T14:46:20.336870",
-      "pane_id": null,
-      "session": "mcp-core-fixes",
-      "window": 5,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "idle",
-        "last_content_check": "2025-08-24T14:46:20.336882"
+        "content_based_state": "active",
+        "last_content_check": "2025-08-24T19:58:18.993018"
       }
     }
   },
   "summary": {
-    "total_agents": 4,
-    "active": 2,
-    "idle": 2,
+    "total_agents": 1,
+    "active": 1,
+    "idle": 0,
     "error": 0,
     "busy": 0,
     "unknown": 0
