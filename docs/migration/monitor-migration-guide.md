@@ -13,8 +13,8 @@ This guide provides step-by-step instructions for migrating from the monolithic 
 
 2. **Create backup**
    ```bash
-   cp -r ~/.tmux-orchestrator/state ~/.tmux-orchestrator/state.backup
-   cp ~/.tmux-orchestrator/logs/idle-monitor.log ~/.tmux-orchestrator/logs/idle-monitor.log.backup
+   cp -r ~/.tmux_orchestrator/state ~/.tmux_orchestrator/state.backup
+   cp ~/.tmux_orchestrator/logs/idle-monitor.log ~/.tmux_orchestrator/logs/idle-monitor.log.backup
    ```
 
 3. **Run compatibility check**
@@ -36,7 +36,7 @@ This guide provides step-by-step instructions for migrating from the monolithic 
 
 3. **Review shadow mode results**
    ```bash
-   grep "SHADOW_DIFF" ~/.tmux-orchestrator/logs/idle-monitor.log
+   grep "SHADOW_DIFF" ~/.tmux_orchestrator/logs/idle-monitor.log
    ```
 
 ### Phase 3: Migration
@@ -56,7 +56,7 @@ This guide provides step-by-step instructions for migrating from the monolithic 
 3. **Verify operation**
    ```bash
    tmux-orc monitor status
-   tail -f ~/.tmux-orchestrator/logs/idle-monitor.log
+   tail -f ~/.tmux_orchestrator/logs/idle-monitor.log
    ```
 
 4. **Monitor for issues** (keep feature flag for easy rollback)
@@ -69,7 +69,7 @@ This guide provides step-by-step instructions for migrating from the monolithic 
 
 2. **Update configuration**
    ```bash
-   # Edit ~/.tmux-orchestrator/config.yaml
+   # Edit ~/.tmux_orchestrator/config.yaml
    monitoring:
      use_modular: true
    ```
@@ -109,7 +109,7 @@ Expected results:
    unset TMUX_ORCHESTRATOR_USE_MODULAR_MONITOR
 
    # Clean up backups
-   rm -rf ~/.tmux-orchestrator/state.backup
+   rm -rf ~/.tmux_orchestrator/state.backup
    ```
 
 2. **Update documentation**
@@ -132,10 +132,10 @@ If issues arise, rollback immediately:
    tmux-orc monitor stop
 
    # Restore state
-   cp -r ~/.tmux-orchestrator/state.backup/* ~/.tmux-orchestrator/state/
+   cp -r ~/.tmux_orchestrator/state.backup/* ~/.tmux_orchestrator/state/
 
    # Revert config
-   # Edit ~/.tmux-orchestrator/config.yaml
+   # Edit ~/.tmux_orchestrator/config.yaml
    monitoring:
      use_modular: false
 
@@ -220,20 +220,20 @@ diff before/latest.json after/latest.json
 2. **State file errors**
    ```bash
    # Validate state file
-   python -m json.tool ~/.tmux-orchestrator/state/monitor_state.json
+   python -m json.tool ~/.tmux_orchestrator/state/monitor_state.json
 
    # Reset if corrupted
-   mv ~/.tmux-orchestrator/state/monitor_state.json ~/.tmux-orchestrator/state/monitor_state.json.bad
+   mv ~/.tmux_orchestrator/state/monitor_state.json ~/.tmux_orchestrator/state/monitor_state.json.bad
    ```
 
 3. **Performance degradation**
-   - Check CPU usage: `top -p $(cat ~/.tmux-orchestrator/idle-monitor.pid)`
+   - Check CPU usage: `top -p $(cat ~/.tmux_orchestrator/idle-monitor.pid)`
    - Review logs for errors
    - Run performance benchmarks
 
 4. **Notification failures**
    - Verify PM windows exist
-   - Check notification queue: `grep "notification" ~/.tmux-orchestrator/logs/idle-monitor.log`
+   - Check notification queue: `grep "notification" ~/.tmux_orchestrator/logs/idle-monitor.log`
 
 ### Debug Mode
 Enable detailed logging:
@@ -258,7 +258,7 @@ tmux-orc monitor restart
 ## Support
 
 If you encounter issues:
-1. Check logs: `~/.tmux-orchestrator/logs/idle-monitor.log`
+1. Check logs: `~/.tmux_orchestrator/logs/idle-monitor.log`
 2. Run diagnostics: `tmux-orc monitor diagnose`
 3. Contact team with:
    - Log excerpts

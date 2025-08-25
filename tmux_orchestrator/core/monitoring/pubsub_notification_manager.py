@@ -51,6 +51,8 @@ class PubsubNotificationManager(NotificationManagerInterface):
     async def _test_daemon_connection(self) -> bool:
         """Test if daemon is available."""
         try:
+            if self._daemon_client is None:
+                return False
             response = await self._daemon_client.get_status()
             if response.get("status") == "active":
                 self.logger.info("Daemon connection successful")

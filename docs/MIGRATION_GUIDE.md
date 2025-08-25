@@ -5,7 +5,7 @@ This guide documents the repository reorganization performed to improve maintain
 ## Major Changes
 
 ### Directory Consolidation
-- `.tmux-orchestrator/` → Removed (legacy)
+- `.tmux_orchestrator/` → Removed (legacy)
 - `.tmux_orchestrator/` → Kept (active task management system)
 - `Examples/` → Merged into `examples/`
 - All documentation moved to `docs/`

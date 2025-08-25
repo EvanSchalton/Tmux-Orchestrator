@@ -540,7 +540,7 @@ context = {
 
 Plugins are discovered from:
 1. `tmux_orchestrator/core/monitoring/strategies/` (built-in)
-2. `~/.tmux-orchestrator/plugins/` (user plugins)
+2. `~/.tmux_orchestrator/plugins/` (user plugins)
 
 ### Validation
 

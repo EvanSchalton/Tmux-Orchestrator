@@ -260,7 +260,7 @@ If pubsub messages aren't flowing:
 tmux-orc status --format json
 
 # Verify message store
-ls -la ~/.tmux-orchestrator/messages/
+ls -la ~/.tmux_orchestrator/messages/
 
 # Test message flow
 tmux-orc publish --group management --tag test "PM connectivity test"
@@ -280,7 +280,7 @@ tmux-orc publish --group management --tag status-request \
   "PM requesting daemon status update"
 
 # Verify daemon logs
-tail -f ~/.tmux-orchestrator/daemon.log
+tail -f ~/.tmux_orchestrator/daemon.log
 ```
 
 ### Integration Script Failures
@@ -404,7 +404,7 @@ tmux-orc pubsub status
 tmux-orc daemon start
 
 # Check logs
-tail -f ~/.tmux-orchestrator/logs/daemon.log
+tail -f ~/.tmux_orchestrator/logs/daemon.log
 ```
 
 ### Performance Issues
@@ -417,7 +417,7 @@ tmux-orc pubsub stats | grep "Queue Depth"
 tmux-orc pubsub stats | grep "P95"
 
 # Check for errors
-grep ERROR ~/.tmux-orchestrator/logs/daemon.log
+grep ERROR ~/.tmux_orchestrator/logs/daemon.log
 ```
 
 ### Message Not Delivered

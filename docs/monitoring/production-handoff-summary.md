@@ -101,7 +101,7 @@ monitoring:
 /usr/local/lib/tmux-orchestrator/plugins/
 
 # User plugins (customizations)
-~/.tmux-orchestrator/plugins/
+~/.tmux_orchestrator/plugins/
 
 # Organization plugins (shared)
 /etc/tmux-orchestrator/plugins/
@@ -200,7 +200,7 @@ tmux-orc monitor --reload --strategy priority_based
 ### Install Custom Plugin
 ```bash
 # Copy plugin file
-cp custom_strategy.py ~/.tmux-orchestrator/plugins/
+cp custom_strategy.py ~/.tmux_orchestrator/plugins/
 
 # Validate plugin
 tmux-orc plugin validate custom_strategy

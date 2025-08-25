@@ -17,7 +17,7 @@ from tmux_orchestrator.core.monitoring.monitor_pubsub_integration import Monitor
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
-async def demo_pubsub_integration():
+async def demo_pubsub_integration() -> None:
     """Demonstrate pubsub integration capabilities."""
 
     print("🚀 Demonstrating Pubsub-Daemon Integration")

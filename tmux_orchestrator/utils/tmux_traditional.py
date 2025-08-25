@@ -5,6 +5,7 @@ import re
 import shlex
 import subprocess
 import time
+from typing import Any
 
 
 class TMUXManager:
@@ -17,7 +18,7 @@ class TMUXManager:
         self._logger = logging.getLogger(__name__)
 
         # Performance optimization: Session caching
-        self._session_cache = {}
+        self._session_cache: dict[str, Any] = {}
         self._session_cache_time = 0.0
         self._cache_ttl = 30.0  # Cache for 30 seconds
 
@@ -324,7 +325,8 @@ class TMUXManager:
         self._session_cache["sessions"] = sessions
         self._session_cache_time = current_time
 
-        return sessions
+        typed_sessions: list[dict[str, str]] = sessions
+        return typed_sessions
 
     def list_windows(self, session: str) -> list[dict[str, str]]:
         """List windows in a session."""

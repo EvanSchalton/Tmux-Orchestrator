@@ -15,7 +15,7 @@ import logging
 import statistics
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.messaging_daemon import DaemonClient
@@ -29,8 +29,9 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 class PubsubPerformanceValidator:
     """Validates pubsub system meets performance requirements."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the validator."""
+        self.performance_data: List[Dict[str, Any]] = []
         self.config = Config()
         self.tmux = TMUXManager()
         self.logger = logging.getLogger("validator")

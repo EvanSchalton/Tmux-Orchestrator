@@ -18,7 +18,7 @@ fi
 
 # Create necessary directories
 mkdir -p logs
-mkdir -p .tmux-orchestrator
+mkdir -p .tmux_orchestrator
 
 # Set up tmux plugin manager (TPM)
 if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then

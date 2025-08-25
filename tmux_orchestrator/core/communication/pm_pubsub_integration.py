@@ -45,7 +45,7 @@ class PMPubsubIntegration:
         """
         self.session = session
         self.tmux = TMUXManager()
-        self.message_store = Path.home() / ".tmux-orchestrator" / "messages"
+        self.message_store = Path.home() / ".tmux_orchestrator" / "messages"
 
     def get_daemon_notifications(self, since_minutes: int = 30) -> list[dict[str, Any]]:
         """Get daemon notifications from the last N minutes.
@@ -528,7 +528,7 @@ echo -e "\\n✅ Monitoring check complete at $(date)"
             True if acknowledged
         """
         # Check acknowledgment store
-        ack_file = Path.home() / ".tmux-orchestrator" / "acknowledgments" / f"{message_id}.json"
+        ack_file = Path.home() / ".tmux_orchestrator" / "acknowledgments" / f"{message_id}.json"
         return ack_file.exists()
 
     def _determine_health_action(self, issue_type: str, context: dict[str, Any]) -> str:

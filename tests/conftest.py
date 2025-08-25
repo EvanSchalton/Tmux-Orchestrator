@@ -4,7 +4,7 @@ import json
 import logging
 import tempfile
 from pathlib import Path
-from typing import Generator
+from typing import Any, Dict, Generator
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -14,13 +14,13 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 
 
 @pytest.fixture
-def cli_runner():
+def cli_runner() -> CliRunner:
     """Provide a Click CLI runner for testing CLI commands."""
     return CliRunner()
 
 
 @pytest.fixture
-def mock_tmux_manager():
+def mock_tmux_manager() -> Mock:
     """Provide a mocked TMUXManager for testing."""
     mock = Mock(spec=TMUXManager)
 
@@ -37,7 +37,7 @@ def mock_tmux_manager():
 
 
 @pytest.fixture
-def mock_agent_operations():
+def mock_agent_operations() -> Mock:
     """Provide mocked agent operations for testing."""
     mock = Mock()
 
@@ -51,7 +51,7 @@ def mock_agent_operations():
 
 
 @pytest.fixture
-def mock_recovery_functions():
+def mock_recovery_functions() -> Mock:
     """Provide mocked recovery functions for testing."""
     mock = Mock()
 
@@ -65,7 +65,7 @@ def mock_recovery_functions():
 
 
 @pytest.fixture
-def sample_agent_data():
+def sample_agent_data() -> Dict[str, Any]:
     """Provide sample agent data for testing."""
     return {
         "session": "test-session",
@@ -77,7 +77,7 @@ def sample_agent_data():
 
 
 @pytest.fixture(autouse=True)
-def cleanup_test_logs(tmp_path, monkeypatch):
+def cleanup_test_logs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
     """Automatically clean up test logs and use temp directories."""
     # Use temporary directory for logs during testing
     test_log_dir = tmp_path / "logs"

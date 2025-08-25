@@ -99,7 +99,7 @@ agent.request_help("Need help with Redux state management")
 YAML-based configuration for projects and teams.
 
 ```yaml
-# .tmux-orchestrator/config.yml
+# .tmux_orchestrator/config.yml
 project:
   name: corporate-coach
   path: /workspaces/corporate-coach

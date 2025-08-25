@@ -107,7 +107,7 @@ def _extract_recent_activity(pane_content: str) -> list[str]:
 
     lines = pane_content.split("\n")
     # Get last 5 non-empty lines that look like activity
-    activity_lines = []
+    activity_lines: list[str] = []
 
     for line in reversed(lines):
         line = line.strip()

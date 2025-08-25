@@ -11,7 +11,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from .interfaces import MonitorComponent
 
@@ -78,7 +78,7 @@ class AsyncMonitorComponent(MonitorComponent, ABC):
 class AsyncBatchProcessor:
     """Process items in batches for improved performance."""
 
-    def __init__(self, batch_size: int = 10, max_wait_time: float = 0.5, logger: logging.Logger | None = None):
+    def __init__(self, batch_size: int = 10, max_wait_time: float = 0.5, logger: Optional[logging.Logger] = None):
         """Initialize the batch processor.
 
         Args:
@@ -90,7 +90,7 @@ class AsyncBatchProcessor:
         self.max_wait_time = max_wait_time
         self.logger = logger or logging.getLogger(__name__)
         self._queue: asyncio.Queue = asyncio.Queue()
-        self._processing_task: asyncio.Task | None = None
+        self._processing_task: Optional[asyncio.Task] = None
         self._shutdown = False
 
     async def add_item(self, item: Any) -> None:
@@ -225,7 +225,7 @@ class AsyncCircuitBreaker:
         self.expected_exception = expected_exception
 
         self._failure_count = 0
-        self._last_failure_time: float | None = None
+        self._last_failure_time: Optional[float] = None
         self._state = "closed"  # closed, open, half-open
 
     @property

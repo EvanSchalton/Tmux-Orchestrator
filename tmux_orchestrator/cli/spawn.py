@@ -1,6 +1,7 @@
 """Spawn command group for creating orchestrators, PMs, and agents."""
 
 from pathlib import Path
+from typing import Optional
 
 import click
 from rich.console import Console
@@ -88,7 +89,7 @@ def orc(
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def pm(
-    ctx: click.Context, session: str, extend: str | None = None, briefing: str | None = None, json: bool = False
+    ctx: click.Context, session: str, extend: Optional[str] = None, briefing: Optional[str] = None, json: bool = False
 ) -> None:
     """Spawn a Project Manager with standardized context.
 
@@ -127,7 +128,7 @@ def pm(
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def agent(
-    ctx: click.Context, name: str, target: str, briefing: str, working_dir: str | None = None, json: bool = False
+    ctx: click.Context, name: str, target: str, briefing: str, working_dir: Optional[str] = None, json: bool = False
 ) -> None:
     """Spawn a custom agent into a specific session.
 

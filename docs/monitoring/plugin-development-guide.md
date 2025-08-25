@@ -35,7 +35,7 @@ The monitoring system uses a plugin architecture that allows you to create custo
 
 Plugins can be placed in:
 - Built-in: `tmux_orchestrator/core/monitoring/strategies/`
-- User plugins: `~/.tmux-orchestrator/plugins/`
+- User plugins: `~/.tmux_orchestrator/plugins/`
 
 ## Creating Your First Plugin
 
@@ -354,7 +354,7 @@ def test_plugin_loading():
 ```
 
 ### Manual Testing
-1. Copy plugin to `~/.tmux-orchestrator/plugins/`
+1. Copy plugin to `~/.tmux_orchestrator/plugins/`
 2. Run monitoring with your strategy:
    ```bash
    tmux-orc monitor --strategy my_custom_strategy
@@ -365,7 +365,7 @@ def test_plugin_loading():
 ### As a Single File
 Place your strategy in a single `.py` file:
 ```python
-# ~/.tmux-orchestrator/plugins/priority_strategy.py
+# ~/.tmux_orchestrator/plugins/priority_strategy.py
 class PriorityBasedStrategy(MonitoringStrategyInterface):
     # Implementation
 ```

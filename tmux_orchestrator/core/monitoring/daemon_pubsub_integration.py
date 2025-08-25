@@ -8,7 +8,7 @@ import json
 import subprocess
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 from uuid import uuid4
 
 
@@ -202,8 +202,8 @@ class DaemonPubsubIntegration:
         subject: str,
         body: str,
         context: dict[str, Any],
-        tags: list[str] = None,
-        actions: list[str] = None,
+        tags: Optional[list[str]] = None,
+        actions: Optional[list[str]] = None,
         requires_ack: bool = False,
     ) -> dict[str, Any]:
         """Build structured message format.
@@ -292,7 +292,7 @@ class DaemonPubsubIntegration:
 
             return "queued" in result.stdout
 
-        except (subprocess.CalledProcessError, json.JSONEncodeError) as e:
+        except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
             print(f"Error sending pubsub message: {e}")
             return False
 

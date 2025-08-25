@@ -232,7 +232,7 @@ graph TB
     subgraph "Plugin Discovery"
         PD[Plugin Discovery]
         BD[Built-in Directory<br/>/strategies]
-        UD[User Directory<br/>~/.tmux-orchestrator/plugins]
+        UD[User Directory<br/>~/.tmux_orchestrator/plugins]
         PD --> BD
         PD --> UD
     end
@@ -649,7 +649,7 @@ class CustomMonitoringStrategy(BaseMonitoringStrategy):
 ### Plugin Directory Structure
 
 ```
-~/.tmux-orchestrator/plugins/
+~/.tmux_orchestrator/plugins/
 ├── custom_strategy.py          # Strategy implementation
 ├── ml_detector.py             # ML-based crash detection
 └── enterprise_notifications.py # Custom notification system
@@ -1051,7 +1051,7 @@ black tmux_orchestrator/
 
 1. **Create Plugin File**
    ```python
-   # ~/.tmux-orchestrator/plugins/my_strategy.py
+   # ~/.tmux_orchestrator/plugins/my_strategy.py
    from tmux_orchestrator.core.monitoring.strategies.base_strategy import BaseMonitoringStrategy
 
    class MyCustomStrategy(BaseMonitoringStrategy):
@@ -1276,7 +1276,7 @@ critical_health = await pubsub.read(
 tmux-orc pubsub status
 
 # Verify message in store
-ls ~/.tmux-orchestrator/messages/
+ls ~/.tmux_orchestrator/messages/
 
 # Test connectivity
 tmux-orc pubsub publish "test" --target pm:1
@@ -1285,7 +1285,7 @@ tmux-orc pubsub publish "test" --target pm:1
 #### Acknowledgments Not Working
 ```python
 # Check acknowledgment store
-ls ~/.tmux-orchestrator/acknowledgments/
+ls ~/.tmux_orchestrator/acknowledgments/
 
 # Manually acknowledge
 pm_integration.acknowledge_structured_message(
@@ -1319,10 +1319,10 @@ pm_integration.acknowledge_structured_message(
 2. **Plugin Not Loading**
    ```bash
    # Check plugin directory permissions
-   ls -la ~/.tmux-orchestrator/plugins/
+   ls -la ~/.tmux_orchestrator/plugins/
 
    # Validate plugin syntax
-   python -m py_compile ~/.tmux-orchestrator/plugins/your_plugin.py
+   python -m py_compile ~/.tmux_orchestrator/plugins/your_plugin.py
    ```
 
 3. **Async Component Issues**

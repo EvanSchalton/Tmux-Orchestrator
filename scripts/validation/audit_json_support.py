@@ -8,17 +8,17 @@ import asyncio
 import json
 import subprocess
 import time
-from typing import Any
+from typing import Any, Dict, Optional
 
 
 class JSONSupportAuditor:
     """Audit JSON support across all CLI commands."""
 
-    def __init__(self):
-        self.results = {}
-        self.cli_structure = None
+    def __init__(self) -> None:
+        self.results: Dict[str, Any] = {}
+        self.cli_structure: Optional[Dict[str, Any]] = None
 
-    async def get_cli_structure(self) -> dict[str, Any]:
+    async def get_cli_structure(self) -> Dict[str, Any]:
         """Get complete CLI structure."""
         try:
             result = subprocess.run(

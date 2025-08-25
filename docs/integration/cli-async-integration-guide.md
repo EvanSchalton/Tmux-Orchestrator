@@ -231,7 +231,7 @@ async def _show_async_status(detailed):
 
 #### Add Async Settings to Config
 ```yaml
-# In ~/.tmux-orchestrator/config.yaml
+# In ~/.tmux_orchestrator/config.yaml
 monitoring:
   # Existing settings
   check_interval: 30
@@ -543,7 +543,7 @@ tmux-orc monitor --sync
 
 ### Production Configuration
 ```yaml
-# Production-ready ~/.tmux-orchestrator/config.yaml
+# Production-ready ~/.tmux_orchestrator/config.yaml
 monitoring:
   check_interval: 30
   async:

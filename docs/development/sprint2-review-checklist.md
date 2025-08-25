@@ -180,7 +180,7 @@ def detect_platform() -> dict[str, str]:
 #### **Path Handling Validation**
 ```python
 # Cross-platform path handling:
-config_dir = Path.home() / ".tmux-orchestrator"
+config_dir = Path.home() / ".tmux_orchestrator"
 vscode_settings = Path.home() / ".vscode" / "settings.json"
 ```
 

@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitoring.cache import LayeredCache
@@ -24,8 +24,8 @@ class AsyncHealthChecker(HealthChecker):
         tmux: TMUXManager,
         config: Config,
         logger: logging.Logger,
-        tmux_pool: TMuxConnectionPool | None = None,
-        cache: LayeredCache | None = None,
+        tmux_pool: Optional[TMuxConnectionPool] = None,
+        cache: Optional[LayeredCache] = None,
     ):
         """Initialize the async health checker.
 
@@ -218,7 +218,7 @@ class AsyncHealthChecker(HealthChecker):
 
         return statuses
 
-    async def should_attempt_recovery_async(self, target: str, status: AgentHealthStatus | None = None) -> bool:
+    async def should_attempt_recovery_async(self, target: str, status: Optional[AgentHealthStatus] = None) -> bool:
         """Async version of recovery check with caching."""
         # Check recovery cooldown from cache
         cache_key = f"recovery_cooldown:{target}"

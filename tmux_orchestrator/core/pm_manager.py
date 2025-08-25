@@ -216,7 +216,7 @@ Remember: Quality over speed. No shortcuts."""
 
         return "No recent output"
 
-    def broadcast_to_all_agents(self, message: str, session: str = None) -> dict[str, bool]:
+    def broadcast_to_all_agents(self, message: str, session: str | None = None) -> dict[str, bool]:
         """Broadcast a message to all agents in the same session.
 
         Args:

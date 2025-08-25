@@ -109,7 +109,7 @@
   ```python
   # Cross-platform paths using pathlib
   from pathlib import Path
-  config_dir = Path.home() / ".tmux-orchestrator"
+  config_dir = Path.home() / ".tmux_orchestrator"
   config_file = config_dir / "config.json"
   ```
 

@@ -8,6 +8,7 @@ with daemon-based pubsub for sub-100ms delivery.
 import asyncio
 import logging
 import subprocess
+from typing import Any, Optional
 
 from tmux_orchestrator.core.messaging_daemon import DaemonClient
 
@@ -30,7 +31,7 @@ class MonitorPubsubClient:
         target: str,
         message: str,
         priority: str = "normal",
-        tags: list[str | None] = None,
+        tags: Optional[list[str]] = None,
     ) -> tuple[bool, float]:
         """
         Publish notification with performance tracking.
@@ -122,8 +123,8 @@ class MonitorPubsubClient:
 
     async def batch_publish(
         self,
-        notifications: list[dict[str, any]],
-    ) -> dict[str, any]:
+        notifications: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """
         Publish multiple notifications in batch for efficiency.
 
@@ -179,7 +180,7 @@ class MonitorPubsubClient:
 
         return results
 
-    def get_performance_stats(self) -> dict[str, any]:
+    def get_performance_stats(self) -> dict[str, Any]:
         """Get performance statistics for monitoring."""
         stats = {
             "daemon": self._calculate_stats(self._performance_metrics["daemon_times"]),
@@ -240,7 +241,7 @@ class PriorityMessageRouter:
         target: str,
         message: str,
         priority: str = "normal",
-        tags: list[str | None] = None,
+        tags: Optional[list[str]] = None,
     ) -> bool:
         """Route message based on priority."""
         route = self.PRIORITY_ROUTES.get(priority, self.PRIORITY_ROUTES["normal"])

@@ -11,8 +11,8 @@ This guide shows how to integrate the TMUX Orchestrator into any project using d
   "name": "your-project-dev",
   "postCreateCommand": "bash scripts/install-tmux-orchestrator.sh",
   "remoteEnv": {
-    "TMUX_ORCHESTRATOR_HOME": "/workspaces/your-project/.tmux-orchestrator",
-    "TMUX_ORCHESTRATOR_REGISTRY": "/workspaces/your-project/.tmux-orchestrator/registry"
+    "TMUX_ORCHESTRATOR_HOME": "/workspaces/your-project/.tmux_orchestrator",
+    "TMUX_ORCHESTRATOR_REGISTRY": "/workspaces/your-project/.tmux_orchestrator/registry"
   }
 }
 ```
@@ -42,7 +42,7 @@ if ! command -v tmux &> /dev/null; then
 fi
 
 # Create orchestrator directory
-ORCH_DIR="/workspaces/[PROJECT_NAME]/.tmux-orchestrator"
+ORCH_DIR="/workspaces/[PROJECT_NAME]/.tmux_orchestrator"
 mkdir -p "$ORCH_DIR/registry/logs" "$ORCH_DIR/registry/notes" "$ORCH_DIR/scripts" "$ORCH_DIR/commands"
 
 # Copy reference scripts
@@ -94,7 +94,7 @@ PROJECT_NAME="${2:-your-project}"
 
 ### Restart Script
 
-Create `.tmux-orchestrator/restart.sh`:
+Create `.tmux_orchestrator/restart.sh`:
 
 ```bash
 #!/bin/bash
@@ -115,7 +115,7 @@ Your project will have:
 your-project/
 ├── .devcontainer/
 │   └── devcontainer.json          # Contains tmux orchestrator setup
-├── .tmux-orchestrator/             # Runtime directory (created automatically)
+├── .tmux_orchestrator/             # Runtime directory (created automatically)
 │   ├── restart.sh                  # Project restart script
 │   ├── commands/                   # Orchestrator commands
 │   ├── registry/                   # Session tracking
@@ -170,7 +170,7 @@ Update paths throughout:
 After setup:
 
 1. **Rebuild devcontainer** to run installation
-2. **Test restart**: `cd .tmux-orchestrator && ./restart.sh`
+2. **Test restart**: `cd .tmux_orchestrator && ./restart.sh`
 3. **Verify agents**: `tmux list-sessions`
 4. **Check commands**: `tmux-message --help`
 

@@ -729,10 +729,10 @@ tmux-orc spawn agent my-developer orchestrator:2 --briefing "Custom developer br
 ### Integration Hooks
 ```bash
 # Add custom quality gates
-echo "npm run lint && npm run test" > .tmux-orchestrator/qa/quality-gates.sh
+echo "npm run lint && npm run test" > .tmux_orchestrator/qa/quality-gates.sh
 
 # Add Slack notifications
-echo "curl -X POST $SLACK_WEBHOOK ..." > .tmux-orchestrator/integrations/slack.sh
+echo "curl -X POST $SLACK_WEBHOOK ..." > .tmux_orchestrator/integrations/slack.sh
 ```
 
 ## 📄 Core Components

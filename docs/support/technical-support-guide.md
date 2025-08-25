@@ -109,7 +109,7 @@ AsyncMonitorService (Orchestrator)
 
 ### Production Configuration Template
 ```yaml
-# ~/.tmux-orchestrator/config.yaml
+# ~/.tmux_orchestrator/config.yaml
 monitoring:
   check_interval: 30
   max_failures: 3
@@ -314,14 +314,14 @@ tmux-orc benchmark --agents 50
 ### Log Analysis
 ```bash
 # Critical log locations
-~/.tmux-orchestrator/logs/async-monitor.log
-~/.tmux-orchestrator/logs/performance.log
-~/.tmux-orchestrator/logs/pool-stats.log
+~/.tmux_orchestrator/logs/async-monitor.log
+~/.tmux_orchestrator/logs/performance.log
+~/.tmux_orchestrator/logs/pool-stats.log
 
 # Common log patterns to watch
-grep "ERROR" ~/.tmux-orchestrator/logs/*.log
-grep "timeout" ~/.tmux-orchestrator/logs/*.log
-grep "exhausted" ~/.tmux-orchestrator/logs/*.log
+grep "ERROR" ~/.tmux_orchestrator/logs/*.log
+grep "timeout" ~/.tmux_orchestrator/logs/*.log
+grep "exhausted" ~/.tmux_orchestrator/logs/*.log
 ```
 
 ---

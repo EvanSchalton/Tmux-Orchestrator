@@ -3,6 +3,7 @@ Shared configuration and mocks for MCP tests.
 """
 
 import sys
+from typing import Any, Callable
 from unittest.mock import MagicMock
 
 # Mock FastMCP modules for in-memory testing (avoid conflicts with pytest module imports)
@@ -11,19 +12,19 @@ from unittest.mock import MagicMock
 
 # Create a mock FastMCP class
 class MockFastMCP:
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.name = name
         self.tools = {}
 
-    def tool(self, name=None, description=None):
-        def decorator(func):
+    def tool(self, name: str = None, description: str = None) -> Callable[[Any], Any]:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             tool_name = name or func.__name__
             self.tools[tool_name] = func
             return func
 
         return decorator
 
-    async def run_stdio_async(self):
+    async def run_stdio_async(self) -> None:
         pass
 
 

@@ -4,7 +4,7 @@ Reduces CLI startup time from 1-2.4s to <200ms by deferring imports until needed
 """
 
 import importlib
-from typing import Any
+from typing import Any, Optional, cast
 
 import click
 
@@ -21,8 +21,8 @@ class LazyCommandGroup(click.Group):
         name: str,
         module_path: str,
         command_attr: str,
-        fallback_module: str | None = None,
-        fallback_attr: str | None = None,
+        fallback_module: Optional[str] = None,
+        fallback_attr: Optional[str] = None,
     ) -> None:
         """Register a command for lazy loading.
 
@@ -159,7 +159,7 @@ class LazyCommand(click.Command):
     def __init__(self, name: str, module_path: str, command_attr: str, **kwargs):
         self.module_path = module_path
         self.command_attr = command_attr
-        self._loaded_command: click.Command | None = None
+        self._loaded_command: Optional[click.Command] = None
         super().__init__(name, **kwargs)
 
     def invoke(self, ctx: click.Context) -> Any:
@@ -177,9 +177,9 @@ class LazyCommand(click.Command):
                 module = importlib.import_module(self.module_path)
                 self._loaded_command = getattr(module, self.command_attr)
             except (ImportError, AttributeError):
-                return super().get_usage(ctx)
+                return cast(str, super().get_usage(ctx))
 
-        return self._loaded_command.get_usage(ctx)
+        return cast(str, self._loaded_command.get_usage(ctx))
 
     def get_help(self, ctx: click.Context) -> str | None:
         """Get help text, loading command if needed."""
@@ -188,6 +188,6 @@ class LazyCommand(click.Command):
                 module = importlib.import_module(self.module_path)
                 self._loaded_command = getattr(module, self.command_attr)
             except (ImportError, AttributeError):
-                return super().get_help(ctx)
+                return cast(Optional[str], super().get_help(ctx))
 
-        return self._loaded_command.get_help(ctx)
+        return cast(Optional[str], self._loaded_command.get_help(ctx))

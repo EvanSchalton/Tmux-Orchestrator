@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitoring.agent_monitor import AgentMonitor
@@ -28,7 +28,7 @@ class AsyncMonitorService(MonitorService):
     pooling, caching, and integration with the plugin system for strategies.
     """
 
-    def __init__(self, tmux: TMUXManager, config: Config, logger: logging.Logger | None = None):
+    def __init__(self, tmux: TMUXManager, config: Config, logger: Optional[logging.Logger] = None):
         """Initialize the async monitor service.
 
         Args:
@@ -57,7 +57,7 @@ class AsyncMonitorService(MonitorService):
         self.prefer_concurrent = True  # Default to concurrent strategy
 
         # Async monitoring state
-        self._monitoring_task: asyncio.Task | None = None
+        self._monitoring_task: Optional[asyncio.Task] = None
         self._shutdown_event = asyncio.Event()
 
     async def initialize_async(self) -> bool:

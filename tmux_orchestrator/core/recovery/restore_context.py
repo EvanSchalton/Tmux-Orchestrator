@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -11,7 +11,7 @@ def restore_context(
     tmux: TMUXManager,
     target: str,
     logger: logging.Logger,
-    context_data: dict[str, Any | None] = None,
+    context_data: Optional[dict[str, Any]] = None,
 ) -> bool:
     """
     Restore context for a recovered agent.
@@ -63,7 +63,7 @@ def restore_context(
         raise RuntimeError(error_message)
 
 
-def _build_context_message(target: str, context_data: dict[str, Any | None] = None) -> str:
+def _build_context_message(target: str, context_data: Optional[dict[str, Any]] = None) -> str:
     """
     Build context restoration message for recovered agent.
 

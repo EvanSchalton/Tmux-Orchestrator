@@ -107,7 +107,7 @@ def create_base_tasks(project_name):
         {
             "label": "📋 PM Check-in (Forced)",
             "type": "shell",
-            "command": "${workspaceFolder}/.tmux-orchestrator/commands/force-pm-checkin.sh",
+            "command": "${workspaceFolder}/.tmux_orchestrator/commands/force-pm-checkin.sh",
             "group": "build",
             "presentation": {"reveal": "always", "panel": "shared", "focus": True},
             "problemMatcher": [],
@@ -115,7 +115,7 @@ def create_base_tasks(project_name):
         {
             "label": "🎭 Open All Active Agents (Dynamic)",
             "type": "shell",
-            "command": "${workspaceFolder}/.tmux-orchestrator/commands/open-all-agents.sh",
+            "command": "${workspaceFolder}/.tmux_orchestrator/commands/open-all-agents.sh",
             "group": "test",
             "presentation": {"reveal": "always", "panel": "shared", "focus": True},
             "problemMatcher": [],
@@ -149,7 +149,7 @@ def create_base_tasks(project_name):
         {
             "label": "⏰ Schedule PM Check-in",
             "type": "shell",
-            "command": "${workspaceFolder}/.tmux-orchestrator/commands/schedule-checkin.sh",
+            "command": "${workspaceFolder}/.tmux_orchestrator/commands/schedule-checkin.sh",
             "args": ["${input:checkInMinutes}", "${input:checkInTarget}", "${input:checkInNote}"],
             "group": "build",
             "presentation": {"reveal": "always", "panel": "shared"},

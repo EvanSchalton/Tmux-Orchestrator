@@ -156,7 +156,7 @@ class SimpleMonitor:
 
         return True
 
-    def notify_pm(self, pm_target: str, idle_agents: list[str], logger: logging.Logger) -> None:
+    def notify_pm(self, pm_target: str, idle_agents: list[tuple[str, str, int]], logger: logging.Logger) -> None:
         """Notify PM about idle agents."""
         if not idle_agents:
             return

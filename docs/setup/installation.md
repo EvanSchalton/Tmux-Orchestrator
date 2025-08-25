@@ -156,7 +156,7 @@ tmux-orc spawn pm --session test-project:1
 
 ```
 your-project/
-├── .tmux-orchestrator/           # Runtime directory
+├── .tmux_orchestrator/           # Runtime directory
 │   ├── commands/                 # Orchestrator commands
 │   ├── scripts/                  # Core scripts
 │   ├── registry/                 # Session tracking
@@ -176,8 +176,8 @@ your-project/
 Set these in your shell or devcontainer:
 
 ```bash
-export TMUX_ORCHESTRATOR_HOME="/path/to/.tmux-orchestrator"
-export TMUX_ORCHESTRATOR_REGISTRY="/path/to/.tmux-orchestrator/registry"
+export TMUX_ORCHESTRATOR_HOME="/path/to/.tmux_orchestrator"
+export TMUX_ORCHESTRATOR_REGISTRY="/path/to/.tmux_orchestrator/registry"
 export PROJECT_NAME="my-project"
 ```
 
@@ -248,7 +248,7 @@ Your specific tasks:
 
 ### Custom Commands
 
-Add project-specific commands to `.tmux-orchestrator/commands/`:
+Add project-specific commands to `.tmux_orchestrator/commands/`:
 
 ```bash
 # Example: custom-deploy.sh
@@ -259,7 +259,7 @@ PROJECT_SPECIFIC_DEPLOY="$1"
 
 ### Integration Scripts
 
-Create integrations in `.tmux-orchestrator/integrations/`:
+Create integrations in `.tmux_orchestrator/integrations/`:
 
 ```bash
 # Example: slack-notifications.sh
@@ -275,7 +275,7 @@ curl -X POST -H 'Content-type: application/json' \
 Set up automated quality checks:
 
 ```bash
-# .tmux-orchestrator/qa/quality-gates.sh
+# .tmux_orchestrator/qa/quality-gates.sh
 #!/bin/bash
 # Run before allowing commits
 npm run lint && npm run test && npm run build
@@ -289,7 +289,7 @@ npm run lint && npm run test && npm run build
    ```bash
    # Fix command permissions
    sudo chmod +x /usr/local/bin/tmux-*
-   chmod +x .tmux-orchestrator/scripts/*.sh
+   chmod +x .tmux_orchestrator/scripts/*.sh
    ```
 
 2. **Session Not Found**
@@ -304,8 +304,8 @@ npm run lint && npm run test && npm run build
 3. **Command Not Found**
    ```bash
    # Recreate symlinks
-   sudo ln -sf $PWD/.tmux-orchestrator/scripts/send-claude-message.sh /usr/local/bin/tmux-message
-   sudo ln -sf $PWD/.tmux-orchestrator/scripts/schedule_with_note.sh /usr/local/bin/tmux-schedule
+   sudo ln -sf $PWD/.tmux_orchestrator/scripts/send-claude-message.sh /usr/local/bin/tmux-message
+   sudo ln -sf $PWD/.tmux_orchestrator/scripts/schedule_with_note.sh /usr/local/bin/tmux-schedule
    ```
 
 4. **Orchestrator Won't Start**
@@ -336,7 +336,7 @@ Check orchestrator logs:
 
 ```bash
 # Session logs
-ls -la .tmux-orchestrator/registry/logs/
+ls -la .tmux_orchestrator/registry/logs/
 
 # PM schedule logs
 ls -la .pm-schedule/

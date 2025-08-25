@@ -13,7 +13,7 @@ sys.path.append("/workspaces/Tmux-Orchestrator")
 from tmux_orchestrator.mcp_fresh import FreshCLIToMCPServer
 
 
-async def test_tool_execution():
+async def test_tool_execution() -> None:
     """Test actual execution of MCP tools."""
 
     print("🧪 Testing MCP Tool Execution")

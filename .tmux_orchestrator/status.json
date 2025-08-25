@@ -1,36 +1,21 @@
 {
-  "last_updated": "2025-08-24T19:58:18.993560+00:00",
+  "last_updated": "2025-08-25T18:41:50.287269+00:00",
   "daemon_status": {
     "monitor": {
       "running": true,
-      "pid": 29793,
-      "uptime_seconds": 1131,
-      "last_check": "2025-08-24T19:58:18.993030"
+      "pid": 33610,
+      "uptime_seconds": 0,
+      "last_check": "2025-08-25T18:41:50.286239"
     },
     "messaging": {
       "running": false,
       "pid": null
     }
   },
-  "agents": {
-    "pre-commit-test-cleanup:2": {
-      "name": "claude-pm",
-      "type": "Project Manager",
-      "status": "active",
-      "last_activity": "2025-08-24T19:58:18.993006",
-      "pane_id": null,
-      "session": "pre-commit-test-cleanup",
-      "window": 2,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "active",
-        "last_content_check": "2025-08-24T19:58:18.993018"
-      }
-    }
-  },
+  "agents": {},
   "summary": {
-    "total_agents": 1,
-    "active": 1,
+    "total_agents": 0,
+    "active": 0,
     "idle": 0,
     "error": 0,
     "busy": 0,

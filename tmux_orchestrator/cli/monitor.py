@@ -36,7 +36,7 @@ class ConfigPath(BaseModel):
         allowed_dirs = [
             Path.cwd().resolve(),  # Current working directory
             Path.home().resolve() / ".config" / "tmux-orchestrator",  # User config dir
-            Path.home().resolve() / ".tmux-orchestrator",  # User home config
+            Path.home().resolve() / ".tmux_orchestrator",  # User home config
             (Path.cwd() / ".tmux_orchestrator").resolve(),  # Project config
         ]
 

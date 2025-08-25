@@ -214,7 +214,8 @@ class ContextAwareValidator:
         if self.results["failed"] > 0:
             print("\n💡 IMPLEMENTATION GUIDANCE:")
             print("Ensure _should_ignore_crash_indicator() includes these patterns:")
-            print("""
+            print(
+                """
     ignore_contexts = [
         r"test.*failed",
         r"check.*failed",
@@ -229,7 +230,8 @@ class ContextAwareValidator:
         r"⎿.*failed",  # Tool output
         r"│.*failed",  # Tool output lines
     ]
-""")
+"""
+            )
 
 
 def main():

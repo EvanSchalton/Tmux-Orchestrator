@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from tmux_orchestrator.mcp_server import FreshCLIToMCPServer
 
 
-async def test_mcp_generation():
+async def test_mcp_generation() -> None:
     """Test MCP tool generation and report results."""
     print("=== MCP CLI Parity Test ===\n")
 

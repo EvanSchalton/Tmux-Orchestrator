@@ -8,7 +8,7 @@ import asyncio
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from tmux_orchestrator.utils.exceptions import RateLimitExceededError
 
@@ -88,7 +88,7 @@ class RateLimiter:
             bucket = self._buckets[key]
             return (int(bucket.tokens), bucket.time_until_refill())
 
-    def reset(self, key: str | None = None) -> None:
+    def reset(self, key: Optional[str] = None) -> None:
         """Reset rate limit counters.
 
         Args:

@@ -60,7 +60,7 @@ class HighPerformanceMessagingDaemon:
         self.logger = logging.getLogger(__name__)
 
         # Message persistence (optimized)
-        self.storage_dir = Path.home() / ".tmux-orchestrator" / "messages"
+        self.storage_dir = Path.home() / ".tmux_orchestrator" / "messages"
         self.storage_dir.mkdir(parents=True, exist_ok=True)
 
         # Performance tracking

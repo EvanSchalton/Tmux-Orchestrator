@@ -96,8 +96,8 @@ try:
     if 'remoteEnv' not in config:
         config['remoteEnv'] = {}
 
-    config['remoteEnv']['TMUX_ORCHESTRATOR_HOME'] = '$PROJECT_PATH/.tmux-orchestrator'
-    config['remoteEnv']['TMUX_ORCHESTRATOR_REGISTRY'] = '$PROJECT_PATH/.tmux-orchestrator/registry'
+    config['remoteEnv']['TMUX_ORCHESTRATOR_HOME'] = '$PROJECT_PATH/.tmux_orchestrator'
+    config['remoteEnv']['TMUX_ORCHESTRATOR_REGISTRY'] = '$PROJECT_PATH/.tmux_orchestrator/registry'
 
     # Write updated configuration
     with open('$DEVCONTAINER_FILE', 'w') as f:
@@ -118,8 +118,8 @@ EOF
         echo ""
         echo '   "postCreateCommand": "bash scripts/install-tmux-orchestrator.sh",'
         echo '   "remoteEnv": {'
-        echo "     \"TMUX_ORCHESTRATOR_HOME\": \"$PROJECT_PATH/.tmux-orchestrator\","
-        echo "     \"TMUX_ORCHESTRATOR_REGISTRY\": \"$PROJECT_PATH/.tmux-orchestrator/registry\""
+        echo "     \"TMUX_ORCHESTRATOR_HOME\": \"$PROJECT_PATH/.tmux_orchestrator\","
+        echo "     \"TMUX_ORCHESTRATOR_REGISTRY\": \"$PROJECT_PATH/.tmux_orchestrator/registry\""
         echo '   }'
     fi
 fi
@@ -389,7 +389,7 @@ echo -e "  Deploy: ${YELLOW}./scripts/deploy.sh tasks.md${NC}"
 echo -e "  Restart: ${YELLOW}./scripts/restart.sh tasks.md${NC}"
 echo -e "  Monitor: ${YELLOW}tmux-orc agent status${NC}"
 echo -e "  List agents: ${YELLOW}tmux-orc list${NC}"
-echo -e "  Force PM check-in: ${YELLOW}.tmux-orchestrator/commands/force-pm-checkin.sh${NC}"
+echo -e "  Force PM check-in: ${YELLOW}.tmux_orchestrator/commands/force-pm-checkin.sh${NC}"
 echo ""
 echo -e "${GREEN}VS Code Integration:${NC}"
 echo -e "  Use Ctrl+Shift+P → 'Tasks: Run Task' to access orchestrator commands"

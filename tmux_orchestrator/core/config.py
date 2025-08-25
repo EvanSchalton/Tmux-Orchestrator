@@ -36,10 +36,10 @@ class Config:
         if config_path is None:
             # Look for config in standard locations
             search_paths = [
-                Path.cwd() / ".tmux-orchestrator" / "config.yml",
-                Path.cwd() / ".tmux-orchestrator" / "config.yaml",
+                Path.cwd() / ".tmux_orchestrator" / "config.yml",
+                Path.cwd() / ".tmux_orchestrator" / "config.yaml",
                 Path.home() / ".config" / "tmux-orchestrator" / "config.yml",
-                Path.home() / ".tmux-orchestrator" / "config.yml",
+                Path.home() / ".tmux_orchestrator" / "config.yml",
             ]
 
             for path in search_paths:
@@ -110,7 +110,7 @@ class Config:
     def save(self, config_path: Optional[Path] = None) -> None:
         """Save configuration to file."""
         if config_path is None:
-            config_path = Path.cwd() / ".tmux-orchestrator" / "config.yml"
+            config_path = Path.cwd() / ".tmux_orchestrator" / "config.yml"
 
         config_path.parent.mkdir(parents=True, exist_ok=True)
 

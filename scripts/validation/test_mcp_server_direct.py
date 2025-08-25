@@ -10,7 +10,7 @@ import sys
 import time
 
 
-async def test_mcp_server_tools():
+async def test_mcp_server_tools() -> None:
     """Test the MCP server by actually running it and checking tool generation."""
 
     print("🔍 Testing Fresh CLI Reflection MCP Server")

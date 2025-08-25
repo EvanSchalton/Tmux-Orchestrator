@@ -1,6 +1,7 @@
 """Context commands for standardized agent briefings."""
 
 from pathlib import Path
+from typing import Optional
 
 import click
 import pkg_resources  # noqa: E402
@@ -167,7 +168,9 @@ def list(json: bool) -> None:
 @click.option("--extend", help="Additional project-specific context")
 @click.option("--briefing", help="Additional project-specific briefing (alias for --extend)")
 @click.option("--json", is_flag=True, help="Output in JSON format")
-def spawn(role: str, session: str, extend: str | None = None, briefing: str | None = None, json: bool = False) -> None:
+def spawn(
+    role: str, session: str, extend: Optional[str] = None, briefing: Optional[str] = None, json: bool = False
+) -> None:
     """Spawn an agent with standardized context (orc/pm only).
 
     <mcp>Create agent with standard role context (args: [role, session], options: --extend). Creates complete agent with standardized orchestrator/pm context plus optional project-specific extensions. For other roles use spawn.agent with custom briefings.</mcp>
@@ -380,7 +383,7 @@ To check if MCP tools are available, look for the tools icon in Claude Code's in
 @click.option("--role", required=True, help="System role (orchestrator/pm) to export")
 @click.option("--project", help="Project name for customization")
 @click.option("--json", is_flag=True, help="Output in JSON format")
-def export(output_file: str, role: str, project: str | None = None, json: bool = False) -> None:
+def export(output_file: str, role: str, project: Optional[str] = None, json: bool = False) -> None:
     """Export a system role context to a file for customization.
 
     <mcp>Export role context to file for customization (args: [output_file, --role], options: --project). Exports standardized context template to file for project-specific customization. Use to create custom agent briefings based on standard roles.</mcp>

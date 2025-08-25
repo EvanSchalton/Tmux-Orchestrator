@@ -34,7 +34,7 @@ class PluginLoader:
         if plugin_dirs is None:
             plugin_dirs = [
                 Path(__file__).parent / "strategies",  # Built-in strategies
-                Path.home() / ".tmux-orchestrator" / "plugins",  # User plugins
+                Path.home() / ".tmux_orchestrator" / "plugins",  # User plugins
             ]
 
         self.plugin_dirs = []

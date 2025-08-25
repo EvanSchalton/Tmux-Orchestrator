@@ -103,7 +103,8 @@ class TestScenario1TeamDeploymentWorkflow:
 
         # Step 1: Create a test PRD file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("""# Test Project PRD
+            f.write(
+                """# Test Project PRD
 
             ## Overview
             Build a test application for integration testing.
@@ -112,7 +113,8 @@ class TestScenario1TeamDeploymentWorkflow:
             - Frontend interface
             - Backend API
             - Database integration
-            """)
+            """
+            )
             prd_path = f.name
 
         try:

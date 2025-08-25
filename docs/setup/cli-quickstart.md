@@ -153,7 +153,7 @@ with Agent("backend", "developer") as agent:
 
 ## Configuration
 
-Create `.tmux-orchestrator/config.yml`:
+Create `.tmux_orchestrator/config.yml`:
 
 ```yaml
 project:

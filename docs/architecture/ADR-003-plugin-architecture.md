@@ -28,7 +28,7 @@ class MonitoringStrategyInterface(ABC):
 
 ### 2. Plugin Discovery
 - Built-in strategies in `/strategies` directory
-- User plugins in `~/.tmux-orchestrator/plugins`
+- User plugins in `~/.tmux_orchestrator/plugins`
 - Dynamic loading with validation
 
 ### 3. Strategy Selection
@@ -58,7 +58,7 @@ graph TB
 
     subgraph "Plugin Discovery"
         BD[Built-in Directory<br/>/strategies]
-        UD[User Directory<br/>~/.tmux-orchestrator/plugins]
+        UD[User Directory<br/>~/.tmux_orchestrator/plugins]
     end
 
     MS --> PL

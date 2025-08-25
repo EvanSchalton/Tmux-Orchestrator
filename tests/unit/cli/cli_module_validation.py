@@ -17,9 +17,9 @@ from typing import Any, Dict
 class CLIModuleValidator:
     """Validates CLI modules after MCP setup fixes"""
 
-    def __init__(self):
-        self.test_results = {}
-        self.validation_timestamp = time.time()
+    def __init__(self) -> None:
+        self.test_results: Dict[str, Any] = {}
+        self.validation_timestamp: float = time.time()
 
     def validate_core_cli_imports(self) -> Dict[str, Any]:
         """Test core CLI module import integrity"""

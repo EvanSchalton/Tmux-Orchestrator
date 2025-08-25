@@ -4,7 +4,7 @@ import logging
 import re
 import subprocess
 import time
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 
 class TMUXManager:
@@ -395,7 +395,7 @@ class TMUXManager:
         return self.has_session_optimized(session_name)
 
     def create_session_optimized(
-        self, session_name: str, window_name: str | None = None, start_directory: str | None = None
+        self, session_name: str, window_name: Optional[str] = None, start_directory: Optional[str] = None
     ) -> bool:
         """Optimized session creation with immediate cache invalidation."""
         try:
@@ -418,7 +418,9 @@ class TMUXManager:
             self._logger.error(f"Optimized session creation failed: {e}")
             return False
 
-    def create_window_optimized(self, session_name: str, window_name: str, start_directory: str | None = None) -> bool:
+    def create_window_optimized(
+        self, session_name: str, window_name: str, start_directory: Optional[str] = None
+    ) -> bool:
         """Optimized window creation."""
         try:
             cmd = [self.tmux_cmd, "new-window", "-t", session_name, "-n", window_name]
@@ -542,7 +544,7 @@ class TMUXManager:
         return self.list_agents_optimized()
 
     def create_session(
-        self, session_name: str, window_name: str | None = None, start_directory: str | None = None
+        self, session_name: str, window_name: Optional[str] = None, start_directory: Optional[str] = None
     ) -> bool:
         """Standard interface for creating sessions - delegates to optimized version."""
         return self.create_session_optimized(session_name, window_name, start_directory)
@@ -613,7 +615,7 @@ class TMUXManager:
             self._logger.error(f"Error listing windows for session {session}: {e}")
             return []
 
-    def create_window(self, session_name: str, window_name: str, start_directory: str | None = None) -> bool:
+    def create_window(self, session_name: str, window_name: str, start_directory: Optional[str] = None) -> bool:
         """Standard interface for creating windows - delegates to optimized version."""
         return self.create_window_optimized(session_name, window_name, start_directory)
 

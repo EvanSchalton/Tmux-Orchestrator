@@ -24,7 +24,7 @@ All utility scripts have been moved to the `scripts/` directory:
 - Test runner: `run-tests.sh`
 
 ### 3. Directory Structure
-- Removed legacy `.tmux-orchestrator/` (with hyphen)
+- Removed legacy `.tmux_orchestrator/` (with hyphen)
 - Kept active `.tmux_orchestrator/` (with underscore) for task management
 - Consolidated `Examples/` and `examples/` into single `examples/` directory
 - Created proper subdirectories for examples:

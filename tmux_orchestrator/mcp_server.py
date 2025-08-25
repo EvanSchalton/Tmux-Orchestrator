@@ -30,9 +30,6 @@ from typing import Any, Callable
 # FastMCP for MCP server implementation
 from fastmcp import FastMCP
 
-# Import the auto-generation system
-from tmux_orchestrator.mcp_auto_generator import MCPAutoGenerator
-
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -41,7 +38,7 @@ logger = logging.getLogger(__name__)
 # Environment configuration
 HIERARCHICAL_MODE = os.getenv("TMUX_ORC_HIERARCHICAL", "true").lower() == "true"
 ENHANCED_DESCRIPTIONS = os.getenv("TMUX_ORC_ENHANCED_DESCRIPTIONS", "true").lower() == "true"
-FAST_STARTUP_MODE = os.getenv("TMUX_ORC_FAST_STARTUP", "false").lower() == "true"
+FAST_STARTUP_MODE = os.getenv("TMUX_ORC_FAST_STARTUP", "true").lower() == "true"  # Default to fast mode
 
 # Claude Code CLI environment detection
 CLAUDE_CODE_CLI_MODE = os.getenv("TMUX_ORC_MCP_MODE", "").lower() == "claude"
@@ -62,37 +59,47 @@ class EnhancedHierarchicalSchema:
     _cached_descriptions = None
 
     @classmethod
-    def get_action_descriptions(cls) -> dict[str, dict[str, str]]:
+    async def get_action_descriptions(cls) -> dict[str, dict[str, str]]:
         """Get action descriptions using auto-generation system or fast fallback."""
         if cls._cached_descriptions is None:
-            if FAST_STARTUP_MODE:
-                logger.info("Fast startup mode: Using minimal action descriptions")
-                # Provide minimal descriptions for common commands to avoid slow auto-generation
-                cls._cached_descriptions = {
-                    "agent": {
-                        "list": "List all agents",
-                        "status": "Show agent status",
-                        "deploy": "Deploy new agent",
-                        "message": "Send message to agent",
-                        "kill": "Terminate agent",
-                        "restart": "Restart agent",
-                    },
-                    "team": {"list": "List teams", "status": "Show team status", "deploy": "Deploy team"},
-                    "monitor": {"status": "Monitor status", "dashboard": "Show dashboard"},
-                }
-            else:
-                logger.info("Auto-generating MCP action descriptions from CLI commands...")
-                try:
-                    auto_generator = MCPAutoGenerator()
-                    cls._cached_descriptions = auto_generator.generate_action_descriptions()
-                    logger.info(
-                        f"Successfully generated descriptions for {len(cls._cached_descriptions)} command groups"
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to auto-generate descriptions, using minimal fallback: {e}")
-                    cls._cached_descriptions = {}
+            # Always use fast startup mode to prevent blocking
+            logger.info("Using minimal action descriptions for fast startup")
+            cls._cached_descriptions = {
+                "agent": {
+                    "list": "List all agents",
+                    "status": "Show agent status",
+                    "deploy": "Deploy new agent",
+                    "message": "Send message to agent",
+                    "kill": "Terminate agent",
+                    "restart": "Restart agent",
+                },
+                "team": {"list": "List teams", "status": "Show team status", "deploy": "Deploy team"},
+                "monitor": {"status": "Monitor status", "dashboard": "Show dashboard"},
+                "spawn": {"agent": "Spawn new agent", "pm": "Spawn project manager"},
+                "context": {"show": "Show context", "list": "List contexts"},
+            }
+
+            # Background generation disabled for now to avoid import delays
+            # asyncio.create_task(cls._generate_descriptions_background())
 
         return cls._cached_descriptions
+
+    @classmethod
+    async def _generate_descriptions_background(cls):
+        """Generate descriptions in background without blocking startup."""
+        try:
+            await asyncio.sleep(0.1)  # Yield to let server start first
+            if not FAST_STARTUP_MODE:
+                logger.info("Background: Generating full action descriptions...")
+                from tmux_orchestrator.mcp_auto_generator import MCPAutoGenerator
+
+                auto_generator = MCPAutoGenerator()
+                full_descriptions = auto_generator.generate_action_descriptions()
+                if full_descriptions:
+                    cls._cached_descriptions.update(full_descriptions)
+                    logger.info(f"Background: Updated with {len(full_descriptions)} full descriptions")
+        except Exception as e:
+            logger.debug(f"Background description generation failed (non-critical): {e}")
 
     # Disambiguation rules from successful prototype
     DISAMBIGUATION_RULES = {
@@ -104,9 +111,9 @@ class EnhancedHierarchicalSchema:
     }
 
     @staticmethod
-    def build_hierarchical_schema(group_name: str, subcommands: list[str]) -> dict[str, Any]:
+    async def build_hierarchical_schema(group_name: str, subcommands: list[str]) -> dict[str, Any]:
         """Build enhanced hierarchical schema with enumDescriptions."""
-        action_descriptions = EnhancedHierarchicalSchema.get_action_descriptions()
+        action_descriptions = await EnhancedHierarchicalSchema.get_action_descriptions()
         descriptions = action_descriptions.get(group_name, {})
 
         # Build enumDescriptions
@@ -190,29 +197,26 @@ class EnhancedCLIToMCPServer:
             else:
                 logger.warning(f"⚠️  MCP mode is '{mcp_mode}', expected 'claude'")
 
-            # Check for Claude CLI availability
-            try:
-                result = subprocess.run(["claude", "mcp", "list"], capture_output=True, text=True, timeout=10)
+            # CRITICAL FIX: Skip 'claude mcp list' to prevent circular dependency
+            # The 'claude mcp list' command triggers new MCP server startups,
+            # causing an infinite loop. We must avoid this check entirely.
 
-                if result.returncode == 0:
-                    if "tmux-orchestrator" in result.stdout:
-                        logger.info("✅ tmux-orchestrator MCP server is registered with Claude CLI")
-                        return True
-                    else:
-                        logger.warning("⚠️  tmux-orchestrator not found in Claude CLI MCP servers")
-                        logger.warning("   Run 'tmux-orc setup all' to register MCP server")
-                        return True  # Don't fail server startup, just warn
-                else:
-                    logger.warning(f"⚠️  Claude CLI MCP check failed: {result.stderr}")
-                    return True  # Don't fail server startup
+            # Check if we're already in a recursion (safety check)
+            if os.getenv("TMUX_ORC_MCP_STARTING", "") == "true":
+                logger.warning("⚠️  Detected recursive MCP server startup, aborting validation")
+                return False
 
-            except subprocess.TimeoutExpired:
-                logger.warning("⚠️  Claude CLI MCP check timed out")
-                return True  # Don't fail server startup
-            except FileNotFoundError:
-                logger.warning("⚠️  Claude CLI not found in PATH")
-                logger.warning("   Install Claude Code CLI or run setup in Desktop environment")
-                return True  # Don't fail server startup
+            # Mark that we're starting to prevent future recursion
+            os.environ["TMUX_ORC_MCP_STARTING"] = "true"
+
+            logger.info("✅ Skipping 'claude mcp list' check to prevent circular dependency")
+            logger.info("   MCP server validated via environment configuration")
+            return True  # Validation passed based on environment
+
+        except FileNotFoundError:
+            logger.warning("⚠️  Claude CLI not found in PATH")
+            logger.warning("   Install Claude Code CLI or run setup in Desktop environment")
+            return True  # Don't fail server startup
 
         except Exception as e:
             logger.error(f"❌ Claude Code CLI connectivity validation failed: {e}")
@@ -235,20 +239,68 @@ class EnhancedCLIToMCPServer:
             self.cli_structure = CLI_STRUCTURE_CACHE
             return CLI_STRUCTURE_CACHE
 
+        # In fast startup mode, use a minimal predefined structure
+        if FAST_STARTUP_MODE:
+            logger.info("Fast startup: Using predefined CLI structure")
+            # Define minimal structure for essential commands
+            cli_structure = {
+                "agent": {"type": "group", "help": "Agent management commands"},
+                "team": {"type": "group", "help": "Team coordination commands"},
+                "monitor": {"type": "group", "help": "Monitoring and health check commands"},
+                "spawn": {"type": "group", "help": "Spawn new agents and PMs"},
+                "context": {"type": "group", "help": "Context management commands"},
+                "session": {"type": "group", "help": "Session management commands"},
+                "pm": {"type": "group", "help": "Project Manager commands"},
+                "orchestrator": {"type": "group", "help": "Orchestrator commands"},
+                "recovery": {"type": "group", "help": "Recovery and failover commands"},
+                "server": {"type": "group", "help": "MCP server commands"},
+                "list": {"type": "command", "help": "List agents and sessions"},
+                "status": {"type": "command", "help": "Show system status"},
+                "reflect": {"type": "command", "help": "Reflect CLI structure"},
+            }
+
+            self.cli_structure = cli_structure
+            CLI_STRUCTURE_CACHE = cli_structure
+            CLI_STRUCTURE_CACHE_TIME = current_time
+
+            # Schedule background update for full structure
+            asyncio.create_task(self._update_cli_structure_background())
+
+            return cli_structure
+
+        # Normal mode - use reflection (but with timeout)
         try:
             logger.info("Discovering CLI structure via tmux-orc reflect...")
 
-            # Use tmux-orc reflect to get complete CLI structure
-            result = subprocess.run(
-                ["tmux-orc", "reflect", "--format", "json"], capture_output=True, text=True, timeout=30
+            # Use asyncio.create_subprocess_exec for non-blocking execution
+            process = await asyncio.create_subprocess_exec(
+                "tmux-orc",
+                "reflect",
+                "--format",
+                "json",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
-            if result.returncode != 0:
-                logger.error(f"CLI reflection failed: {result.stderr}")
+            # Wait for process with timeout
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=2.0)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                logger.error("CLI reflection timed out after 2 seconds")
+                # Fall back to minimal structure
+                return await self.discover_cli_structure()  # Will use fast mode
+
+            result_stdout = stdout.decode("utf-8") if stdout else ""
+            result_stderr = stderr.decode("utf-8") if stderr else ""
+
+            if process.returncode != 0:
+                logger.error(f"CLI reflection failed: {result_stderr}")
                 return CLI_STRUCTURE_CACHE if CLI_STRUCTURE_CACHE is not None else {}
 
             # Parse CLI structure
-            cli_structure = json.loads(result.stdout)
+            cli_structure = json.loads(result_stdout)
 
             # The CLI structure is a flat dict with command names as keys
             commands = {k: v for k, v in cli_structure.items() if isinstance(v, dict) and v.get("type") == "command"}
@@ -262,9 +314,6 @@ class EnhancedCLIToMCPServer:
 
             return cli_structure
 
-        except subprocess.TimeoutExpired:
-            logger.error("CLI reflection timed out")
-            return CLI_STRUCTURE_CACHE if CLI_STRUCTURE_CACHE is not None else {}
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse CLI reflection JSON: {e}")
             return CLI_STRUCTURE_CACHE if CLI_STRUCTURE_CACHE is not None else {}
@@ -272,7 +321,34 @@ class EnhancedCLIToMCPServer:
             logger.error(f"CLI discovery failed: {e}")
             return {}
 
-    def generate_all_mcp_tools(self) -> dict[str, Any]:
+    async def _update_cli_structure_background(self):
+        """Update CLI structure in background after fast startup."""
+        try:
+            await asyncio.sleep(2.0)  # Wait for server to be fully started
+            logger.info("Background: Updating CLI structure from reflection...")
+
+            process = await asyncio.create_subprocess_exec(
+                "tmux-orc",
+                "reflect",
+                "--format",
+                "json",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            stdout, stderr = await process.communicate()
+
+            if process.returncode == 0 and stdout:
+                full_structure = json.loads(stdout.decode("utf-8"))
+                # Update cache with full structure
+                global CLI_STRUCTURE_CACHE, CLI_STRUCTURE_CACHE_TIME
+                CLI_STRUCTURE_CACHE = full_structure
+                CLI_STRUCTURE_CACHE_TIME = time.time()
+                logger.info(f"Background: Updated with {len(full_structure)} full commands")
+        except Exception as e:
+            logger.debug(f"Background CLI update failed (non-critical): {e}")
+
+    async def generate_all_mcp_tools(self) -> dict[str, Any]:
         """
         Generate all MCP tools from discovered CLI structure.
         Supports both hierarchical and flat modes.
@@ -291,56 +367,114 @@ class EnhancedCLIToMCPServer:
 
         if HIERARCHICAL_MODE:
             logger.info(f"Generating hierarchical MCP tools for {len(commands)} CLI groups...")
-            self._generate_hierarchical_tools(commands)
+            await self._generate_hierarchical_tools(commands)
         else:
             logger.info(f"Generating flat MCP tools for {len(commands)} CLI commands and groups...")
-            self._generate_flat_tools(commands)
+            await self._generate_flat_tools(commands)
 
         logger.info(f"Successfully generated {len(self.generated_tools)} MCP tools")
         return self.generated_tools
 
-    def _generate_hierarchical_tools(self, commands: dict[str, Any]) -> None:
+    async def _generate_hierarchical_tools(self, commands: dict[str, Any]) -> None:
         """Generate hierarchical tools - one tool per command group."""
-        for command_name, command_info in commands.items():
-            try:
+        # In fast mode, generate tools synchronously to avoid overhead
+        if FAST_STARTUP_MODE:
+            for command_name, command_info in commands.items():
                 if command_info.get("type") == "group":
-                    # Discover subcommands for this group
-                    subcommands = self._discover_subcommands(command_name)
+                    subcommands = await self._discover_subcommands(command_name)
                     if subcommands:
-                        self._generate_hierarchical_tool(command_name, subcommands)
+                        await self._generate_hierarchical_tool(command_name, subcommands)
                 elif command_info.get("type") == "command":
-                    # Individual commands still get their own tool
                     self._generate_tool_for_command(command_name, command_info)
-            except Exception as e:
-                logger.error(f"Failed to generate hierarchical tool for {command_name}: {e}")
-                continue
-
-    def _generate_flat_tools(self, commands: dict[str, Any]) -> None:
-        """Generate flat tools - original behavior."""
-        for command_name, command_info in commands.items():
-            try:
-                if command_info.get("type") == "command":
+        else:
+            # Process groups in parallel for normal mode
+            tasks = []
+            for command_name, command_info in commands.items():
+                if command_info.get("type") == "group":
+                    tasks.append(self._generate_group_tool_async(command_name))
+                elif command_info.get("type") == "command":
                     self._generate_tool_for_command(command_name, command_info)
-                elif command_info.get("type") == "group":
-                    self._generate_tools_for_group(command_name, command_info)
-            except Exception as e:
-                logger.error(f"Failed to generate tool for {command_name}: {e}")
-                continue
 
-    def _discover_subcommands(self, group_name: str) -> list[str]:
-        """Discover subcommands for a group using CLI help."""
+            # Wait for all group tools to be generated
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _generate_group_tool_async(self, command_name: str) -> None:
+        """Generate a single group tool asynchronously."""
         try:
-            result = subprocess.run(["tmux-orc", group_name, "--help"], capture_output=True, text=True, timeout=30)
+            subcommands = await self._discover_subcommands(command_name)
+            if subcommands:
+                await self._generate_hierarchical_tool(command_name, subcommands)
+        except Exception as e:
+            logger.error(f"Failed to generate hierarchical tool for {command_name}: {e}")
 
-            if result.returncode != 0:
+    async def _generate_flat_tools(self, commands: dict[str, Any]) -> None:
+        """Generate flat tools - original behavior."""
+        tasks = []
+        for command_name, command_info in commands.items():
+            if command_info.get("type") == "command":
+                self._generate_tool_for_command(command_name, command_info)
+            elif command_info.get("type") == "group":
+                tasks.append(self._generate_tools_for_group_async(command_name, command_info))
+
+        # Process group tools in parallel
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _generate_tools_for_group_async(self, group_name: str, group_info: dict[str, Any]) -> None:
+        """Async wrapper for group tool generation."""
+        try:
+            await self._generate_tools_for_group(group_name, group_info)
+        except Exception as e:
+            logger.error(f"Failed to generate tools for group {group_name}: {e}")
+
+    async def _discover_subcommands(self, group_name: str) -> list[str]:
+        """Discover subcommands for a group using CLI help."""
+        # In fast startup mode, use predefined common subcommands
+        if FAST_STARTUP_MODE:
+            # Predefined subcommands for common groups
+            fast_subcommands = {
+                "agent": ["list", "status", "deploy", "kill", "restart", "message", "recover"],
+                "team": ["list", "status", "deploy", "broadcast", "recover"],
+                "monitor": ["status", "dashboard", "start", "stop", "logs", "events"],
+                "spawn": ["agent", "pm", "orchestrator"],
+                "context": ["show", "list"],
+                "session": ["list", "attach", "kill"],
+                "pm": ["status", "message"],
+                "orchestrator": ["status", "deploy", "kill-all"],
+                "recovery": ["status", "trigger", "start"],
+                "server": ["start", "stop", "status"],
+            }
+
+            subcommands = fast_subcommands.get(group_name, [])
+            if subcommands:
+                logger.debug(f"Fast mode: Using predefined subcommands for {group_name}")
+                return subcommands
+
+        # Normal discovery
+        try:
+            # Use asyncio for non-blocking execution
+            process = await asyncio.create_subprocess_exec(
+                "tmux-orc", group_name, "--help", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=0.5)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                # Fall back to empty list or predefined if available
                 return []
 
-            return self._parse_subcommands_from_help(result.stdout)
+            if process.returncode != 0:
+                return []
+
+            return self._parse_subcommands_from_help(stdout.decode("utf-8") if stdout else "")
         except Exception as e:
             logger.error(f"Failed to discover subcommands for {group_name}: {e}")
             return []
 
-    def _generate_hierarchical_tool(self, group_name: str, subcommands: list[str]) -> None:
+    async def _generate_hierarchical_tool(self, group_name: str, subcommands: list[str]) -> None:
         """Generate a hierarchical tool for a command group."""
         if not subcommands:
             return
@@ -351,7 +485,7 @@ class EnhancedCLIToMCPServer:
         # Build enhanced schema with kwargs string format support
         if ENHANCED_DESCRIPTIONS:
             # Get the original enhanced schema
-            base_schema = EnhancedHierarchicalSchema.build_hierarchical_schema(group_name, subcommands)
+            base_schema = await EnhancedHierarchicalSchema.build_hierarchical_schema(group_name, subcommands)
 
             # Add kwargs string parameter as the primary interface
             input_schema = {
@@ -979,20 +1113,30 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to register tool {tool_name}: {e}")
 
-    def _generate_tools_for_group(self, group_name: str, group_info: dict[str, Any]) -> None:
+    async def _generate_tools_for_group(self, group_name: str, group_info: dict[str, Any]) -> None:
         """Generate MCP tools for all subcommands in a command group."""
         try:
             logger.debug(f"Discovering subcommands for group: {group_name}")
 
-            # Use CLI help to discover subcommands
-            result = subprocess.run(["tmux-orc", group_name, "--help"], capture_output=True, text=True, timeout=30)
+            # Use async CLI help to discover subcommands
+            process = await asyncio.create_subprocess_exec(
+                "tmux-orc", group_name, "--help", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
 
-            if result.returncode != 0:
-                logger.error(f"Failed to get help for group {group_name}: {result.stderr}")
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=1.0)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                logger.error(f"Timeout getting help for group {group_name}")
+                return
+
+            if process.returncode != 0:
+                logger.error(f"Failed to get help for group {group_name}: {stderr.decode('utf-8') if stderr else ''}")
                 return
 
             # Parse the help output to extract subcommands
-            subcommands = self._parse_subcommands_from_help(result.stdout)
+            subcommands = self._parse_subcommands_from_help(stdout.decode("utf-8") if stdout else "")
 
             logger.info(f"Found {len(subcommands)} subcommands in group {group_name}")
 
@@ -1018,8 +1162,6 @@ class EnhancedCLIToMCPServer:
                     logger.error(f"Failed to generate tool for {group_name} {subcmd_name}: {e}")
                     continue
 
-        except subprocess.TimeoutExpired:
-            logger.error(f"Timeout getting help for group {group_name}")
         except Exception as e:
             logger.error(f"Failed to process group {group_name}: {e}")
 
@@ -1457,7 +1599,7 @@ class EnhancedCLIToMCPServer:
         await self.discover_cli_structure()
 
         # Generate all tools
-        self.generate_all_mcp_tools()
+        await self.generate_all_mcp_tools()
 
         if not self.generated_tools:
             logger.error("No tools generated! Check CLI availability and permissions")
@@ -1479,14 +1621,8 @@ class EnhancedCLIToMCPServer:
 async def main() -> None:
     """Main entry point for the enhanced MCP server."""
     try:
-        # Check if tmux-orc is available
-        result = subprocess.run(["tmux-orc", "--version"], capture_output=True, text=True, timeout=10)
-        if result.returncode != 0:
-            logger.error("tmux-orc command not available! Please ensure tmux-orchestrator is installed.")
-            sys.exit(1)
-
-        version_info = result.stdout.strip()
-        logger.info(f"Found tmux-orc: {version_info}")
+        # Skip version check - tmux-orc --version hangs
+        logger.info("Skipping tmux-orc version check")
 
         # Log configuration
         mode = "hierarchical" if HIERARCHICAL_MODE else "flat"

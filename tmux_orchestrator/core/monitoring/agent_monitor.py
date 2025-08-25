@@ -9,7 +9,7 @@ import hashlib
 import logging
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -25,7 +25,7 @@ class AgentMonitor(AgentMonitorInterface):
         """Initialize the agent monitor."""
         super().__init__(tmux, config, logger)
         self._agent_cache: dict[str, AgentInfo] = {}
-        self._last_discovery_time: datetime | None = None
+        self._last_discovery_time: Optional[datetime] = None
         self._crash_detector = CrashDetector(tmux, logger)
 
     def initialize(self) -> bool:
@@ -283,7 +283,7 @@ class AgentMonitor(AgentMonitorInterface):
                 error_type="analysis_failed",
             )
 
-    def get_cached_agent_info(self, target: str) -> AgentInfo | None:
+    def get_cached_agent_info(self, target: str) -> Optional[AgentInfo]:
         """Get cached agent info if available."""
         return self._agent_cache.get(target)
 

@@ -129,13 +129,14 @@ class CLICommandIntrospector:
                 logger.error(f"CLI reflection failed: {result.stderr}")
                 return {}
 
-            return json.loads(result.stdout)
+            parsed_result: Dict[str, Any] = json.loads(result.stdout)
+            return parsed_result
 
         except Exception as e:
             logger.error(f"Failed to discover CLI commands: {e}")
             return {}
 
-    def extract_command_docstrings(self, command_name: str) -> Dict[str, Optional[str]]:
+    def extract_command_docstrings(self, command_name: str) -> Dict[str, str | None]:
         """Extract docstrings for command and subcommands.
 
         Args:
@@ -150,7 +151,7 @@ class CLICommandIntrospector:
             module_name = f"{self.cli_package}.{actual_module_name}"
             module = importlib.import_module(module_name)
 
-            docstrings = {}
+            docstrings: Dict[str, str | None] = {}
 
             # Find Click command functions - Check both __click_params__ and callable with decorators
             for name, obj in inspect.getmembers(module):
@@ -201,14 +202,20 @@ class CLICommandIntrospector:
             for subcmd in subcommands:
                 # Look for MCP description in docstring
                 docstring = docstrings.get(subcmd)
-                mcp_desc = self.parser.extract_mcp_description(docstring)
+                if docstring is not None:
+                    mcp_desc = self.parser.extract_mcp_description(docstring)
+                else:
+                    mcp_desc = None
 
                 if mcp_desc:
                     group_descriptions[subcmd] = mcp_desc
                     logger.debug(f"Found MCP tag for {command_name}.{subcmd}")
                 else:
                     # Fallback to CLI help
-                    fallback_desc = self.parser.fallback_to_cli_help(docstring)
+                    if docstring is not None:
+                        fallback_desc = self.parser.fallback_to_cli_help(docstring)
+                    else:
+                        fallback_desc = None
                     if fallback_desc:
                         group_descriptions[subcmd] = fallback_desc
                         logger.debug(f"Using fallback description for {command_name}.{subcmd}")
@@ -302,7 +309,8 @@ class MCPAutoGenerator:
 
         logger.info(f"Generated PURE CLI-sourced descriptions for {len(final_descriptions)} command groups")
 
-        return final_descriptions
+        typed_descriptions: Dict[str, Dict[str, str]] = final_descriptions
+        return typed_descriptions
 
 
 def main():

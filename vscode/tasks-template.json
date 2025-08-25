@@ -5,7 +5,9 @@
       "label": "🚀 Deploy Team",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/deploy.sh",
-      "args": ["${input:taskFile}"],
+      "args": [
+        "${input:taskFile}"
+      ],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -24,7 +26,9 @@
       "label": "🔄 Restart Team",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/restart.sh",
-      "args": ["${input:taskFile}"],
+      "args": [
+        "${input:taskFile}"
+      ],
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -36,7 +40,9 @@
       "label": "📊 List All Agents",
       "type": "shell",
       "command": "tmux-orc",
-      "args": ["list"],
+      "args": [
+        "list"
+      ],
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -49,7 +55,10 @@
       "label": "🎯 Agent Status Dashboard",
       "type": "shell",
       "command": "tmux-orc",
-      "args": ["agent", "status"],
+      "args": [
+        "agent",
+        "status"
+      ],
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -61,7 +70,7 @@
     {
       "label": "📋 PM Check-in (Forced)",
       "type": "shell",
-      "command": "${workspaceFolder}/.tmux-orchestrator/commands/force-pm-checkin.sh",
+      "command": "${workspaceFolder}/.tmux_orchestrator/commands/force-pm-checkin.sh",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -74,7 +83,9 @@
       "label": "📈 PM Dashboard",
       "type": "shell",
       "command": "${workspaceFolder}/references/Tmux-Orchestrator/pm-schedule-tracker.sh",
-      "args": ["dashboard"],
+      "args": [
+        "dashboard"
+      ],
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -86,7 +97,7 @@
     {
       "label": "🔍 Monitor Team",
       "type": "shell",
-      "command": "${workspaceFolder}/.tmux-orchestrator/monitor-${workspaceFolderBasename}-team.sh",
+      "command": "${workspaceFolder}/.tmux_orchestrator/monitor-${workspaceFolderBasename}-team.sh",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -99,7 +110,10 @@
       "label": "💬 Send Message to Agent",
       "type": "shell",
       "command": "tmux-message",
-      "args": ["${input:agentTarget}", "${input:message}"],
+      "args": [
+        "${input:agentTarget}",
+        "${input:message}"
+      ],
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -110,7 +124,7 @@
     {
       "label": "🎭 Open All Active Agents (Dynamic)",
       "type": "shell",
-      "command": "${workspaceFolder}/.tmux-orchestrator/commands/open-all-agents.sh",
+      "command": "${workspaceFolder}/.tmux_orchestrator/commands/open-all-agents.sh",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -122,7 +136,7 @@
     {
       "label": "🔄 Update VS Code Tasks",
       "type": "shell",
-      "command": "${workspaceFolder}/.tmux-orchestrator/commands/update-vscode-tasks.sh",
+      "command": "${workspaceFolder}/.tmux_orchestrator/commands/update-vscode-tasks.sh",
       "group": "build",
       "presentation": {
         "reveal": "always",

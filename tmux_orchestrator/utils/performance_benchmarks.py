@@ -5,7 +5,7 @@ import statistics
 import subprocess
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 class PerformanceBenchmarker:
@@ -14,9 +14,9 @@ class PerformanceBenchmarker:
     def __init__(self, iterations: int = 3):
         """Initialize benchmarker with specified iterations."""
         self.iterations = iterations
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
-    def benchmark_command(self, command_args: list[str], name: str | None = None) -> dict[str, Any]:
+    def benchmark_command(self, command_args: list[str], name: Optional[str] = None) -> dict[str, Any]:
         """Benchmark a CLI command execution."""
         if not name:
             name = " ".join(command_args[:2])
@@ -167,7 +167,11 @@ class PerformanceBenchmarker:
                     status = "❌ MISS"
 
                 # Calculate improvement
-                improvement = ((baseline - actual) / baseline * 100) if baseline > 0 else 0
+                improvement = (
+                    ((baseline - actual) / baseline * 100)
+                    if baseline is not None and baseline > 0 and actual != float("inf")
+                    else 0
+                )
                 improvement_str = f"{improvement:+.1f}%" if improvement != 0 else "NEW"
 
                 report.append(f"| {name} | {target}ms | {actual:.1f}ms | {status} | {improvement_str} |")

@@ -73,7 +73,7 @@ class ErrorHandler:
 
     def __init__(self, log_dir: Path | None = None) -> None:
         """Initialize error handler."""
-        self.log_dir = log_dir or Path.home() / ".tmux-orchestrator" / "errors"
+        self.log_dir = log_dir or Path.home() / ".tmux_orchestrator" / "errors"
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.error_history: list[ErrorRecord] = []
         self.recovery_procedures: dict[ErrorCategory, Callable] = {}
