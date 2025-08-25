@@ -798,7 +798,7 @@ def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filt
 
     # Initialize result dictionary for JSON output
     result: dict[str, Any] = {}
-    
+
     if not sessions:
         if json:
             import json as json_module
@@ -846,7 +846,7 @@ def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filt
 
         if target_window:
             if tmux.send_message(target_window, f"🎭 ORCHESTRATOR BROADCAST: {message}"):
-                if json:
+                if json and "session_results" in result:
                     result["session_results"].append(
                         {"session": session_name, "success": True, "target_window": target_window}
                     )
@@ -854,7 +854,7 @@ def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filt
                     console.print(f"  [green]✓ {session_name}[/green]")
                 success_count += 1
             else:
-                if json:
+                if json and "session_results" in result:
                     result["session_results"].append(
                         {
                             "session": session_name,
@@ -866,7 +866,7 @@ def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filt
                 else:
                     console.print(f"  [red]✗ {session_name}[/red]")
         else:
-            if json:
+            if json and "session_results" in result:
                 result["session_results"].append(
                     {"session": session_name, "success": False, "error": "No suitable window found"}
                 )

@@ -98,7 +98,7 @@ class EnhancedHierarchicalSchema:
         return cls._cached_descriptions
 
     @classmethod
-    async def _generate_descriptions_background(cls):
+    async def _generate_descriptions_background(cls) -> None:
         """Generate descriptions in background without blocking startup."""
         try:
             await asyncio.sleep(0.1)  # Yield to let server start first
@@ -108,7 +108,7 @@ class EnhancedHierarchicalSchema:
 
                 auto_generator = MCPAutoGenerator()
                 full_descriptions = auto_generator.generate_action_descriptions()
-                if full_descriptions:
+                if full_descriptions and cls._cached_descriptions is not None:
                     cls._cached_descriptions.update(full_descriptions)
                     logger.info(f"Background: Updated with {len(full_descriptions)} full descriptions")
         except Exception as e:
@@ -178,9 +178,9 @@ class EnhancedCLIToMCPServer:
     def __init__(self, server_name: str = "tmux-orchestrator-enhanced"):
         """Initialize the enhanced MCP server."""
         self.mcp = FastMCP(server_name)
-        self.generated_tools = {}
-        self.cli_structure = None
-        self.hierarchical_groups = {}
+        self.generated_tools: dict[str, Any] = {}
+        self.cli_structure: dict[str, dict[str, str]] | None = None
+        self.hierarchical_groups: dict[str, Any] = {}
 
         mode = "hierarchical" if HIERARCHICAL_MODE else "flat"
         environment = "Claude Code CLI" if CLAUDE_CODE_CLI_DETECTED else "Standard"
@@ -274,12 +274,12 @@ class EnhancedCLIToMCPServer:
 
             self.cli_structure = cli_structure
             CLI_STRUCTURE_CACHE = cli_structure
-            CLI_STRUCTURE_CACHE_TIME = current_time
+            CLI_STRUCTURE_CACHE_TIME = int(current_time)
 
             # Schedule background update for full structure
             asyncio.create_task(self._update_cli_structure_background())
 
-            return cli_structure
+            return cli_structure  # type: ignore[no-any-return]
 
         # Normal mode - use reflection (but with timeout)
         try:
@@ -323,7 +323,7 @@ class EnhancedCLIToMCPServer:
             # Store for later use and cache it
             self.cli_structure = cli_structure
             CLI_STRUCTURE_CACHE = cli_structure
-            CLI_STRUCTURE_CACHE_TIME = current_time
+            CLI_STRUCTURE_CACHE_TIME = int(current_time)
 
             return cli_structure
 
@@ -334,7 +334,7 @@ class EnhancedCLIToMCPServer:
             logger.error(f"CLI discovery failed: {e}")
             return {}
 
-    async def _update_cli_structure_background(self):
+    async def _update_cli_structure_background(self) -> None:
         """Update CLI structure in background after fast startup."""
         try:
             await asyncio.sleep(2.0)  # Wait for server to be fully started
@@ -356,7 +356,7 @@ class EnhancedCLIToMCPServer:
                 # Update cache with full structure
                 global CLI_STRUCTURE_CACHE, CLI_STRUCTURE_CACHE_TIME
                 CLI_STRUCTURE_CACHE = full_structure
-                CLI_STRUCTURE_CACHE_TIME = time.time()
+                CLI_STRUCTURE_CACHE_TIME = int(time.time())
                 logger.info(f"Background: Updated with {len(full_structure)} full commands")
         except Exception as e:
             logger.debug(f"Background CLI update failed (non-critical): {e}")
@@ -600,10 +600,10 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to register hierarchical tool {group_name}: {e}")
 
-    def _create_hierarchical_tool_function(self, group_name: str, subcommands: list[str]) -> Callable:
+    def _create_hierarchical_tool_function(self, group_name: str, subcommands: list[str]) -> Callable[..., Any]:
         """Create hierarchical tool function with enhanced validation."""
 
-        async def hierarchical_tool(**kwargs) -> dict[str, Any]:
+        async def hierarchical_tool(**kwargs: Any) -> dict[str, Any]:
             """Enhanced hierarchical tool function."""
             # Check if kwargs is provided as a string (new format support)
             if "kwargs" in kwargs and isinstance(kwargs["kwargs"], str):
@@ -712,7 +712,7 @@ class EnhancedCLIToMCPServer:
                                 i += 2
                             else:
                                 # Boolean flag
-                                options[option_name] = True
+                                options[option_name] = "true"
                                 i += 1
                         elif arg.startswith("-") and not arg.startswith("--"):
                             # Single-dash flags (like -v, -h) - treat as boolean
@@ -985,7 +985,7 @@ class EnhancedCLIToMCPServer:
                             i += 2  # Skip both option and value
                         else:
                             # Option is a flag
-                            options[option_name] = True
+                            options[option_name] = "true"
                             i += 1
                     else:
                         # This is a positional argument
@@ -996,9 +996,12 @@ class EnhancedCLIToMCPServer:
                 parsed["args"] = positional_args
                 if options:
                     # Merge options into existing options if any
-                    existing_options = parsed.get("options", {})
-                    existing_options.update(options)
-                    parsed["options"] = existing_options
+                    existing_options: dict[str, Any] = parsed.get("options", {})
+                    if isinstance(existing_options, dict):
+                        existing_options.update(options)
+                        parsed["options"] = existing_options
+                    else:
+                        parsed["options"] = options
 
                 # Remove the args=[...] from the string for further processing
                 kwargs_str = kwargs_str[: args_match.start()] + kwargs_str[args_match.end() :]
@@ -1252,7 +1255,7 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             logger.error(f"Failed to register subcommand tool {tool_name}: {e}")
 
-    def _create_subcommand_tool_function(self, full_command: str, command_info: dict[str, Any]):
+    def _create_subcommand_tool_function(self, full_command: str, command_info: dict[str, Any]) -> Callable[..., Any]:
         """Create the actual function that executes a subcommand."""
 
         async def tool_function(**kwargs) -> dict[str, Any]:
@@ -1344,7 +1347,7 @@ class EnhancedCLIToMCPServer:
         except Exception as e:
             return {"return_code": -1, "error": str(e), "execution_time": time.time() - start_time}
 
-    def _create_tool_function(self, command_name: str, command_info: dict[str, Any]):
+    def _create_tool_function(self, command_name: str, command_info: dict[str, Any]) -> Callable[..., Any]:
         """Create the actual function that executes the CLI command."""
 
         async def tool_function(**kwargs) -> dict[str, Any]:
@@ -1388,7 +1391,7 @@ class EnhancedCLIToMCPServer:
 
     def _convert_kwargs_to_cli_args(self, kwargs: dict[str, Any]) -> list[str]:
         """Convert MCP keyword arguments to CLI arguments."""
-        cli_args = []
+        cli_args: list[str] = []
 
         # Handle kwargs string format (for individual command tools)
         if "kwargs" in kwargs and isinstance(kwargs["kwargs"], str):
@@ -1598,7 +1601,7 @@ class EnhancedCLIToMCPServer:
 
         return command_name in daemon_commands
 
-    async def run_server(self):
+    async def run_server(self) -> None:
         """Run the MCP server with auto-generated tools."""
         logger.info("Starting fresh CLI reflection MCP server...")
 
@@ -1637,7 +1640,7 @@ class EnhancedCLIToMCPServer:
             # Fall back to FastMCP for non-Claude environments
             await self.mcp.run_stdio_async()
 
-    async def run_stdio_with_proper_framing(self):
+    async def run_stdio_with_proper_framing(self) -> None:
         """
         Run MCP server with proper JSON-RPC framing and unbuffered stdio.
         This fixes the buffering issues that prevent Claude Code connection.
@@ -1655,7 +1658,7 @@ class EnhancedCLIToMCPServer:
             if hasattr(self.mcp, "_write_message"):
                 original_write = self.mcp._write_message
 
-                async def patched_write(message):
+                async def patched_write(message: Any) -> Any:
                     """Patched write that ensures immediate flush."""
                     result = await original_write(message)
                     # Force immediate flush after write

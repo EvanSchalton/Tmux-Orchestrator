@@ -1,11 +1,11 @@
 {
-  "last_updated": "2025-08-25T21:04:04.613044+00:00",
+  "last_updated": "2025-08-25T21:09:37.811686+00:00",
   "daemon_status": {
     "monitor": {
       "running": true,
       "pid": 5072,
-      "uptime_seconds": 2040,
-      "last_check": "2025-08-25T21:04:04.612692"
+      "uptime_seconds": 2373,
+      "last_check": "2025-08-25T21:09:37.810722"
     },
     "messaging": {
       "running": false,
@@ -16,64 +16,64 @@
     "precommit-fix:2": {
       "name": "claude-pm",
       "type": "Project Manager",
-      "status": "active",
-      "last_activity": "2025-08-25T21:04:04.589946",
+      "status": "idle",
+      "last_activity": "2025-08-25T21:09:37.758291",
       "pane_id": null,
       "session": "precommit-fix",
       "window": 2,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-25T21:04:04.589956"
+        "last_content_check": "2025-08-25T21:09:37.758312"
       }
     },
     "precommit-fix:3": {
       "name": "claude-developer",
       "type": "Developer",
-      "status": "idle",
-      "last_activity": "2025-08-25T21:04:04.596977",
+      "status": "active",
+      "last_activity": "2025-08-25T21:09:37.779692",
       "pane_id": null,
       "session": "precommit-fix",
       "window": 3,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-25T21:04:04.596986"
+        "last_content_check": "2025-08-25T21:09:37.779707"
       }
     },
     "precommit-fix:4": {
       "name": "claude-qa",
       "type": "QA Engineer",
-      "status": "idle",
-      "last_activity": "2025-08-25T21:04:04.604539",
+      "status": "active",
+      "last_activity": "2025-08-25T21:09:37.795869",
       "pane_id": null,
       "session": "precommit-fix",
       "window": 4,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-25T21:04:04.604549"
+        "last_content_check": "2025-08-25T21:09:37.795883"
       }
     },
     "precommit-fix:5": {
       "name": "claude-devops",
       "type": "DevOps",
       "status": "active",
-      "last_activity": "2025-08-25T21:04:04.612672",
+      "last_activity": "2025-08-25T21:09:37.810678",
       "pane_id": null,
       "session": "precommit-fix",
       "window": 5,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-25T21:04:04.612682"
+        "last_content_check": "2025-08-25T21:09:37.810700"
       }
     }
   },
   "summary": {
     "total_agents": 4,
-    "active": 2,
-    "idle": 2,
+    "active": 3,
+    "idle": 1,
     "error": 0,
     "busy": 0,
     "unknown": 0
