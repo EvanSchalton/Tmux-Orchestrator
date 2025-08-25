@@ -9,7 +9,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 
 from tmux_orchestrator.core.recovery.detect_failure import detect_failure
 from tmux_orchestrator.core.recovery.recovery_coordinator import (
@@ -35,7 +35,7 @@ class RecoveryTestSuite:
 
     async def run_comprehensive_test(
         self,
-        target_agents: list[str | None] = None,
+        target_agents: Optional[list[str | None]] = None,
         include_stress_test: bool = False,
     ) -> dict[str, Any]:
         """
@@ -515,7 +515,7 @@ class RecoveryTestSuite:
 
 
 async def run_recovery_system_test(
-    target_agents: list[str | None] = None,
+    target_agents: Optional[list[str | None]] = None,
     include_stress_test: bool = False,
     verbose: bool = False,
 ) -> dict[str, Any]:

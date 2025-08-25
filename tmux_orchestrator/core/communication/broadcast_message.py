@@ -1,5 +1,7 @@
 """Business logic for broadcasting messages to multiple agents."""
 
+from typing import Optional
+
 from tmux_orchestrator.core.communication.send_message import send_message
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -8,8 +10,8 @@ def broadcast_message(
     tmux: TMUXManager,
     session: str,
     message: str,
-    agent_types: list[str | None] = None,
-    exclude_windows: list[str | None] = None,
+    agent_types: Optional[list[str | None]] = None,
+    exclude_windows: Optional[list[str | None]] = None,
 ) -> tuple[bool, str]:
     """Broadcast a message to all or selected agents in a session.
 

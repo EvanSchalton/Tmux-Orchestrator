@@ -10,7 +10,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from .metrics_collector import MetricsCollector
 
@@ -189,7 +189,7 @@ class CacheLayer:
         value: Any,
         ttl: float | None = None,
         stale_time: float | None = None,
-        tags: list[str | None] = None,
+        tags: Optional[list[str | None]] = None,
     ) -> None:
         """Set a value in cache.
 

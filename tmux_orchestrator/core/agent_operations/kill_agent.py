@@ -177,7 +177,7 @@ def _save_session_state(tmux: TMUXManager, session: str, windows: list[dict[str,
     Returns:
         Session state dictionary
     """
-    state = {"session": session, "timestamp": datetime.utcnow().isoformat() + "Z", "windows": []}
+    state: dict[str, Any] = {"session": session, "timestamp": datetime.utcnow().isoformat() + "Z", "windows": []}
 
     for window in windows:
         window_name = window.get("name", "").lower()

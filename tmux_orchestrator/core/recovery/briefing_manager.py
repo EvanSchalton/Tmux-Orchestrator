@@ -7,7 +7,7 @@ with comprehensive type annotations and error handling.
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -16,7 +16,7 @@ def restore_agent_briefing(
     tmux: TMUXManager,
     target: str,
     agent_role: str,
-    project_context: dict[str, Any | None] = None,
+    project_context: Optional[dict[str, Any | None]] = None,
     custom_briefing: str | None = None,
     logger: logging.Logger | None = None,
 ) -> tuple[bool, str, dict[str, Any]]:

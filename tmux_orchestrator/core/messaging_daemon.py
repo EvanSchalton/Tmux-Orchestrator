@@ -14,7 +14,7 @@ from collections import defaultdict, deque
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -27,9 +27,9 @@ class Message:
     target: str
     content: str
     priority: str = "normal"
-    tags: list[str] = None
+    tags: Optional[list[str]] = None
     sender: str = "daemon"
-    timestamp: str = None
+    timestamp: Optional[str] = None
 
     def __post_init__(self):
         if self.tags is None:
@@ -328,7 +328,7 @@ class DaemonClient:
             return {"status": "error", "message": f"Daemon communication failed: {e}"}
 
     async def publish(
-        self, target: str, message: str, priority: str = "normal", tags: list[str] = None
+        self, target: str, message: str, priority: str = "normal", tags: Optional[list[str]] = None
     ) -> dict[str, Any]:
         """Publish message via daemon (target: sub-100ms)."""
         command = {"command": "publish", "target": target, "message": message, "priority": priority, "tags": tags or []}

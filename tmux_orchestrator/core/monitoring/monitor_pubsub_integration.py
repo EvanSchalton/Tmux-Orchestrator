@@ -9,6 +9,7 @@ import json
 import logging
 import subprocess
 from datetime import datetime
+from typing import Optional
 
 from tmux_orchestrator.core.communication.pm_pubsub_integration import MessageCategory, MessagePriority
 
@@ -227,7 +228,7 @@ class MonitorPubsubIntegration:
         )
 
     def publish_rate_limit(
-        self, session_name: str, reset_time: datetime | None = None, affected_agents: list[str | None] = None
+        self, session_name: str, reset_time: datetime | None = None, affected_agents: Optional[list[str | None]] = None
     ) -> bool:
         """Publish rate limit notification with critical priority.
 
@@ -263,7 +264,7 @@ class MonitorPubsubIntegration:
         )
 
     def publish_monitoring_report(
-        self, session_name: str, summary: dict[str, int], issues: list[dict | None] = None
+        self, session_name: str, summary: dict[str, int], issues: Optional[list[dict | None]] = None
     ) -> bool:
         """Publish periodic monitoring status report.
 

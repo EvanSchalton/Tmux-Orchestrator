@@ -4,7 +4,7 @@ import asyncio
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Awaitable, Callable, Generic, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
 
 T = TypeVar("T")
 
@@ -284,7 +284,7 @@ class LayeredCache:
 
 
 # Decorators for caching
-def cached(cache: AsyncMonitoringCache, key_fn: Callable[..., str | None] = None, ttl: float | None = None):
+def cached(cache: AsyncMonitoringCache, key_fn: Optional[Callable[..., str | None]] = None, ttl: float | None = None):
     """Decorator for caching async function results.
 
     Args:

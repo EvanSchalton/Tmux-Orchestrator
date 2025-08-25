@@ -907,7 +907,7 @@ class EnhancedCLIToMCPServer:
     def _parse_kwargs_string(self, kwargs_str: str) -> dict[str, Any]:
         """Parse kwargs string format like 'action=list target=session:window' with improved CLI option handling."""
         try:
-            parsed = {}
+            parsed: dict[str, Any] = {}
 
             # Handle empty string - for simple commands that don't need parameters
             if not kwargs_str.strip():
@@ -996,7 +996,7 @@ class EnhancedCLIToMCPServer:
                 parsed["args"] = positional_args
                 if options:
                     # Merge options into existing options if any
-                    existing_options: dict[str, Any] = parsed.get("options", {})
+                    existing_options = parsed.get("options", {})
                     if isinstance(existing_options, dict):
                         existing_options.update(options)
                         parsed["options"] = existing_options

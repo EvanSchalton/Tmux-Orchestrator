@@ -82,7 +82,7 @@ class Config:
         if "TMUX_ORCHESTRATOR_PORT" in os.environ:
             self._config["server"]["port"] = int(os.environ["TMUX_ORCHESTRATOR_PORT"])
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: Optional[Any] = None) -> Any:
         """Get configuration value using dot notation."""
         keys = key.split(".")
         value: Any = self._config
