@@ -4,7 +4,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG USER=vscode
 
 RUN DEBIAN_FRONTEND=noninteractive \
-    && apt-get update \ 
+    && apt-get update \
     && apt-get install -y build-essential --no-install-recommends make \
         ca-certificates \
         git \

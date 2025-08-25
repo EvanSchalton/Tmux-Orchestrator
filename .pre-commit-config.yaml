@@ -38,6 +38,7 @@ repos:
     rev: 1.7.5
     hooks:
       - id: bandit
+        additional_dependencies: [pbr>=6.0.0]
         args: [-r, tmux_orchestrator/, -ll, --skip, B108]
         pass_filenames: false
 

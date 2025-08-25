@@ -42,11 +42,22 @@ def start(verbose, test):
 
     Runs in stdio mode: reads from stdin, writes to stdout.
     """
+    # CRITICAL FIX: Set unbuffered stdio before anything else
+    import os
+
+    os.environ["PYTHONUNBUFFERED"] = "1"
+
+    # Force unbuffered stdio streams
+    sys.stdout = os.fdopen(sys.stdout.fileno(), "w", buffering=1)
+    sys.stdin = os.fdopen(sys.stdin.fileno(), "r", buffering=1)
+    sys.stderr = os.fdopen(sys.stderr.fileno(), "w", buffering=1)
+
     # Configure logging to stderr only (stdout is for MCP protocol)
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         stream=sys.stderr,
+        force=True,  # Override any existing handlers
     )
 
     if test:

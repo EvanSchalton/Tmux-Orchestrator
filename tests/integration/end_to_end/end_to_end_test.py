@@ -168,9 +168,7 @@ def test_agent_communication_workflow(runner, mock_tmux) -> None:
 
     # Publish message
     mock_tmux.send_message.return_value = True
-    result = runner.invoke(
-        cli, ["pubsub", "publish", "--session", "project:0", "Test message"], obj={"tmux": mock_tmux}
-    )
+    result = runner.invoke(cli, ["pubsub", "publish", "--target", "project:0", "Test message"], obj={"tmux": mock_tmux})
     assert result.exit_code == 0
 
 

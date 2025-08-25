@@ -2,6 +2,7 @@
 
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -299,7 +300,7 @@ def status(ctx: click.Context, json: bool) -> None:
     # Calculate summary stats
     total_sessions = len(sessions)
     total_agents = len(agents)
-    active_agents = len([a for a in agents if a.get("status") == "Active"])
+    active_agents_count = len([a for a in agents if a.get("status") == "Active"])
 
     if json:
         import json as json_module
@@ -309,8 +310,8 @@ def status(ctx: click.Context, json: bool) -> None:
             "orchestrator_sessions": orc_sessions,
             "total_sessions": total_sessions,
             "total_agents": total_agents,
-            "active_agents": active_agents,
-            "system_health": "healthy" if active_agents > 0 else "idle",
+            "active_agents": active_agents_count,
+            "system_health": "healthy" if active_agents_count > 0 else "idle",
             "sessions": sessions,
             "agents": agents,
         }
@@ -324,8 +325,8 @@ def status(ctx: click.Context, json: bool) -> None:
     summary_text = (
         f"Total Sessions: {total_sessions} | "
         f"Total Agents: {total_agents} | "
-        f"Active: {active_agents} | "
-        f"Health: {'🟢 Healthy' if active_agents > 0 else '🟡 Idle'}"
+        f"Active: {active_agents_count} | "
+        f"Health: {'🟢 Healthy' if active_agents_count > 0 else '🟡 Idle'}"
     )
     summary_panel = Panel(summary_text, title="System Summary", style="green")
     console.print(summary_panel)
@@ -795,6 +796,9 @@ def broadcast(ctx: click.Context, message: str, all_sessions: bool, session_filt
     if session_filter:
         sessions = [s for s in sessions if session_filter.lower() in s["name"].lower()]
 
+    # Initialize result dictionary for JSON output
+    result: dict[str, Any] = {}
+    
     if not sessions:
         if json:
             import json as json_module

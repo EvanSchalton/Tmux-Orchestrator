@@ -1,7 +1,7 @@
 """Business logic for broadcasting messages to team agents."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -10,9 +10,9 @@ def broadcast_to_team(
     tmux: TMUXManager,
     session: str,
     message: str,
-    exclude_windows: list[str | None] = None,
+    exclude_windows: Optional[list[str | None]] = None,
     priority: str = "normal",
-    agent_types: list[str | None] = None,
+    agent_types: Optional[list[str | None]] = None,
 ) -> tuple[bool, str, list[dict[str, Any]]]:
     """Broadcast a message to all agents in a session.
 
@@ -33,7 +33,7 @@ def broadcast_to_team(
     windows: list[dict[str, str]] = tmux.list_windows(session)
     agent_windows: list[dict[str, str]] = []
     exclude_windows = exclude_windows or []
-    agent_types_lower = [t.lower() for t in (agent_types or [])] if agent_types else []
+    agent_types_lower = [t.lower() for t in (agent_types or []) if t is not None] if agent_types else []
 
     # Find agent windows
     for window in windows:
@@ -41,7 +41,10 @@ def broadcast_to_team(
         window_index: str = window["index"]
 
         # Check if window should be excluded
-        if window_name_lower in [e.lower() for e in exclude_windows] or window_index in exclude_windows:
+        if (
+            window_name_lower in [e.lower() for e in exclude_windows if e is not None]
+            or window_index in exclude_windows
+        ):
             continue
 
         # Check if it's an agent window
@@ -116,7 +119,7 @@ def broadcast_to_team(
     if exclude_windows:
         summary_parts.append(f"{len(exclude_windows)} excluded")
     if agent_types:
-        summary_parts.append(f"filtered by types: {', '.join(agent_types)}")
+        summary_parts.append(f"filtered by types: {', '.join([t for t in agent_types if t is not None])}")
 
     summary: str = " | ".join(summary_parts)
 

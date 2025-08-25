@@ -183,3 +183,5 @@ Read: `/workspaces/Tmux-Orchestrator/tmux_orchestrator/data/contexts/orchestrato
 - **Tmux-Orc Command Failure Logging**:
   - If tmux-orc commands fail, especially those hardcoded in context, log the failure in a project briefing file
   - Hardcoded commands should be removed in favor of using the reflection command for dynamic CLI discovery
+
+- NEVER BYPASS PRE-COMMIT OR COMMENT OUT / REMOVE HOOKS

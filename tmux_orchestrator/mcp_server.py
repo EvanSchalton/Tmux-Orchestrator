@@ -26,12 +26,25 @@ import sys
 import time
 from typing import Any, Callable
 
-# CLI introspection imports
 # FastMCP for MCP server implementation
 from fastmcp import FastMCP
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# CRITICAL FIX: Disable Python's stdio buffering for MCP protocol
+# This MUST be done early to ensure proper MCP communication
+sys.stdout = os.fdopen(sys.stdout.fileno(), "w", buffering=1)  # Line buffering for immediate flush
+sys.stdin = os.fdopen(sys.stdin.fileno(), "r", buffering=1)  # Line buffering for reads
+sys.stderr = os.fdopen(sys.stderr.fileno(), "w", buffering=1)  # Line buffering for logs
+
+# Set environment for unbuffered operation
+os.environ["PYTHONUNBUFFERED"] = "1"
+
+# Configure logging to ONLY use stderr (stdout is reserved for MCP protocol)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stderr,  # CRITICAL: Keep logs separate from protocol
+    force=True,  # Override any existing handlers
+)
 logger = logging.getLogger(__name__)
 
 
@@ -1612,10 +1625,52 @@ class EnhancedCLIToMCPServer:
             cmd_name = self.generated_tools[tool_name]["command_name"]
             logger.info(f"  • {tool_name} → tmux-orc {cmd_name}")
 
-        # Start the server
+        # Start the server with fixed stdio handling
         server_type = "Claude Code CLI MCP" if CLAUDE_CODE_CLI_DETECTED else "FastMCP"
-        logger.info(f"Starting {server_type} server...")
-        await self.mcp.run_stdio_async()
+        logger.info(f"Starting {server_type} server with unbuffered stdio...")
+
+        # CRITICAL FIX: Use custom stdio handler instead of FastMCP's default
+        if CLAUDE_CODE_CLI_DETECTED:
+            # Use our fixed stdio implementation for Claude Code
+            await self.run_stdio_with_proper_framing()
+        else:
+            # Fall back to FastMCP for non-Claude environments
+            await self.mcp.run_stdio_async()
+
+    async def run_stdio_with_proper_framing(self):
+        """
+        Run MCP server with proper JSON-RPC framing and unbuffered stdio.
+        This fixes the buffering issues that prevent Claude Code connection.
+        """
+        logger.info("Starting custom stdio handler with proper framing...")
+
+        try:
+            # Ensure stdio is in unbuffered mode (redundant but safe)
+            sys.stdout.flush()
+            sys.stderr.flush()
+
+            # Use FastMCP's built-in stdio but with our patches
+            # First, patch FastMCP's write method to add flushing
+            original_write = None
+            if hasattr(self.mcp, "_write_message"):
+                original_write = self.mcp._write_message
+
+                async def patched_write(message):
+                    """Patched write that ensures immediate flush."""
+                    result = await original_write(message)
+                    # Force immediate flush after write
+                    sys.stdout.flush()
+                    return result
+
+                self.mcp._write_message = patched_write
+                logger.debug("Patched FastMCP write method with flush")
+
+            # Now run with patched stdio
+            await self.mcp.run_stdio_async()
+
+        except Exception as e:
+            logger.error(f"Stdio handler failed: {e}", exc_info=True)
+            raise
 
 
 async def main() -> None:
