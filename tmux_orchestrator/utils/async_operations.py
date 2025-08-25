@@ -209,4 +209,7 @@ def async_team_status_operation(tmux_manager, session_name: str) -> dict[str, An
 def async_agent_discovery_operation(tmux_manager) -> list[dict[str, str]]:
     """Async wrapper for agent discovery operations."""
     # This would wrap heavy agent discovery logic
-    return tmux_manager.list_agents_ultra_optimized()
+    from typing import cast
+
+    result = tmux_manager.list_agents_ultra_optimized()
+    return cast(list[dict[str, str]], result)

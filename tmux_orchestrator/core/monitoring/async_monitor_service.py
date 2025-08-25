@@ -11,6 +11,7 @@ from tmux_orchestrator.core.monitoring.agent_monitor import AgentMonitor
 from tmux_orchestrator.core.monitoring.async_health_checker import AsyncHealthChecker
 from tmux_orchestrator.core.monitoring.cache import LayeredCache
 from tmux_orchestrator.core.monitoring.daemon_manager import DaemonManager
+from tmux_orchestrator.core.monitoring.interfaces import MonitoringStrategyInterface
 from tmux_orchestrator.core.monitoring.monitor_service import MonitorService
 from tmux_orchestrator.core.monitoring.notification_manager import NotificationManager
 from tmux_orchestrator.core.monitoring.plugin_loader import PluginLoader
@@ -53,7 +54,7 @@ class AsyncMonitorService(MonitorService):
         self.plugin_loader = PluginLoader(logger=self.logger)
 
         # Strategy selection
-        self.current_strategy = None
+        self.current_strategy: Optional[MonitoringStrategyInterface] = None
         self.prefer_concurrent = True  # Default to concurrent strategy
 
         # Async monitoring state
@@ -94,12 +95,13 @@ class AsyncMonitorService(MonitorService):
         self.service_container.register(Config, self.config)
         self.service_container.register(logging.Logger, self.logger)
 
-        # Register monitoring components
+        # Register monitoring components - use the concrete instance types
         self.service_container.register(AgentMonitor, self.agent_monitor)
         self.service_container.register(NotificationManager, self.notification_manager)
         self.service_container.register(StateTracker, self.state_tracker)
-        self.service_container.register(PMRecoveryManager, self.pm_recovery_manager)
-        self.service_container.register(DaemonManager, self.daemon_manager)
+        # These have type: ignore in parent class for abstract issues
+        self.service_container.register(PMRecoveryManager, self.pm_recovery_manager)  # type: ignore[type-abstract]
+        self.service_container.register(DaemonManager, self.daemon_manager)  # type: ignore[type-abstract]
 
         # Register async components
         self.service_container.register(AsyncHealthChecker, self.async_health_checker)
@@ -242,12 +244,8 @@ class AsyncMonitorService(MonitorService):
 
             if self.current_strategy:
                 # Execute strategy
-                if asyncio.iscoroutinefunction(self.current_strategy.execute):
-                    status = await self.current_strategy.execute(context)
-                else:
-                    # Run sync strategy in executor
-                    loop = asyncio.get_event_loop()
-                    status = await loop.run_in_executor(None, self.current_strategy.execute, context)
+                # All strategies should have async execute methods per the interface
+                status = await self.current_strategy.execute(context)
 
                 # Process status
                 if status:

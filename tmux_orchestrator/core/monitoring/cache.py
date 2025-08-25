@@ -93,7 +93,9 @@ class AsyncMonitoringCache:
 
             entry.access()
             self.stats["hits"] += 1
-            return entry.value
+            from typing import cast
+
+            return cast(T | None, entry.value)
 
     async def set(self, key: str, value: T, ttl: float | None = None) -> None:
         """Set a value in the cache.
@@ -114,7 +116,7 @@ class AsyncMonitoringCache:
 
             self._cache[key] = entry
 
-    async def get_or_compute(self, key: str, compute_fn: Callable[[], Awaitable[T]], ttl: float | None = None) -> T:
+    async def get_or_compute(self, key: str, compute_fn: Callable[[], Awaitable[T]], ttl: float | None = None) -> T:  # type: ignore[misc]
         """Get from cache or compute if missing/expired.
 
         This method ensures the compute function is only called once
@@ -129,9 +131,11 @@ class AsyncMonitoringCache:
             Cached or computed value
         """
         # Fast path - check without lock first
-        value = await self.get(key)
-        if value is not None:
-            return value
+        cached_value = await self.get(key)  # type: ignore[func-returns-value]
+        if cached_value is not None:
+            from typing import cast
+
+            return cast(T, cached_value)
 
         # Slow path - compute with lock
         async with self._lock:
@@ -140,7 +144,9 @@ class AsyncMonitoringCache:
             if entry and not entry.is_expired():
                 entry.access()
                 self.stats["hits"] += 1
-                return entry.value
+                from typing import cast
+
+                return cast(T, entry.value)
 
         # Compute outside lock to allow concurrency
         value = await compute_fn()
@@ -229,7 +235,7 @@ class AsyncMonitoringCache:
         """
         tasks = []
         for key in keys:
-            task = self.get_or_compute(key, lambda k=key: compute_fn(k), ttl)
+            task = self.get_or_compute(key, lambda k=key: compute_fn(k), ttl)  # type: ignore[misc]
             tasks.append(task)
 
         await asyncio.gather(*tasks, return_exceptions=True)
@@ -263,7 +269,9 @@ class LayeredCache:
         Raises:
             KeyError: If layer doesn't exist
         """
-        return self.layers[layer_name]
+        from typing import cast
+
+        return cast(AsyncMonitoringCache, self.layers[layer_name])
 
     async def get(self, layer: str, key: str) -> Any | None:
         """Get value from specific layer."""
@@ -303,7 +311,11 @@ def cached(cache: AsyncMonitoringCache, key_fn: Optional[Callable[..., str | Non
                 key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
 
             # Use cache
-            return await cache.get_or_compute(key, lambda: func(*args, **kwargs), ttl)
+            if key is not None:
+                return await cache.get_or_compute(key, lambda: func(*args, **kwargs), ttl)
+            else:
+                # Fallback if key generation fails
+                return await func(*args, **kwargs)
 
         return wrapper
 

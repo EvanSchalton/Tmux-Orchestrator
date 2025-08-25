@@ -203,7 +203,9 @@ class PMPubsubIntegration:
             )
 
             if result.stdout:
-                return json.loads(result.stdout)
+                from typing import cast
+
+                return cast(dict[str, Any], json.loads(result.stdout))
 
         except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
             print(f"Error checking pubsub health: {e}")

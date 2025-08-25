@@ -1,6 +1,7 @@
 """TMUX Orchestrator CLI - AI-powered tmux session management."""
 
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -169,7 +170,7 @@ def _filter_commands(
     if not filter_pattern:
         return commands
 
-    filtered = {}
+    filtered: dict[str, click.Command] = {}
 
     for name, cmd in commands.items():
         full_path = f"{parent_path} {name}".strip()
@@ -181,7 +182,7 @@ def _filter_commands(
                 filtered[name] = cmd
             else:
                 # Check subcommands
-                sub_filtered = _filter_commands(cmd.commands, filter_pattern, full_path)
+                sub_filtered = _filter_commands(dict(cmd.commands), filter_pattern, full_path)
                 if sub_filtered:
                     # For filtered groups, just use the original group
                     # The filtering is handled when we iterate through subcommands
@@ -267,7 +268,7 @@ def reflect(ctx: click.Context, format: str, include_hidden: bool, filter: str |
             return
 
         # Apply filter if provided
-        commands = root_group.commands
+        commands = dict(root_group.commands)
         if filter:
             commands = _filter_commands(commands, filter)
             if not commands:
@@ -315,7 +316,7 @@ def reflect(ctx: click.Context, format: str, include_hidden: bool, filter: str |
 
         elif format == "json":
             # Simple JSON structure
-            json_output = {}
+            json_output: dict[str, Any] = {}
             for name, command in commands.items():
                 if not include_hidden and getattr(command, "hidden", False):
                     continue
@@ -330,6 +331,8 @@ def reflect(ctx: click.Context, format: str, include_hidden: bool, filter: str |
                     for subname, subcmd in command.commands.items():
                         if not include_hidden and getattr(subcmd, "hidden", False):
                             continue
+                        if "subcommands" not in json_output[name]:
+                            json_output[name]["subcommands"] = {}
                         json_output[name]["subcommands"][subname] = {
                             "type": "command",
                             "help": subcmd.help or "",
@@ -600,7 +603,7 @@ def status(ctx: click.Context, json: bool) -> None:
         # Add daemon status if available
         if using_cached_status and status_data:
             output_data["daemon_status"] = status_data.get("daemon_status", {})
-            output_data["status_age_seconds"] = int(
+            output_data["status_age_seconds"] = int(  # type: ignore[assignment]
                 (
                     datetime.now(timezone.utc)
                     - datetime.fromisoformat(status_data["last_updated"].replace("Z", "+00:00"))

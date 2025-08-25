@@ -44,7 +44,9 @@ class MCPTagParser:
             description = re.sub(r"\s+", " ", description)
             # Update terminology: orchestrator -> orc for consistency
             description = re.sub(r"\borchestrator\b", "orc", description, flags=re.IGNORECASE)
-            return description
+            from typing import cast
+
+            return cast(str, description)
 
         return None
 

@@ -1,9 +1,9 @@
-"""Fresh CLI Reflection-Based MCP Implementation.
+"""MCP (Model Context Protocol) Server Implementation.
 
-This module provides the new CLI-reflection based MCP server that auto-generates
-tools from tmux-orc CLI commands, replacing all manual tool implementations.
+This module provides the CLI-reflection based MCP server that auto-generates
+tools from tmux-orc CLI commands for Claude integration.
 """
 
-from tmux_orchestrator.mcp_server_fresh import FreshCLIMCPServer
+from tmux_orchestrator.mcp.server import EnhancedCLIToMCPServer
 
-__all__ = ["FreshCLIMCPServer"]
+__all__ = ["EnhancedCLIToMCPServer"]

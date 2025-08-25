@@ -168,21 +168,24 @@ class MonitorPubsubClient:
                 results["failed"] += 1
                 self.logger.error(f"Batch publish error: {result}")
             else:
-                success, _ = result
-                if success:
-                    results["success"] += 1
+                if isinstance(result, tuple) and len(result) >= 2:
+                    success, _ = result
+                    if success:
+                        results["success"] += 1
+                    else:
+                        results["failed"] += 1
                 else:
                     results["failed"] += 1
 
         end_time = asyncio.get_event_loop().time()
-        results["total_time_ms"] = (end_time - start_time) * 1000
-        results["avg_time_ms"] = results["total_time_ms"] / len(notifications) if notifications else 0
+        results["total_time_ms"] = int((end_time - start_time) * 1000)
+        results["avg_time_ms"] = int(results["total_time_ms"] / len(notifications)) if notifications else 0
 
         return results
 
     def get_performance_stats(self) -> dict[str, Any]:
         """Get performance statistics for monitoring."""
-        stats = {
+        stats: dict[str, Any] = {
             "daemon": self._calculate_stats(self._performance_metrics["daemon_times"]),
             "cli": self._calculate_stats(self._performance_metrics["cli_times"]),
         }
@@ -190,7 +193,7 @@ class MonitorPubsubClient:
         # Overall performance
         all_times = self._performance_metrics["daemon_times"] + self._performance_metrics["cli_times"]
         stats["overall"] = self._calculate_stats(all_times)
-        stats["meeting_target"] = all(t < 100 for t in all_times[-100:])  # Last 100 messages
+        stats["meeting_target"] = bool(all(t < 100 for t in all_times[-100:]))  # Last 100 messages
 
         return stats
 
@@ -268,7 +271,14 @@ class PriorityMessageRouter:
             success, delivery_time = await self.client.publish_notification(target, message, priority, tags)
 
             # Retry critical/high priority if failed and under timeout
-            if not success and route["retry"] and delivery_time < route["timeout"]:
+            timeout_value = route.get("timeout", float("inf"))
+            if (
+                not success
+                and route["retry"]
+                and isinstance(delivery_time, (int, float))
+                and isinstance(timeout_value, (int, float))
+                and delivery_time < timeout_value
+            ):
                 self.logger.info(f"Retrying {priority} priority message")
                 success, _ = await self.client.publish_notification(target, message, priority, tags)
 

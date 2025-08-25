@@ -70,7 +70,7 @@ def start(verbose, test):
         # Set environment to indicate Claude Code CLI mode
         import os
 
-        from tmux_orchestrator.mcp_server import main
+        from tmux_orchestrator.mcp.server import main
 
         os.environ["TMUX_ORC_MCP_MODE"] = "claude_code"
 
@@ -125,11 +125,11 @@ def tools(json_output):
     """List available MCP tools that Claude can use."""
     try:
         # Quick tool discovery without full server startup
-        from tmux_orchestrator.mcp_fresh import FreshCLIToMCPServer
+        from tmux_orchestrator.mcp.server import EnhancedCLIToMCPServer
 
-        server_instance = FreshCLIToMCPServer()
+        server_instance = EnhancedCLIToMCPServer()
         asyncio.run(server_instance.discover_cli_structure())
-        server_instance.generate_all_mcp_tools()
+        asyncio.run(server_instance.generate_all_mcp_tools())
 
         if json_output:
             tool_list = [

@@ -104,7 +104,7 @@ class EnhancedHierarchicalSchema:
             await asyncio.sleep(0.1)  # Yield to let server start first
             if not FAST_STARTUP_MODE:
                 logger.info("Background: Generating full action descriptions...")
-                from tmux_orchestrator.mcp_auto_generator import MCPAutoGenerator
+                from tmux_orchestrator.mcp.auto_generator import MCPAutoGenerator
 
                 auto_generator = MCPAutoGenerator()
                 full_descriptions = auto_generator.generate_action_descriptions()
@@ -325,7 +325,9 @@ class EnhancedCLIToMCPServer:
             CLI_STRUCTURE_CACHE = cli_structure
             CLI_STRUCTURE_CACHE_TIME = int(current_time)
 
-            return cli_structure
+            from typing import cast
+
+            return cast(dict[str, Any], cli_structure)
 
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse CLI reflection JSON: {e}")

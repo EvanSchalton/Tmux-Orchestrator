@@ -35,7 +35,7 @@ class RecoveryTestSuite:
 
     async def run_comprehensive_test(
         self,
-        target_agents: Optional[list[str | None]] = None,
+        target_agents: Optional[list[str]] = None,
         include_stress_test: bool = False,
     ) -> dict[str, Any]:
         """
@@ -65,7 +65,9 @@ class RecoveryTestSuite:
         try:
             # Discover test agents if not provided
             if not target_agents:
-                target_agents = await self._discover_test_agents()
+                discovered_agents = await self._discover_test_agents()
+                # Filter out None values and convert to list[str]
+                target_agents = [agent for agent in (discovered_agents or []) if agent is not None]
                 comprehensive_results["target_agents"] = target_agents
 
             self.logger.info(f"Testing {len(target_agents)} agents")
@@ -515,7 +517,7 @@ class RecoveryTestSuite:
 
 
 async def run_recovery_system_test(
-    target_agents: Optional[list[str | None]] = None,
+    target_agents: Optional[list[str]] = None,
     include_stress_test: bool = False,
     verbose: bool = False,
 ) -> dict[str, Any]:

@@ -124,7 +124,7 @@ class PubsubPerformanceValidator:
         client = MonitorPubsubClient(self.logger)
         router = PriorityMessageRouter(client)
 
-        priority_times = {
+        priority_times: Dict[str, List[float]] = {
             "critical": [],
             "high": [],
             "normal": [],
@@ -302,31 +302,34 @@ class PubsubPerformanceValidator:
 
     def _analyze_validation_results(self, validations: dict[str, Any]) -> dict[str, Any]:
         """Analyze all validation results."""
+        recommendations_list: List[str] = []
         analysis = {
             "timestamp": datetime.now().isoformat(),
             "validations": validations,
             "summary": {
                 "all_compliant": True,
-                "recommendations": [],
+                "recommendations": recommendations_list,
             },
         }
 
         # Check each validation
         if "notification_manager" in validations:
             if not validations["notification_manager"]["compliant"]["compliant"]:
-                analysis["summary"]["all_compliant"] = False
-                analysis["summary"]["recommendations"].append("Notification Manager: Optimize queue processing")
+                summary = analysis["summary"]
+                if isinstance(summary, dict):
+                    summary["all_compliant"] = False
+                recommendations_list.append("Notification Manager: Optimize queue processing")
 
         if "priority_routing" in validations:
             for priority, data in validations["priority_routing"].items():
                 if not data["compliant"]["compliant"]:
-                    analysis["summary"]["all_compliant"] = False
-                    analysis["summary"]["recommendations"].append(
-                        f"Priority Routing ({priority}): Review {priority} priority handling"
-                    )
+                    summary = analysis["summary"]
+                    if isinstance(summary, dict):
+                        summary["all_compliant"] = False
+                    recommendations_list.append(f"Priority Routing ({priority}): Review {priority} priority handling")
 
-        if not analysis["summary"]["recommendations"]:
-            analysis["summary"]["recommendations"].append("✅ All performance requirements met!")
+        if not recommendations_list:
+            recommendations_list.append("✅ All performance requirements met!")
 
         return analysis
 

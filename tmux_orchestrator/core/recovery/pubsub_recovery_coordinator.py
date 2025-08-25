@@ -8,6 +8,7 @@ for sub-100ms notification delivery during critical recovery operations.
 import asyncio
 import logging
 from datetime import datetime
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitoring.pubsub_integration import MonitorPubsubClient, PriorityMessageRouter
@@ -201,7 +202,7 @@ class PubsubRecoveryCoordinator:
 
         return False
 
-    async def batch_recovery_status(self) -> dict[str, any]:
+    async def batch_recovery_status(self) -> dict[str, Any]:
         """Get comprehensive recovery status with performance metrics."""
         # Get pubsub performance stats
         perf_stats = self.pubsub_client.get_performance_stats()

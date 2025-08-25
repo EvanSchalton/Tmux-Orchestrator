@@ -212,7 +212,9 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
             return False
 
         time_since_recovery = datetime.now() - self.recovery_state.last_recovery[session_name]
-        return time_since_recovery < self.recovery_state.recovery_grace_period
+        from typing import cast
+
+        return cast(bool, time_since_recovery < self.recovery_state.recovery_grace_period)
 
     def _get_recent_recovery_attempts(self, session_name: str) -> list[datetime]:
         """Get recent recovery attempts within the recovery window.

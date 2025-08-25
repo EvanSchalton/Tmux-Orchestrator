@@ -65,7 +65,9 @@ class LazyCommandGroup(click.Group):
         cmd_info = self._lazy_commands[cmd_name]
 
         if cmd_info["loaded"]:
-            return cmd_info["command"]
+            from typing import cast
+
+            return cast(click.Command, cmd_info["command"])
 
         try:
             # Try primary module
@@ -77,7 +79,7 @@ class LazyCommandGroup(click.Group):
             cmd_info["loaded"] = True
             cmd_info["command"] = command
 
-            return command
+            return cast(click.Command, command)
 
         except (ImportError, AttributeError):
             # Try fallback if available
@@ -90,7 +92,7 @@ class LazyCommandGroup(click.Group):
                     cmd_info["loaded"] = True
                     cmd_info["command"] = command
 
-                    return command
+                    return cast(click.Command, command)
 
                 except (ImportError, AttributeError):
                     pass
@@ -181,13 +183,13 @@ class LazyCommand(click.Command):
 
         return cast(str, self._loaded_command.get_usage(ctx))
 
-    def get_help(self, ctx: click.Context) -> str | None:
+    def get_help(self, ctx: click.Context) -> str:
         """Get help text, loading command if needed."""
         if self._loaded_command is None:
             try:
                 module = importlib.import_module(self.module_path)
                 self._loaded_command = getattr(module, self.command_attr)
             except (ImportError, AttributeError):
-                return cast(Optional[str], super().get_help(ctx))
+                return cast(str, super().get_help(ctx) or "")
 
-        return cast(Optional[str], self._loaded_command.get_help(ctx))
+        return cast(str, self._loaded_command.get_help(ctx) or "")

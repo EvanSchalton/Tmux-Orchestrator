@@ -8,6 +8,7 @@ the modular components with the existing monitor.py.
 import logging
 import time
 from datetime import datetime
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -235,7 +236,7 @@ def example_cli_integration():
         if flags.use_modular_monitor:
             from tmux_orchestrator.core.monitor_modular import ModularIdleMonitor
 
-            monitor = ModularIdleMonitor(tmux, config)
+            monitor: Any = ModularIdleMonitor(tmux, config)
         else:
             from tmux_orchestrator.core.monitor import IdleMonitor
 

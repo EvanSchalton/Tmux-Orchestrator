@@ -106,6 +106,31 @@ class PMRecoveryManagerInterface(ABC):
         """
         pass
 
+    @abstractmethod
+    def handle_recovery(self, session_name: str, issue_type: str) -> bool:
+        """Handle PM recovery for a specific issue.
+
+        Args:
+            session_name: Session needing recovery
+            issue_type: Type of issue detected
+
+        Returns:
+            True if recovery handled successfully
+        """
+        pass
+
+    @abstractmethod
+    def check_and_recover_if_needed(self, session_name: str) -> bool:
+        """Check PM health and recover if needed.
+
+        Args:
+            session_name: Session to check and recover
+
+        Returns:
+            True if check completed (recovery may or may not have been needed)
+        """
+        pass
+
 
 class DaemonManagerInterface(ABC):
     """Interface for daemon lifecycle management."""
@@ -186,6 +211,24 @@ class DaemonManagerInterface(ABC):
 
         Returns:
             Dictionary with daemon details
+        """
+        pass
+
+    @abstractmethod
+    def start(self) -> bool:
+        """Start the daemon.
+
+        Returns:
+            True if started successfully
+        """
+        pass
+
+    @abstractmethod
+    def stop(self) -> bool:
+        """Stop the daemon.
+
+        Returns:
+            True if stopped successfully
         """
         pass
 
@@ -292,6 +335,49 @@ class ServiceContainerInterface(ABC):
         """
         pass
 
+    @abstractmethod
+    def register_plugin(self, plugin_name: str, plugin_instance: Any) -> None:
+        """Register a plugin.
+
+        Args:
+            plugin_name: Name of the plugin
+            plugin_instance: Plugin implementation
+        """
+        pass
+
+    @abstractmethod
+    def get_plugin(self, plugin_name: str) -> Any:
+        """Get a plugin by name.
+
+        Args:
+            plugin_name: Name of the plugin
+
+        Returns:
+            Plugin instance or None if not found
+        """
+        pass
+
+    @abstractmethod
+    def get_all_plugins(self) -> dict[str, Any]:
+        """Get all registered plugins.
+
+        Returns:
+            Dictionary mapping plugin names to instances
+        """
+        pass
+
+    @abstractmethod
+    def get_plugin_metadata(self, plugin_name: str) -> dict[str, Any]:
+        """Get plugin metadata.
+
+        Args:
+            plugin_name: Name of the plugin
+
+        Returns:
+            Plugin metadata dictionary
+        """
+        pass
+
 
 class MonitoringStrategyInterface(ABC):
     """Interface for pluggable monitoring strategies."""
@@ -332,5 +418,212 @@ class MonitoringStrategyInterface(ABC):
 
         Returns:
             List of required interface types
+        """
+        pass
+
+
+class MonitorComponent(ABC):
+    """Base interface for monitoring system components."""
+
+    @abstractmethod
+    def initialize(self) -> bool:
+        """Initialize the component.
+
+        Returns:
+            True if initialization successful
+        """
+        pass
+
+    @abstractmethod
+    def cleanup(self) -> None:
+        """Clean up component resources."""
+        pass
+
+
+class AgentMonitorInterface(ABC):
+    """Interface for agent monitoring operations."""
+
+    @abstractmethod
+    def check_agent(self, agent_info: AgentInfo) -> tuple[bool, str | None]:
+        """Check an agent's health status.
+
+        Args:
+            agent_info: Information about the agent to check
+
+        Returns:
+            Tuple of (is_healthy, issue_description)
+        """
+        pass
+
+    @abstractmethod
+    def get_agent_status(self, target: str) -> dict[str, Any]:
+        """Get detailed status for a specific agent.
+
+        Args:
+            target: Agent target identifier
+
+        Returns:
+            Dictionary with agent status details
+        """
+        pass
+
+    @abstractmethod
+    def discover_agents(self) -> list[AgentInfo]:
+        """Discover all active agents.
+
+        Returns:
+            List of active agent information
+        """
+        pass
+
+    @abstractmethod
+    def analyze_agent_content(self, content: str, agent_info: AgentInfo) -> dict[str, Any]:
+        """Analyze agent terminal content.
+
+        Args:
+            content: Terminal content to analyze
+            agent_info: Agent information
+
+        Returns:
+            Analysis results dictionary
+        """
+        pass
+
+
+class NotificationManagerInterface(ABC):
+    """Interface for notification management."""
+
+    @abstractmethod
+    def send_notification(self, event_type: str, message: str, details: dict[str, Any] | None = None) -> bool:
+        """Send a notification.
+
+        Args:
+            event_type: Type of notification event
+            message: Notification message
+            details: Optional additional details
+
+        Returns:
+            True if notification sent successfully
+        """
+        pass
+
+    @abstractmethod
+    def should_notify(self, event_type: str, target: str) -> bool:
+        """Check if notification should be sent.
+
+        Args:
+            event_type: Type of event
+            target: Target of the event
+
+        Returns:
+            True if notification should be sent
+        """
+        pass
+
+    @abstractmethod
+    def notify_agent_crash(self, agent_target: str, error_message: str, session: str) -> None:
+        """Notify about agent crash.
+
+        Args:
+            agent_target: Target of crashed agent
+            error_message: Error description
+            session: Session name
+        """
+        pass
+
+    @abstractmethod
+    def notify_fresh_agent(self, agent_target: str) -> None:
+        """Notify about fresh agent detection.
+
+        Args:
+            agent_target: Target of fresh agent
+        """
+        pass
+
+    @abstractmethod
+    def notify_recovery_needed(self, agent_target: str, reason: str) -> None:
+        """Notify about recovery needed.
+
+        Args:
+            agent_target: Target needing recovery
+            reason: Recovery reason
+        """
+        pass
+
+
+class StateTrackerInterface(ABC):
+    """Interface for state tracking operations."""
+
+    @abstractmethod
+    def update_state(self, key: str, value: Any) -> None:
+        """Update tracked state.
+
+        Args:
+            key: State key
+            value: State value
+        """
+        pass
+
+    @abstractmethod
+    def update_agent_discovered(self, agent_target: str) -> None:
+        """Update agent discovery state.
+
+        Args:
+            agent_target: Target of discovered agent
+        """
+        pass
+
+    @abstractmethod
+    def get_state(self, key: str) -> Any | None:
+        """Get tracked state.
+
+        Args:
+            key: State key
+
+        Returns:
+            State value or None if not found
+        """
+        pass
+
+    @abstractmethod
+    def clear_state(self, key: str | None = None) -> None:
+        """Clear tracked state.
+
+        Args:
+            key: Optional specific key to clear, or None to clear all
+        """
+        pass
+
+    @abstractmethod
+    def get_agent_state(self, agent_id: str) -> dict[str, Any] | None:
+        """Get state for a specific agent.
+
+        Args:
+            agent_id: Agent identifier
+
+        Returns:
+            Agent state dictionary or None if not found
+        """
+        pass
+
+    @abstractmethod
+    def get_idle_duration(self, agent_id: str) -> float | None:
+        """Get idle duration for an agent.
+
+        Args:
+            agent_id: Agent identifier
+
+        Returns:
+            Idle duration in seconds or None if unknown
+        """
+        pass
+
+    @abstractmethod
+    def update_agent_state(self, agent_id: str, state: dict[str, Any]) -> None:
+        """Update agent state.
+
+        Args:
+            agent_id: Agent identifier
+            state: State dictionary to update
         """
         pass

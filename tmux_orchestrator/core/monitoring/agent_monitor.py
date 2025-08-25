@@ -229,7 +229,7 @@ class AgentMonitor(AgentMonitorInterface):
                 status="unknown",
             )
 
-            crashed, crash_reason = self._crash_detector.detect_crash(agent_info, content)
+            crashed, crash_reason = self._crash_detector.detect_crash(agent_info, content.split("\n"))
             if crashed:
                 error_detected = True
                 error_type = crash_reason

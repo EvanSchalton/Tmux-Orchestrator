@@ -5,7 +5,7 @@ import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from tmux_orchestrator.core.config import Config
 
@@ -35,7 +35,7 @@ class StatusWriter:
             daemon_info: Information about daemon status
         """
         # Build status document
-        status_doc = {
+        status_doc: Dict[str, Any] = {
             "last_updated": datetime.now(timezone.utc).isoformat(),
             "daemon_status": daemon_info,
             "agents": {},
@@ -109,6 +109,6 @@ class StatusWriter:
 
         try:
             with open(self.status_file) as f:
-                return json.load(f)
+                return cast(Dict[str, Any], json.load(f))
         except (json.JSONDecodeError, OSError):
             return None

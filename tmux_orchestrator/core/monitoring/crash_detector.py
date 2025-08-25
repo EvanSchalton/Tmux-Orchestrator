@@ -102,21 +102,26 @@ class CrashDetector(CrashDetectorInterface):
             "├",  # Tool output formatting
         ]
 
-    def detect_crash(self, agent: AgentInfo, content: str) -> tuple[bool, str | None]:
+    def detect_crash(
+        self, agent_info: AgentInfo, window_content: list[str], idle_duration: float | None = None
+    ) -> tuple[bool, str | None]:
         """Detect if an agent has crashed based on content analysis.
 
         Args:
-            agent: Agent information
-            content: Terminal content to analyze
+            agent_info: Agent information
+            window_content: Terminal content lines to analyze
+            idle_duration: How long agent has been idle
 
         Returns:
             Tuple of (crashed: bool, crash_reason: str | None)
         """
+        # Convert list of strings to single string for analysis
+        content = "\n".join(window_content)
         content_lower = content.lower()
 
         # PRIORITY 1: Check for shell prompt at the end of content (immediate crash detection)
         if self._check_shell_prompt_at_end(content):
-            self.logger.warning(f"Agent {agent.target} shows shell prompt at end - likely crashed")
+            self.logger.warning(f"Agent {agent_info.target} shows shell prompt at end - likely crashed")
             return True, "Shell prompt detected at terminal end"
 
         # PRIORITY 2: Check for crash indicators
@@ -125,14 +130,14 @@ class CrashDetector(CrashDetectorInterface):
                 # Use context-aware check to prevent false positives
                 if self._should_ignore_crash_indicator(indicator, content, content_lower):
                     self.logger.debug(
-                        f"Ignoring crash indicator '{indicator}' in {agent.target} - appears to be normal output"
+                        f"Ignoring crash indicator '{indicator}' in {agent_info.target} - appears to be normal output"
                     )
                     continue
 
-                self.logger.warning(f"Crash indicator found: '{indicator}' in {agent.target}")
+                self.logger.warning(f"Crash indicator found: '{indicator}' in {agent_info.target}")
 
                 # Use observation period for confirmation
-                if self._confirm_crash_with_observation(agent.target, indicator):
+                if self._confirm_crash_with_observation(agent_info.target, indicator):
                     return True, f"Confirmed crash: {indicator}"
                 else:
                     # Still observing, not confirmed yet
@@ -142,7 +147,9 @@ class CrashDetector(CrashDetectorInterface):
         # Only flag as crash if content is very short and empty-looking
         # This prevents false positives on normal conversation content
         if len(content.strip()) < 10 and not self._is_claude_interface_present(content):
-            self.logger.warning(f"Agent {agent.target} missing Claude interface in minimal content - likely crashed")
+            self.logger.warning(
+                f"Agent {agent_info.target} missing Claude interface in minimal content - likely crashed"
+            )
             return True, "Missing Claude interface"
 
         return False, None
@@ -383,7 +390,7 @@ class CrashDetector(CrashDetectorInterface):
             )
 
             # Use the main crash detection logic
-            crashed, reason = self.detect_crash(pm_agent, content)
+            crashed, reason = self.detect_crash(pm_agent, content.split("\n"))
 
             if crashed:
                 self.logger.error(f"PM crash detected in {pm_window}: {reason}")

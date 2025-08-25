@@ -8,6 +8,7 @@ system for notifications while maintaining backward compatibility.
 import logging
 import time
 from datetime import datetime
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -185,7 +186,9 @@ class IdleMonitorWithPubsub:
             if "crash" in status.lower() or "error" in status.lower():
                 issues.append({"agent": agent, "status": status, "severity": "high"})
 
-        self.pubsub.publish_monitoring_report(session_name, summary, issues)
+        # Cast issues to expected type for pubsub integration
+        issues_typed: list[dict[Any, Any] | None] | None = issues  # type: ignore[assignment]
+        self.pubsub.publish_monitoring_report(session_name, summary, issues_typed)
 
     def flush_notifications(self) -> None:
         """Flush any queued notifications."""
@@ -263,7 +266,9 @@ class IdleMonitorWithPubsub:
         except Exception as e:
             self.logger.error(f"Failed to list agents: {e}")
 
-        self.pubsub.publish_rate_limit(session_name, reset_time, agents)
+        # Cast agents to expected type
+        agents_typed: list[str | None] | None = agents  # type: ignore[assignment]
+        self.pubsub.publish_rate_limit(session_name, reset_time, agents_typed)
 
 
 # Utility functions for integration with existing monitor

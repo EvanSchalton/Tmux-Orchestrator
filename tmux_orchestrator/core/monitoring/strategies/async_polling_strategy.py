@@ -7,10 +7,10 @@ for improved performance while maintaining the sequential monitoring pattern.
 
 import asyncio
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
-from ..cache_layer import AgentContentCache, TMuxCommandCache
+from ..cache_layer import AgentContentCache, CacheEntryStatus, TMuxCommandCache
 from ..interfaces import (
     AgentMonitorInterface,
     CrashDetectorInterface,
@@ -21,7 +21,7 @@ from ..interfaces import (
 )
 from ..metrics_collector import MetricsCollector
 from ..tmux_pool import AsyncTMUXManager, TMuxConnectionPool
-from ..types import AgentInfo, CacheEntryStatus, MonitorStatus
+from ..types import AgentInfo, MonitorStatus
 
 
 class AsyncPollingStrategy(MonitoringStrategyInterface):
@@ -83,19 +83,20 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
 
         # Initialize status
         status = MonitorStatus(
-            start_time=context.get("start_time", datetime.now()),
-            agents_monitored=0,
-            agents_healthy=0,
-            agents_idle=0,
-            agents_crashed=0,
+            is_running=True,
+            active_agents=0,
+            idle_agents=0,
+            last_cycle_time=0.0,
+            uptime=timedelta(seconds=0),
             cycle_count=context.get("cycle_count", 0),
             errors_detected=0,
+            start_time=context.get("start_time", datetime.now()),
         )
 
         try:
             # Phase 1: Discover agents with caching
             agents = await self._discover_agents_cached(agent_monitor)
-            status.agents_monitored = len(agents)
+            status.active_agents = len(agents)
 
             if logger:
                 logger.debug(f"Discovered {len(agents)} agents for monitoring")
@@ -106,16 +107,21 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
             )
 
             # Phase 3: Check PM health across sessions
-            sessions = state_tracker.get_all_sessions()
-            await self._check_pm_health_async(sessions, pm_recovery_manager, notification_manager, logger)
+            # Get sessions from state or discover them
+            if self._async_tmux:
+                sessions_list = await self._async_tmux.list_sessions_async()
+                session_names = [s["name"] for s in sessions_list if s is not None]
+                await self._check_pm_health_async(session_names, pm_recovery_manager, notification_manager, logger)
 
-            # Phase 4: Send notifications
-            notifications_sent = notification_manager.send_queued_notifications()
-            if notifications_sent > 0 and logger:
-                logger.info(f"Sent {notifications_sent} notification batches")
+            # Phase 4: Process any pending notifications
+            # Note: Notification manager doesn't have send_queued_notifications,
+            # notifications are sent immediately via the notify_* methods
 
             # Update final status
             status.end_time = datetime.now()
+            status.last_cycle_time = time.time() - _cycle_start
+            if status.start_time:
+                status.uptime = datetime.now() - status.start_time
 
             # Record metrics
             if self.metrics:
@@ -166,20 +172,25 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
                 # Use cached data to build agent list
                 agents = []
                 for session in sessions:
-                    windows, window_status = await self.command_cache.get_windows(session["name"])
-                    if window_status in [CacheEntryStatus.FRESH, CacheEntryStatus.STALE]:
-                        # Build agents from cached data
-                        for window in windows:
-                            if agent_monitor.is_agent_window(f"{session['name']}:{window['index']}"):
-                                agent_info = AgentInfo(
-                                    target=f"{session['name']}:{window['index']}",
-                                    session=session["name"],
-                                    window=str(window["index"]),
-                                    name=window.get("name", ""),
-                                    type="agent",
-                                    status="active",
-                                )
-                                agents.append(agent_info)
+                    if session is not None:
+                        windows, window_status = await self.command_cache.get_windows(session["name"])
+                        if window_status in [CacheEntryStatus.FRESH, CacheEntryStatus.STALE]:
+                            # Build agents from cached data
+                            for window in windows:
+                                if window is not None:
+                                    # Check if this is an agent window based on naming pattern
+                                    window_target = f"{session['name']}:{window['index']}"
+                                    # Agents typically have window index > 0 and specific naming patterns
+                                    if int(window.get("index", 0)) > 0:
+                                        agent_info = AgentInfo(
+                                            target=window_target,
+                                            session=session["name"],
+                                            window=str(window["index"]),
+                                            name=window.get("name", ""),
+                                            type="agent",
+                                            status="active",
+                                        )
+                                        agents.append(agent_info)
 
                 if agents:
                     return agents
@@ -190,12 +201,17 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
         # Cache the session/window data for next time
         if self.command_cache and self._async_tmux:
             try:
-                sessions = await self._async_tmux.list_sessions_async()
-                await self.command_cache.set_sessions(sessions)
+                sessions_list = await self._async_tmux.list_sessions_async()
+                # Filter out None values
+                valid_sessions = [s for s in sessions_list if s is not None]
+                await self.command_cache.set_sessions(valid_sessions)
 
-                for session in sessions:
-                    windows = await self._async_tmux.list_windows_async(session["name"])
-                    await self.command_cache.set_windows(session["name"], windows)
+                for session in valid_sessions:
+                    if session and "name" in session:
+                        windows_list = await self._async_tmux.list_windows_async(session["name"])
+                        # Filter out None values
+                        valid_windows = [w for w in windows_list if w is not None]
+                        await self.command_cache.set_windows(session["name"], valid_windows)
             except Exception:
                 pass  # Cache population is best-effort
 
@@ -246,26 +262,44 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
 
                 # Fall back to sync method if needed
                 if content is None:
-                    idle_analysis = agent_monitor.analyze_agent_content(agent_info.target)
-                    content = idle_analysis.content
+                    # Use analyze_agent_content with proper arguments
+                    analysis_result = agent_monitor.analyze_agent_content(
+                        content="",  # Empty content since we couldn't fetch it
+                        agent_info=agent_info,
+                    )
+                    content = analysis_result.get("content", "")
 
-                # Update state
-                agent_state = state_tracker.update_agent_state(agent_info.target, content)
+                # Update state with proper dictionary format
+                state_dict = {
+                    "content": content,
+                    "timestamp": datetime.now(),
+                    "target": agent_info.target,
+                    "session": agent_info.session,
+                    "window": agent_info.window,
+                }
+                state_tracker.update_agent_state(agent_info.target, state_dict)
+
+                # Get the agent state to check if it's fresh
+                agent_state_dict = state_tracker.get_agent_state(agent_info.target)
+                is_fresh = agent_state_dict.get("is_fresh", False) if agent_state_dict else False
 
                 # Check for crashes
+                idle_duration = state_tracker.get_idle_duration(agent_info.target)
                 is_crashed, crash_reason = crash_detector.detect_crash(
                     agent_info,
                     content.split("\n") if content else [],
-                    state_tracker.get_idle_duration(agent_info.target),
+                    idle_duration,
                 )
 
                 if is_crashed:
-                    status.agents_crashed += 1
+                    status.errors_detected += 1
                     notification_manager.notify_agent_crash(
-                        target=agent_info.target, error_type=crash_reason or "Unknown error", session=agent_info.session
+                        agent_target=agent_info.target,
+                        error_message=crash_reason or "Unknown error",
+                        session=agent_info.session,
                     )
-                elif state_tracker.is_agent_idle(agent_info.target):
-                    status.agents_idle += 1
+                elif idle_duration and idle_duration > 30.0:  # Check if agent is idle based on duration
+                    status.idle_agents += 1
 
                     # Update cache with longer TTL for idle agents
                     if self.agent_cache and not cache_hit:
@@ -274,10 +308,10 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
                         )
 
                     # Send appropriate notifications
-                    if agent_state.is_fresh:
-                        notification_manager.notify_fresh_agent(target=agent_info.target, session=agent_info.session)
+                    if is_fresh:
+                        notification_manager.notify_fresh_agent(agent_target=agent_info.target)
                 else:
-                    status.agents_healthy += 1
+                    status.active_agents += 1
 
             except Exception as e:
                 if logger:
@@ -322,7 +356,7 @@ class AsyncPollingStrategy(MonitoringStrategyInterface):
                     logger.warning(f"PM issue detected in {session}: {issue}")
 
                 notification_manager.notify_recovery_needed(
-                    target=pm_target or session, issue=issue or "PM not found", session=session
+                    agent_target=pm_target or session, reason=issue or "PM not found"
                 )
 
                 if pm_recovery_manager.recover_pm(session, pm_target):

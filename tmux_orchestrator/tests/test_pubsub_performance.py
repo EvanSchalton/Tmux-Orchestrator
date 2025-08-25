@@ -144,7 +144,7 @@ class PubsubPerformanceTester:
 
     def _analyze_results(self) -> dict[str, Any]:
         """Analyze performance test results."""
-        analysis = {
+        analysis: dict[str, Any] = {
             "summary": {},
             "target_compliance": {},
             "recommendations": [],
@@ -172,12 +172,16 @@ class PubsubPerformanceTester:
             under_100ms = sum(1 for t in sorted_times if t < 100)
             compliance_pct = (under_100ms / count) * 100
 
-            analysis["summary"][test_name] = stats
-            analysis["target_compliance"][test_name] = {
-                "under_100ms_count": under_100ms,
-                "compliance_percentage": compliance_pct,
-                "meets_target": compliance_pct >= 95,  # 95% should be under 100ms
-            }
+            summary = analysis["summary"]
+            target_compliance = analysis["target_compliance"]
+            if isinstance(summary, dict):
+                summary[test_name] = stats
+            if isinstance(target_compliance, dict):
+                target_compliance[test_name] = {
+                    "under_100ms_count": under_100ms,
+                    "compliance_percentage": compliance_pct,
+                    "meets_target": compliance_pct >= 95,  # 95% should be under 100ms
+                }
 
         # Generate recommendations
         self._generate_recommendations(analysis)

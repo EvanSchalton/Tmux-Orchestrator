@@ -6,7 +6,7 @@ at regular intervals.
 """
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from ..interfaces import (
@@ -15,7 +15,7 @@ from ..interfaces import (
     PMRecoveryManagerInterface,
     StateTrackerInterface,
 )
-from ..types import AgentInfo, MonitorStatus, NotificationEvent, NotificationType
+from ..types import AgentInfo, MonitorStatus
 from .base_strategy import BaseMonitoringStrategy
 
 
@@ -64,10 +64,11 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
 
             # Update state tracker with discovered agents
             for agent in agents:
-                state_tracker.update_agent_discovered(agent)
+                state_tracker.update_agent_discovered(agent.target)
 
             # Phase 2: PM Health Checks
-            sessions = state_tracker.get_active_sessions()
+            # Get sessions from agent discovery
+            sessions = list({agent.session for agent in agents})
             pm_issues = await self._check_pm_health(sessions, pm_recovery_manager, logger)
 
             # Phase 3: Agent Health Checks
@@ -78,17 +79,16 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
                 idle_agents, crashed_agents, pm_issues, notification_manager, state_tracker, logger
             )
 
-            # Phase 5: State Cleanup
-            state_tracker.cleanup_stale_data()
-
             # Build status
             return MonitorStatus(
-                total_agents=len(agents),
+                is_running=True,
+                active_agents=len(agents) - len(idle_agents),
                 idle_agents=len(idle_agents),
-                crashed_agents=len(crashed_agents),
-                active_sessions=len(sessions),
-                last_check=datetime.now(),
-                error=None,
+                last_cycle_time=0.0,
+                uptime=timedelta(0),
+                cycle_count=1,
+                errors_detected=len(crashed_agents),
+                start_time=datetime.now(),
             )
 
         except Exception as e:
@@ -96,12 +96,14 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
                 logger.error(f"Error in polling strategy: {e}")
 
             return MonitorStatus(
-                total_agents=0,
+                is_running=False,
+                active_agents=0,
                 idle_agents=0,
-                crashed_agents=0,
-                active_sessions=0,
-                last_check=datetime.now(),
-                error=str(e),
+                last_cycle_time=0.0,
+                uptime=timedelta(0),
+                cycle_count=0,
+                errors_detected=1,
+                start_time=datetime.now(),
             )
 
     async def _check_pm_health(
@@ -178,7 +180,7 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
 
             # Process results
             for agent, result in zip(batch, results):
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     if logger:
                         logger.error(f"Error checking agent {agent.target}: {result}")
                     continue
@@ -211,22 +213,35 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
             Tuple of (is_idle, is_crashed)
         """
         try:
-            # Analyze agent state
-            idle_analysis = agent_monitor.analyze_idle_state(agent)
+            # Check agent health using the interface method
+            is_healthy, issue = agent_monitor.check_agent(agent)
 
-            # Update state tracker
-            if idle_analysis.is_idle:
-                state_tracker.update_agent_idle(agent, idle_analysis)
-            else:
-                state_tracker.update_agent_active(agent)
+            # Determine if idle or crashed based on issue
+            is_idle = False
+            is_crashed = False
 
-            # Check for crash
-            is_crashed = idle_analysis.crash_reason is not None
+            if not is_healthy and issue:
+                if "idle" in issue.lower():
+                    is_idle = True
+                elif "crash" in issue.lower() or "error" in issue.lower():
+                    is_crashed = True
+                else:
+                    # Default to idle for other issues
+                    is_idle = True
 
-            if is_crashed:
-                state_tracker.update_agent_crashed(agent, idle_analysis.crash_reason)
+            # Update state tracker with agent state
+            state_tracker.update_agent_state(
+                agent.target,
+                {
+                    "is_idle": is_idle,
+                    "is_crashed": is_crashed,
+                    "is_healthy": is_healthy,
+                    "issue": issue,
+                    "last_checked": datetime.now(),
+                },
+            )
 
-            return idle_analysis.is_idle, is_crashed
+            return is_idle, is_crashed
 
         except Exception as e:
             if logger:
@@ -252,51 +267,36 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
             state_tracker: State tracker component
             logger: Optional logger
         """
-        # Queue crash notifications
+        # Send crash notifications using interface methods
         for agent in crashed_agents:
-            event = NotificationEvent(
-                type=NotificationType.AGENT_CRASH,
-                agent_info=agent,
-                message=f"Agent {agent.name} has crashed",
-                timestamp=datetime.now(),
+            notification_manager.notify_agent_crash(
+                agent_target=agent.target, error_message=f"Agent {agent.name} has crashed", session=agent.session
             )
-            notification_manager.queue_notification(event)
 
-        # Queue idle notifications (with threshold check)
+        # Send idle notifications (with threshold check)
         for agent in idle_agents:
             idle_duration = state_tracker.get_idle_duration(agent.target)
 
             # Only notify if idle for significant time
             if idle_duration and idle_duration > 300:  # 5 minutes
-                event = NotificationEvent(
-                    type=NotificationType.AGENT_IDLE,
-                    agent_info=agent,
-                    message=f"Agent {agent.name} idle for {idle_duration:.0f}s",
-                    timestamp=datetime.now(),
-                )
-                notification_manager.queue_notification(event)
+                # Check if it's a fresh agent
+                agent_state = state_tracker.get_agent_state(agent.target)
+                if agent_state and agent_state.get("is_fresh"):
+                    notification_manager.notify_fresh_agent(agent_target=agent.target)
+                else:
+                    # Use generic send_notification for idle agents
+                    notification_manager.send_notification(
+                        event_type="agent_idle",
+                        message=f"Agent {agent.name} idle for {idle_duration:.0f}s",
+                        details={"target": agent.target, "session": agent.session},
+                    )
 
-        # Queue PM recovery notifications
+        # Send PM recovery notifications
         for issue in pm_issues:
-            # Create a minimal agent info for PM
-            pm_agent = AgentInfo(
-                target=issue.get("target", f"{issue['session']}:0"),
-                session=issue["session"],
-                window="0",
-                name="PM",
-                type="pm",
+            pm_target = issue.get("target", f"{issue['session']}:0")
+            notification_manager.notify_recovery_needed(
+                agent_target=pm_target, reason=f"PM recovery needed in session {issue['session']}: {issue['issue']}"
             )
-
-            event = NotificationEvent(
-                type=NotificationType.RECOVERY_NEEDED,
-                agent_info=pm_agent,
-                message=f"PM recovery needed in session {issue['session']}: {issue['issue']}",
-                timestamp=datetime.now(),
-            )
-            notification_manager.queue_notification(event)
-
-        # Process the notification queue
-        notification_manager.process_queue()
 
         if logger:
             logger.debug(

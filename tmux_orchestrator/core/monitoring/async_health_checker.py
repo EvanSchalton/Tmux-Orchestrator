@@ -71,7 +71,9 @@ class AsyncHealthChecker(HealthChecker):
         # Check if we already have a pending check for this target
         if target in self._pending_checks and not self._pending_checks[target].done():
             # Wait for the existing check to complete
-            return await self._pending_checks[target]
+            from typing import cast
+
+            return cast(AgentHealthStatus, await self._pending_checks[target])
 
         # Create new check task
         check_task = asyncio.create_task(self._do_health_check_async(target))
@@ -95,7 +97,9 @@ class AsyncHealthChecker(HealthChecker):
                 if self.async_tmux:
                     current_hash = await self._get_content_hash_async(target)
                     if current_hash == cached_status.last_content_hash:
-                        return cached_status
+                        from typing import cast
+
+                        return cast(AgentHealthStatus, cached_status)
 
             # Not in cache or content changed, perform full check
             if target not in self.agent_status:
@@ -210,7 +214,7 @@ class AsyncHealthChecker(HealthChecker):
         # Process results
         statuses = {}
         for result in results:
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 self.logger.error(f"Error in batch health check: {result}")
             else:
                 target, status = result

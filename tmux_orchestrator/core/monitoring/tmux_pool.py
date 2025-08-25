@@ -5,6 +5,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from typing import Any
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -226,7 +227,7 @@ class TMuxConnectionPool:
         except Exception as e:
             self.logger.error(f"Failed to replace connection: {e}")
 
-    def get_stats(self) -> dict[str, any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get pool statistics."""
         return {
             **self.stats,

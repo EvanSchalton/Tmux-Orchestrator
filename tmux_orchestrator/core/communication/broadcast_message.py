@@ -54,7 +54,14 @@ def broadcast_message(
             # Filter by agent types if specified
             if agent_types:
                 # Check if window name matches any of the specified agent types
-                matches_type = any(agent_type.lower() in window_name.lower() for agent_type in agent_types)
+                if window_name is not None:
+                    matches_type = any(
+                        agent_type.lower() in window_name.lower()
+                        for agent_type in agent_types
+                        if agent_type is not None
+                    )
+                else:
+                    matches_type = False
                 if not matches_type:
                     continue
 

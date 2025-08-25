@@ -47,9 +47,9 @@ class HighPerformanceMessagingDaemon:
         self.tmux = TMUXManager()
 
         # Performance optimizations
-        self._message_queue = deque()
-        self._delivery_stats = defaultdict(list)
-        self._session_cache = {}
+        self._message_queue: deque[dict[str, Any]] = deque()
+        self._delivery_stats: defaultdict[str, list[float]] = defaultdict(list)
+        self._session_cache: dict[str, Any] = {}
         self._cache_lock = threading.Lock()
 
         # Async processing
@@ -66,7 +66,7 @@ class HighPerformanceMessagingDaemon:
         # Performance tracking
         self._start_time = time.time()
         self._message_count = 0
-        self._delivery_times = deque(maxlen=1000)  # Last 1000 delivery times
+        self._delivery_times: deque[float] = deque(maxlen=1000)  # Last 1000 delivery times
 
     async def start(self):
         """Start the high-performance daemon."""
@@ -146,7 +146,9 @@ class HighPerformanceMessagingDaemon:
             )
 
             # Queue for async delivery (immediate return)
-            self._message_queue.append(message)
+            from dataclasses import asdict
+
+            self._message_queue.append(asdict(message))
             self._message_count += 1
 
             return {"status": "queued", "message_id": message.id, "queue_size": len(self._message_queue)}
@@ -322,7 +324,9 @@ class DaemonClient:
             writer.close()
             await writer.wait_closed()
 
-            return response
+            from typing import cast
+
+            return cast(dict[str, Any], response)
 
         except Exception as e:
             return {"status": "error", "message": f"Daemon communication failed: {e}"}

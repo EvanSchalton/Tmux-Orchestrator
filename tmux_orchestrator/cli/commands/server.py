@@ -75,7 +75,7 @@ def start(verbose: bool, test: bool, output_json: bool):
 
     try:
         # Import here to avoid circular imports
-        from tmux_orchestrator.mcp_server import sync_main
+        from tmux_orchestrator.mcp.server import sync_main
 
         logger.info("Starting MCP server in stdio mode...")
 
@@ -239,7 +239,7 @@ def tools(output_json: bool, verbose: bool):
                 tool_info = {
                     "name": f"cli_{cmd_name.replace('-', '_')}",
                     "cli_command": cmd_name,
-                    "description": cmd_info.get("short_help", cmd_info.get("help", "No description"))[:100],
+                    "description": str(cmd_info.get("short_help", cmd_info.get("help", "No description")))[:100],
                 }
 
                 if verbose:
@@ -253,14 +253,14 @@ def tools(output_json: bool, verbose: bool):
         discovery_time = (time.time() - start_time) * 1000
 
         if output_json:
-            result = {
+            json_result = {
                 "tools": tools,
                 "total_tools": len(tools),
                 "discovery_time_ms": discovery_time,
                 "server_type": "cli-reflection",
                 "timestamp": time.time(),
             }
-            console.print(json.dumps(result, indent=2))
+            console.print(json.dumps(json_result, indent=2))
         else:
             console.print("\n[bold]Available MCP Tools for Claude Desktop[/bold]")
             console.print(f"[dim]Discovered {len(tools)} tools in {discovery_time:.1f}ms[/dim]\n")

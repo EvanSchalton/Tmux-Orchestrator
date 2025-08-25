@@ -37,16 +37,16 @@ class MonitorService:
         self.logger = logger or logging.getLogger(__name__)
 
         # Initialize components
-        self.daemon_manager = DaemonManager(config, self.logger)
+        self.daemon_manager = DaemonManager(config, self.logger)  # type: ignore[abstract]
         self.health_checker = HealthChecker(tmux, config, self.logger)
         self.agent_monitor = AgentMonitor(tmux, config, self.logger)
         self.notification_manager = NotificationManager(tmux, config, self.logger)
         self.state_tracker = StateTracker(tmux, config, self.logger)
-        self.pm_recovery_manager = PMRecoveryManager(tmux, config, self.logger)
+        self.pm_recovery_manager = PMRecoveryManager(tmux, config, self.logger)  # type: ignore[abstract]
 
         # Runtime state
         self.is_running = False
-        self.start_time = None
+        self.start_time: datetime | None = None
         self.cycle_count = 0
         self.last_cycle_time = 0.0
         self.errors_detected = 0
@@ -73,7 +73,7 @@ class MonitorService:
             ]
 
             for component in components:
-                if not component.initialize():
+                if hasattr(component, "initialize") and not component.initialize():
                     self.logger.error(f"Failed to initialize {component.__class__.__name__}")
                     return False
 
@@ -97,7 +97,8 @@ class MonitorService:
 
         for component in components:
             try:
-                component.cleanup()
+                if hasattr(component, "cleanup"):
+                    component.cleanup()
             except Exception as e:
                 self.logger.error(f"Error cleaning up {component.__class__.__name__}: {e}")
 
@@ -240,7 +241,7 @@ class MonitorService:
 
         # Use PM recovery manager for PMs
         if window == "1" or window is None:
-            return self.pm_recovery_manager.handle_recovery(session)
+            return self.pm_recovery_manager.handle_recovery(session, "PM crash detected")
 
         # For other agents, check if recovery is needed
         status = self.health_checker.check_agent_health(target)

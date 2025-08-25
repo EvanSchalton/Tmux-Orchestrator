@@ -6,6 +6,7 @@ performance when dealing with many agents.
 """
 
 import asyncio
+from datetime import timedelta
 from typing import Any
 
 from ..interfaces import (
@@ -57,19 +58,20 @@ class ConcurrentMonitoringStrategy(MonitoringStrategyInterface):
 
         # Initialize status
         status = MonitorStatus(
-            start_time=context.get("start_time"),
-            agents_monitored=0,
-            agents_healthy=0,
-            agents_idle=0,
-            agents_crashed=0,
+            is_running=True,
+            active_agents=0,
+            idle_agents=0,
+            last_cycle_time=0.0,
+            uptime=timedelta(0),
             cycle_count=context.get("cycle_count", 0),
             errors_detected=0,
+            start_time=context.get("start_time"),
         )
 
         try:
             # Discover agents
             agents = agent_monitor.discover_agents()
-            status.agents_monitored = len(agents)
+            status.active_agents = len(agents)
 
             logger.info(f"Starting concurrent monitoring of {len(agents)} agents")
 
@@ -92,14 +94,14 @@ class ConcurrentMonitoringStrategy(MonitoringStrategyInterface):
                 if isinstance(result, Exception):
                     logger.error(f"Error monitoring agent {agents[i].target}: {result}")
                     status.errors_detected += 1
-                elif result:
+                elif result and not isinstance(result, BaseException):
                     # Update status counters based on result
-                    if result.get("crashed"):
-                        status.agents_crashed += 1
-                    elif result.get("idle"):
-                        status.agents_idle += 1
+                    if hasattr(result, "get") and result.get("crashed"):
+                        status.errors_detected += 1
+                    elif hasattr(result, "get") and result.get("idle"):
+                        status.idle_agents += 1
                     else:
-                        status.agents_healthy += 1
+                        pass  # Already counted in active_agents
 
             # Check PMs concurrently
             sessions = state_tracker.get_all_sessions()

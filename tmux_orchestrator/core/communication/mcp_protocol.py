@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Dict, Optional
 
 from tmux_orchestrator.utils.exceptions import ValidationError
 
@@ -38,11 +38,11 @@ class MCPResponse:
 
     result: Any
     id: str
-    error: dict[str, Any | None] = None
+    error: Optional[Dict[str, Any]] = None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        response = {"jsonrpc": "2.0", "id": self.id}
+        response: Dict[str, Any] = {"jsonrpc": "2.0", "id": self.id}
         if self.error:
             response["error"] = self.error
         else:
@@ -142,17 +142,20 @@ class MCPProtocolHandler:
 
     async def run_stdio_server(self) -> None:
         """Run the MCP server listening on stdio."""
+        import sys
+
+        # Use proper stdio streams
+        reader, writer = await asyncio.open_connection()
+
+        # For stdio, we need to use the system stdin/stdout
         reader = asyncio.StreamReader()
-        writer = asyncio.StreamWriter(transport=None, protocol=None, reader=None, loop=asyncio.get_event_loop())
+        protocol = asyncio.StreamReaderProtocol(reader)
+        await asyncio.get_event_loop().connect_read_pipe(lambda: protocol, sys.stdin)
 
-        # Connect to stdin/stdout
-        await asyncio.get_event_loop().connect_read_pipe(
-            lambda: asyncio.StreamReaderProtocol(reader), asyncio.get_event_loop()._stdin
+        writer_transport, writer_protocol = await asyncio.get_event_loop().connect_write_pipe(
+            asyncio.BaseProtocol, sys.stdout
         )
-
-        await asyncio.get_event_loop().connect_write_pipe(
-            lambda: asyncio.StreamWriterProtocol(writer), asyncio.get_event_loop()._stdout
-        )
+        writer = asyncio.StreamWriter(writer_transport, writer_protocol, reader, asyncio.get_event_loop())
 
         self._running = True
         logger.info("MCP protocol handler started on stdio")

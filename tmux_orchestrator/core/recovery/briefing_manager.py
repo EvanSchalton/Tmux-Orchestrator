@@ -80,7 +80,7 @@ def restore_agent_briefing(
             briefing_text = _generate_role_briefing(
                 agent_role=agent_role,
                 target=target,
-                project_context=project_context,
+                project_context=project_context if project_context is not None else {},
                 logger=logger,
             )
             logger.info(f"Generated role-based briefing for {target}")
@@ -154,7 +154,11 @@ def _generate_role_briefing(
     """Generate role-specific briefing text."""
     # Extract session and project info
     session_name: str = target.split(":")[0]
-    project_name: str = project_context.get("project_name", session_name) if project_context else session_name
+    from typing import cast
+
+    project_name: str = (
+        cast(str, project_context.get("project_name", session_name)) if project_context else session_name
+    )
 
     # Get role template
     role_templates: dict[str, str] = _get_role_templates()

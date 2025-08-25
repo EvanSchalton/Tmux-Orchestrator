@@ -81,14 +81,16 @@ class ServiceContainer(ServiceContainerInterface):
         """
         # Check if we have a singleton instance
         if interface_type in self._singletons:
-            return self._singletons[interface_type]
+            from typing import cast
+
+            return cast(T, self._singletons[interface_type])
 
         # Check if we have a direct service registration
         if interface_type in self._services:
             service = self._services[interface_type]
             if self._singleton_flags.get(interface_type, True):
                 self._singletons[interface_type] = service
-            return service
+            return cast(T, service)
 
         # Check if we have a factory
         if interface_type in self._factories:
@@ -101,7 +103,7 @@ class ServiceContainer(ServiceContainerInterface):
             if self._singleton_flags.get(interface_type, True):
                 self._singletons[interface_type] = service
 
-            return service
+            return cast(T, service)
 
         # Try to auto-resolve if it's a concrete class
         if inspect.isclass(interface_type) and not inspect.isabstract(interface_type):
@@ -109,7 +111,9 @@ class ServiceContainer(ServiceContainerInterface):
                 service = self._auto_resolve(interface_type)
                 if self._singleton_flags.get(interface_type, True):
                     self._singletons[interface_type] = service
-                return service
+                from typing import cast
+
+                return cast(T, service)
             except Exception as e:
                 self.logger.debug(f"Auto-resolution failed for {interface_type.__name__}: {e}")
 
@@ -166,7 +170,9 @@ class ServiceContainer(ServiceContainerInterface):
         """
         # Check async singletons first
         if interface_type in self._async_singletons:
-            return self._async_singletons[interface_type]
+            from typing import cast
+
+            return cast(T, self._async_singletons[interface_type])
 
         # Check if we have an async factory
         if interface_type in self._async_factories:
@@ -177,7 +183,7 @@ class ServiceContainer(ServiceContainerInterface):
             if self._singleton_flags.get(interface_type, True):
                 self._async_singletons[interface_type] = instance
 
-            return instance
+            return cast(T, instance)
 
         # Fall back to sync resolution
         return self.resolve(interface_type)
@@ -216,7 +222,7 @@ class ServiceContainer(ServiceContainerInterface):
         """
         return self._plugins.copy()
 
-    def get_plugin_metadata(self, plugin_name: str) -> dict[str, Any] | None:
+    def get_plugin_metadata(self, plugin_name: str) -> dict[str, Any]:
         """Get metadata for a plugin.
 
         Args:
@@ -225,7 +231,7 @@ class ServiceContainer(ServiceContainerInterface):
         Returns:
             Plugin metadata or None
         """
-        return self._plugin_metadata.get(plugin_name)
+        return self._plugin_metadata.get(plugin_name) or {}
 
     def _call_with_injection(self, factory: Callable) -> Any:
         """Call a factory function with automatic dependency injection.

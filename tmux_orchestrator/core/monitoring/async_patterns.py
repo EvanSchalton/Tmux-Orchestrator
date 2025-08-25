@@ -44,7 +44,9 @@ class AsyncMonitorComponent(MonitorComponent, ABC):
                 # Wait for ongoing initialization
                 while self._initializing:
                     await asyncio.sleep(0.1)
-                return self._initialized
+                from typing import cast
+
+                return cast(bool, self._initialized)
 
             self._initializing = True
 
@@ -115,7 +117,7 @@ class AsyncBatchProcessor:
     async def _process_loop(self, processor: Callable[[list[Any]], Any]) -> None:
         """Main processing loop."""
         while not self._shutdown:
-            batch = []
+            batch: list[Any] = []
             deadline = time.time() + self.max_wait_time
 
             try:
@@ -266,7 +268,9 @@ class AsyncCircuitBreaker:
 
             return result
 
-        except self.expected_exception:
+        except Exception as e:
+            if not isinstance(e, self.expected_exception):
+                raise
             self._failure_count += 1
             self._last_failure_time = time.time()
 

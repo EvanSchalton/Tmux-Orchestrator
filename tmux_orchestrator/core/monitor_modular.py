@@ -159,7 +159,9 @@ class ModularIdleMonitor:
                 target.split(":")[0], target.split(":")[1] if ":" in target else None
             )
             if isinstance(health, dict) and "is_idle" in health:
-                return health["is_idle"]
+                from typing import cast
+
+                return cast(bool, health["is_idle"])
         elif self.component_manager:
             return self.component_manager.is_agent_idle(target)
         return False

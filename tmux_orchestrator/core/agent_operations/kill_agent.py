@@ -63,6 +63,9 @@ def kill_agent(
         return _kill_session(tmux, session, windows, force, save_state, graceful_timeout, details)
     else:
         # Kill specific window
+        if window is None:
+            details["error"] = "Window not specified for window kill operation"
+            return False, "Window not specified for window kill operation", details
         return _kill_window(tmux, session, window, windows, force, save_state, graceful_timeout, details)
 
 

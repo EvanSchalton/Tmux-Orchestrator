@@ -157,6 +157,23 @@ class Config:
         """Get notification cooldown."""
         return int(self._config["monitoring"]["notification_cooldown"])
 
+    @property
+    def default_model(self) -> str | None:
+        """Get default Claude model."""
+        from typing import cast
+
+        return cast(str | None, self.get("claude.default_model", "claude-3-5-sonnet-20241022"))
+
+    @property
+    def api_key(self) -> str | None:
+        """Get Claude API key."""
+        return self.get("claude.api_key") or os.environ.get("ANTHROPIC_API_KEY")
+
+    @property
+    def base_url(self) -> str | None:
+        """Get Claude API base URL."""
+        return self.get("claude.base_url") or os.environ.get("ANTHROPIC_BASE_URL")
+
     def get_agent_config(self, agent_type: str) -> Optional[dict[str, Any]]:
         """Get configuration for a specific agent type."""
         agents = self._config["team"]["agents"]

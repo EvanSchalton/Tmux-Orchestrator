@@ -137,7 +137,13 @@ def _analyze_agent_health(pane_content: str) -> dict[str, Any]:
     """
     content_lower = pane_content.lower()
 
-    health_status = {"is_healthy": True, "is_responsive": True, "has_errors": False, "is_stuck": False, "reason": None}
+    health_status: dict[str, Any] = {
+        "is_healthy": True,
+        "is_responsive": True,
+        "has_errors": False,
+        "is_stuck": False,
+        "reason": None,
+    }
 
     # Check for various unhealthy states
     if "error" in content_lower or "exception" in content_lower:

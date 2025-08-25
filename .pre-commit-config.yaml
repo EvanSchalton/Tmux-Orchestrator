@@ -11,16 +11,15 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
 
-  # Type checking - TEMPORARILY DISABLED FOR EMERGENCY DEPLOYMENT
-  # TODO: Re-enable after fixing remaining 262 MyPy errors
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.7.1
-  #   hooks:
-  #     - id: mypy
-  #       additional_dependencies: [types-pyyaml==6.0.12.20250516]
-  #       args: [--config-file, pyproject.toml, --ignore-missing-imports, tmux_orchestrator]
-  #       files: ^tmux_orchestrator/
-  #       pass_filenames: false
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-pyyaml==6.0.12.20250516]
+        args: [--config-file, pyproject.toml, --ignore-missing-imports, tmux_orchestrator]
+        files: ^tmux_orchestrator/
+        pass_filenames: false
 
   # Test validation - TEMPORARILY DISABLED DUE TO FILE DESCRIPTOR ERROR
   # TODO: Fix pytest file descriptor issue

@@ -343,11 +343,14 @@ class PubsubNotificationManager(NotificationManagerInterface):
             try:
                 daemon_stats = asyncio.run(self._daemon_client.get_status())
                 if daemon_stats.get("status") == "active":
-                    stats["daemon_performance"] = {
+                    from typing import Any, cast
+
+                    daemon_perf_dict = {
                         "avg_delivery_ms": daemon_stats.get("avg_delivery_time_ms", "N/A"),
-                        "messages_processed": daemon_stats.get("messages_processed", 0),
-                        "queue_size": daemon_stats.get("queue_size", 0),
+                        "messages_processed": cast(int, daemon_stats.get("messages_processed", 0)),
+                        "queue_size": cast(int, daemon_stats.get("queue_size", 0)),
                     }
+                    stats["daemon_performance"] = cast(Any, daemon_perf_dict)
             except Exception:
                 pass
 

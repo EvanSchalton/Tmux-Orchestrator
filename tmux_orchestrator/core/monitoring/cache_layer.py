@@ -213,7 +213,7 @@ class CacheLayer:
             last_accessed=time.time(),
             ttl=ttl,
             stale_time=stale_time,
-            tags=tags or [],
+            tags=[t for t in (tags or []) if t is not None],
         )
 
         async with self._lock:
@@ -445,7 +445,7 @@ class AgentContentCache(CacheLayer):
         # Tag with session for bulk invalidation
         tags = [f"session:{session}"]
 
-        await self.set(key, content, ttl=ttl, tags=tags)
+        await self.set(key, content, ttl=ttl, tags=tags)  # type: ignore[arg-type]
 
     async def invalidate_session(self, session: str) -> int:
         """Invalidate all cache entries for a session.
@@ -471,7 +471,8 @@ class TMuxCommandCache(CacheLayer):
 
     async def get_sessions(self) -> tuple[list[dict | None], CacheEntryStatus]:
         """Get cached session list."""
-        return await self.get("tmux:sessions")
+        result = await self.get("tmux:sessions")
+        return result  # type: ignore[return-value]
 
     async def set_sessions(self, sessions: list[dict]) -> None:
         """Cache session list."""
@@ -479,7 +480,8 @@ class TMuxCommandCache(CacheLayer):
 
     async def get_windows(self, session: str) -> tuple[list[dict | None], CacheEntryStatus]:
         """Get cached window list for session."""
-        return await self.get(f"tmux:windows:{session}")
+        result = await self.get(f"tmux:windows:{session}")
+        return result  # type: ignore[return-value]
 
     async def set_windows(self, session: str, windows: list[dict]) -> None:
         """Cache window list for session."""

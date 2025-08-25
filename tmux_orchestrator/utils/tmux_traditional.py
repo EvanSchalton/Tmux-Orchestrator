@@ -295,7 +295,9 @@ class TMUXManager:
 
         # Check cache
         if current_time - self._session_cache_time < self._cache_ttl and "sessions" in self._session_cache:
-            return self._session_cache["sessions"]
+            from typing import cast
+
+            return cast(list[dict[str, str]], self._session_cache["sessions"])
 
         # Cache miss - get fresh data
         result = self._run_tmux(

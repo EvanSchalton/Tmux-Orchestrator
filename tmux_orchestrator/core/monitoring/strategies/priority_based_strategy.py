@@ -132,13 +132,14 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
 
         # Initialize status
         status = MonitorStatus(
-            start_time=datetime.now(),
-            agents_monitored=0,
-            agents_healthy=0,
-            agents_idle=0,
-            agents_crashed=0,
+            is_running=True,
+            active_agents=0,
+            idle_agents=0,
+            last_cycle_time=0.0,
+            uptime=timedelta(0),
             cycle_count=context.get("cycle_count", 0),
             errors_detected=0,
+            start_time=datetime.now(),
         )
 
         try:
@@ -167,7 +168,7 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
                 await self._check_agent(
                     p_agent, agent_monitor, state_tracker, crash_detector, notification_manager, status, logger, metrics
                 )
-                status.agents_monitored += 1
+                status.active_agents += 1
 
             # Phase 3: Check remaining agents in priority order (concurrent batches)
             remaining_agents = [a for a in prioritized_agents if a.priority != AgentPriority.CRITICAL]
@@ -184,17 +185,18 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
                     batch, agent_monitor, state_tracker, crash_detector, notification_manager, status, logger, metrics
                 )
 
-                status.agents_monitored += len(batch)
+                status.active_agents += len(batch)
 
                 # Early exit if taking too long
-                elapsed = (datetime.now() - status.start_time).total_seconds()
-                if elapsed > 30 and priority >= AgentPriority.LOW:
-                    if logger:
-                        logger.warning(
-                            f"Monitoring cycle running long ({elapsed:.1f}s), "
-                            f"skipping {sum(1 for a in remaining_agents if a.priority > priority)} low priority agents"
-                        )
-                    break
+                if status.start_time is not None:
+                    elapsed = (datetime.now() - status.start_time).total_seconds()
+                    if elapsed > 30 and priority >= AgentPriority.LOW:
+                        if logger:
+                            logger.warning(
+                                f"Monitoring cycle running long ({elapsed:.1f}s), "
+                                f"skipping {sum(1 for a in remaining_agents if a.priority > priority)} low priority agents"
+                            )
+                        break
 
             # Phase 4: PM health checks (always do these)
             await self._check_pm_health(
@@ -210,10 +212,10 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
             status.end_time = datetime.now()
 
             # Record metrics
-            if metrics:
+            if metrics and status.start_time is not None and status.end_time is not None:
                 cycle_duration = (status.end_time - status.start_time).total_seconds()
                 metrics.record_histogram("priority.cycle_duration", cycle_duration)
-                metrics.set_gauge("priority.agents_skipped", len(agents) - status.agents_monitored)
+                metrics.set_gauge("priority.agents_skipped", len(agents) - status.active_agents)
 
             return status
 
@@ -281,7 +283,7 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
             agent_state = state_tracker.get_agent_state(agent.target)
             if agent_state:
                 # Fresh agents need attention
-                if agent_state.is_fresh:
+                if agent_state.get("is_fresh"):
                     if priority > AgentPriority.HIGH:
                         priority = AgentPriority.HIGH
                     score += 40
@@ -365,31 +367,39 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
         logger: Any | None,
     ) -> None:
         """Perform the actual agent health check."""
-        # Analyze agent content
-        idle_analysis = agent_monitor.analyze_agent_content(agent_info.target)
+        # Check agent health and get content
+        is_healthy, issue = agent_monitor.check_agent(agent_info)
+        agent_status = agent_monitor.get_agent_status(agent_info.target)
+        content = agent_status.get("content", "")
 
         # Update state
-        agent_state = state_tracker.update_agent_state(agent_info.target, idle_analysis.content)
+        state_tracker.update_agent_state(
+            agent_info.target,
+            {"is_healthy": is_healthy, "issue": issue, "content": content, "last_checked": datetime.now()},
+        )
+        agent_state = state_tracker.get_agent_state(agent_info.target) or {}
 
         # Check for crashes
         is_crashed, crash_reason = crash_detector.detect_crash(
-            agent_info, idle_analysis.content.split("\n"), state_tracker.get_idle_duration(agent_info.target)
+            agent_info, content.split("\n") if content else [], state_tracker.get_idle_duration(agent_info.target)
         )
 
         if is_crashed:
-            status.agents_crashed += 1
+            status.errors_detected += 1
             self._record_crash(agent_info.target)
 
             notification_manager.notify_agent_crash(
-                target=agent_info.target, error_type=crash_reason or "Unknown error", session=agent_info.session
+                agent_target=agent_info.target,
+                error_message=crash_reason or "Unknown error",
+                session=agent_info.session,
             )
-        elif idle_analysis.is_idle:
-            status.agents_idle += 1
+        elif not is_healthy and issue and "idle" in issue.lower():
+            status.idle_agents += 1
 
-            if agent_state.is_fresh:
-                notification_manager.notify_fresh_agent(target=agent_info.target, session=agent_info.session)
+            if agent_state.get("is_fresh"):
+                notification_manager.notify_fresh_agent(agent_target=agent_info.target)
         else:
-            status.agents_healthy += 1
+            status.active_agents += 1
 
             # Track stable agents
             if self.adaptive_mode and agent_info.target not in self.false_positive_agents:
@@ -438,7 +448,7 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
                         logger.warning(f"PM issue in {session}: {issue}")
 
                     notification_manager.notify_recovery_needed(
-                        target=pm_target or session, issue=issue or "PM not found", session=session
+                        agent_target=pm_target or session, reason=issue or "PM not found"
                     )
 
                     if pm_recovery_manager.recover_pm(session, pm_target):

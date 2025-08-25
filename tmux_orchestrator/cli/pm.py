@@ -81,7 +81,8 @@ def checkin(ctx: click.Context, json: bool) -> None:
 
     start_time = time.time()
     manager = PMManager(ctx.obj["tmux"])
-    success = manager.trigger_status_review()
+    manager.trigger_status_review()
+    success = True  # Assume success if no exception
     execution_time = (time.time() - start_time) * 1000
 
     if json:

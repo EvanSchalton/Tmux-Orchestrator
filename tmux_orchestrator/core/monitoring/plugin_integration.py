@@ -44,15 +44,16 @@ class PluginIntegrationBridge:
 
                 if strategy:
                     # Register with container
-                    metadata = {
-                        "name": plugin_info.name,
-                        "description": plugin_info.description,
-                        "file_path": str(plugin_info.file_path),
-                        "status": plugin_info.status.value,
-                        "required_components": strategy.get_required_components(),
-                    }
+                    # metadata would be used for registration if needed
+                    # metadata = {
+                    #     "name": plugin_info.name,
+                    #     "description": plugin_info.description,
+                    #     "file_path": str(plugin_info.file_path),
+                    #     "status": plugin_info.status.value,
+                    #     "required_components": strategy.get_required_components(),
+                    # }
 
-                    self.container.register_plugin(plugin_info.name, strategy, metadata)
+                    self.container.register_plugin(plugin_info.name, strategy)
 
                     self.logger.info(f"Registered plugin '{plugin_info.name}' with container")
 
@@ -100,7 +101,9 @@ class PluginIntegrationBridge:
         if not self._active_strategy:
             return None
 
-        return self.container.get_plugin(self._active_strategy)
+        from typing import cast
+
+        return cast(MonitoringStrategyInterface | None, self.container.get_plugin(self._active_strategy))
 
     def create_strategy_context(self) -> dict[str, Any]:
         """Create execution context for strategy.
@@ -179,14 +182,15 @@ class PluginIntegrationBridge:
             # Re-register with container
             strategy = self.plugin_loader.get_loaded_strategies().get(plugin_name)
             if strategy:
-                plugin_info = self.plugin_loader.get_plugin_info(plugin_name)
-                metadata = {
-                    "name": plugin_name,
-                    "description": plugin_info.description if plugin_info else "",
-                    "reloaded": True,
-                }
+                # plugin_info = self.plugin_loader.get_plugin_info(plugin_name)  # Would be used for metadata
+                # metadata would be used for tracking if needed
+                # metadata = {
+                #     "name": plugin_name,
+                #     "description": plugin_info.description if plugin_info else "",
+                #     "reloaded": True,
+                # }
 
-                self.container.register_plugin(plugin_name, strategy, metadata)
+                self.container.register_plugin(plugin_name, strategy)
                 return True
 
         return False

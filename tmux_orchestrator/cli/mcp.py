@@ -45,7 +45,7 @@ def serve(verbose, test):
         # Set environment to indicate Claude Code CLI mode
         import os
 
-        from tmux_orchestrator.mcp_server import main
+        from tmux_orchestrator.mcp.server import main
 
         os.environ["TMUX_ORC_MCP_MODE"] = "claude_code"
 

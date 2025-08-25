@@ -11,7 +11,7 @@ import subprocess
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import psutil
 
@@ -115,7 +115,7 @@ class MCPServerSupervisor:
             self.logger.error(f"Error finding MCP server process: {e}")
             return None
 
-    async def health_check(self) -> Dict[str, any]:
+    async def health_check(self) -> Dict[str, Any]:
         """Comprehensive MCP server health check"""
         try:
             proc = await self.find_mcp_server_process()

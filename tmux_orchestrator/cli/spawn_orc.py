@@ -370,5 +370,50 @@ def _command_exists(command: str) -> bool:
         return False
 
 
+def run_spawn_command(**kwargs) -> bool:
+    """Run spawn command with given arguments.
+
+    Args:
+        **kwargs: Arguments for spawning (session, window, briefing, etc.)
+
+    Returns:
+        True if successful
+    """
+    try:
+        # Import here to avoid circular imports
+        import subprocess
+
+        # Build tmux-orc command
+        cmd = ["tmux-orc", "spawn", "agent"]
+
+        if "session" in kwargs:
+            session = kwargs["session"]
+            # Split session:window format if needed
+            if ":" in session:
+                session_name, window = session.split(":", 1)
+                cmd.extend([session_name, window])
+            else:
+                cmd.append(session)
+
+        # Add other args
+        if kwargs.get("model"):
+            cmd.extend(["--model", kwargs["model"]])
+        if kwargs.get("briefing"):
+            cmd.extend(["--briefing", kwargs["briefing"]])
+        if kwargs.get("extend"):
+            cmd.extend(["--extend", kwargs["extend"]])
+        if kwargs.get("api_key"):
+            cmd.extend(["--api-key", kwargs["api_key"]])
+        if kwargs.get("base_url"):
+            cmd.extend(["--base-url", kwargs["base_url"]])
+
+        # Execute command
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        return result.returncode == 0
+
+    except Exception:
+        return False
+
+
 if __name__ == "__main__":
     spawn_orc()

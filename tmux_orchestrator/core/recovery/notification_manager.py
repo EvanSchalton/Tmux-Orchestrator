@@ -86,7 +86,7 @@ def should_send_recovery_notification(
 
         # Check cooldown for this target
         target_key: str = f"{target}:{notification_type}"
-        last_notification: dict[str, Any | None] = notification_state.get(target_key)
+        last_notification: dict[str, Any | None] | None = notification_state.get(target_key)
 
         if last_notification is None:
             # No previous notification of this type for this target
@@ -112,7 +112,9 @@ def should_send_recovery_notification(
             return True, reason, notification_data
 
         # Check if cooldown period has passed
-        last_time_str: str = last_notification.get("timestamp", "")
+        from typing import cast
+
+        last_time_str: str = cast(str, last_notification.get("timestamp", "")) if last_notification else ""
         try:
             last_time: datetime = datetime.fromisoformat(last_time_str)
         except ValueError:

@@ -1,7 +1,6 @@
 """Team management commands."""
 
-import builtins
-from typing import Any
+from typing import Any, Dict, List, cast
 
 import click
 from rich.console import Console
@@ -90,7 +89,8 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
     tmux: TMUXManager = ctx.obj["tmux"]
 
     # Delegate to business logic
-    team_status: dict[str, Any | None] = get_team_status(tmux, session)
+
+    team_status: dict[str, Any | None] = cast(dict[str, Any | None], get_team_status(tmux, session))
 
     if not team_status:
         console.print(f"[red]✗ Session '{session}' not found[/red]")
@@ -104,7 +104,7 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
         return
 
     # Display session header
-    session_info: dict[str, str] = team_status["session_info"]
+    session_info: dict[str, str] = cast(dict[str, str], team_status["session_info"])
     attached: str = "Yes" if session_info.get("attached") == "1" else "No"
     header_text: str = f"Session: {session} | Created: {session_info.get('created', 'Unknown')} | Attached: {attached}"
     console.print(Panel(header_text, style="bold blue"))
@@ -117,7 +117,7 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
     table.add_column("Status", style="yellow", width=12)
     table.add_column("Last Activity", style="blue", width=30)
 
-    windows: builtins.list[dict[str, Any]] = team_status["windows"]
+    windows: List[Dict[str, Any]] = cast(List[Dict[str, Any]], team_status["windows"])
     for window in windows:
         table.add_row(
             window["index"],
@@ -131,7 +131,7 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
     console.print(table)
 
     # Show summary
-    summary: dict[str, int] = team_status["summary"]
+    summary: dict[str, int] = cast(dict[str, int], team_status["summary"])
     summary_text: str = f"Total Windows: {summary['total_windows']} | Active Agents: {summary['active_agents']}"
     console.print(f"\n[bold green]{summary_text}[/bold green]")
 
@@ -176,7 +176,7 @@ def list(ctx: click.Context, json: bool) -> None:
     tmux: TMUXManager = ctx.obj["tmux"]
 
     # Delegate to business logic
-    teams: builtins.list[dict[str, Any]] = list_all_teams(tmux)
+    teams: List[Dict[str, Any]] = list_all_teams(tmux)
 
     if json:
         import json as json_module

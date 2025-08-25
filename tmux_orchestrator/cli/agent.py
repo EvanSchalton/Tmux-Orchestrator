@@ -538,7 +538,7 @@ def restart(
     if json:
         import json as json_module
 
-        result = {
+        json_result = {
             "success": success,
             "target": target,
             "message": result_message,
@@ -551,7 +551,7 @@ def restart(
                 "timeout": timeout,
             },
         }
-        console.print(json_module.dumps(result, indent=2))
+        console.print(json_module.dumps(json_result, indent=2))
         return
 
     if success:

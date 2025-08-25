@@ -87,7 +87,7 @@ class TMUXManager:
             execution_time = (time.time() - start_time) * 1000  # Convert to ms
             self._logger.info(f"Optimized list_agents completed in {execution_time:.1f}ms")
 
-            return agents
+            return cast(list[dict[str, str]], agents)
 
         except Exception as e:
             self._logger.error(f"Optimized agent listing failed: {e}")
@@ -165,7 +165,7 @@ class TMUXManager:
             execution_time = (time.time() - start_time) * 1000
             self._logger.info(f"Ultra-optimized list_agents completed in {execution_time:.1f}ms")
 
-            return agents
+            return cast(list[dict[str, str]], agents)
 
         except Exception as e:
             self._logger.error(f"Ultra-optimized agent listing failed: {e}")
@@ -529,7 +529,7 @@ class TMUXManager:
             self._session_cache["sessions"] = sessions
             self._session_cache_time = current_time
 
-            return sessions
+            return cast(list[dict[str, str]], sessions)
 
         except Exception as e:
             self._logger.error(f"Cached session listing failed: {e}")
@@ -687,3 +687,20 @@ class TMUXManager:
     def press_ctrl_e(self, target: str) -> bool:
         """Press Ctrl+E (end of line) in the target pane."""
         return self.send_keys(target, "C-e", literal=False)
+
+    def run(self, command: str) -> bool:
+        """Execute a raw tmux command.
+
+        Args:
+            command: Raw tmux command to execute
+
+        Returns:
+            True if successful
+        """
+        import subprocess
+
+        try:
+            result = subprocess.run(["tmux"] + command.split(), capture_output=True, text=True, timeout=10)
+            return result.returncode == 0
+        except Exception:
+            return False

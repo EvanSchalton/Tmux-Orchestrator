@@ -384,7 +384,7 @@ def execute(
             project_name = name
 
     # Track execution data for JSON output
-    execution_data = {
+    execution_data: dict[str, Any] = {
         "project_name": project_name,
         "prd_file": str(prd_path),
         "team_type": team_type,
