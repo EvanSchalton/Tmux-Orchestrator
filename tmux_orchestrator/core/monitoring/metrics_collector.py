@@ -10,7 +10,7 @@ import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Deque
+from typing import Deque, Optional
 
 from tmux_orchestrator.core.config import Config
 
@@ -100,7 +100,7 @@ class MetricsCollector(MonitorComponent):
         self._histograms.clear()
         self._timers.clear()
 
-    def record_metric(self, name: str, value: float, labels: dict[str, str | None] = None) -> None:
+    def record_metric(self, name: str, value: float, labels: Optional[dict[str, str]] = None) -> None:
         """Record a metric data point.
 
         Args:

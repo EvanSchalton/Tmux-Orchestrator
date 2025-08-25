@@ -5,10 +5,8 @@ Shared configuration and mocks for MCP tests.
 import sys
 from unittest.mock import MagicMock
 
-# Mock MCP and FastMCP modules for in-memory testing
-sys.modules["mcp"] = MagicMock()
-sys.modules["mcp.server"] = MagicMock()
-sys.modules["mcp.server.Server"] = MagicMock()
+# Mock FastMCP modules for in-memory testing (avoid conflicts with pytest module imports)
+# Don't mock 'mcp' namespace to avoid conflicts with test file imports
 
 
 # Create a mock FastMCP class
@@ -36,3 +34,18 @@ sys.modules["fastmcp"] = mock_fastmcp
 sys.modules["fastmcp.server"] = MagicMock()
 
 # Now we can import the MCP server without actual dependencies
+
+# Import the actual classes from the main module for testing
+try:
+    from tmux_orchestrator.mcp_server import EnhancedCLIToMCPServer, MCPAutoGenerator
+except ImportError:
+    # If import fails, create mock versions
+    EnhancedCLIToMCPServer = MagicMock()
+    MCPAutoGenerator = MagicMock()
+
+
+# Create a mock EnhancedHierarchicalSchema for backward compatibility
+class EnhancedHierarchicalSchema:
+    """Mock schema class for testing."""
+
+    pass

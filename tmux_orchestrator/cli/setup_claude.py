@@ -721,7 +721,7 @@ All tasks are organized in `.tmux_orchestrator/projects/`:
 {claude_status}
 
 [bold]Next Steps:[/bold]
-1. {'Claude Code should reload automatically' if claude_restarted else 'Restart Claude Code to load slash commands'}
+1. {"Claude Code should reload automatically" if claude_restarted else "Restart Claude Code to load slash commands"}
 2. Test with: /create-prd
 3. Monitor MCP server: tmux-orc server status
 

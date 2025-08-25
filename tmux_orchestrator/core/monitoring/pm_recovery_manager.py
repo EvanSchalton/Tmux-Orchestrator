@@ -9,6 +9,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -396,7 +397,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
         except Exception as e:
             self.logger.error(f"Error resuming incomplete recoveries: {e}")
 
-    def get_recovery_status(self) -> dict[str, any]:
+    def get_recovery_status(self) -> dict[str, Any]:
         """Get current recovery status information.
 
         Returns:

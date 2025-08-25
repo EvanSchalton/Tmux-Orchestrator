@@ -150,11 +150,11 @@ async def demo_pubsub_integration():
         pubsub.publish_fresh_agent(f"test-agent:{i}", "test-session", f"test-window-{i}")
     pubsub_time = (time.perf_counter() - start_time) * 1000
 
-    print(f"   Pubsub delivery: {pubsub_time:.1f}ms total ({pubsub_time/iterations:.1f}ms avg)")
+    print(f"   Pubsub delivery: {pubsub_time:.1f}ms total ({pubsub_time / iterations:.1f}ms avg)")
 
     # Simulated direct tmux timing (600ms per message based on analysis)
     direct_time = iterations * 600
-    print(f"   Direct tmux (est): {direct_time:.1f}ms total ({direct_time/iterations:.1f}ms avg)")
+    print(f"   Direct tmux (est): {direct_time:.1f}ms total ({direct_time / iterations:.1f}ms avg)")
 
     improvement = (direct_time - pubsub_time) / direct_time * 100
     print(f"   🚀 Performance improvement: {improvement:.1f}%")

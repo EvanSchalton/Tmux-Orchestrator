@@ -292,13 +292,13 @@ class TestMCPToolIntegrationValidation:
                 ["tmux-orc", "reflect", "--format", "json"], capture_output=True, text=True, timeout=10
             )
 
-            assert result.returncode == 0, f"Reflect command failed on iteration {i+1} - Test ID: {test_uuid}"
+            assert result.returncode == 0, f"Reflect command failed on iteration {i + 1} - Test ID: {test_uuid}"
 
             try:
                 data = json.loads(result.stdout)
                 results.append(data)
             except json.JSONDecodeError:
-                pytest.fail(f"Reflect returned invalid JSON on iteration {i+1} - Test ID: {test_uuid}")
+                pytest.fail(f"Reflect returned invalid JSON on iteration {i + 1} - Test ID: {test_uuid}")
 
         # Results should be consistent
         assert len(results) == 3, f"Not all reflect iterations completed - Test ID: {test_uuid}"

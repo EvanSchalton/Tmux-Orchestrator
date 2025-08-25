@@ -144,7 +144,7 @@ class MCPToolTester:
 
         print(f"✅ Successful Tests: {success_count}")
         print(f"❌ Failed Tests: {failure_count}")
-        print(f"Success Rate: {(success_count/len(self.test_results)*100):.1f}%")
+        print(f"Success Rate: {(success_count / len(self.test_results) * 100):.1f}%")
 
         print("\nDETAILED RESULTS:")
         print("-" * 50)

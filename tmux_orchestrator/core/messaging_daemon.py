@@ -220,7 +220,7 @@ class HighPerformanceMessagingDaemon:
                     self._delivery_times.append(delivery_time)
 
                     if delivery_time > 0.1:  # Log slow deliveries
-                        self.logger.warning(f"Slow delivery: {delivery_time*1000:.1f}ms for {message.target}")
+                        self.logger.warning(f"Slow delivery: {delivery_time * 1000:.1f}ms for {message.target}")
 
                     # Persist message (async, non-blocking)
                     if success:

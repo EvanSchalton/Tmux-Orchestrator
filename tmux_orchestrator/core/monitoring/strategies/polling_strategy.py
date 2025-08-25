@@ -300,6 +300,5 @@ class PollingMonitoringStrategy(BaseMonitoringStrategy):
 
         if logger:
             logger.debug(
-                f"Processed {len(crashed_agents)} crash, "
-                f"{len(idle_agents)} idle, and {len(pm_issues)} PM notifications"
+                f"Processed {len(crashed_agents)} crash, {len(idle_agents)} idle, and {len(pm_issues)} PM notifications"
             )

@@ -9,6 +9,7 @@ pubsub daemon for message delivery instead of direct tmux commands.
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 
 def update_notification_manager_imports() -> dict[str, str]:
@@ -26,15 +27,12 @@ def update_monitor_imports() -> list[dict[str, str]]:
     return [
         {
             "file": "monitor.py",
-            "add_imports": [
-                "from tmux_orchestrator.core.monitoring.pubsub_integration import MonitorPubsubClient, PriorityMessageRouter",
-                "from tmux_orchestrator.core.recovery.pubsub_recovery_coordinator import PubsubRecoveryCoordinator",
-            ],
+            "add_imports": "from tmux_orchestrator.core.monitoring.pubsub_integration import MonitorPubsubClient, PriorityMessageRouter; from tmux_orchestrator.core.recovery.pubsub_recovery_coordinator import PubsubRecoveryCoordinator",
         }
     ]
 
 
-def create_pubsub_config() -> dict[str, any]:
+def create_pubsub_config() -> dict[str, Any]:
     """Create pubsub configuration for monitoring."""
     return {
         "pubsub": {

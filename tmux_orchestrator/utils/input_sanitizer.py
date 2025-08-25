@@ -45,7 +45,7 @@ def sanitize_session_name(name: str) -> str:
 
     if not SAFE_SESSION_NAME_PATTERN.match(name):
         raise ValidationError(
-            "Session name contains invalid characters. " "Only alphanumeric, underscore, hyphen, and dot allowed."
+            "Session name contains invalid characters. Only alphanumeric, underscore, hyphen, and dot allowed."
         )
 
     # Prevent special tmux session names
@@ -75,7 +75,7 @@ def sanitize_window_name(name: str) -> str:
 
     if not SAFE_WINDOW_NAME_PATTERN.match(name):
         raise ValidationError(
-            "Window name contains invalid characters. " "Only alphanumeric, underscore, hyphen, dot, and space allowed."
+            "Window name contains invalid characters. Only alphanumeric, underscore, hyphen, dot, and space allowed."
         )
 
     return name
@@ -323,7 +323,7 @@ def validate_agent_type(agent_type: str) -> str:
     }
 
     if agent_type.lower() not in valid_types:
-        raise ValidationError(f"Invalid agent type: {agent_type}. " f"Valid types: {', '.join(sorted(valid_types))}")
+        raise ValidationError(f"Invalid agent type: {agent_type}. Valid types: {', '.join(sorted(valid_types))}")
 
     return agent_type.lower()
 
@@ -343,7 +343,7 @@ def validate_team_type(team_type: str) -> str:
     valid_types = ["frontend", "backend", "fullstack", "testing"]
 
     if team_type.lower() not in valid_types:
-        raise ValidationError(f"Invalid team type: {team_type}. " f"Valid types: {', '.join(valid_types)}")
+        raise ValidationError(f"Invalid team type: {team_type}. Valid types: {', '.join(valid_types)}")
 
     return team_type.lower()
 

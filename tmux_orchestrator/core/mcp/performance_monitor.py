@@ -219,17 +219,17 @@ class MCPPerformanceMonitor:
 # MCP Server Performance Report - Phase 2 QA Testing
 
 ## Executive Summary
-- **Status**: {analysis['status'].upper()}
-- **Runtime**: {summary.get('runtime_minutes', 0):.1f} minutes
-- **Tools Tested**: {summary.get('tools_tested', 0)}
-- **Total Tests**: {summary.get('total_tests', 0)}
-- **Success Rate**: {summary.get('success_rate', 0):.1%}
+- **Status**: {analysis["status"].upper()}
+- **Runtime**: {summary.get("runtime_minutes", 0):.1f} minutes
+- **Tools Tested**: {summary.get("tools_tested", 0)}
+- **Total Tests**: {summary.get("total_tests", 0)}
+- **Success Rate**: {summary.get("success_rate", 0):.1%}
 
 ## Performance Metrics
-- **Average Response Time**: {summary.get('avg_response_time', 0):.3f}s (Target: <1.0s)
-- **Memory Usage**: {summary.get('current_memory_mb', 0):.1f}MB (Target: <500MB)
-- **CPU Usage**: {summary.get('current_cpu_percent', 0):.1f}% (Target: <80%)
-- **Active Processes**: {summary.get('active_processes', 0)}
+- **Average Response Time**: {summary.get("avg_response_time", 0):.3f}s (Target: <1.0s)
+- **Memory Usage**: {summary.get("current_memory_mb", 0):.1f}MB (Target: <500MB)
+- **CPU Usage**: {summary.get("current_cpu_percent", 0):.1f}% (Target: <80%)
+- **Active Processes**: {summary.get("active_processes", 0)}
 
 ## Issues Detected
 """

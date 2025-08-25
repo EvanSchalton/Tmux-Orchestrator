@@ -10,7 +10,7 @@ import importlib.util
 import inspect
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from .interfaces import MonitoringStrategyInterface
 from .types import PluginInfo, PluginStatus
@@ -19,7 +19,7 @@ from .types import PluginInfo, PluginStatus
 class PluginLoader:
     """Loads and manages monitoring strategy plugins."""
 
-    def __init__(self, logger: logging.Logger, plugin_dirs: list[Path | None] = None):
+    def __init__(self, logger: logging.Logger, plugin_dirs: Optional[list[Path]] = None):
         """Initialize the plugin loader.
 
         Args:

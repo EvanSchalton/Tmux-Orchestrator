@@ -125,7 +125,7 @@ class CrashDetector(CrashDetectorInterface):
                 # Use context-aware check to prevent false positives
                 if self._should_ignore_crash_indicator(indicator, content, content_lower):
                     self.logger.debug(
-                        f"Ignoring crash indicator '{indicator}' in {agent.target} - " "appears to be normal output"
+                        f"Ignoring crash indicator '{indicator}' in {agent.target} - appears to be normal output"
                     )
                     continue
 

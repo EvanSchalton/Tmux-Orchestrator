@@ -179,7 +179,7 @@ async def test_performance_metrics():
         print("✅ CLI Discovery Performance:")
         print(f"   • Discovery time: {discovery_time:.2f}s")
         print(f"   • Commands discovered: {len(commands)}")
-        print(f"   • Rate: {len(commands)/discovery_time:.1f} commands/sec")
+        print(f"   • Rate: {len(commands) / discovery_time:.1f} commands/sec")
 
         return discovery_time < 5.0  # Should be under 5 seconds
     else:

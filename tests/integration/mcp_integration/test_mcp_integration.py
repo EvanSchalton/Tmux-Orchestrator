@@ -391,7 +391,7 @@ if __name__ == "__main__":
     print(f"Total tool categories tested: {total_tests}")
     print(f"Accessible: {passed_tests}")
     print(f"Failed: {total_tests - passed_tests}")
-    print(f"Success rate: {(passed_tests/total_tests)*100:.1f}%")
+    print(f"Success rate: {(passed_tests / total_tests) * 100:.1f}%")
 
     # Run pytest if available
     try:

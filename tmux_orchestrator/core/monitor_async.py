@@ -211,7 +211,7 @@ class AsyncAgentMonitor:
             elapsed = time.time() - start_time
             self.logger.info(
                 f"Completed async monitoring of {len(agents)} agents in {elapsed:.2f}s "
-                f"(avg {elapsed/len(agents):.2f}s per agent)"
+                f"(avg {elapsed / len(agents):.2f}s per agent)"
             )
 
             return agent_statuses

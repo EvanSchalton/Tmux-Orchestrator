@@ -11,15 +11,27 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
 
-  # Type checking - temporarily disabled for Phase 1 commit
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.7.1
-  #   hooks:
-  #     - id: mypy
-  #       additional_dependencies: [types-pyyaml==6.0.12.20250516]
-  #       args: [--config-file, pyproject.toml, --ignore-missing-imports, tmux_orchestrator]
-  #       files: ^tmux_orchestrator/
-  #       pass_filenames: false
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-pyyaml==6.0.12.20250516]
+        args: [--config-file, pyproject.toml, --ignore-missing-imports, tmux_orchestrator]
+        files: ^tmux_orchestrator/
+        pass_filenames: false
+
+  # Test validation
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Run pytest tests
+        entry: python -m pytest
+        language: system
+        args: [--tb=short, --no-cov, -q]
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
 
   # Security checks
   - repo: https://github.com/pycqa/bandit

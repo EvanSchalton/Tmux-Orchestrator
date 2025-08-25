@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import IntEnum
-from typing import Any
+from typing import Any, Optional
 
 from ..interfaces import (
     AgentMonitorInterface,
@@ -60,7 +60,7 @@ class PriorityBasedStrategy(MonitoringStrategyInterface):
     - Efficient resource usage for large agent pools
     """
 
-    def __init__(self, config: dict[str, Any | None] = None):
+    def __init__(self, config: Optional[dict[str, Any]] = None):
         """Initialize priority-based strategy.
 
         Args:

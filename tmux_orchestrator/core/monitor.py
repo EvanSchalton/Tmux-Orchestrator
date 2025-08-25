@@ -3746,7 +3746,7 @@ You are being spawned as the Project Manager after a PM failure was detected and
 📊 SESSION STATUS:
 - Session: {session_name}
 - Active agents in session: {len(session_agents)}
-- Agent targets: {', '.join(session_agents) if session_agents else 'None'}
+- Agent targets: {", ".join(session_agents) if session_agents else "None"}
 - Recovery attempt: {attempt}/{max_retries}
 
 🎯 YOUR MISSION:

@@ -81,7 +81,7 @@ while True:
     if counter % 3 == 0:
         print()
         print("╭─ Assistant ─────────────────────────────────────────────────────╮")
-        print(f"│ Status update #{counter//3}: Still working on the failed tests │")
+        print(f"│ Status update #{counter // 3}: Still working on the failed tests │")
         print("│ and deployment issues. Making good progress...                 │")
         print("╰─────────────────────────────────────────────────────────────────╯")
         print()

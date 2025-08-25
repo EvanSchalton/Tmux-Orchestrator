@@ -9,12 +9,17 @@ This test suite follows FastMCP's in-memory testing approach to validate:
 """
 
 import json
+
+# Import mock configuration first
+# Add parent directory to path for conftest_mcp
+import sys
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
-# Import mock configuration first
-from conftest_mcp import EnhancedCLIToMCPServer, EnhancedHierarchicalSchema, MCPAutoGenerator
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from tests.conftest_mcp import EnhancedCLIToMCPServer, EnhancedHierarchicalSchema, MCPAutoGenerator
 
 
 class TestMCPServerCore:

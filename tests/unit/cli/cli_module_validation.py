@@ -194,9 +194,9 @@ def generate_validation_report(results: Dict[str, Any]) -> str:
     report = f"""
 🔍 CLI Module Validation Report
 ================================
-Timestamp: {time.ctime(results['timestamp'])}
-Validation Type: {results['validation_type']}
-Overall Status: {results['overall_status']}
+Timestamp: {time.ctime(results["timestamp"])}
+Validation Type: {results["validation_type"]}
+Overall Status: {results["overall_status"]}
 
 📊 Test Results Summary:
 """

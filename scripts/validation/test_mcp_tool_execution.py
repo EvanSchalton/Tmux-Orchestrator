@@ -143,7 +143,7 @@ async def generate_final_report(results):
     print(f"   • Total tools tested: {total_tools}")
     print(f"   • Successful executions: {successful_tools}")
     print(f"   • Failed executions: {failed_tools}")
-    print(f"   • Success rate: {(successful_tools/total_tools*100):.1f}%")
+    print(f"   • Success rate: {(successful_tools / total_tools * 100):.1f}%")
 
     # Performance analysis
     execution_times = [r.get("execution_time", 0) for r in results.values() if r.get("success")]

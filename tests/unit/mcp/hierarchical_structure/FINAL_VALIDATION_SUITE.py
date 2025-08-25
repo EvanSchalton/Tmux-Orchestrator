@@ -156,7 +156,7 @@ class FinalValidationSuite:
             for i, prompt in enumerate(fix_data["test_prompts"]):
                 tests.append(
                     {
-                        "test_id": f"{fix_id}_test_{i+1}",
+                        "test_id": f"{fix_id}_test_{i + 1}",
                         "fix_category": fix_id,
                         "prompt": prompt,
                         "expected_tool": fix_data["target_tool"],
@@ -419,16 +419,16 @@ class FinalValidationSuite:
         """Generate final validation report."""
         report = f"""
 🏁 FINAL VALIDATION REPORT - HIERARCHICAL MCP OPTIMIZATION
-{"="*60}
+{"=" * 60}
 
 🎯 TARGET ACHIEVEMENT:
-  Overall Accuracy: {results['final_results']['overall_accuracy']:.1f}%
-  Meets 95% Target: {'✅ YES' if results['final_results']['meets_95_target'] else '❌ NO'}
-  Improvement: +{results['final_results']['accuracy_improvement']:.1f}% from baseline
+  Overall Accuracy: {results["final_results"]["overall_accuracy"]:.1f}%
+  Meets 95% Target: {"✅ YES" if results["final_results"]["meets_95_target"] else "❌ NO"}
+  Improvement: +{results["final_results"]["accuracy_improvement"]:.1f}% from baseline
 
 📊 SEVEN CRITICAL FIXES:
-  Working Fixes: {results['seven_fixes_status']['fixes_working']}/{results['seven_fixes_status']['total_fixes']}
-  All Validated: {'✅ YES' if results['seven_fixes_status']['all_fixes_validated'] else '❌ NO'}
+  Working Fixes: {results["seven_fixes_status"]["fixes_working"]}/{results["seven_fixes_status"]["total_fixes"]}
+  All Validated: {"✅ YES" if results["seven_fixes_status"]["all_fixes_validated"] else "❌ NO"}
 
 🔧 FIX VALIDATION RESULTS:
 """
@@ -440,15 +440,15 @@ class FinalValidationSuite:
 
         report += f"""
 ⚡ PERFORMANCE METRICS:
-  Average Confidence: {results['final_results']['avg_confidence']:.1%}
-  Per-Test Improvement: +{results['final_results']['avg_improvement_per_test']:.1f}%
-  Failed Tests: {results['final_results']['failed_tests']}
+  Average Confidence: {results["final_results"]["avg_confidence"]:.1%}
+  Per-Test Improvement: +{results["final_results"]["avg_improvement_per_test"]:.1f}%
+  Failed Tests: {results["final_results"]["failed_tests"]}
 
 🔄 REGRESSION CHECK:
-  Baseline Preserved: {'✅ YES' if results['regression_validation']['baseline_preserved'] else '❌ NO'}
-  No Degradation: {'✅ YES' if results['regression_validation']['no_degradation'] else '❌ NO'}
+  Baseline Preserved: {"✅ YES" if results["regression_validation"]["baseline_preserved"] else "❌ NO"}
+  No Degradation: {"✅ YES" if results["regression_validation"]["no_degradation"] else "❌ NO"}
 
-{'🎉 SUCCESS: 95% TARGET ACHIEVED!' if results['final_results']['meets_95_target'] else '⚠️  NEEDS FINAL ADJUSTMENTS'}
+{"🎉 SUCCESS: 95% TARGET ACHIEVED!" if results["final_results"]["meets_95_target"] else "⚠️  NEEDS FINAL ADJUSTMENTS"}
 """
 
         return report

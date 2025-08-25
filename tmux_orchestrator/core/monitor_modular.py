@@ -245,7 +245,7 @@ class ModularIdleMonitor:
                     time.sleep(sleep_time)
                 else:
                     logger.warning(
-                        f"Monitoring cycle took {cycle_duration:.3f}s, " f"longer than {effective_interval}s interval"
+                        f"Monitoring cycle took {cycle_duration:.3f}s, longer than {effective_interval}s interval"
                     )
 
                 # Log transition from startup to normal intervals

@@ -10,5 +10,17 @@
     "type": "recovery_failed",
     "timestamp": "2025-08-24T01:11:41.532470",
     "cooldown_minutes": 5
+  },
+  "test-bulk-5:2:recovery_started": {
+    "target": "test-bulk-5:2",
+    "type": "recovery_started",
+    "timestamp": "2025-08-25T03:22:05.504816",
+    "cooldown_minutes": 5
+  },
+  "test-bulk-5:2:recovery_failed": {
+    "target": "test-bulk-5:2",
+    "type": "recovery_failed",
+    "timestamp": "2025-08-25T03:22:23.498429",
+    "cooldown_minutes": 5
   }
 }

@@ -141,9 +141,7 @@ class PMPubsubIntegration:
             notification_id: ID of the notification being acknowledged
             action_taken: Description of action taken by PM
         """
-        ack_message = (
-            f"PM ACK: {notification_id} - {action_taken} " f"by {self.session} at {datetime.now().isoformat()}"
-        )
+        ack_message = f"PM ACK: {notification_id} - {action_taken} by {self.session} at {datetime.now().isoformat()}"
 
         try:
             subprocess.run(

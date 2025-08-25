@@ -11,12 +11,16 @@ to achieve 100% CLI parity:
 5. Daemon command detection - Non-blocking execution for long-running commands
 """
 
+# Import mock configuration first
+# Add parent directory to path for conftest_mcp
+import sys
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
-# Import mock configuration first
-from conftest_mcp import EnhancedCLIToMCPServer
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from tests.conftest_mcp import EnhancedCLIToMCPServer
 
 
 class TestFix1EmptyKwargsHandling:

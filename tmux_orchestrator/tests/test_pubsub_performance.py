@@ -7,6 +7,7 @@ Validates that message delivery meets the <100ms requirement.
 import asyncio
 import statistics
 import time
+from typing import Any
 
 from tmux_orchestrator.core.messaging_daemon import DaemonClient
 from tmux_orchestrator.core.monitoring.pubsub_integration import MonitorPubsubClient, PriorityMessageRouter
@@ -28,7 +29,7 @@ class PubsubPerformanceTester:
             "batch_delivery": [],
         }
 
-    async def run_performance_tests(self, target: str = "test:0", iterations: int = 100) -> dict[str, any]:
+    async def run_performance_tests(self, target: str = "test:0", iterations: int = 100) -> dict[str, Any]:
         """
         Run comprehensive performance tests.
 
@@ -141,7 +142,7 @@ class PubsubPerformanceTester:
 
             print(f"  Batch size {size}: {elapsed_ms:.1f}ms total, {per_msg_ms:.1f}ms per message")
 
-    def _analyze_results(self) -> dict[str, any]:
+    def _analyze_results(self) -> dict[str, Any]:
         """Analyze performance test results."""
         analysis = {
             "summary": {},
@@ -183,7 +184,7 @@ class PubsubPerformanceTester:
 
         return analysis
 
-    def _generate_recommendations(self, analysis: dict[str, any]) -> None:
+    def _generate_recommendations(self, analysis: dict[str, Any]) -> None:
         """Generate performance recommendations based on results."""
         recommendations = []
 
@@ -211,7 +212,7 @@ class PubsubPerformanceTester:
 
         analysis["recommendations"] = recommendations
 
-    def print_results(self, analysis: dict[str, any]) -> None:
+    def print_results(self, analysis: dict[str, Any]) -> None:
         """Print formatted performance analysis."""
         print("\n" + "=" * 60)
         print("📊 PERFORMANCE TEST RESULTS")

@@ -235,7 +235,7 @@ class TestPMFalsePositiveDetection:
 
             # Each state should show PM as healthy
             is_crashed, target = monitor._detect_pm_crash(mock_tmux, "test-session", Mock())
-            assert is_crashed is False, f"PM incorrectly detected as crashed in state {i+1}"
+            assert is_crashed is False, f"PM incorrectly detected as crashed in state {i + 1}"
 
     def test_pm_recovery_after_false_positive(self, mock_tmux, monitor):
         """Test that PM recovery doesn't immediately retrigger false positive."""

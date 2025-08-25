@@ -213,7 +213,7 @@ class JSONSupportAuditor:
         print(f"   • JSON flag but broken: {len(json_flagged_but_broken)}")
         print(f"   • Destructive (skipped): {len(json_skipped_destructive)}")
         print(f"   • No JSON support: {len(no_json_support)}")
-        print(f"   • JSON coverage: {(working_count/total*100):.1f}%")
+        print(f"   • JSON coverage: {(working_count / total * 100):.1f}%")
 
         # Detailed breakdowns
         print(f"\n✅ COMMANDS WITH WORKING JSON SUPPORT ({len(json_working)}):")

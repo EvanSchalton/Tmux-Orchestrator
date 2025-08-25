@@ -20,8 +20,8 @@ def debug_sleep_calculation():
 
     print("Debugging calculate_sleep_duration function")
     print("=" * 60)
-    print(f"MAX_RATE_LIMIT_SECONDS = {MAX_RATE_LIMIT_SECONDS} ({MAX_RATE_LIMIT_SECONDS/3600:.1f} hours)")
-    print(f"RATE_LIMIT_BUFFER_SECONDS = {RATE_LIMIT_BUFFER_SECONDS} ({RATE_LIMIT_BUFFER_SECONDS/60:.1f} minutes)")
+    print(f"MAX_RATE_LIMIT_SECONDS = {MAX_RATE_LIMIT_SECONDS} ({MAX_RATE_LIMIT_SECONDS / 3600:.1f} hours)")
+    print(f"RATE_LIMIT_BUFFER_SECONDS = {RATE_LIMIT_BUFFER_SECONDS} ({RATE_LIMIT_BUFFER_SECONDS / 60:.1f} minutes)")
     print(f"Max allowed sleep = {MAX_RATE_LIMIT_SECONDS + RATE_LIMIT_BUFFER_SECONDS} seconds")
     print("=" * 60)
 
@@ -51,8 +51,8 @@ def debug_sleep_calculation():
     sleep_with_buffer = sleep_seconds + RATE_LIMIT_BUFFER_SECONDS
 
     print(f"\nTime difference: {diff}")
-    print(f"Sleep seconds (without buffer): {sleep_seconds} ({sleep_seconds/3600:.2f} hours)")
-    print(f"Sleep seconds (with buffer): {sleep_with_buffer} ({sleep_with_buffer/3600:.2f} hours)")
+    print(f"Sleep seconds (without buffer): {sleep_seconds} ({sleep_seconds / 3600:.2f} hours)")
+    print(f"Sleep seconds (with buffer): {sleep_with_buffer} ({sleep_with_buffer / 3600:.2f} hours)")
     print(f"Exceeds max limit? {sleep_with_buffer > (MAX_RATE_LIMIT_SECONDS + RATE_LIMIT_BUFFER_SECONDS)}")
 
     # Actual function result
@@ -85,7 +85,7 @@ def debug_sleep_calculation():
         print(f"\n{description}")
         print(f"  Current: {current.strftime('%I:%M %p')} UTC")
         print(f"  Reset: {reset_time}")
-        print(f"  Sleep duration: {result} seconds ({result/3600:.2f} hours)")
+        print(f"  Sleep duration: {result} seconds ({result / 3600:.2f} hours)")
 
         if result == 0:
             # Calculate what it should have been
@@ -95,7 +95,7 @@ def debug_sleep_calculation():
             if reset_dt <= current:
                 reset_dt += timedelta(days=1)
             expected = int((reset_dt - current).total_seconds()) + RATE_LIMIT_BUFFER_SECONDS
-            print(f"  ⚠️  BUG: Should be {expected} seconds ({expected/3600:.2f} hours)")
+            print(f"  ⚠️  BUG: Should be {expected} seconds ({expected / 3600:.2f} hours)")
 
 
 if __name__ == "__main__":

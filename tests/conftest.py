@@ -76,14 +76,6 @@ def sample_agent_data():
     }
 
 
-# @pytest.fixture
-# def mock_fastapi_client():
-#     """Provide a test client for FastAPI route testing."""
-#     from tmux_orchestrator.server import app
-#
-#     return TestClient(app)
-
-
 @pytest.fixture(autouse=True)
 def cleanup_test_logs(tmp_path, monkeypatch):
     """Automatically clean up test logs and use temp directories."""

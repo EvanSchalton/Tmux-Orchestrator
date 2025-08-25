@@ -51,8 +51,8 @@ async def validate_fix():
     print("\n5. Improvement metrics:")
     print("   - Before fix: 6 tools")
     print(f"   - After fix: {tool_count} tools")
-    print(f"   - Improvement: {(tool_count/6 - 1)*100:.0f}% increase")
-    print(f"   - CLI coverage: ~{(tool_count/40)*100:.0f}% (estimated)")
+    print(f"   - Improvement: {(tool_count / 6 - 1) * 100:.0f}% increase")
+    print(f"   - CLI coverage: ~{(tool_count / 40) * 100:.0f}% (estimated)")
 
     # Success criteria check
     print("\n6. Success criteria:")

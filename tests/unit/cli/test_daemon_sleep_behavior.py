@@ -162,9 +162,9 @@ def test_direct_monitor_functionality():
         for i, msg in enumerate(test_messages):
             try:
                 reset_time = extract_rate_limit_reset_time(msg)
-                logger.info(f"Message {i+1}: Reset time = {reset_time}")
+                logger.info(f"Message {i + 1}: Reset time = {reset_time}")
             except Exception as e:
-                logger.info(f"Message {i+1}: No rate limit detected - {e}")
+                logger.info(f"Message {i + 1}: No rate limit detected - {e}")
 
     except ImportError as e:
         logger.error(f"Could not import rate limit functions: {e}")

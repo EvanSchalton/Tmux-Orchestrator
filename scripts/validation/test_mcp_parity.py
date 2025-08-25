@@ -56,7 +56,7 @@ async def test_mcp_generation():
 
         print(f"\nTotal CLI commands available: {total_commands}")
         print(
-            f"MCP tool coverage: {len(server.generated_tools)}/{total_commands} ({len(server.generated_tools)/total_commands*100:.1f}%)"
+            f"MCP tool coverage: {len(server.generated_tools)}/{total_commands} ({len(server.generated_tools) / total_commands * 100:.1f}%)"
         )
 
         # Check for missing commands

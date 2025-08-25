@@ -93,7 +93,7 @@ class MonitorPubsubIntegration:
             category=MessageCategory.HEALTH,
             priority=priority,
             subject=f"Agent Idle Alert: {agent}",
-            body=f"Agent {agent} has been idle for {idle_duration//60} minutes",
+            body=f"Agent {agent} has been idle for {idle_duration // 60} minutes",
             context={
                 "agent": agent,
                 "issue_type": "idle",

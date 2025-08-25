@@ -184,7 +184,7 @@ class RateLimitWorkflowTester:
         total_steps = len(workflow_results["workflow_steps"])
         passed_steps = sum(1 for step in workflow_results["workflow_steps"] if step.get("pass", False))
         workflow_results["overall_success"] = passed_steps >= (total_steps * 0.5)  # 50% pass rate
-        workflow_results["success_rate"] = f"{(passed_steps/total_steps)*100:.1f}%"
+        workflow_results["success_rate"] = f"{(passed_steps / total_steps) * 100:.1f}%"
 
         return workflow_results
 

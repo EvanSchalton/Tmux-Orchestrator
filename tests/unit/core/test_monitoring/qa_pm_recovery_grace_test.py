@@ -42,7 +42,7 @@ class PMRecoveryGraceTest:
 
         try:
             grace_seconds = int(default_grace)
-            logger.info(f"✅ Default grace period: {grace_seconds} seconds ({grace_seconds/60:.1f} minutes)")
+            logger.info(f"✅ Default grace period: {grace_seconds} seconds ({grace_seconds / 60:.1f} minutes)")
 
             # Test configuration validation
             valid_config = 120 <= grace_seconds <= 600  # 2-10 minutes range
@@ -274,7 +274,7 @@ class PMRecoveryGraceTest:
         test_results["summary"] = {
             "total_tests": total_tests,
             "successful_tests": successful_tests,
-            "success_rate": f"{(successful_tests/total_tests)*100:.1f}%" if total_tests > 0 else "0%",
+            "success_rate": f"{(successful_tests / total_tests) * 100:.1f}%" if total_tests > 0 else "0%",
             "implementation_status": "Pending developer implementation"
             if not test_results.get("tracking", {}).get("has_tracking")
             else "Ready for testing",

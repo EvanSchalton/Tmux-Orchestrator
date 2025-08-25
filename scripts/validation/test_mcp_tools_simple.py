@@ -66,7 +66,7 @@ async def test_mcp_tools():
 
     # Summary
     print(f"\n📊 Results: {passed} passed, {failed} failed")
-    print(f"✨ Success rate: {passed/(passed+failed)*100:.1f}%")
+    print(f"✨ Success rate: {passed / (passed + failed) * 100:.1f}%")
 
     return passed > 0 and failed == 0
 

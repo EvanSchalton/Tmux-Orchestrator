@@ -277,7 +277,7 @@ class DaemonSupervisor:
             time_since_last = (now - self.last_restart_time).total_seconds()
             if time_since_last < 300:  # 5 minutes cooling off period
                 self.logger.error(
-                    f"Max restart attempts ({self.max_restart_attempts}) exceeded. " f"Waiting for cooling off period."
+                    f"Max restart attempts ({self.max_restart_attempts}) exceeded. Waiting for cooling off period."
                 )
                 return False
             else:

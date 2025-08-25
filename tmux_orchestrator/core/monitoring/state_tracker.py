@@ -254,7 +254,7 @@ class StateTracker(StateTrackerInterface):
         self._submission_attempts[target] = self._submission_attempts.get(target, 0) + 1
         self._last_submission_time[target] = datetime.now()
 
-        self.logger.debug(f"Tracked submission attempt for {target} " f"(attempt #{self._submission_attempts[target]})")
+        self.logger.debug(f"Tracked submission attempt for {target} (attempt #{self._submission_attempts[target]})")
 
     def get_submission_attempts(self, target: str) -> int:
         """

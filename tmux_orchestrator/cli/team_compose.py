@@ -355,9 +355,9 @@ def _generate_team_composition(project_name: str, agents: list[dict], output_pat
         # Create deployment command with proper escaping
         # SECURITY: Use shlex.quote to prevent shell injection
         deploy_cmd = (
-            f'tmux-orc spawn agent {shlex.quote(agent["template"])} '
-            f'{shlex.quote(project_name)}:{shlex.quote(str(agent["window"]))} '
-            f'--briefing {shlex.quote(system_prompt)}'
+            f"tmux-orc spawn agent {shlex.quote(agent['template'])} "
+            f"{shlex.quote(project_name)}:{shlex.quote(str(agent['window']))} "
+            f"--briefing {shlex.quote(system_prompt)}"
         )
         deployment_commands.append(deploy_cmd)
 

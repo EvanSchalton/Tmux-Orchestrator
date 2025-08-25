@@ -236,7 +236,7 @@ class CrashDetectionValidator:
         logger.info(f"Total Tests: {total_tests}")
         logger.info(f"Passed: {passed_tests}")
         logger.info(f"Failed: {total_tests - passed_tests}")
-        logger.info(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+        logger.info(f"Success Rate: {(passed_tests / total_tests) * 100:.1f}%")
 
         if self.results["false_positives"]:
             logger.error(f"\n🚨 FALSE POSITIVES DETECTED: {len(self.results['false_positives'])}")

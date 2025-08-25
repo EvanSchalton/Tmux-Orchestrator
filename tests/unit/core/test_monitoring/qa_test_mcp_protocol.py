@@ -286,7 +286,7 @@ class MCPProtocolTest:
         test_results["summary"] = {
             "total_tests": total_tests,
             "successful_tests": successful_tests,
-            "success_rate": f"{(successful_tests/total_tests)*100:.1f}%" if total_tests > 0 else "0%",
+            "success_rate": f"{(successful_tests / total_tests) * 100:.1f}%" if total_tests > 0 else "0%",
             "server_started": test_results.get("server_startup", False),
         }
 

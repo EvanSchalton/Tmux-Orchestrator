@@ -15,6 +15,7 @@ import logging
 import statistics
 import time
 from datetime import datetime
+from typing import Any
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.messaging_daemon import DaemonClient
@@ -35,7 +36,7 @@ class PubsubPerformanceValidator:
         self.logger = logging.getLogger("validator")
         self.results: dict[str, list[float]] = {}
 
-    async def validate_all(self) -> dict[str, any]:
+    async def validate_all(self) -> dict[str, Any]:
         """Run all validation tests."""
         print("🚀 Validating Pubsub Performance Requirements")
         print("=" * 60)
@@ -74,7 +75,7 @@ class PubsubPerformanceValidator:
         # In production, would start daemon here
         return True
 
-    async def _validate_notification_manager(self) -> dict[str, any]:
+    async def _validate_notification_manager(self) -> dict[str, Any]:
         """Validate PubsubNotificationManager performance."""
         print("\n1️⃣ Validating Notification Manager...")
 
@@ -107,7 +108,7 @@ class PubsubPerformanceValidator:
             times.append(elapsed_ms)
 
             if i % 5 == 0:
-                print(f"  Progress: {i+1}/20 (last: {elapsed_ms:.1f}ms, priority: {priority})")
+                print(f"  Progress: {i + 1}/20 (last: {elapsed_ms:.1f}ms, priority: {priority})")
 
         return {
             "times": times,
@@ -115,7 +116,7 @@ class PubsubPerformanceValidator:
             "compliant": self._check_compliance(times),
         }
 
-    async def _validate_priority_routing(self) -> dict[str, any]:
+    async def _validate_priority_routing(self) -> dict[str, Any]:
         """Validate priority-based routing performance."""
         print("\n2️⃣ Validating Priority Routing...")
 
@@ -151,7 +152,7 @@ class PubsubPerformanceValidator:
 
         return priority_stats
 
-    async def _validate_recovery_coordinator(self) -> dict[str, any]:
+    async def _validate_recovery_coordinator(self) -> dict[str, Any]:
         """Validate recovery coordinator performance."""
         print("\n3️⃣ Validating Recovery Coordinator...")
 
@@ -176,7 +177,7 @@ class PubsubPerformanceValidator:
                 times.append(elapsed_ms)
 
             if i % 5 == 0:
-                print(f"  Progress: {i+1}/15 (last: {elapsed_ms:.1f}ms, type: {recovery_type})")
+                print(f"  Progress: {i + 1}/15 (last: {elapsed_ms:.1f}ms, type: {recovery_type})")
 
         return {
             "times": times,
@@ -184,7 +185,7 @@ class PubsubPerformanceValidator:
             "compliant": self._check_compliance(times),
         }
 
-    async def _validate_batch_delivery(self) -> dict[str, any]:
+    async def _validate_batch_delivery(self) -> dict[str, Any]:
         """Validate batch message delivery performance."""
         print("\n4️⃣ Validating Batch Delivery...")
 
@@ -221,7 +222,7 @@ class PubsubPerformanceValidator:
 
         return batch_results
 
-    async def _validate_end_to_end(self) -> dict[str, any]:
+    async def _validate_end_to_end(self) -> dict[str, Any]:
         """Validate end-to-end message flow."""
         print("\n5️⃣ Validating End-to-End Flow...")
 
@@ -249,7 +250,7 @@ class PubsubPerformanceValidator:
             elapsed_ms = (time.perf_counter() - start) * 1000
             times.append(elapsed_ms)
 
-            print(f"  End-to-end test {i+1}: {elapsed_ms:.1f}ms")
+            print(f"  End-to-end test {i + 1}: {elapsed_ms:.1f}ms")
 
         return {
             "times": times,
@@ -273,7 +274,7 @@ class PubsubPerformanceValidator:
             "p99": sorted_times[int(len(times) * 0.99)] if len(times) > 1 else times[0],
         }
 
-    def _check_compliance(self, times: list[float], target_ms: float = 100) -> dict[str, any]:
+    def _check_compliance(self, times: list[float], target_ms: float = 100) -> dict[str, Any]:
         """Check if times meet target."""
         if not times:
             return {"compliant": False, "reason": "No data"}
@@ -288,7 +289,7 @@ class PubsubPerformanceValidator:
             "violations": [t for t in times if t >= target_ms],
         }
 
-    def _check_priority_compliance(self, times: list[float], priority: str) -> dict[str, any]:
+    def _check_priority_compliance(self, times: list[float], priority: str) -> dict[str, Any]:
         """Check priority-specific compliance."""
         targets = {
             "critical": 50,
@@ -298,7 +299,7 @@ class PubsubPerformanceValidator:
         }
         return self._check_compliance(times, targets[priority])
 
-    def _analyze_validation_results(self, validations: dict[str, any]) -> dict[str, any]:
+    def _analyze_validation_results(self, validations: dict[str, Any]) -> dict[str, Any]:
         """Analyze all validation results."""
         analysis = {
             "timestamp": datetime.now().isoformat(),
@@ -328,7 +329,7 @@ class PubsubPerformanceValidator:
 
         return analysis
 
-    def print_validation_report(self, analysis: dict[str, any]) -> None:
+    def print_validation_report(self, analysis: dict[str, Any]) -> None:
         """Print formatted validation report."""
         print("\n" + "=" * 60)
         print("📊 PUBSUB PERFORMANCE VALIDATION REPORT")

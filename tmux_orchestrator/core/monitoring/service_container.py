@@ -8,7 +8,7 @@ that supports singleton and factory patterns for managing component lifecycles.
 import asyncio
 import inspect
 import logging
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from .interfaces import ServiceContainerInterface
 
@@ -18,7 +18,7 @@ T = TypeVar("T")
 class ServiceContainer(ServiceContainerInterface):
     """Dependency injection container for managing service instances."""
 
-    def __init__(self, logger: logging.Logger | None = None):
+    def __init__(self, logger: Optional[logging.Logger] = None):
         """Initialize the service container.
 
         Args:
@@ -182,7 +182,9 @@ class ServiceContainer(ServiceContainerInterface):
         # Fall back to sync resolution
         return self.resolve(interface_type)
 
-    def register_plugin(self, plugin_name: str, plugin_instance: Any, metadata: dict[str, Any] | None = None) -> None:
+    def register_plugin(
+        self, plugin_name: str, plugin_instance: Any, metadata: Optional[dict[str, Any]] = None
+    ) -> None:
         """Register a plugin with the container.
 
         Args:

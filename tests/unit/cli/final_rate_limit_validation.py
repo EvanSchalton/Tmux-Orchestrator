@@ -71,7 +71,7 @@ def test_pm_notification_system():
         elif hour == 12:
             time_str = "12pm"
         else:
-            time_str = f"{hour-12}pm"
+            time_str = f"{hour - 12}pm"
 
         rate_limit_message = f"I need to stop here due to API rate limits. Your limit will reset at {time_str} (UTC)."
 
@@ -170,7 +170,7 @@ def generate_final_report(test_results):
         "test_summary": {
             "total_checks": total_tests,
             "successful_checks": success_count,
-            "success_rate": f"{(success_count/total_tests)*100:.1f}%",
+            "success_rate": f"{(success_count / total_tests) * 100:.1f}%",
             "overall_status": "PASS" if overall_success else "FAIL",
         },
         "detailed_results": test_results,

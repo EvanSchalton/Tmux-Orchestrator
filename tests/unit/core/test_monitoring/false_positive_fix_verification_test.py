@@ -196,9 +196,9 @@ class TestFalsePositiveFix:
             # Test crash detection - SHOULD detect as crashed
             is_crashed, target = monitor._detect_pm_crash(mock_tmux, "test-session", Mock())
 
-            assert is_crashed, (
-                f"FALSE NEGATIVE: Failed to detect crash in '{scenario['name']}'\n" f"Reason: {scenario['reason']}"
-            )
+            assert (
+                is_crashed
+            ), f"FALSE NEGATIVE: Failed to detect crash in '{scenario['name']}'\nReason: {scenario['reason']}"
 
     def test_edge_cases(self, mock_tmux, monitor):
         """Test edge cases for crash detection."""

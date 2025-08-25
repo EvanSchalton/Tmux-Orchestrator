@@ -103,7 +103,7 @@ class PubsubRecoveryCoordinator:
 
         if success:
             self.logger.info(
-                f"Recovery notification sent to PM {pm_target} for {target} " f"(priority: {priority}, issue: {issue})"
+                f"Recovery notification sent to PM {pm_target} for {target} (priority: {priority}, issue: {issue})"
             )
         else:
             self.logger.error(f"Failed to send recovery notification for {target}")
@@ -195,7 +195,7 @@ class PubsubRecoveryCoordinator:
                 elapsed = (datetime.now() - recovery_time).total_seconds()
                 if elapsed < self._pm_recovery_grace_period:
                     self.logger.debug(
-                        f"PM {pm_target} in grace period " f"({elapsed:.0f}s < {self._pm_recovery_grace_period}s)"
+                        f"PM {pm_target} in grace period ({elapsed:.0f}s < {self._pm_recovery_grace_period}s)"
                     )
                     return True
 

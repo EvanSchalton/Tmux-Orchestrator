@@ -8,6 +8,7 @@ Extracted from the monolithic monitor.py to improve maintainability and testabil
 import logging
 from collections import defaultdict
 from datetime import datetime
+from typing import Optional
 
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
@@ -56,9 +57,7 @@ class NotificationManager(NotificationManagerInterface):
         if last_time:
             time_diff = (datetime.now() - last_time).total_seconds()
             if time_diff < self._notification_cooldown:
-                self.logger.debug(
-                    f"Throttling notification for {notification_key} " f"(last sent {time_diff:.0f}s ago)"
-                )
+                self.logger.debug(f"Throttling notification for {notification_key} (last sent {time_diff:.0f}s ago)")
                 return
 
         self._queued_notifications.append(event)
@@ -87,7 +86,7 @@ class NotificationManager(NotificationManagerInterface):
 
         return sent_count
 
-    def notify_agent_crash(self, target: str, error_type: str, session: str, metadata: dict | None = None) -> None:
+    def notify_agent_crash(self, target: str, error_type: str, session: str, metadata: Optional[dict] = None) -> None:
         """
         Send agent crash notification.
 
@@ -114,7 +113,9 @@ class NotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.warning(f"Agent crash notification queued for {target}: {error_type}")
 
-    def notify_agent_idle(self, target: str, idle_type: IdleType, session: str, metadata: dict | None = None) -> None:
+    def notify_agent_idle(
+        self, target: str, idle_type: IdleType, session: str, metadata: Optional[dict] = None
+    ) -> None:
         """
         Send agent idle notification.
 
@@ -146,7 +147,7 @@ class NotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.info(f"Agent idle notification queued for {target}: {idle_type.value}")
 
-    def notify_fresh_agent(self, target: str, session: str, metadata: dict | None = None) -> None:
+    def notify_fresh_agent(self, target: str, session: str, metadata: Optional[dict] = None) -> None:
         """
         Send fresh agent notification.
 
@@ -172,7 +173,7 @@ class NotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.info(f"Fresh agent notification queued for {target}")
 
-    def notify_team_idle(self, session: str, agent_count: int, metadata: dict | None = None) -> None:
+    def notify_team_idle(self, session: str, agent_count: int, metadata: Optional[dict] = None) -> None:
         """
         Send team idle notification.
 
@@ -198,7 +199,7 @@ class NotificationManager(NotificationManagerInterface):
         self.queue_notification(event)
         self.logger.warning(f"Team idle notification queued for {session}")
 
-    def notify_recovery_needed(self, target: str, issue: str, session: str, metadata: dict | None = None) -> None:
+    def notify_recovery_needed(self, target: str, issue: str, session: str, metadata: Optional[dict] = None) -> None:
         """
         Send recovery needed notification.
 
@@ -308,9 +309,7 @@ class NotificationManager(NotificationManagerInterface):
                     full_report = report_header + "\\n\\n".join(report_sections)
                     self.tmux.send_keys(pm_target, full_report)
                     sent_count += 1
-                    self.logger.info(
-                        f"Sent consolidated report to PM {pm_target} " f"with {len(messages)} notifications"
-                    )
+                    self.logger.info(f"Sent consolidated report to PM {pm_target} with {len(messages)} notifications")
 
             except Exception as e:
                 self.logger.error(f"Failed to send notifications to PM {pm_target}: {e}")
@@ -320,7 +319,7 @@ class NotificationManager(NotificationManagerInterface):
 
         return sent_count
 
-    def _find_pm_in_session(self, session: str) -> str | None:
+    def _find_pm_in_session(self, session: str) -> Optional[str]:
         """
         Find PM agent in the specified session.
 
