@@ -131,7 +131,7 @@ def quick(c):
 
     # Run smoke tests (subset for speed)
     print("🧪 Smoke tests...")
-    c.run("poetry run pytest tests/unit/cli/spawn_auto_increment_test.py -v --tb=short -q --maxfail=3")
+    c.run("poetry run pytest tests/unit/cli/spawn_auto_increment_test.py -v --tb=short -q --maxfail=3 --no-cov")
 
     print("✅ Quick checks passed")
 
