@@ -216,7 +216,7 @@ class TMUXManager:
                             parts = window_line.split("|")
                             windows.append(
                                 {
-                                    "index": parts[0],
+                                    "index": int(parts[0]),
                                     "name": parts[1] if len(parts) > 1 else "",
                                     "active": parts[2] if len(parts) > 2 else "0",
                                 }
@@ -603,7 +603,7 @@ class TMUXManager:
                     parts = line.split(":", 2)
                     windows.append(
                         {
-                            "index": parts[0],
+                            "index": int(parts[0]),
                             "name": parts[1] if len(parts) > 1 else "",
                             "active": parts[2] if len(parts) > 2 else "0",
                         }

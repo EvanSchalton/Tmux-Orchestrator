@@ -4,7 +4,7 @@ import json
 import logging
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Generator
+from typing import Any, Dict, Generator, Optional
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -113,12 +113,12 @@ class MockTMUXManager:
     def __init__(self, cache_ttl: float = 5.0):
         """Mock initialization."""
         self.tmux_cmd = "mock-tmux"
-        self._mock_sessions = {}
-        self._mock_windows = {}
+        self._mock_sessions: dict[str, Any] = {}
+        self._mock_windows: dict[str, list[dict[str, Any]]] = {}
         self._cache_ttl = cache_ttl
-        self._agent_cache = {}
+        self._agent_cache: dict[str, Any] = {}
         self._agent_cache_time = 0.0
-        self._session_cache = {}
+        self._session_cache: dict[str, Any] = {}
         self._session_cache_time = 0.0
         self._batch_size = 10
 
@@ -282,16 +282,16 @@ class MockTMUXManager:
         """Mock pane capture."""
         return "Mock pane content"
 
-    def list_windows(self, session: str) -> list[dict[str, str]]:
+    def list_windows(self, session: str) -> list[dict[str, Any]]:
         """Mock window listing."""
         return self._mock_windows.get(session, [])
 
-    def create_window(self, session_name: str, window_name: str, start_directory: str = None) -> bool:
+    def create_window(self, session_name: str, window_name: str, start_directory: Optional[str] = None) -> bool:
         """Mock window creation."""
         if session_name not in self._mock_windows:
             self._mock_windows[session_name] = []
         self._mock_windows[session_name].append(
-            {"name": window_name, "index": str(len(self._mock_windows[session_name])), "active": "1"}
+            {"name": window_name, "index": len(self._mock_windows[session_name]), "active": "1"}
         )
         return True
 
@@ -347,10 +347,6 @@ class MockTMUXManager:
         """Mock batch sessions and windows."""
         return {name: windows for name, windows in self._mock_windows.items()}
 
-    def _is_agent_window(self, window_name: str) -> bool:
-        """Mock agent window check."""
-        return "agent" in window_name.lower() or "Claude-" in window_name
-
     def _batch_get_agent_statuses(self, agent_windows: list[dict[str, Any]]) -> dict[int, str]:
         """Mock batch status check."""
         return {i: "mock-active" for i in range(len(agent_windows))}
@@ -363,13 +359,31 @@ class MockTMUXManager:
         """Mock basic agent list."""
         return []
 
-    def create_session(self, session_name: str) -> bool:
+    def create_session(
+        self, session_name: str, window_name: Optional[str] = None, start_directory: Optional[str] = None
+    ) -> bool:
         """Mock session creation."""
         if session_name not in self._mock_sessions:
             self._mock_sessions[session_name] = True
             # Initialize empty window list for the new session
             self._mock_windows[session_name] = []
         return True
+
+    def create_session_optimized(
+        self, session_name: str, window_name: Optional[str] = None, start_directory: Optional[str] = None
+    ) -> bool:
+        """Mock optimized session creation."""
+        return self.create_session(session_name, window_name, start_directory)
+
+    def _chunk_message(self, message: str, max_chunk_size: int = 180) -> list[str]:
+        """Mock message chunking."""
+        if len(message) <= max_chunk_size:
+            return [message]
+        # Simple chunking for testing
+        chunks = []
+        for i in range(0, len(message), max_chunk_size):
+            chunks.append(message[i : i + max_chunk_size])
+        return chunks
 
 
 @pytest.fixture

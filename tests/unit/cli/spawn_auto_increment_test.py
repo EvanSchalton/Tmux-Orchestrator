@@ -31,6 +31,8 @@ class TestSpawnAutoIncrement:
             tmux_instance.create_window.return_value = True
             tmux_instance.list_windows.return_value = [{"name": "Claude-pm", "index": 1}]
             tmux_instance.send_keys.return_value = True
+            tmux_instance.has_session.return_value = True
+            tmux_instance.create_session.return_value = True
             yield tmux_instance
 
     def test_error_handling_on_spawn_failure(self, runner, mock_tmux):
@@ -39,24 +41,38 @@ class TestSpawnAutoIncrement:
 
         with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
             mock_load.return_value = "Agent context"
-            result = runner.invoke(spawn, ["agent", "test-dev", "test-session", "--briefing", "Test briefing"])
+            result = runner.invoke(
+                spawn, ["agent", "test-dev", "test-session", "--briefing", "Test briefing"], obj={"tmux": mock_tmux}
+            )
 
         assert result.exit_code != 0
 
     def test_multiple_rapid_spawns(self, runner, mock_tmux):
         """Test multiple rapid spawns don't conflict"""
+
+        # Track created windows
+        created_windows = []
+
+        def mock_create_window(session, name, start_dir=None):
+            created_windows.append({"name": name, "index": len(created_windows)})
+            return True
+
+        def mock_list_windows(session):
+            return created_windows
+
+        mock_tmux.create_window.side_effect = mock_create_window
+        mock_tmux.list_windows.side_effect = mock_list_windows
+
         with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
             mock_load.return_value = "Agent context"
 
             # First spawn - empty session
-            mock_tmux.list_windows.return_value = []
             result1 = runner.invoke(
                 spawn, ["agent", "dev1", "test-session", "--briefing", "Dev 1"], obj={"tmux": mock_tmux}
             )
             assert result1.exit_code == 0
 
-            # Second spawn - now has first window
-            mock_tmux.list_windows.return_value = [{"name": "Claude-dev1", "index": 0}]
+            # Second spawn - should work with dynamic windows
             result2 = runner.invoke(
                 spawn, ["agent", "dev2", "test-session", "--briefing", "Dev 2"], obj={"tmux": mock_tmux}
             )
@@ -252,6 +268,8 @@ class TestContextSpawnAutoIncrement:
             tmux_instance.create_window.return_value = True
             tmux_instance.list_windows.return_value = [{"name": "Claude-pm", "index": 1}]
             tmux_instance.send_keys.return_value = True
+            tmux_instance.has_session.return_value = True
+            tmux_instance.create_session.return_value = True
             yield tmux_instance
 
     def test_context_spawn_ignores_window(self, runner, mock_tmux):

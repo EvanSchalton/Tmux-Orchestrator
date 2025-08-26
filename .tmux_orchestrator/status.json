@@ -1,11 +1,11 @@
 {
-  "last_updated": "2025-08-26T20:55:10.562836+00:00",
+  "last_updated": "2025-08-26T22:54:29.750695+00:00",
   "daemon_status": {
     "monitor": {
       "running": true,
-      "pid": 67658,
-      "uptime_seconds": 989,
-      "last_check": "2025-08-26T20:55:10.562572"
+      "pid": 3890,
+      "uptime_seconds": 690,
+      "last_check": "2025-08-26T22:54:29.749530"
     },
     "messaging": {
       "running": false,
@@ -13,95 +13,123 @@
     }
   },
   "agents": {
-    "enhanced-messaging:2": {
-      "name": "claude-backend-dev",
-      "type": "Backend Dev",
-      "status": "active",
-      "last_activity": "2025-08-26T20:55:10.496650",
+    "precommit-crisis:2": {
+      "name": "claude-pm",
+      "type": "Project Manager",
+      "status": "idle",
+      "last_activity": "2025-08-26T22:54:29.670431",
       "pane_id": null,
-      "session": "enhanced-messaging",
+      "session": "precommit-crisis",
       "window": 2,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:55:10.496663"
+        "last_content_check": "2025-08-26T22:54:29.670442"
       }
     },
-    "enhanced-messaging:3": {
-      "name": "claude-qa-engineer",
+    "precommit-crisis:3": {
+      "name": "claude-test-specialist",
       "type": "QA Engineer",
-      "status": "idle",
-      "last_activity": "2025-08-26T20:55:10.509618",
+      "status": "active",
+      "last_activity": "2025-08-26T22:54:29.680463",
       "pane_id": null,
-      "session": "enhanced-messaging",
+      "session": "precommit-crisis",
       "window": 3,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:55:10.509684"
+        "last_content_check": "2025-08-26T22:54:29.680476"
       }
     },
-    "enhanced-messaging:5": {
+    "precommit-crisis:4": {
+      "name": "claude-qa-verifier",
+      "type": "QA Engineer",
+      "status": "active",
+      "last_activity": "2025-08-26T22:54:29.690215",
+      "pane_id": null,
+      "session": "precommit-crisis",
+      "window": 4,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T22:54:29.690228"
+      }
+    },
+    "precommit-final-fixes:2": {
       "name": "claude-pm",
       "type": "Project Manager",
       "status": "idle",
-      "last_activity": "2025-08-26T20:55:10.523584",
+      "last_activity": "2025-08-26T22:54:29.703351",
       "pane_id": null,
-      "session": "enhanced-messaging",
+      "session": "precommit-final-fixes",
+      "window": 2,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T22:54:29.703364"
+      }
+    },
+    "tmux-orc-stress-1756248217:2": {
+      "name": "claude-cycle-0-agent-0",
+      "type": "Developer",
+      "status": "idle",
+      "last_activity": "2025-08-26T22:54:29.713923",
+      "pane_id": null,
+      "session": "tmux-orc-stress-1756248217",
+      "window": 2,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T22:54:29.713935"
+      }
+    },
+    "tmux-orc-stress-1756248217:3": {
+      "name": "claude-pm",
+      "type": "Project Manager",
+      "status": "idle",
+      "last_activity": "2025-08-26T22:54:29.724524",
+      "pane_id": null,
+      "session": "tmux-orc-stress-1756248217",
+      "window": 3,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T22:54:29.724536"
+      }
+    },
+    "tmux-orc-stress-1756248217:4": {
+      "name": "claude-cycle-0-agent-1",
+      "type": "Developer",
+      "status": "idle",
+      "last_activity": "2025-08-26T22:54:29.736530",
+      "pane_id": null,
+      "session": "tmux-orc-stress-1756248217",
+      "window": 4,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T22:54:29.736551"
+      }
+    },
+    "tmux-orc-stress-1756248217:5": {
+      "name": "claude-cycle-0-agent-2",
+      "type": "Developer",
+      "status": "idle",
+      "last_activity": "2025-08-26T22:54:29.749498",
+      "pane_id": null,
+      "session": "tmux-orc-stress-1756248217",
       "window": 5,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:55:10.523602"
-      }
-    },
-    "precommit-zero-tolerance:2": {
-      "name": "claude-test-fix-specialist",
-      "type": "QA Engineer",
-      "status": "active",
-      "last_activity": "2025-08-26T20:55:10.535789",
-      "pane_id": null,
-      "session": "precommit-zero-tolerance",
-      "window": 2,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:55:10.535801"
-      }
-    },
-    "precommit-zero-tolerance:3": {
-      "name": "claude-qa-verification",
-      "type": "QA Engineer",
-      "status": "active",
-      "last_activity": "2025-08-26T20:55:10.551254",
-      "pane_id": null,
-      "session": "precommit-zero-tolerance",
-      "window": 3,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:55:10.551273"
-      }
-    },
-    "precommit-zero-tolerance:4": {
-      "name": "claude-pm",
-      "type": "Project Manager",
-      "status": "active",
-      "last_activity": "2025-08-26T20:55:10.562545",
-      "pane_id": null,
-      "session": "precommit-zero-tolerance",
-      "window": 4,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "unsubmitted",
-        "last_content_check": "2025-08-26T20:55:10.562557"
+        "last_content_check": "2025-08-26T22:54:29.749512"
       }
     }
   },
   "summary": {
-    "total_agents": 6,
-    "active": 4,
-    "idle": 2,
+    "total_agents": 8,
+    "active": 2,
+    "idle": 6,
     "error": 0,
     "busy": 0,
     "unknown": 0

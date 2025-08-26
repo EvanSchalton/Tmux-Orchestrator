@@ -78,6 +78,34 @@ def pre_commit(c):
 
 
 @task
+def pre_commit_hooks(c):
+    """Run the exact same checks as pre-commit hooks (for testing centralization)."""
+    print("🔗 Running centralized pre-commit checks...")
+
+    # Format check (as pre-commit does)
+    print("\n1️⃣ Format check...")
+    format(c, check=True)
+
+    # Lint check
+    print("\n2️⃣ Lint check...")
+    lint(c)
+
+    # Type check
+    print("\n3️⃣ Type check...")
+    type_check(c)
+
+    # Security check
+    print("\n4️⃣ Security check...")
+    security(c)
+
+    # Quick test validation
+    print("\n5️⃣ Quick test validation...")
+    quick(c)
+
+    print("\n✅ All centralized pre-commit checks passed!")
+
+
+@task
 def clean(c):
     """Clean up generated files."""
     c.run('find . -type d -name "__pycache__" -exec rm -rf {} +', warn=True)
@@ -90,12 +118,21 @@ def clean(c):
 
 @task
 def quick(c):
-    """Quick checks before committing (faster than pre-commit hook)."""
+    """Quick checks before committing (optimized for pre-commit performance)."""
     print("⚡ Running quick checks...")
-    lint(c)
+
+    # Fast linting (no fix, just check)
+    print("🔧 Quick lint check...")
+    c.run("poetry run ruff check tmux_orchestrator tests")
+
+    # Type checking (already fast)
+    print("🔍 Type checking...")
     type_check(c)
-    # Run just one test file as smoke test
-    c.run("poetry run pytest tests/test_cli/test_setup.py -v")
+
+    # Run smoke tests (subset for speed)
+    print("🧪 Smoke tests...")
+    c.run("poetry run pytest tests/unit/cli/spawn_auto_increment_test.py -v --tb=short -q --maxfail=3")
+
     print("✅ Quick checks passed")
 
 
