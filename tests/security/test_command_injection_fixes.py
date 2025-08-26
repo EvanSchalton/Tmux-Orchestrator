@@ -5,15 +5,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tmux_orchestrator.utils.tmux import TMUXManager
-
 
 class TestCommandInjectionSecurity:
     """Test security fixes for command injection vulnerabilities."""
 
-    def test_tmux_session_name_sanitization(self):
+    def test_tmux_session_name_sanitization(self, comprehensive_mock_tmux):
         """Test that session names with special characters are properly sanitized."""
-        tmux = TMUXManager()
+        tmux = comprehensive_mock_tmux
 
         # Test cases with potentially dangerous characters
         dangerous_inputs = [
@@ -43,9 +41,9 @@ class TestCommandInjectionSecurity:
                 # Should not contain dangerous shell characters in separate elements
                 assert not any(";" in str(arg) and arg != dangerous_input for arg in args_called)
 
-    def test_tmux_directory_path_sanitization(self):
+    def test_tmux_directory_path_sanitization(self, comprehensive_mock_tmux):
         """Test that directory paths are properly sanitized."""
-        tmux = TMUXManager()
+        tmux = comprehensive_mock_tmux
 
         # Test dangerous directory paths
         dangerous_paths = [
@@ -65,9 +63,9 @@ class TestCommandInjectionSecurity:
                 args_called = mock_run.call_args[0][0]
                 assert dangerous_path in args_called
 
-    def test_tmux_window_name_sanitization(self):
+    def test_tmux_window_name_sanitization(self, comprehensive_mock_tmux):
         """Test that window names with special characters are properly sanitized."""
-        tmux = TMUXManager()
+        tmux = comprehensive_mock_tmux
 
         dangerous_names = [
             "window; evil_cmd",
@@ -84,9 +82,9 @@ class TestCommandInjectionSecurity:
                 args_called = mock_run.call_args[0][0]
                 assert dangerous_name in args_called
 
-    def test_tmux_message_content_sanitization(self):
+    def test_tmux_message_content_sanitization(self, comprehensive_mock_tmux):
         """Test that message content is properly sanitized."""
-        tmux = TMUXManager()
+        tmux = comprehensive_mock_tmux
 
         dangerous_messages = [
             "Hello; rm -rf /",
@@ -105,9 +103,9 @@ class TestCommandInjectionSecurity:
                 args_called = mock_run.call_args[0][0]
                 assert dangerous_message in args_called
 
-    def test_subprocess_never_uses_shell_true(self):
+    def test_subprocess_never_uses_shell_true(self, comprehensive_mock_tmux):
         """Ensure subprocess.run never uses shell=True."""
-        tmux = TMUXManager()
+        tmux = comprehensive_mock_tmux
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
@@ -124,9 +122,9 @@ class TestCommandInjectionSecurity:
                 assert kwargs.get("shell") is not True
                 assert "shell" not in kwargs or kwargs["shell"] is False
 
-    def test_input_validation_prevents_empty_commands(self):
+    def test_input_validation_prevents_empty_commands(self, comprehensive_mock_tmux):
         """Test that empty or None inputs are properly handled."""
-        tmux = TMUXManager()
+        tmux = comprehensive_mock_tmux
 
         # Test with empty strings
         with patch("subprocess.run") as mock_run:
@@ -138,9 +136,9 @@ class TestCommandInjectionSecurity:
             # Should still call subprocess, but with empty string as argument
             assert mock_run.called
 
-    def test_special_tmux_characters_are_handled(self):
+    def test_special_tmux_characters_are_handled(self, comprehensive_mock_tmux):
         """Test that tmux-specific special characters are properly handled."""
-        tmux = TMUXManager()
+        tmux = comprehensive_mock_tmux
 
         # Characters that have special meaning in tmux
         tmux_special = [
@@ -173,9 +171,9 @@ class TestSecurityFixImplementation:
         # Check that shlex is imported
         assert hasattr(tmux_module, "shlex")
 
-    def test_input_sanitization_function_exists(self):
+    def test_input_sanitization_function_exists(self, comprehensive_mock_tmux):
         """Test that input sanitization function exists."""
-        tmux = TMUXManager()
+        tmux = comprehensive_mock_tmux
 
         # Should have a sanitization method (will be implemented)
         assert hasattr(tmux, "_sanitize_input") or hasattr(tmux, "_validate_input")

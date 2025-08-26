@@ -14,6 +14,8 @@ from tmux_orchestrator.core.performance_optimizer import (
 )
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 @pytest.fixture
 def tmux() -> Mock:

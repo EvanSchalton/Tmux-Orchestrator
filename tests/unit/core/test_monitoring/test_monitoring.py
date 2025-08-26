@@ -36,6 +36,8 @@ from tmux_orchestrator.core.monitoring.types import (
 )
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestMonitoringTypes:
     """Test monitoring data types and enums."""
