@@ -1,11 +1,11 @@
 {
-  "last_updated": "2025-08-26T20:21:43.721304+00:00",
+  "last_updated": "2025-08-26T20:36:39.808780+00:00",
   "daemon_status": {
     "monitor": {
       "running": true,
-      "pid": 99512,
-      "uptime_seconds": 512,
-      "last_check": "2025-08-26T20:21:43.720957"
+      "pid": 48103,
+      "uptime_seconds": 155,
+      "last_check": "2025-08-26T20:36:39.807773"
     },
     "messaging": {
       "running": false,
@@ -17,105 +17,119 @@
       "name": "claude-backend-dev",
       "type": "Backend Dev",
       "status": "idle",
-      "last_activity": "2025-08-26T20:21:43.651233",
+      "last_activity": "2025-08-26T20:36:39.706843",
       "pane_id": null,
       "session": "enhanced-messaging",
       "window": 2,
       "state_details": {
         "idle_count": 0,
-        "content_based_state": "unsubmitted",
-        "last_content_check": "2025-08-26T20:21:43.651254"
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T20:36:39.706859"
       }
     },
     "enhanced-messaging:3": {
       "name": "claude-pm",
       "type": "Project Manager",
       "status": "idle",
-      "last_activity": "2025-08-26T20:21:43.662413",
+      "last_activity": "2025-08-26T20:36:39.722144",
       "pane_id": null,
       "session": "enhanced-messaging",
       "window": 3,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:21:43.662426"
+        "last_content_check": "2025-08-26T20:36:39.722160"
+      }
+    },
+    "enhanced-messaging:4": {
+      "name": "claude-qa-engineer",
+      "type": "QA Engineer",
+      "status": "idle",
+      "last_activity": "2025-08-26T20:36:39.735253",
+      "pane_id": null,
+      "session": "enhanced-messaging",
+      "window": 4,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T20:36:39.735309"
       }
     },
     "precommit-zero-tolerance:2": {
       "name": "claude-test-fix-specialist",
       "type": "QA Engineer",
       "status": "idle",
-      "last_activity": "2025-08-26T20:21:43.672094",
+      "last_activity": "2025-08-26T20:36:39.749138",
       "pane_id": null,
       "session": "precommit-zero-tolerance",
       "window": 2,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:21:43.672106"
+        "last_content_check": "2025-08-26T20:36:39.749179"
       }
     },
     "precommit-zero-tolerance:3": {
       "name": "claude-qa-verification",
       "type": "QA Engineer",
-      "status": "active",
-      "last_activity": "2025-08-26T20:21:43.683423",
+      "status": "idle",
+      "last_activity": "2025-08-26T20:36:39.763924",
       "pane_id": null,
       "session": "precommit-zero-tolerance",
       "window": 3,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:21:43.683441"
+        "last_content_check": "2025-08-26T20:36:39.763942"
       }
     },
     "precommit-zero-tolerance:4": {
       "name": "claude-pm",
       "type": "Project Manager",
-      "status": "active",
-      "last_activity": "2025-08-26T20:21:43.696932",
+      "status": "idle",
+      "last_activity": "2025-08-26T20:36:39.784213",
       "pane_id": null,
       "session": "precommit-zero-tolerance",
       "window": 4,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:21:43.696946"
+        "last_content_check": "2025-08-26T20:36:39.784226"
       }
     },
     "test-session:2": {
       "name": "claude-test-dev",
       "type": "QA Engineer",
-      "status": "active",
-      "last_activity": "2025-08-26T20:21:43.708458",
+      "status": "idle",
+      "last_activity": "2025-08-26T20:36:39.796849",
       "pane_id": null,
       "session": "test-session",
       "window": 2,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:21:43.708471"
+        "last_content_check": "2025-08-26T20:36:39.796861"
       }
     },
     "test-session:3": {
       "name": "claude-pm",
       "type": "Project Manager",
       "status": "idle",
-      "last_activity": "2025-08-26T20:21:43.720924",
+      "last_activity": "2025-08-26T20:36:39.807743",
       "pane_id": null,
       "session": "test-session",
       "window": 3,
       "state_details": {
         "idle_count": 0,
         "content_based_state": "active",
-        "last_content_check": "2025-08-26T20:21:43.720938"
+        "last_content_check": "2025-08-26T20:36:39.807756"
       }
     }
   },
   "summary": {
-    "total_agents": 7,
-    "active": 3,
-    "idle": 4,
+    "total_agents": 8,
+    "active": 0,
+    "idle": 8,
     "error": 0,
     "busy": 0,
     "unknown": 0

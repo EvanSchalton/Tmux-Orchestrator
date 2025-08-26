@@ -1,5 +1,11 @@
 # Pre-commit hooks for code quality
 # Install with: poetry run pre-commit install
+exclude: |
+  (?x)^(
+    .*\.lock$|
+    \.tmux_orchestrator/.*\.lock$|
+    \.tmux_orchestrator/idle-monitor\.(heartbeat|start\.lock|startup\.lock)$
+  )
 repos:
   # Python formatting and linting with Ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
