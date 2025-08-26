@@ -86,6 +86,7 @@ class StatusWriter:
             # Write to temp file
             with os.fdopen(temp_fd, "w") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
+                f.write("\n")
 
             # Atomic rename
             os.replace(temp_path, self.status_file)

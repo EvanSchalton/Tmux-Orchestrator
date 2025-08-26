@@ -5,7 +5,8 @@ exclude: |
   (?x)^(
     .*\.lock$|
     \.tmux_orchestrator/.*\.lock$|
-    \.tmux_orchestrator/idle-monitor\.(heartbeat|start\.lock|startup\.lock)$
+    \.tmux_orchestrator/idle-monitor\.(heartbeat|start\.lock|startup\.lock)$|
+    \.tmux_orchestrator/status\.json$
   )
 repos:
   # All quality checks centralized through tasks.py invoke commands
