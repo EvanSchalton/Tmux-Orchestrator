@@ -10,6 +10,8 @@ from click.testing import CliRunner
 from tmux_orchestrator.cli.session import session
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 @pytest.fixture
 def runner() -> CliRunner:

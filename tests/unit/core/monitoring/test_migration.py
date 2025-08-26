@@ -17,6 +17,8 @@ from tmux_orchestrator.core.monitor_modular import ModularIdleMonitor  # New imp
 from tmux_orchestrator.core.monitoring.types import AgentInfo
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestFeatureFlagMigration:
     """Test feature flag controlled migration."""

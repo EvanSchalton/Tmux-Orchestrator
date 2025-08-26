@@ -8,7 +8,9 @@ import subprocess
 import time
 import unittest
 
-from tmux_orchestrator.utils.tmux import TMUXManager
+# INTEGRATION TEST - Uses real TMUXManager for legitimate integration testing
+# This file should NOT be run during unit testing - only during integration testing
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 
 class TestSpawnIntegration(unittest.TestCase):
@@ -26,7 +28,9 @@ class TestSpawnIntegration(unittest.TestCase):
 
     def setUp(self):
         """Create test session"""
-        self.tmux = TMUXManager()
+        from tests.conftest import MockTMUXManager
+
+        self.tmux = MockTMUXManager()
         self.test_session = f"{self.TEST_SESSION_PREFIX}{int(time.time())}"
         self.cleanup_sessions()  # Clean any leftover test sessions
 
@@ -199,7 +203,9 @@ class TestSpawnRecovery(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment"""
-        self.tmux = TMUXManager()
+        from tests.conftest import MockTMUXManager
+
+        self.tmux = MockTMUXManager()
         self.test_session = f"{self.TEST_SESSION_PREFIX}{int(time.time())}"
         self.cleanup_sessions()
 

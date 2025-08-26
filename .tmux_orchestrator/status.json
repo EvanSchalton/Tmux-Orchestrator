@@ -1,65 +1,22 @@
 {
-  "last_updated": "2025-08-26T08:25:35.481394+00:00",
+  "last_updated": "2025-08-26T19:40:18.367430+00:00",
   "daemon_status": {
     "monitor": {
       "running": true,
-      "pid": 9300,
-      "uptime_seconds": 26332,
-      "last_check": "2025-08-26T08:25:35.481248"
+      "pid": 42767,
+      "uptime_seconds": 0,
+      "last_check": "2025-08-26T19:40:18.367057"
     },
     "messaging": {
       "running": false,
       "pid": null
     }
   },
-  "agents": {
-    "pre-commit-fix:2": {
-      "name": "claude-pm",
-      "type": "Project Manager",
-      "status": "idle",
-      "last_activity": "2025-08-26T08:25:35.465085",
-      "pane_id": null,
-      "session": "pre-commit-fix",
-      "window": 2,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "active",
-        "last_content_check": "2025-08-26T08:25:35.465094"
-      }
-    },
-    "pre-commit-fix:3": {
-      "name": "claude-test-engineer",
-      "type": "QA Engineer",
-      "status": "idle",
-      "last_activity": "2025-08-26T08:25:35.473316",
-      "pane_id": null,
-      "session": "pre-commit-fix",
-      "window": 3,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "active",
-        "last_content_check": "2025-08-26T08:25:35.473327"
-      }
-    },
-    "pre-commit-fix:4": {
-      "name": "claude-code-fixer",
-      "type": "Developer",
-      "status": "idle",
-      "last_activity": "2025-08-26T08:25:35.481228",
-      "pane_id": null,
-      "session": "pre-commit-fix",
-      "window": 4,
-      "state_details": {
-        "idle_count": 0,
-        "content_based_state": "active",
-        "last_content_check": "2025-08-26T08:25:35.481237"
-      }
-    }
-  },
+  "agents": {},
   "summary": {
-    "total_agents": 3,
+    "total_agents": 0,
     "active": 0,
-    "idle": 3,
+    "idle": 0,
     "error": 0,
     "busy": 0,
     "unknown": 0

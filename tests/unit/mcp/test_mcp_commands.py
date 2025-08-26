@@ -7,17 +7,15 @@ parameter handling for real-world usage patterns.
 """
 
 import json
-
-# Import mock configuration first
-# Add parent directory to path for conftest_mcp
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
+# Add parent directory to path for conftest_mcp
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from tests.conftest_mcp import EnhancedCLIToMCPServer
+from tests.conftest_mcp import EnhancedCLIToMCPServer  # noqa: E402
 
 
 class TestAgentCommands:

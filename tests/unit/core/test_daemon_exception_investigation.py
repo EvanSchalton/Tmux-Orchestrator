@@ -11,7 +11,8 @@ from pathlib import Path
 sys.path.insert(0, "/workspaces/Tmux-Orchestrator")
 
 from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError, IdleMonitor  # noqa: E402
-from tmux_orchestrator.utils.tmux import TMUXManager  # noqa: E402
+
+# TMUXManager import removed - using comprehensive_mock_tmux fixture  # noqa: E402
 
 
 def test_exception_flow():
@@ -23,7 +24,9 @@ def test_exception_flow():
 
     # Test 1: Direct start() method
     print("Test 1: Direct start() method")
-    tmux = TMUXManager()
+    from tests.conftest import MockTMUXManager
+
+    tmux = MockTMUXManager()
     monitor1 = IdleMonitor(tmux)
 
     try:
@@ -38,7 +41,10 @@ def test_exception_flow():
 
     # Test 2: Second direct start() should raise exception
     print("\nTest 2: Second direct start() attempt")
-    monitor2 = IdleMonitor(tmux)
+    from tests.conftest import MockTMUXManager
+
+    tmux2 = MockTMUXManager()
+    monitor2 = IdleMonitor(tmux2)
 
     try:
         pid2 = monitor2.start(interval=10)
@@ -99,7 +105,9 @@ def test_concurrent_starts():
 
     def start_daemon(idx):
         """Start daemon in thread."""
-        tmux = TMUXManager()
+        from tests.conftest import MockTMUXManager
+
+        tmux = MockTMUXManager()
         monitor = IdleMonitor(tmux)
 
         try:

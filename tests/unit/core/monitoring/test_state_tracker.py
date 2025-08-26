@@ -17,6 +17,8 @@ from tmux_orchestrator.core.monitoring.state_tracker import StateTracker
 from tmux_orchestrator.core.monitoring.types import AgentInfo
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestStateTrackerInitialization:
     """Test StateTracker initialization and basic functionality."""

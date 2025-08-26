@@ -17,13 +17,15 @@ import pytest
 from tmux_orchestrator.core.monitor import IdleMonitor
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestPMCrashDetection:
     """Test PM crash detection scenarios."""
 
     def setup_method(self):
         """Setup test environment."""
-        self.tmux = TMUXManager()
+        # self.tmux = comprehensive_mock_tmux  # Removed - use comprehensive_mock_tmux fixture
         self.test_session = f"test-pm-{os.getpid()}"
         self.daemon_logs = []
 
@@ -326,7 +328,9 @@ class TestPMRecoveryIntegration:
     @pytest.mark.slow
     def test_end_to_end_pm_recovery(self):
         """Test complete PM recovery flow."""
-        tmux = TMUXManager()
+        from tests.conftest import MockTMUXManager
+
+        tmux = MockTMUXManager()
         test_session = "test-e2e-recovery"
 
         try:

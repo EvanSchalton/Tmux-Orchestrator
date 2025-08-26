@@ -4,18 +4,18 @@ from unittest.mock import patch
 
 import pytest
 
-from tmux_orchestrator.utils.tmux import TMUXManager
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 
 class TestAgentTypeDetection:
     """Test cases for agent type detection logic."""
 
     @pytest.fixture
-    def tmux_manager(self) -> TMUXManager:
-        """Create TMUXManager instance."""
-        return TMUXManager()
+    def tmux_manager(self, comprehensive_mock_tmux):
+        """Create mock TMUXManager instance."""
+        return comprehensive_mock_tmux
 
-    def test_agent_type_with_claude_prefix(self, tmux_manager: TMUXManager) -> None:
+    def test_agent_type_with_claude_prefix(self, tmux_manager) -> None:
         """Test that agents with Claude- prefix are properly typed."""
         # Mock the list_sessions and list_windows methods
         with patch.object(tmux_manager, "list_sessions") as mock_sessions:
@@ -67,7 +67,7 @@ class TestAgentTypeDetection:
                     for agent in agents:
                         assert agent["type"] != "Unknown", f"Agent {agent['window']} has Unknown type"
 
-    def test_agent_type_without_claude_prefix(self, tmux_manager: TMUXManager) -> None:
+    def test_agent_type_without_claude_prefix(self, tmux_manager) -> None:
         """Test agent type detection for windows without Claude- prefix."""
         with patch.object(tmux_manager, "list_sessions") as mock_sessions:
             with patch.object(tmux_manager, "list_windows") as mock_windows:
@@ -95,7 +95,7 @@ class TestAgentTypeDetection:
                     # Generic "Claude" window should not be Unknown
                     assert agent_types["3"] != "Unknown"
 
-    def test_agent_type_session_based_detection(self, tmux_manager: TMUXManager) -> None:
+    def test_agent_type_session_based_detection(self, tmux_manager) -> None:
         """Test that session names influence agent type detection."""
         with patch.object(tmux_manager, "list_sessions") as mock_sessions:
             with patch.object(tmux_manager, "list_windows") as mock_windows:
@@ -133,7 +133,7 @@ class TestAgentTypeDetection:
                     assert backend_agent["type"] == "Backend"
                     assert testing_agent["type"] == "QA"
 
-    def test_agent_type_edge_cases(self, tmux_manager: TMUXManager) -> None:
+    def test_agent_type_edge_cases(self, tmux_manager) -> None:
         """Test edge cases in agent type detection."""
         with patch.object(tmux_manager, "list_sessions") as mock_sessions:
             with patch.object(tmux_manager, "list_windows") as mock_windows:

@@ -16,11 +16,14 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
+from tmux_orchestrator.utils.tmux import TMUXManager
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tmux_orchestrator.core.monitor import IdleMonitor  # noqa: E402
-from tmux_orchestrator.utils.tmux import TMUXManager  # noqa: E402
+
+# TMUXManager import removed - using comprehensive_mock_tmux fixture  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

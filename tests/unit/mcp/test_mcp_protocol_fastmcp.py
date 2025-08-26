@@ -14,7 +14,7 @@ import pytest
 
 # Add parent directory for conftest_mcp
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from tests.conftest_mcp import MockFastMCP
+from tests.conftest_mcp import MockFastMCP  # noqa: E402
 
 
 class TestMCPProtocolValidation:

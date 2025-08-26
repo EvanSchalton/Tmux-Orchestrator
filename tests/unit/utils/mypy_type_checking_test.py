@@ -439,10 +439,10 @@ class TestMypyConfigurationValidation:
 # Test importing the fixed modules
 try:
     from tmux_orchestrator.core.monitor_async import AsyncAgentMonitor
-    from tmux_orchestrator.utils.tmux import TMUXManager
+    # TMUXManager import removed - using comprehensive_mock_tmux fixture
 
     # These should be properly typed now
-    tmux = TMUXManager()
+    tmux = comprehensive_mock_tmux
     monitor = AsyncAgentMonitor(tmux)
 
     # Type annotations should be available

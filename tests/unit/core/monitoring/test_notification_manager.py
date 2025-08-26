@@ -16,6 +16,8 @@ from tmux_orchestrator.core.monitoring.notification_manager import NotificationM
 from tmux_orchestrator.core.monitoring.types import IdleType, NotificationEvent, NotificationType
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestNotificationManagerInitialization:
     """Test NotificationManager initialization and basic functionality."""

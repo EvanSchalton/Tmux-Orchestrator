@@ -1,0 +1,56 @@
+# Pre-commit hooks for code quality
+# Install with: poetry run pre-commit install
+repos:
+  # Python formatting and linting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      # Run formatter first
+      - id: ruff-format
+      # Then run linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-pyyaml==6.0.12.20250516]
+        args: [--config-file, pyproject.toml, --ignore-missing-imports, tmux_orchestrator]
+        files: ^tmux_orchestrator/
+        pass_filenames: false
+
+  # Test validation
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Run pytest tests
+        entry: python -m pytest
+        language: system
+        args: [--tb=short, --no-cov, -q, --maxfail=5]
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # Security checks
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        additional_dependencies: [pbr>=6.0.0]
+        args: [-r, tmux_orchestrator/, -ll, --skip, B108]
+        pass_filenames: false
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: check-json
+      - id: mixed-line-ending

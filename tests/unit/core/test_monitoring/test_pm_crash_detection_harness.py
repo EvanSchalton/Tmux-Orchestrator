@@ -15,14 +15,15 @@ import psutil
 import pytest
 
 from tmux_orchestrator.core.monitor import IdleMonitor
-from tmux_orchestrator.utils.tmux import TMUXManager
+
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 
 class PMCrashTestHarness:
     """Test harness for validating PM crash detection."""
 
     def __init__(self):
-        self.tmux = TMUXManager()
+        # self.tmux = comprehensive_mock_tmux  # Removed - use comprehensive_mock_tmux fixture
         self.test_sessions = []
         self.spawned_processes = []
         self.monitors = []

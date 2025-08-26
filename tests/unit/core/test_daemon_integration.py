@@ -11,7 +11,8 @@ sys.path.insert(0, "/workspaces/Tmux-Orchestrator")
 
 from tmux_orchestrator.core.daemon_supervisor import DaemonSupervisor  # noqa: E402
 from tmux_orchestrator.core.monitor import IdleMonitor  # noqa: E402
-from tmux_orchestrator.utils.tmux import TMUXManager  # noqa: E402
+
+# TMUXManager import removed - using comprehensive_mock_tmux fixture  # noqa: E402
 
 
 def test_basic_supervisor_functionality():
@@ -107,7 +108,9 @@ def test_monitor_integration():
     """Test integration with IdleMonitor."""
     print("🧪 Testing IdleMonitor integration...")
 
-    tmux = TMUXManager()
+    from tests.conftest import MockTMUXManager
+
+    tmux = MockTMUXManager()
     monitor = IdleMonitor(tmux)
 
     # Test that supervisor is initialized

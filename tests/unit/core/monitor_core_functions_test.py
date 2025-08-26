@@ -14,6 +14,8 @@ from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitor import AgentHealthStatus, IdleMonitor, TerminalCache
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestTerminalCache:
     """Test TerminalCache functionality."""

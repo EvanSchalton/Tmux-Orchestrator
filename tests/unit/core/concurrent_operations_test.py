@@ -13,7 +13,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from unittest.mock import Mock, patch
 
 from tmux_orchestrator.core.config import Config
-from tmux_orchestrator.utils.tmux import TMUXManager
+
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 
 class TestConcurrentAgentLimits:
@@ -134,7 +135,9 @@ class TestConcurrentPerformance:
 
         def query_session(session_name: str) -> dict:
             """Query a session status."""
-            tmux = TMUXManager()
+            from tests.conftest import MockTMUXManager
+
+            tmux = MockTMUXManager()
             exists = tmux.session_exists(session_name)
             content = tmux.get_pane_content(session_name) if exists else ""
             return {"session": session_name, "exists": exists, "content": content}
@@ -162,7 +165,9 @@ class TestConcurrentPerformance:
 
         def send_message(session: str, message: str) -> bool:
             """Send a message to a session."""
-            tmux = TMUXManager()
+            from tests.conftest import MockTMUXManager
+
+            tmux = MockTMUXManager()
             return tmux.send_keys(session, message)
 
         sessions = [f"session-{i}:1" for i in range(15)]

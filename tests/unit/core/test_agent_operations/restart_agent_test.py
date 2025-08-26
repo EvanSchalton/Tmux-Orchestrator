@@ -7,6 +7,8 @@ import pytest
 from tmux_orchestrator.core.agent_operations.restart_agent import restart_agent
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 def test_restart_agent_success() -> None:
     """Test successful agent restart."""

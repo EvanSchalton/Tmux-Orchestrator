@@ -136,8 +136,15 @@ def test_team_broadcast(runner, mock_tmux) -> None:
         )
 
         assert result.exit_code == 0
-        assert "Message sent to" in result.output or "Broadcast successful" in result.output
-        mock_broadcast.assert_called_once_with(mock_tmux, "project1", "Team meeting in 5 minutes")
+        assert "✓ Message sent to" in result.output or "Broadcast complete:" in result.output
+        mock_broadcast.assert_called_once_with(
+            mock_tmux,
+            "project1",
+            "Team meeting in 5 minutes",
+            exclude_windows=None,
+            priority="normal",
+            agent_types=None,
+        )
 
 
 def test_team_broadcast_with_failures(runner, mock_tmux) -> None:

@@ -11,7 +11,9 @@ import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from tmux_orchestrator.utils.tmux import TMUXManager
+# STRESS TEST - Uses real TMUXManager for legitimate stress testing
+# This file should NOT be in unit tests - should be moved to integration/stress tests
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 
 class TestSpawnStress(unittest.TestCase):
@@ -29,7 +31,9 @@ class TestSpawnStress(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment"""
-        self.tmux = TMUXManager()
+        from tests.conftest import MockTMUXManager
+
+        self.tmux = MockTMUXManager()
         self.test_session = f"{self.TEST_SESSION_PREFIX}{int(time.time())}"
         self.cleanup_sessions()
 
@@ -243,7 +247,9 @@ class TestSpawnErrorRecovery(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment"""
-        self.tmux = TMUXManager()
+        from tests.conftest import MockTMUXManager
+
+        self.tmux = MockTMUXManager()
         self.test_session = f"{self.TEST_SESSION_PREFIX}{int(time.time())}"
         self.cleanup_sessions()
 

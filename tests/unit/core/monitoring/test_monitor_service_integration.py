@@ -16,6 +16,8 @@ from tmux_orchestrator.core.monitoring.monitor_service import MonitorService
 from tmux_orchestrator.core.monitoring.types import AgentInfo, MonitorStatus
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestMonitorServiceInitialization:
     """Test MonitorService initialization and lifecycle."""

@@ -22,6 +22,8 @@ import pytest
 from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError, IdleMonitor
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestSingletonStressScenarios:
     """Stress test scenarios for singleton enforcement."""

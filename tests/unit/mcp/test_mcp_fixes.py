@@ -20,7 +20,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from tests.conftest_mcp import EnhancedCLIToMCPServer
+from tests.conftest_mcp import EnhancedCLIToMCPServer  # noqa: E402
 
 
 class TestFix1EmptyKwargsHandling:

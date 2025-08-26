@@ -501,11 +501,12 @@ async def monitor_agents_batch(agents: list[str]) -> dict[str, dict[str, Any]]:
         """Test that async monitoring module has proper type safety."""
         # Import and test the actual async monitoring module
         try:
-            from tmux_orchestrator.core.monitor_async import AsyncAgentMonitor
-            from tmux_orchestrator.utils.tmux import TMUXManager
-
+            # TMUXManager import removed - using comprehensive_mock_tmux fixture
             # Create instances to test type safety
-            tmux = TMUXManager()
+            from tests.conftest import MockTMUXManager
+            from tmux_orchestrator.core.monitor_async import AsyncAgentMonitor
+
+            tmux = MockTMUXManager()
             monitor = AsyncAgentMonitor(tmux)
 
             # These should not cause type errors

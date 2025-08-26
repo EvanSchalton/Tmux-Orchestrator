@@ -12,10 +12,10 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from tests.conftest import MockTMUXManager
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.error_handler import ErrorHandler
 from tmux_orchestrator.utils.exceptions import TmuxOrchestratorError
-from tmux_orchestrator.utils.tmux import TMUXManager
 
 
 class TestConfigManagement:
@@ -80,13 +80,13 @@ class TestTMUXManager:
 
     def test_tmux_manager_initialization(self, test_uuid: str) -> None:
         """Test TMUXManager initializes correctly."""
-        tmux = TMUXManager()
+        tmux = MockTMUXManager()
         assert tmux is not None, f"TMUXManager should initialize - Test ID: {test_uuid}"
 
     @patch("subprocess.run")
     def test_session_exists_check(self, mock_run: Mock, test_uuid: str) -> None:
         """Test session existence checking logic."""
-        tmux = TMUXManager()
+        tmux = MockTMUXManager()
 
         # Mock successful session check
         mock_run.return_value.returncode = 0
@@ -98,7 +98,7 @@ class TestTMUXManager:
     @patch("subprocess.run")
     def test_list_sessions_performance(self, mock_run: Mock, test_uuid: str) -> None:
         """Test list_sessions returns quickly."""
-        tmux = TMUXManager()
+        tmux = MockTMUXManager()
 
         # Mock tmux list-sessions command
         mock_run.return_value.returncode = 0
@@ -116,7 +116,7 @@ class TestTMUXManager:
     @patch("subprocess.run")
     def test_send_keys_validation(self, mock_run: Mock, test_uuid: str) -> None:
         """Test send_keys input validation."""
-        tmux = TMUXManager()
+        tmux = MockTMUXManager()
         mock_run.return_value.returncode = 0
 
         # Test normal message sending
@@ -130,7 +130,7 @@ class TestTMUXManager:
     @patch("subprocess.run")
     def test_window_management(self, mock_run: Mock, test_uuid: str) -> None:
         """Test window creation and management."""
-        tmux = TMUXManager()
+        tmux = MockTMUXManager()
         mock_run.return_value.returncode = 0
 
         # Test window creation
@@ -143,7 +143,7 @@ class TestTMUXManager:
 
     def test_session_name_validation(self, test_uuid: str) -> None:
         """Test session name validation for developer tool patterns."""
-        TMUXManager()
+        # comprehensive_mock_tmux  # Removed - use comprehensive_mock_tmux fixture
 
         # Test valid session patterns
         valid_sessions = ["project:1", "team-frontend:2", "backend-dev:3", "test-session:0"]

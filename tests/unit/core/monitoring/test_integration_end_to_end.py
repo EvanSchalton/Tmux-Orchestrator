@@ -16,6 +16,8 @@ from tmux_orchestrator.core.monitor_modular import ModularIdleMonitor
 from tmux_orchestrator.core.monitoring import ComponentManager
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestEndToEndMonitoringWorkflow:
     """Test complete monitoring workflows."""

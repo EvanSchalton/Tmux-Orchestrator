@@ -24,6 +24,8 @@ import pytest
 from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError, IdleMonitor
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestDaemonSingleton:
     """Comprehensive test suite for daemon singleton behavior."""

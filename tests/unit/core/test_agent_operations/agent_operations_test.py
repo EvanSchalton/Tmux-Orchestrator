@@ -12,6 +12,8 @@ import pytest
 from tmux_orchestrator.core.agent_operations.spawn_agent import _send_agent_message, spawn_agent
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestSpawnAgent:
     """Test spawn_agent function with comprehensive scenarios."""

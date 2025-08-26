@@ -15,6 +15,8 @@ from tmux_orchestrator.core.monitoring.crash_detector import CrashDetector
 from tmux_orchestrator.core.monitoring.types import AgentInfo
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestCrashDetectorInitialization:
     """Test CrashDetector initialization and configuration."""

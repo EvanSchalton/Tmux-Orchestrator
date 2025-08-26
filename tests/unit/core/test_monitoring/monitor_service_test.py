@@ -11,6 +11,8 @@ from tmux_orchestrator.core.monitoring.monitor_service import MonitorService
 from tmux_orchestrator.core.monitoring.types import AgentInfo, MonitorStatus
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestMonitorService:
     """Test suite for MonitorService facade."""

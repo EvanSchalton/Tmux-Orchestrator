@@ -42,8 +42,8 @@ class TestCLIPerformance:
     ) -> None:
         """Test agent status command performance with mocked tmux."""
         # Configure mock for quick response
-        mock_tmux_manager.return_value.list_sessions.return_value = ["session1", "session2"]
-        mock_tmux_manager.return_value.session_exists.return_value = True
+        mock_tmux_manager.return_value.list_sessions.return_value = [{"name": "session1"}, {"name": "session2"}]
+        mock_tmux_manager.return_value.has_session.return_value = True
 
         start_time = time.time()
         cli_runner.invoke(cli, ["agent", "status", "session1:1"])
@@ -55,7 +55,7 @@ class TestCLIPerformance:
     @patch("tmux_orchestrator.cli.spawn.TMUXManager")
     def test_spawn_command_performance(self, mock_tmux_manager: Mock, cli_runner: CliRunner, test_uuid: str) -> None:
         """Test spawn command argument parsing performance."""
-        mock_tmux_manager.return_value.session_exists.return_value = False
+        mock_tmux_manager.return_value.has_session.return_value = False
         mock_tmux_manager.return_value.new_session.return_value = True
 
         start_time = time.time()
@@ -160,12 +160,12 @@ class TestCLIMockingInfrastructure:
     def test_tmux_manager_mock_isolation(self, mock_tmux_manager: Mock, test_uuid: str) -> None:
         """Test that TMUXManager mocking provides proper isolation."""
         # Verify mock is configured correctly
-        assert mock_tmux_manager.list_sessions.return_value == ["session1", "session2"]
-        assert mock_tmux_manager.session_exists.return_value is True
+        assert mock_tmux_manager.list_sessions.return_value == [{"name": "session1"}, {"name": "session2"}]
+        assert mock_tmux_manager.has_session.return_value is True
 
         # Test execution performance with mock
         start_time = time.time()
-        result = mock_tmux_manager.get_pane_content("session:0")
+        result = mock_tmux_manager.capture_pane("session:0")
         execution_time = time.time() - start_time
 
         assert result == "Mock pane content"

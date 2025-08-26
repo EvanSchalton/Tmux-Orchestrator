@@ -13,6 +13,8 @@ from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.core.monitoring.health_checker import AgentHealthStatus, HealthChecker
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestHealthCheckerInitialization:
     """Test HealthChecker initialization and configuration."""

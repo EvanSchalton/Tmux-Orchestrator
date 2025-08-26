@@ -8,6 +8,8 @@ import pytest
 from tmux_orchestrator.core.team_operations.list_all_teams import list_all_teams
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 def test_list_all_teams_success() -> None:
     """Test successful listing of all teams."""

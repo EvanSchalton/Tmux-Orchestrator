@@ -14,7 +14,7 @@ Monitor team progress with regular 115-second cycles, providing feedback and gui
 ```bash
 sleep 115
 # Check status and provide PM feedback
-sleep 115  
+sleep 115
 # Check status and provide PM feedback
 sleep 115
 # Etc...
@@ -22,6 +22,6 @@ sleep 115
 
 ## Key Requirements
 - **Always reset the timer** after providing feedback
-- **Never break the 115-second rhythm**  
+- **Never break the 115-second rhythm**
 - **Continuously monitor** until project closeout
 - **Provide actionable guidance** to keep progress moving

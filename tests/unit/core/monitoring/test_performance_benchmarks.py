@@ -15,6 +15,8 @@ from tmux_orchestrator.core.monitoring.component_manager import ComponentManager
 from tmux_orchestrator.core.monitoring.types import AgentInfo, IdleAnalysis, IdleType
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestMonitoringPerformance:
     """Test monitoring system performance with many agents."""

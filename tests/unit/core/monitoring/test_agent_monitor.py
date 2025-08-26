@@ -15,6 +15,8 @@ from tmux_orchestrator.core.monitoring.agent_monitor import AgentMonitor
 from tmux_orchestrator.core.monitoring.types import AgentInfo, IdleType
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestAgentMonitorInitialization:
     """Test AgentMonitor initialization and basic functionality."""

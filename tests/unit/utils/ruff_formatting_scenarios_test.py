@@ -546,7 +546,7 @@ class TypedClass:
     def test_tmux_orchestrator_patterns(self):
         """Test formatting of common patterns in tmux-orchestrator codebase."""
         orchestrator_patterns = """from tmux_orchestrator.core.monitor import IdleMonitor
-from tmux_orchestrator.utils.tmux import TMUXManager
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 class TestOrchestrator:
     def __init__(self,tmux:TMUXManager):

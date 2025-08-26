@@ -16,6 +16,8 @@ from tmux_orchestrator.core.monitoring.component_manager import ComponentManager
 from tmux_orchestrator.core.monitoring.types import IdleType
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestComponentManagerInitialization:
     """Test ComponentManager initialization and basic functionality."""

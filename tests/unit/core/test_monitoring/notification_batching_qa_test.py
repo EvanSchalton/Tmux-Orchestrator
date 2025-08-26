@@ -15,6 +15,8 @@ import pytest
 from tmux_orchestrator.core.monitor import IdleMonitor
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestNotificationBatchingSystem:
     """Comprehensive tests for the notification batching system."""

@@ -13,6 +13,8 @@ from tmux_orchestrator.core.communication.broadcast_message import broadcast_mes
 from tmux_orchestrator.core.communication.send_message import send_message
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 class TestSendMessage:
     """Test send_message function with comprehensive scenarios."""

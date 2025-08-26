@@ -10,7 +10,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 from tmux_orchestrator.core.monitor import IdleMonitor
-from tmux_orchestrator.utils.tmux import TMUXManager
+
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 
 class TestPMImplementationValidation:
@@ -18,7 +19,7 @@ class TestPMImplementationValidation:
 
     def setup_method(self):
         """Setup for each test."""
-        self.tmux = TMUXManager()
+        # self.tmux = comprehensive_mock_tmux  # Removed - use comprehensive_mock_tmux fixture
         self.test_sessions = []
 
     def teardown_method(self):

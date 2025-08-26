@@ -18,7 +18,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from mcp_operations_inventory import MCPOperationsInventory
+from mcp_operations_inventory import MCPOperationsInventory  # noqa: E402
 
 
 @dataclass

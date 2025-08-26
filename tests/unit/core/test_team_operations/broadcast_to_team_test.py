@@ -7,6 +7,8 @@ import pytest
 from tmux_orchestrator.core.team_operations.broadcast_to_team import broadcast_to_team
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
+
 
 def test_broadcast_to_team_success() -> None:
     """Test successful broadcast to team agents."""

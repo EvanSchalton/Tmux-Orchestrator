@@ -17,14 +17,15 @@ from unittest.mock import Mock, patch
 import pytest
 
 from tmux_orchestrator.core.monitor import IdleMonitor
-from tmux_orchestrator.utils.tmux import TMUXManager
+
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 
 class RecoveryOrchestrationTest:
     """Test suite for PM recovery orchestration."""
 
     def __init__(self):
-        self.tmux = TMUXManager()
+        # TMUXManager removed - tests will use comprehensive_mock_tmux fixture
         self.test_sessions = []
         self.mock_agents = []
         self.recovery_state_file = Path("/tmp/test_recovery_state.json")

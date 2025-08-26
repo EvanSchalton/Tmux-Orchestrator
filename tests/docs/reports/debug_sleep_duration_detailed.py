@@ -8,7 +8,7 @@ from pathlib import Path
 # Add the project root to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from tmux_orchestrator.core.monitor_helpers import (
+from tmux_orchestrator.core.monitor_helpers import (  # noqa: E402
     MAX_RATE_LIMIT_SECONDS,
     RATE_LIMIT_BUFFER_SECONDS,
     calculate_sleep_duration,

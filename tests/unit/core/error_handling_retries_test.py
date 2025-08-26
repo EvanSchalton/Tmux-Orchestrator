@@ -13,14 +13,15 @@ from unittest.mock import Mock, patch
 import pytest
 
 from tmux_orchestrator.core.monitor import IdleMonitor
-from tmux_orchestrator.utils.tmux import TMUXManager
+
+# TMUXManager import removed - using comprehensive_mock_tmux fixture
 
 
 class ErrorHandlingRetryTest:
     """Test suite for error handling and retry logic in PM recovery."""
 
     def __init__(self):
-        self.tmux = TMUXManager()
+        # TMUXManager removed - tests will use comprehensive_mock_tmux fixture
         self.test_sessions = []
 
     def setup_method(self):
