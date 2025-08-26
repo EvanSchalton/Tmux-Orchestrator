@@ -34,7 +34,7 @@ repos:
         name: Run pytest tests
         entry: python -m pytest
         language: system
-        args: [--tb=short, --no-cov, -q, --maxfail=5]
+        args: [--tb=short, --no-cov, -q, --maxfail=5, -n, auto]
         types: [python]
         pass_filenames: false
         stages: [pre-commit]
