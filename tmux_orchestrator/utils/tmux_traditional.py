@@ -330,7 +330,7 @@ class TMUXManager:
         typed_sessions: list[dict[str, str]] = sessions
         return typed_sessions
 
-    def list_windows(self, session: str) -> list[dict[str, str]]:
+    def list_windows(self, session: str) -> list[dict[str, Any]]:
         """List windows in a session."""
         result = self._run_tmux(
             [
@@ -351,7 +351,7 @@ class TMUXManager:
                 parts = line.split(":")
                 windows.append(
                     {
-                        "index": parts[0],
+                        "index": int(parts[0]),
                         "name": parts[1] if len(parts) > 1 else "",
                         "active": parts[2] if len(parts) > 2 else "0",
                     }

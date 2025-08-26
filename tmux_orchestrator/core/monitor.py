@@ -4169,7 +4169,7 @@ Use 'tmux list-windows -t {session_name}' to check window status."""
             windows = tmux.list_windows(session)
             for w in windows:
                 if str(w.get("index", "")) == str(window):
-                    return w.get("name", "Unknown")
+                    return str(w.get("name", "Unknown"))
             return "Unknown"
         except Exception:
             return "Unknown"

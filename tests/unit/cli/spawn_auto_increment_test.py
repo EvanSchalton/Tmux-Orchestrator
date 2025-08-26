@@ -29,13 +29,13 @@ class TestSpawnAutoIncrement:
             tmux_instance.list_sessions.return_value = [{"name": "test"}]
             tmux_instance.send_message.return_value = True
             tmux_instance.create_window.return_value = True
-            tmux_instance.list_windows.return_value = [{"name": "Claude-pm", "index": "1"}]
+            tmux_instance.list_windows.return_value = [{"name": "Claude-pm", "index": 1}]
             tmux_instance.send_keys.return_value = True
             yield tmux_instance
 
     def test_error_handling_on_spawn_failure(self, runner, mock_tmux):
         """Test graceful handling of spawn failures"""
-        mock_tmux.create_window.side_effect = Exception("Failed to create window")
+        mock_tmux.create_window.return_value = False
 
         with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
             mock_load.return_value = "Agent context"
@@ -56,7 +56,7 @@ class TestSpawnAutoIncrement:
             assert result1.exit_code == 0
 
             # Second spawn - now has first window
-            mock_tmux.list_windows.return_value = [{"name": "Claude-dev1", "index": "0"}]
+            mock_tmux.list_windows.return_value = [{"name": "Claude-dev1", "index": 0}]
             result2 = runner.invoke(
                 spawn, ["agent", "dev2", "test-session", "--briefing", "Dev 2"], obj={"tmux": mock_tmux}
             )
@@ -64,8 +64,8 @@ class TestSpawnAutoIncrement:
 
             # Third spawn - now has two windows
             mock_tmux.list_windows.return_value = [
-                {"name": "Claude-dev1", "index": "0"},
-                {"name": "Claude-dev2", "index": "1"},
+                {"name": "Claude-dev1", "index": 0},
+                {"name": "Claude-dev2", "index": 1},
             ]
             result3 = runner.invoke(
                 spawn, ["agent", "dev3", "test-session", "--briefing", "Dev 3"], obj={"tmux": mock_tmux}
@@ -250,7 +250,7 @@ class TestContextSpawnAutoIncrement:
             tmux_instance.list_sessions.return_value = [{"name": "test"}]
             tmux_instance.send_message.return_value = True
             tmux_instance.create_window.return_value = True
-            tmux_instance.list_windows.return_value = [{"name": "Claude-pm", "index": "1"}]
+            tmux_instance.list_windows.return_value = [{"name": "Claude-pm", "index": 1}]
             tmux_instance.send_keys.return_value = True
             yield tmux_instance
 

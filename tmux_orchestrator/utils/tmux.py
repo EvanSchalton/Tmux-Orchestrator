@@ -172,7 +172,7 @@ class TMUXManager:
             # Fallback to regular optimized version
             return self.list_agents_optimized()
 
-    def _get_sessions_and_windows_batch(self) -> dict[str, list[dict[str, str]]]:
+    def _get_sessions_and_windows_batch(self) -> dict[str, list[dict[str, Any]]]:
         """Get all sessions and their windows in a single optimized call.
 
         Returns:
@@ -216,7 +216,7 @@ class TMUXManager:
                             parts = window_line.split("|")
                             windows.append(
                                 {
-                                    "index": parts[0],
+                                    "index": int(parts[0]),
                                     "name": parts[1] if len(parts) > 1 else "",
                                     "active": parts[2] if len(parts) > 2 else "0",
                                 }
@@ -574,7 +574,7 @@ class TMUXManager:
             self._logger.error(f"Error capturing pane {target}: {e}")
             return ""
 
-    def list_windows(self, session: str) -> list[dict[str, str]]:
+    def list_windows(self, session: str) -> list[dict[str, Any]]:
         """List windows in a session.
 
         Args:
@@ -603,7 +603,7 @@ class TMUXManager:
                     parts = line.split(":", 2)
                     windows.append(
                         {
-                            "index": parts[0],
+                            "index": int(parts[0]),
                             "name": parts[1] if len(parts) > 1 else "",
                             "active": parts[2] if len(parts) > 2 else "0",
                         }
@@ -619,9 +619,108 @@ class TMUXManager:
         """Standard interface for creating windows - delegates to optimized version."""
         return self.create_window_optimized(session_name, window_name, start_directory)
 
-    def send_text(self, target: str, text: str) -> bool:
-        """Send literal text to the target pane (properly escaped)."""
-        return self.send_keys(target, text, literal=True)
+    def _chunk_message(self, message: str, max_chunk_size: int = 180) -> list[str]:
+        """Split message at natural boundaries (sentences, then words).
+
+        Args:
+            message: The message to chunk
+            max_chunk_size: Maximum size of each chunk (default 180 to leave room for pagination)
+
+        Returns:
+            List of message chunks
+        """
+        if len(message) <= max_chunk_size:
+            return [message]
+
+        chunks = []
+        current_chunk = ""
+
+        # First try to split at sentence boundaries
+        sentences = re.split(r"(?<=[.!?])\s+", message)
+
+        for sentence in sentences:
+            # If a single sentence is too long, we need to split it further
+            if len(sentence) > max_chunk_size:
+                # Split by common delimiters
+                parts = re.split(r"([,;:]\s*)", sentence)
+                for part in parts:
+                    if len(part) > max_chunk_size:
+                        # Last resort: split by words
+                        words = part.split()
+                        for word in words:
+                            if len(current_chunk) + len(word) + 1 <= max_chunk_size:
+                                current_chunk = (current_chunk + " " + word).strip()
+                            else:
+                                if current_chunk:
+                                    chunks.append(current_chunk)
+                                # If single word is too long, force split it
+                                if len(word) > max_chunk_size:
+                                    for i in range(0, len(word), max_chunk_size):
+                                        chunks.append(word[i : i + max_chunk_size])
+                                    current_chunk = ""
+                                else:
+                                    current_chunk = word
+                    else:
+                        if len(current_chunk) + len(part) <= max_chunk_size:
+                            current_chunk += part
+                        else:
+                            if current_chunk:
+                                chunks.append(current_chunk)
+                            current_chunk = part
+            else:
+                # Try to fit sentence in current chunk
+                if len(current_chunk) + len(sentence) + 1 <= max_chunk_size:
+                    current_chunk = (current_chunk + " " + sentence).strip()
+                else:
+                    if current_chunk:
+                        chunks.append(current_chunk)
+                    current_chunk = sentence
+
+        # Add any remaining content
+        if current_chunk:
+            chunks.append(current_chunk)
+
+        return chunks
+
+    def send_text(self, target: str, text: str, enable_chunking: bool = True, chunk_delay: float = 1.0) -> bool:
+        """Send literal text to the target pane with automatic chunking for long messages.
+
+        Args:
+            target: The tmux target (session:window format)
+            text: The text to send
+            enable_chunking: Whether to enable automatic chunking (default True)
+            chunk_delay: Delay between chunks in seconds (default 1.0)
+
+        Returns:
+            True if all chunks were sent successfully, False otherwise
+        """
+        # For backward compatibility: short messages use fast path
+        if not enable_chunking or len(text) <= 200:
+            return self.send_keys(target, text, literal=True)
+
+        # Chunk the message
+        chunks = self._chunk_message(text, max_chunk_size=180)
+
+        # If only one chunk, send directly
+        if len(chunks) == 1:
+            return self.send_keys(target, text, literal=True)
+
+        # Send chunks with pagination
+        total_chunks = len(chunks)
+        for i, chunk in enumerate(chunks, 1):
+            # Add pagination marker
+            paginated_chunk = f"[{i}/{total_chunks}] {chunk}"
+
+            # Send the chunk
+            if not self.send_keys(target, paginated_chunk, literal=True):
+                self._logger.error(f"Failed to send chunk {i}/{total_chunks} to {target}")
+                return False
+
+            # Add delay between chunks (except for last chunk)
+            if i < total_chunks:
+                time.sleep(chunk_delay)
+
+        return True
 
     def press_enter(self, target: str) -> bool:
         """Press Enter key in the target pane."""

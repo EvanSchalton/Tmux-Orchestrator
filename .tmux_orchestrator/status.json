@@ -1,22 +1,121 @@
 {
-  "last_updated": "2025-08-26T19:40:18.367430+00:00",
+  "last_updated": "2025-08-26T20:21:43.721304+00:00",
   "daemon_status": {
     "monitor": {
       "running": true,
-      "pid": 42767,
-      "uptime_seconds": 0,
-      "last_check": "2025-08-26T19:40:18.367057"
+      "pid": 99512,
+      "uptime_seconds": 512,
+      "last_check": "2025-08-26T20:21:43.720957"
     },
     "messaging": {
       "running": false,
       "pid": null
     }
   },
-  "agents": {},
+  "agents": {
+    "enhanced-messaging:2": {
+      "name": "claude-backend-dev",
+      "type": "Backend Dev",
+      "status": "idle",
+      "last_activity": "2025-08-26T20:21:43.651233",
+      "pane_id": null,
+      "session": "enhanced-messaging",
+      "window": 2,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "unsubmitted",
+        "last_content_check": "2025-08-26T20:21:43.651254"
+      }
+    },
+    "enhanced-messaging:3": {
+      "name": "claude-pm",
+      "type": "Project Manager",
+      "status": "idle",
+      "last_activity": "2025-08-26T20:21:43.662413",
+      "pane_id": null,
+      "session": "enhanced-messaging",
+      "window": 3,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T20:21:43.662426"
+      }
+    },
+    "precommit-zero-tolerance:2": {
+      "name": "claude-test-fix-specialist",
+      "type": "QA Engineer",
+      "status": "idle",
+      "last_activity": "2025-08-26T20:21:43.672094",
+      "pane_id": null,
+      "session": "precommit-zero-tolerance",
+      "window": 2,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T20:21:43.672106"
+      }
+    },
+    "precommit-zero-tolerance:3": {
+      "name": "claude-qa-verification",
+      "type": "QA Engineer",
+      "status": "active",
+      "last_activity": "2025-08-26T20:21:43.683423",
+      "pane_id": null,
+      "session": "precommit-zero-tolerance",
+      "window": 3,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T20:21:43.683441"
+      }
+    },
+    "precommit-zero-tolerance:4": {
+      "name": "claude-pm",
+      "type": "Project Manager",
+      "status": "active",
+      "last_activity": "2025-08-26T20:21:43.696932",
+      "pane_id": null,
+      "session": "precommit-zero-tolerance",
+      "window": 4,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T20:21:43.696946"
+      }
+    },
+    "test-session:2": {
+      "name": "claude-test-dev",
+      "type": "QA Engineer",
+      "status": "active",
+      "last_activity": "2025-08-26T20:21:43.708458",
+      "pane_id": null,
+      "session": "test-session",
+      "window": 2,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T20:21:43.708471"
+      }
+    },
+    "test-session:3": {
+      "name": "claude-pm",
+      "type": "Project Manager",
+      "status": "idle",
+      "last_activity": "2025-08-26T20:21:43.720924",
+      "pane_id": null,
+      "session": "test-session",
+      "window": 3,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T20:21:43.720938"
+      }
+    }
+  },
   "summary": {
-    "total_agents": 0,
-    "active": 0,
-    "idle": 0,
+    "total_agents": 7,
+    "active": 3,
+    "idle": 4,
     "error": 0,
     "busy": 0,
     "unknown": 0
