@@ -1,5 +1,6 @@
-# Pre-commit hooks for code quality
+# Pre-commit hooks for code quality - CENTRALIZED THROUGH TASKS.PY
 # Install with: poetry run pre-commit install
+# All hooks call invoke commands to ensure CI/CD consistency
 exclude: |
   (?x)^(
     .*\.lock$|
@@ -7,48 +8,50 @@ exclude: |
     \.tmux_orchestrator/idle-monitor\.(heartbeat|start\.lock|startup\.lock)$
   )
 repos:
-  # Python formatting and linting with Ruff
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
-    hooks:
-      # Run formatter first
-      - id: ruff-format
-      # Then run linter
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-
-  # Type checking
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-pyyaml==6.0.12.20250516]
-        args: [--config-file, pyproject.toml, --ignore-missing-imports, tmux_orchestrator]
-        files: ^tmux_orchestrator/
-        pass_filenames: false
-
-  # Test validation
+  # All quality checks centralized through tasks.py invoke commands
   - repo: local
     hooks:
-      - id: pytest
-        name: Run pytest tests
-        entry: python -m pytest
+      # Code formatting via invoke
+      - id: format
+        name: Format code with ruff (via invoke)
+        entry: poetry run invoke format --check
         language: system
-        args: [--tb=short, --no-cov, -q, --maxfail=5, -n, auto]
         types: [python]
         pass_filenames: false
-        stages: [pre-commit]
 
-  # Security checks
-  - repo: https://github.com/pycqa/bandit
-    rev: 1.7.5
-    hooks:
-      - id: bandit
-        additional_dependencies: [pbr>=6.0.0]
-        args: [-r, tmux_orchestrator/, -ll, --skip, B108]
+      # Linting via invoke
+      - id: lint
+        name: Lint code with ruff (via invoke)
+        entry: poetry run invoke lint
+        language: system
+        types: [python]
         pass_filenames: false
 
-  # General file checks
+      # Type checking via invoke
+      - id: type-check
+        name: Type check with mypy (via invoke)
+        entry: poetry run invoke type-check
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      # Security checks via invoke
+      - id: security
+        name: Security scan with bandit (via invoke)
+        entry: poetry run invoke security
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      # Test validation via invoke (quick subset for pre-commit performance)
+      - id: quick-test
+        name: Quick test validation (via invoke)
+        entry: poetry run invoke quick
+        language: system
+        types: [python]
+        pass_filenames: false
+
+  # General file checks (keep external as they're not Python-specific)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
