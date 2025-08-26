@@ -195,3 +195,4 @@ helm/
 deploy/
 deployment/
 references/claude-code-guide/
+.tmux_orchestrator/status.json
