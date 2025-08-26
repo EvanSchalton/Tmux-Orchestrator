@@ -20,7 +20,26 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 @pytest.fixture
 def monitor(mock_tmux):
     """Create an IdleMonitor instance with mock tmux."""
-    return IdleMonitor(mock_tmux)
+    instance = IdleMonitor(mock_tmux)
+    yield instance
+    # Comprehensive cleanup: Clear all internal state to prevent test isolation issues
+    if hasattr(instance, "_session_loggers"):
+        instance._session_loggers.clear()
+    if hasattr(instance, "_pm_recovery_timestamps"):
+        instance._pm_recovery_timestamps.clear()
+    if hasattr(instance, "_last_recovery_attempt"):
+        instance._last_recovery_attempt.clear()
+    if hasattr(instance, "_pm_crash_observations"):
+        instance._pm_crash_observations.clear()
+    if hasattr(instance, "_crash_notifications"):
+        instance._crash_notifications.clear()
+    if hasattr(instance, "_idle_notifications"):
+        instance._idle_notifications.clear()
+    if hasattr(instance, "_idle_agents"):
+        instance._idle_agents.clear()
+    # Reset any mock state
+    if hasattr(mock_tmux, "reset_mock"):
+        mock_tmux.reset_mock()
 
 
 def test_agent_not_idle_during_compaction(mock_tmux, monitor, logger) -> None:
@@ -409,39 +428,44 @@ def test_integration_with_idle_detection(mock_tmux, monitor, logger) -> None:
 def test_appropriate_logging_for_compaction() -> None:
     """Test that compaction detection logs appropriately."""
     tmux = Mock(spec=TMUXManager)
-    monitor = IdleMonitor(tmux)
 
-    # Mock logger
-    mock_logger = Mock(spec=logging.Logger)
+    # Mock the IdleMonitor's internal logger
     log_messages = []
 
     def capture_logs(msg, *args, **kwargs):
         log_messages.append(msg)
 
-    mock_logger.debug.side_effect = capture_logs
-    mock_logger.info.side_effect = capture_logs
+    with patch("logging.getLogger") as mock_get_logger:
+        mock_logger = Mock(spec=logging.Logger)
+        mock_logger.handlers = Mock()
+        mock_logger.handlers.clear = Mock()
+        mock_logger.debug.side_effect = capture_logs
+        mock_logger.info.side_effect = capture_logs
+        mock_get_logger.return_value = mock_logger
 
-    compacting_content = """
-    Compacting conversation...
+        monitor = IdleMonitor(tmux)
 
-    ╭─────────────────────────────────────────────────────────────────╮
-    │ >                                                               │
-    ╰─────────────────────────────────────────────────────────────────╯
-    """
+        compacting_content = """
+        Compacting conversation...
 
-    # Mock identical snapshots (would be idle without compaction)
-    tmux.capture_pane.return_value = compacting_content
-    tmux.list_sessions.return_value = [{"name": "test"}]
-    tmux.list_windows.return_value = [{"index": "1", "name": "claude-dev"}]
+        ╭─────────────────────────────────────────────────────────────────╮
+        │ >                                                               │
+        ╰─────────────────────────────────────────────────────────────────╯
+        """
 
-    # Run check
-    monitor._check_agent_status(tmux, "test:1", mock_logger, {})
+        # Mock identical snapshots (would be idle without compaction)
+        tmux.capture_pane.return_value = compacting_content
+        tmux.list_sessions.return_value = [{"name": "test"}]
+        tmux.list_windows.return_value = [{"index": "1", "name": "claude-dev"}]
 
-    # Should log about compaction detection
-    compaction_logs = [msg for msg in log_messages if "compacting" in msg.lower()]
-    assert len(compaction_logs) >= 1, "Should log when compaction is detected"
+        # Run check
+        monitor._check_agent_status(tmux, "test:1", mock_logger, {})
 
-    # Should indicate why agent isn't idle
-    assert any(
-        "appears idle but is compacting" in msg for msg in log_messages
-    ), "Should explain why agent isn't marked idle"
+        # Should log about compaction detection
+        compaction_logs = [msg for msg in log_messages if "compacting" in msg.lower()]
+        assert len(compaction_logs) >= 1, "Should log when compaction is detected"
+
+        # Should indicate why agent isn't idle
+        assert any(
+            "appears idle but is compacting" in msg for msg in log_messages
+        ), "Should explain why agent isn't marked idle"

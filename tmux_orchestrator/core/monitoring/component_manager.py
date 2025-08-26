@@ -22,7 +22,7 @@ from .types import AgentInfo, IdleAnalysis, IdleType, MonitorStatus
 class MonitorCycleResult:
     """Result of a complete monitoring cycle."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.agents_discovered: int = 0
         self.agents_analyzed: int = 0
         self.idle_agents: int = 0
@@ -49,7 +49,7 @@ class ComponentManager:
     a unified monitoring interface that replaces the monolithic approach.
     """
 
-    def __init__(self, tmux: TMUXManager, config: Config | None = None):
+    def __init__(self, tmux: TMUXManager, config: Config | None = None) -> None:
         """Initialize the component manager."""
         if config is None:
             config = Config.load()

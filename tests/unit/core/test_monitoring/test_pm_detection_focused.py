@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from tmux_orchestrator.core.monitor import AgentMonitor
+from tmux_orchestrator.core.monitor import IdleMonitor
 
 
 class TestPMDetection(unittest.TestCase):
@@ -24,12 +24,17 @@ class TestPMDetection(unittest.TestCase):
         self.mock_config.project_root = Path(self.temp_dir)
         self.mock_config.data_dir = Path(self.temp_dir) / "data"
         self.mock_config.data_dir.mkdir(exist_ok=True)
+        # Ensure logs directory exists
+        (Path(self.temp_dir) / "logs").mkdir(exist_ok=True)
 
         # Create mock TMUX manager
         self.mock_tmux = Mock()
 
-        # Create agent monitor
-        self.daemon = AgentMonitor(config=self.mock_config, tmux=self.mock_tmux)
+        # Create mock logger
+        self.mock_logger = Mock()
+
+        # Create idle monitor (which has PM crash detection)
+        self.daemon = IdleMonitor(tmux=self.mock_tmux)
 
     def test_missing_pm_detection(self):
         """Test detection when PM window is completely missing."""
@@ -64,13 +69,21 @@ class TestPMDetection(unittest.TestCase):
         mock_tmux.capture_pane.return_value = "bash: tmux-orc: command not found\n$ "
 
         with patch.object(self.daemon, "_find_pm_window", return_value=test_target):
-            crashed, target = self.daemon._detect_pm_crash(mock_tmux, "test_session", mock_logger)
+            # The detection requires 3 observations within the observation window
+            # Call detection multiple times to trigger crash declaration
+            crashed1, target1 = self.daemon._detect_pm_crash(mock_tmux, "test_session", mock_logger)
+            crashed2, target2 = self.daemon._detect_pm_crash(mock_tmux, "test_session", mock_logger)
+            crashed3, target3 = self.daemon._detect_pm_crash(mock_tmux, "test_session", mock_logger)
 
-        # Should detect crash with target
-        self.assertTrue(crashed, "Should detect crash when crash indicators are present")
-        self.assertEqual(target, test_target, "Target should be returned when PM window exists")
+        # First two calls should return False (building observations)
+        self.assertFalse(crashed1, "First observation should not declare crash yet")
+        self.assertFalse(crashed2, "Second observation should not declare crash yet")
 
-        print(f"✅ Crash indicator test: crashed={crashed}, target={target}")
+        # Third call should detect crash with target
+        self.assertTrue(crashed3, "Should detect crash after 3 observations of crash indicators")
+        self.assertEqual(target3, test_target, "Target should be returned when PM window exists")
+
+        print(f"✅ Crash indicator test: observations 1,2,3: {crashed1},{crashed2},{crashed3}, target={target3}")
 
     def test_healthy_pm_detection(self):
         """Test detection when PM is healthy."""

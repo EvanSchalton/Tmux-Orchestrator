@@ -17,7 +17,7 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 class PubsubPerformanceTester:
     """Test harness for validating pubsub performance requirements."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the performance tester."""
         self.pubsub_client = MonitorPubsubClient()
         self.priority_router = PriorityMessageRouter(self.pubsub_client)

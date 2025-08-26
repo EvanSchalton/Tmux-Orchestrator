@@ -14,12 +14,15 @@ def test_restart_agent_success() -> None:
     mock_tmux: Mock = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
     mock_tmux.send_keys.return_value = True
+    mock_tmux.list_windows.return_value = [{"index": "0", "name": "test-window"}]
+    mock_tmux.capture_pane.return_value = "Claude ready"
+    mock_tmux.send_message.return_value = True
 
     target: str = "test-session:0"
 
     # Act
     with patch("time.sleep"):  # Mock time.sleep to speed up test
-        success, message = restart_agent(mock_tmux, target)
+        success, message, details = restart_agent(mock_tmux, target)
 
     # Assert
     assert success is True
@@ -44,10 +47,12 @@ def test_restart_agent_invalid_target_format() -> None:
     """Test restart with invalid target format."""
     # Arrange
     mock_tmux: Mock = Mock(spec=TMUXManager)
+    mock_tmux.list_windows.return_value = [{"index": "0", "name": "test-window"}]
+    mock_tmux.capture_pane.return_value = "Claude ready"
     target: str = "invalid-target-format"
 
     # Act
-    success, message = restart_agent(mock_tmux, target)
+    success, message, details = restart_agent(mock_tmux, target)
 
     # Assert
     assert success is False
@@ -63,11 +68,13 @@ def test_restart_agent_session_not_found() -> None:
     # Arrange
     mock_tmux: Mock = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = False
+    mock_tmux.list_windows.return_value = [{"index": "0", "name": "test-window"}]
+    mock_tmux.capture_pane.return_value = "Claude ready"
 
     target: str = "nonexistent-session:0"
 
     # Act
-    success, message = restart_agent(mock_tmux, target)
+    success, message, details = restart_agent(mock_tmux, target)
 
     # Assert
     assert success is False
@@ -92,10 +99,13 @@ def test_restart_agent_target_parsing(target: str, expected_session: str, expect
     mock_tmux: Mock = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
     mock_tmux.send_keys.return_value = True
+    mock_tmux.list_windows.return_value = [{"index": expected_window, "name": "test-window"}]
+    mock_tmux.capture_pane.return_value = "Claude ready"
+    mock_tmux.send_message.return_value = True
 
     # Act
     with patch("time.sleep"):
-        success, message = restart_agent(mock_tmux, target)
+        success, message, details = restart_agent(mock_tmux, target)
 
     # Assert
     assert success is True
@@ -110,10 +120,12 @@ def test_restart_agent_empty_target() -> None:
     """Test restart with empty target."""
     # Arrange
     mock_tmux: Mock = Mock(spec=TMUXManager)
+    mock_tmux.list_windows.return_value = [{"index": "0", "name": "test-window"}]
+    mock_tmux.capture_pane.return_value = "Claude ready"
     target: str = ""
 
     # Act
-    success, message = restart_agent(mock_tmux, target)
+    success, message, details = restart_agent(mock_tmux, target)
 
     # Assert
     assert success is False
@@ -124,10 +136,12 @@ def test_restart_agent_colon_only_target() -> None:
     """Test restart with target containing only colon."""
     # Arrange
     mock_tmux: Mock = Mock(spec=TMUXManager)
+    mock_tmux.list_windows.return_value = [{"index": "0", "name": "test-window"}]
+    mock_tmux.capture_pane.return_value = "Claude ready"
     target: str = ":"
 
     # Act
-    success, message = restart_agent(mock_tmux, target)
+    success, message, details = restart_agent(mock_tmux, target)
 
     # Assert
     assert success is False

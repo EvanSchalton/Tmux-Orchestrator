@@ -406,7 +406,7 @@ class TestCLIMCPParity:
 
         for test_case in test_cases:
             # Parse CLI command into MCP parameters
-            cli_parts = test_case["cli_command"].split()
+            cli_parts = str(test_case["cli_command"]).split()
 
             # Extract command and subcommand
             if len(cli_parts) >= 2:

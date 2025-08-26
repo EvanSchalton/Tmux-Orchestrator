@@ -262,7 +262,7 @@ class DisambiguationTestSuite:
 
     def generate_enhanced_enum_descriptions(self) -> dict[str, dict[str, str]]:
         """Generate enhanced enum descriptions based on test cases."""
-        descriptions = {}
+        descriptions: dict[str, dict[str, str]] = {}
 
         # Group test cases by tool
         for test in self.test_cases:
@@ -305,7 +305,7 @@ class DisambiguationTestSuite:
     def create_disambiguation_test_report(self) -> dict[str, Any]:
         """Create comprehensive disambiguation test report."""
         # Group tests by category
-        by_category = {}
+        by_category: dict[str, list[Any]] = {}
         for test in self.test_cases:
             if test.category not in by_category:
                 by_category[test.category] = []

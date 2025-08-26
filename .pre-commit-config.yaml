@@ -21,18 +21,17 @@ repos:
         files: ^tmux_orchestrator/
         pass_filenames: false
 
-  # Test validation - TEMPORARILY DISABLED DUE TO FILE DESCRIPTOR ERROR
-  # TODO: Fix pytest file descriptor issue
-  # - repo: local
-  #   hooks:
-  #     - id: pytest
-  #       name: Run pytest tests
-  #       entry: python -m pytest
-  #       language: system
-  #       args: [--tb=short, --no-cov, -q]
-  #       types: [python]
-  #       pass_filenames: false
-  #       stages: [pre-commit]
+  # Test validation
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Run pytest tests
+        entry: python -m pytest
+        language: system
+        args: [--tb=short, --no-cov, -q, --maxfail=5]
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
 
   # Security checks
   - repo: https://github.com/pycqa/bandit

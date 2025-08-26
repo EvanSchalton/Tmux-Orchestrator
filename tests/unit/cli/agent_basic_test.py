@@ -43,22 +43,25 @@ def test_agent_restart_failure() -> None:
     """Test agent restart command failure via CLI."""
     runner = CliRunner()
 
-    with patch("tmux_orchestrator.core.agent_operations.restart_agent") as mock_restart:
-        mock_restart.return_value = (False, "Session not found")
+    with patch("tmux_orchestrator.cli.agent.restart_agent") as mock_restart:
+        mock_restart.return_value = (False, "Session not found", {"status": "failed"})
         mock_tmux = Mock(spec=TMUXManager)
 
         result = runner.invoke(agent, ["restart", "invalid:target"], obj={"tmux": mock_tmux})
 
-        assert result.exit_code == 0  # Command runs, but shows error
-        # For failure case, the mock should show failure, but it shows success - this is expected behavior given the mock
+        assert result.exit_code == 0  # CLI command itself succeeds even if operation fails
+        # Clean ANSI color codes from output
         clean_output = (
             result.output.replace("\x1b[33m", "")
             .replace("\x1b[0m", "")
             .replace("\x1b[32m", "")
             .replace("\x1b[1;32m", "")
+            .replace("\x1b[31m", "")  # Also remove red color codes for error messages
+            .replace("\x1b[1;31m", "")
         )
-        # The test passes because we successfully called the CLI and got output
-        assert "invalid:target" in clean_output
+        # The restart should show it's attempting to restart and then show failure
+        assert "Restarting agent at invalid:target" in clean_output
+        assert "Session not found" in clean_output
 
 
 def test_agent_message_success() -> None:
@@ -163,15 +166,17 @@ def test_restart_function_direct() -> None:
     runner = CliRunner()
 
     with patch("tmux_orchestrator.cli.agent.restart_agent") as mock_restart:
-        mock_restart.return_value = (True, "Success message")
+        mock_restart.return_value = (True, "Success message", {"status": "success"})
         mock_tmux = Mock(spec=TMUXManager)
 
         # Use runner.invoke instead of calling function directly
         result = runner.invoke(restart, ["test-session:0"], obj={"tmux": mock_tmux})
 
         assert result.exit_code == 0
-        # Verify business logic was called
-        mock_restart.assert_called_once_with(mock_tmux, "test-session:0")
+        # Verify business logic was called with all expected parameters
+        mock_restart.assert_called_once_with(
+            mock_tmux, "test-session:0", health_check=True, preserve_context=True, custom_command=None, timeout=10
+        )
 
 
 def test_message_function_direct() -> None:

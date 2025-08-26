@@ -1,11 +1,11 @@
 {
-  "last_updated": "2025-08-25T23:19:56.266748+00:00",
+  "last_updated": "2025-08-26T08:25:35.481394+00:00",
   "daemon_status": {
     "monitor": {
       "running": true,
-      "pid": 5072,
-      "uptime_seconds": 10192,
-      "last_check": "2025-08-25T23:19:56.266432"
+      "pid": 9300,
+      "uptime_seconds": 26332,
+      "last_check": "2025-08-26T08:25:35.481248"
     },
     "messaging": {
       "running": false,
@@ -13,25 +13,53 @@
     }
   },
   "agents": {
-    "precommit-fix:2": {
-      "name": "unknown",
-      "type": "unknown",
+    "pre-commit-fix:2": {
+      "name": "claude-pm",
+      "type": "Project Manager",
       "status": "idle",
-      "last_activity": "2025-08-25T23:19:56.266418",
+      "last_activity": "2025-08-26T08:25:35.465085",
       "pane_id": null,
-      "session": "precommit-fix",
+      "session": "pre-commit-fix",
       "window": 2,
       "state_details": {
         "idle_count": 0,
-        "content_based_state": "idle",
-        "last_content_check": "2025-08-25T23:19:56.266425"
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T08:25:35.465094"
+      }
+    },
+    "pre-commit-fix:3": {
+      "name": "claude-test-engineer",
+      "type": "QA Engineer",
+      "status": "idle",
+      "last_activity": "2025-08-26T08:25:35.473316",
+      "pane_id": null,
+      "session": "pre-commit-fix",
+      "window": 3,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T08:25:35.473327"
+      }
+    },
+    "pre-commit-fix:4": {
+      "name": "claude-code-fixer",
+      "type": "Developer",
+      "status": "idle",
+      "last_activity": "2025-08-26T08:25:35.481228",
+      "pane_id": null,
+      "session": "pre-commit-fix",
+      "window": 4,
+      "state_details": {
+        "idle_count": 0,
+        "content_based_state": "active",
+        "last_content_check": "2025-08-26T08:25:35.481237"
       }
     }
   },
   "summary": {
-    "total_agents": 1,
+    "total_agents": 3,
     "active": 0,
-    "idle": 1,
+    "idle": 3,
     "error": 0,
     "busy": 0,
     "unknown": 0

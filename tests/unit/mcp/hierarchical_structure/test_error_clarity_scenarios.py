@@ -469,7 +469,7 @@ Valid examples:
         avg_weighted = sum(e["weighted_score"] for e in evaluations) / len(evaluations)
 
         # Group by error type
-        by_type = {}
+        by_type: dict[str, list[Any]] = {}
         for scenario in self.error_scenarios:
             error_type = scenario.error_type
             if error_type not in by_type:

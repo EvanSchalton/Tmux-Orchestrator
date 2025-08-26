@@ -489,7 +489,7 @@ class ActionParameterValidator:
             has_example = bool(error_response.get("example"))
             has_fuzzy_match = bool(error_response.get("did_you_mean"))
 
-            quality_score = 0
+            quality_score = 0.0
             if has_suggestion:
                 quality_score += 0.4
             if has_example:
@@ -515,7 +515,7 @@ class ActionParameterValidator:
             if error_response.get("example"):
                 print(f"   Example: {error_response['example']}")
 
-        avg_quality = sum(r["quality_score"] for r in results) / len(results)
+        avg_quality = sum(float(r["quality_score"]) for r in results) / len(results)
         return {
             "total_error_types": len(results),
             "average_quality_score": avg_quality,

@@ -55,7 +55,7 @@ Your limit will reset at 2:30am (UTC). You can continue this conversation after 
         from tmux_orchestrator.core.monitor_helpers import detect_agent_state
 
         # Test detection
-        state = detect_agent_state(rate_limit_content, "test_agent")
+        state = detect_agent_state(rate_limit_content)
         assert state == AgentState.RATE_LIMITED
 
         # Test time extraction

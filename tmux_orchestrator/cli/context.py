@@ -168,8 +168,14 @@ def list(json: bool) -> None:
 @click.option("--extend", help="Additional project-specific context")
 @click.option("--briefing", help="Additional project-specific briefing (alias for --extend)")
 @click.option("--json", is_flag=True, help="Output in JSON format")
+@click.pass_context
 def spawn(
-    role: str, session: str, extend: Optional[str] = None, briefing: Optional[str] = None, json: bool = False
+    ctx: click.Context,
+    role: str,
+    session: str,
+    extend: Optional[str] = None,
+    briefing: Optional[str] = None,
+    json: bool = False,
 ) -> None:
     """Spawn an agent with standardized context (orc/pm only).
 
@@ -188,7 +194,6 @@ def spawn(
         tmux-orc context spawn orc --session main --extend "Working on API project"
         tmux-orc context spawn pm --session project:1  # Legacy format (index ignored)
     """
-    import subprocess
     import time
 
     from tmux_orchestrator.utils.tmux import TMUXManager
@@ -212,7 +217,8 @@ def spawn(
         console.print("Other agents should be spawned with custom briefings from your team plan.")
         return
 
-    tmux = TMUXManager()
+    # Get TMUX manager from context (for testing) or create new one
+    tmux: TMUXManager = ctx.obj["tmux"] if ctx.obj and "tmux" in ctx.obj else TMUXManager()
 
     # Parse session - now accepting session name only or session:window (for compatibility)
     if ":" in session:
@@ -232,14 +238,38 @@ def spawn(
     if not any(s["name"] == session_name for s in sessions):
         if not json:
             console.print(f"[yellow]Creating new session: {session_name}[/yellow]")
-        subprocess.run(["tmux", "new-session", "-d", "-s", session_name], check=True)
+        if not tmux.create_session(session_name):
+            if json:
+                import json as json_module
+
+                result = {
+                    "success": False,
+                    "error": f"Failed to create session '{session_name}'",
+                    "error_type": "SessionCreationError",
+                }
+                console.print(json_module.dumps(result, indent=2))
+                return
+            console.print(f"[red]Error: Failed to create session '{session_name}'[/red]")
+            return
         session_created = True
 
     # Create window with appropriate name (always append to end)
     window_name = f"Claude-{role}"
     try:
-        # Create new window at the end of the session
-        subprocess.run(["tmux", "new-window", "-t", session_name, "-n", window_name], check=True)
+        # Create new window at the end of the session using TMUXManager
+        if not tmux.create_window(session_name, window_name):
+            if json:
+                import json as json_module
+
+                result = {
+                    "success": False,
+                    "error": f"Failed to create window '{window_name}' in session '{session_name}'",
+                    "error_type": "WindowCreationError",
+                }
+                console.print(json_module.dumps(result, indent=2))
+                return
+            console.print(f"[red]Error: Failed to create window '{window_name}' in session '{session_name}'[/red]")
+            return
 
         # Get the actual window index that was created
         windows = tmux.list_windows(session_name)
@@ -262,7 +292,7 @@ def spawn(
         actual_target = f"{session_name}:{actual_window_idx}"
         if not json:
             console.print(f"[green]Created window: {actual_target} ({window_name})[/green]")
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         if json:
             import json as json_module
 

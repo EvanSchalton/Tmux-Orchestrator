@@ -33,6 +33,9 @@ from tmux_orchestrator.core.monitoring.status_writer import StatusWriter
 from tmux_orchestrator.utils.string_utils import efficient_change_score, levenshtein_distance
 from tmux_orchestrator.utils.tmux import TMUXManager
 
+# Module-level config for testing
+config: dict[str, Any] = {}
+
 
 class DaemonAlreadyRunningError(Exception):
     """Exception raised when trying to start a daemon that is already running."""
@@ -192,6 +195,7 @@ class IdleMonitor:
         # Use configurable directory for storage
         if config is None:
             config = Config.load()
+        self.config = config  # Store config for access by tests
         project_dir = config.orchestrator_base_dir
         project_dir.mkdir(parents=True, exist_ok=True)
         logs_dir = project_dir / "logs"

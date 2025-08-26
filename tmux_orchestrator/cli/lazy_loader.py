@@ -12,7 +12,7 @@ import click
 class LazyCommandGroup(click.Group):
     """Click Group that loads commands lazily on first access."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._lazy_commands: dict[str, dict[str, Any]] = {}
 

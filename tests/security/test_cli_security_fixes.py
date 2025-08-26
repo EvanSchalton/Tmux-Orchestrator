@@ -119,7 +119,7 @@ class TestShelexQuoteUsage:
             content = f.read()
             assert "shlex.quote" in content, "shlex.quote not used in file"
             # Check it's used for the critical parameters
-            assert 'shlex.quote(agent["template"])' in content
+            assert "shlex.quote(agent['template'])" in content
             assert "shlex.quote(project_name)" in content
             assert "shlex.quote(system_prompt)" in content
 

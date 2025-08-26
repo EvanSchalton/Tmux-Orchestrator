@@ -53,7 +53,7 @@ class MCPResponse:
 class MCPProtocolHandler:
     """Handles MCP protocol communication over stdio."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the protocol handler."""
         self._handlers: dict[str, Callable] = {}
         self._running = False

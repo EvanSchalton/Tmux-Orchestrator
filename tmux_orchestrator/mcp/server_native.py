@@ -2,8 +2,8 @@
 """
 Native MCP Server for Tmux Orchestrator
 
-This server provides native MCP tools with type-safe parameters, replacing the
-previous auto-generated kwargs-based approach.
+Simplified FastMCP implementation using native tools with type hints.
+The parameter schemas are enforced through Python type hints and validation.
 """
 
 import asyncio
@@ -20,29 +20,21 @@ logger = logging.getLogger(__name__)
 # Import native MCP tools
 try:
     from ..mcp_tools import (
-        agent_attach,
-        agent_kill,
+        # Core tools for primary functionality
         agent_list,
-        agent_restart,
         agent_send_message,
         agent_status,
-        get_monitor_logs,
         health_check,
         list_contexts,
-        monitor_dashboard,
-        quick_deploy,
         show_context,
         spawn_agent,
-        spawn_orchestrator,
         spawn_pm,
         system_status,
         team_broadcast,
-        team_deploy,
-        team_list,
         team_status,
     )
 
-    logger.info("✅ Successfully imported all native MCP tools")
+    logger.info("✅ Successfully imported native MCP tools")
 except ImportError as e:
     logger.error(f"❌ Failed to import native MCP tools: {e}")
     sys.exit(1)
@@ -51,12 +43,12 @@ except ImportError as e:
 app = FastMCP("tmux-orchestrator-native")
 
 # =============================================================================
-# NATIVE MCP TOOLS
+# CORE MCP TOOLS - Native Implementation
 # =============================================================================
 
 
 @app.tool()
-async def list_agents_tool(
+async def list_agents(
     format: str = "table", filter_session: Optional[str] = None, include_idle: bool = True
 ) -> Dict[str, Any]:
     """List all active agents across sessions with filtering options."""
@@ -75,24 +67,6 @@ async def send_agent_message(
 ) -> Dict[str, Any]:
     """Send message to a specific agent with priority levels."""
     return await agent_send_message(target, message, priority, expect_response)
-
-
-@app.tool()
-async def restart_agent_tool(target: str, preserve_context: bool = True, force: bool = False) -> Dict[str, Any]:
-    """Restart a specific agent with context preservation options."""
-    return await agent_restart(target, preserve_context, force)
-
-
-@app.tool()
-async def kill_agent_tool(target: str, graceful: bool = True, timeout: int = 30) -> Dict[str, Any]:
-    """Terminate a specific agent with graceful shutdown."""
-    return await agent_kill(target, graceful, timeout)
-
-
-@app.tool()
-async def attach_to_agent(target: str, read_only: bool = False) -> Dict[str, Any]:
-    """Attach to an agent's terminal session."""
-    return await agent_attach(target, read_only)
 
 
 @app.tool()
@@ -116,20 +90,6 @@ async def create_project_manager(
 
 
 @app.tool()
-async def create_orchestrator(session_name: str, window: int = 0, scope: str = "project") -> Dict[str, Any]:
-    """Spawn an orchestrator agent."""
-    return await spawn_orchestrator(session_name, window, scope)
-
-
-@app.tool()
-async def deploy_team_quickly(
-    team_type: str, team_size: int, project_name: Optional[str] = None, technology_focus: Optional[List[str]] = None
-) -> Dict[str, Any]:
-    """Rapidly deploy optimized team configurations."""
-    return await quick_deploy(team_type, team_size, project_name, technology_focus)
-
-
-@app.tool()
 async def broadcast_to_team(
     team_name: str, message: str, priority: str = "normal", exclude_roles: Optional[List[str]] = None
 ) -> Dict[str, Any]:
@@ -146,29 +106,9 @@ async def get_team_status(
 
 
 @app.tool()
-async def deploy_new_team(
-    team_name: str, team_type: str, team_size: int, project_context: Optional[str] = None
-) -> Dict[str, Any]:
-    """Deploy a new team."""
-    return await team_deploy(team_name, team_type, team_size, project_context)
-
-
-@app.tool()
-async def list_teams_tool(format: str = "table", include_empty: bool = False) -> Dict[str, Any]:
-    """List all active teams."""
-    return await team_list(format, include_empty)
-
-
-@app.tool()
 async def get_system_status(format: str = "dashboard", include_performance: bool = False) -> Dict[str, Any]:
     """Get comprehensive system status."""
     return await system_status(format, include_performance)
-
-
-@app.tool()
-async def show_monitoring_dashboard(refresh_interval: int = 15, focus_team: Optional[str] = None) -> Dict[str, Any]:
-    """Display interactive monitoring dashboard."""
-    return await monitor_dashboard(refresh_interval, focus_team)
 
 
 @app.tool()
@@ -177,14 +117,6 @@ async def run_health_check(
 ) -> Dict[str, Any]:
     """Perform comprehensive health check."""
     return await health_check(target, deep_check, auto_fix)
-
-
-@app.tool()
-async def get_monitoring_logs(
-    lines: int = 50, follow: bool = False, filter_level: Optional[str] = None
-) -> Dict[str, Any]:
-    """Get monitoring system logs."""
-    return await get_monitor_logs(lines, follow, filter_level)
 
 
 @app.tool()
@@ -208,17 +140,18 @@ async def main():
     """Run the native MCP tools server."""
     logger.info("🚀 Starting Native MCP Tools Server...")
 
-    # Get tool count from tool manager
+    # Get tool count and names from tool manager
     tools = app._tool_manager.list_tools()
     tool_count = len(tools)
-    logger.info(f"📊 Registered {tool_count} native MCP tools")
+    logger.info(f"📊 Registered {tool_count} native MCP tools:")
 
-    # Log performance improvements
-    logger.info("📈 Native Implementation Benefits:")
-    logger.info(f"  • {tool_count} focused tools vs 92 auto-generated")
-    logger.info("  • Native parameters vs kwargs string parsing")
-    logger.info("  • Type-safe validation vs runtime parsing")
-    logger.info("  • No CLI reflection overhead")
+    for tool_name in sorted([tool.name for tool in tools]):
+        logger.info(f"  • {tool_name}")
+
+    logger.info("📈 Native implementation advantages:")
+    logger.info("  • No kwargs string parsing overhead")
+    logger.info("  • Type-safe parameter validation")
+    logger.info("  • Consistent error handling")
     logger.info("  • API Designer coordinated schemas")
 
     logger.info("🌐 Starting MCP protocol server...")
@@ -232,10 +165,3 @@ def sync_main():
 
 if __name__ == "__main__":
     sync_main()
-
-
-# Legacy compatibility class for existing imports
-class EnhancedCLIToMCPServer:
-    """Legacy compatibility class."""
-
-    pass

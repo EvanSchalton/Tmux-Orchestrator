@@ -338,7 +338,7 @@ class FinalValidationSuite:
         # Run validation tests
         print("\n🧪 Running Validation Tests...")
         results = []
-        fix_results = {}
+        fix_results: dict[str, Any] = {}
 
         for test in self.validation_tests:
             result = self.simulate_enhanced_selection(test)

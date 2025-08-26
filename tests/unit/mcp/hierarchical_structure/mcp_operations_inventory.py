@@ -599,7 +599,7 @@ class MCPOperationsInventory:
 
     def _organize_by_group(self) -> dict[str, list[MCPOperation]]:
         """Organize operations by their groups."""
-        groups = {}
+        groups: dict[str, list[MCPOperation]] = {}
         for op in self.operations:
             if op.group not in groups:
                 groups[op.group] = []

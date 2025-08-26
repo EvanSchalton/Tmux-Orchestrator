@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 class MCPValidationTools:
@@ -30,7 +30,7 @@ class MCPValidationTools:
                 else None,
             ]
 
-            self.claude_config_dir = None
+            self.claude_config_dir: Optional[Path] = None
             for dir_path in possible_dirs:
                 if dir_path and dir_path.exists():
                     self.claude_config_dir = dir_path
@@ -39,9 +39,11 @@ class MCPValidationTools:
             if not self.claude_config_dir:
                 self.claude_config_dir = Path.cwd() / ".claude"
 
-    def validate_setup_command(self) -> Dict[str, any]:
+    def validate_setup_command(self) -> Dict[str, Any]:
         """Validate that 'tmux-orc setup all' works correctly"""
-        results = {"success": False, "issues": [], "details": {}}
+        issues: List[str] = []
+        details: Dict[str, Any] = {}
+        results: Dict[str, Any] = {"success": False, "issues": issues, "details": details}
 
         try:
             # Check if tmux-orc is available
@@ -112,7 +114,7 @@ class MCPValidationTools:
 
         return results
 
-    def validate_claude_mcp_integration(self) -> Dict[str, any]:
+    def validate_claude_mcp_integration(self) -> Dict[str, Any]:
         """Validate Claude Code CLI MCP integration"""
         results = {"success": False, "issues": [], "details": {}}
 
@@ -160,7 +162,7 @@ class MCPValidationTools:
 
         return results
 
-    def validate_mcp_server_functionality(self) -> Dict[str, any]:
+    def validate_mcp_server_functionality(self) -> Dict[str, Any]:
         """Validate MCP server can start and respond"""
         results = {"success": False, "issues": [], "details": {}}
 
@@ -204,7 +206,7 @@ class MCPValidationTools:
 
         return results
 
-    def validate_agent_mcp_access(self) -> Dict[str, any]:
+    def validate_agent_mcp_access(self) -> Dict[str, Any]:
         """Validate that spawned agents can access MCP server"""
         results = {"success": False, "issues": [], "details": {}}
 
@@ -236,7 +238,7 @@ class MCPValidationTools:
 
         return results
 
-    def run_comprehensive_validation(self) -> Dict[str, any]:
+    def run_comprehensive_validation(self) -> Dict[str, Any]:
         """Run all validation tests"""
         print("🔍 Running MCP Integration Validation...")
         print("=" * 60)

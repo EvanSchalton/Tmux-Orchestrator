@@ -477,7 +477,7 @@ class Regression95PercentSuite:
         print("=" * 60)
 
         results = []
-        category_results = {"baseline": [], "problem_area": [], "enhancement": []}
+        category_results: dict[str, list[Any]] = {"baseline": [], "problem_area": [], "enhancement": []}
 
         # Run all tests
         total_tests = len(self.all_tests)

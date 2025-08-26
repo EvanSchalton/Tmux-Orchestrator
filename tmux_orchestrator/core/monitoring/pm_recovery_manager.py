@@ -21,7 +21,7 @@ from .interfaces import CrashDetectorInterface, PMRecoveryManagerInterface
 class PMRecoveryState:
     """Track PM recovery state and history."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.recovery_attempts: dict[str, list[datetime]] = {}
         self.recovery_in_progress: dict[str, datetime] = {}
         self.last_recovery: dict[str, datetime] = {}
@@ -38,7 +38,7 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
         config: Config,
         logger: logging.Logger,
         crash_detector: CrashDetectorInterface | None = None,
-    ):
+    ) -> None:
         """Initialize PM Recovery Manager.
 
         Args:

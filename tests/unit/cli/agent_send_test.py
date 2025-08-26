@@ -21,7 +21,6 @@ def test_agent_send_success() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.press_ctrl_c.return_value = True
     mock_tmux.press_ctrl_u.return_value = True
     mock_tmux.send_text.return_value = True
     mock_tmux.press_enter.return_value = True
@@ -36,8 +35,7 @@ def test_agent_send_success() -> None:
 
     # Verify validation was performed
     mock_tmux.has_session.assert_called_once_with("test-session")
-    # Verify the new methods were called
-    mock_tmux.press_ctrl_c.assert_called_once_with("test-session:0")
+    # Verify the new methods were called (press_ctrl_c is now disabled in implementation)
     mock_tmux.press_ctrl_u.assert_called_once_with("test-session:0")
     mock_tmux.send_text.assert_called_once_with("test-session:0", "Hello agent!")
     mock_tmux.press_enter.assert_called_once_with("test-session:0")
@@ -49,7 +47,6 @@ def test_agent_send_with_pane_target() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.press_ctrl_c.return_value = True
     mock_tmux.press_ctrl_u.return_value = True
     mock_tmux.send_text.return_value = True
     mock_tmux.press_enter.return_value = True
@@ -68,7 +65,6 @@ def test_agent_send_custom_delay() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.press_ctrl_c.return_value = True
     mock_tmux.press_ctrl_u.return_value = True
     mock_tmux.send_text.return_value = True
     mock_tmux.press_enter.return_value = True
@@ -88,7 +84,6 @@ def test_agent_send_json_output() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.press_ctrl_c.return_value = True
     mock_tmux.press_ctrl_u.return_value = True
     mock_tmux.send_text.return_value = True
     mock_tmux.press_enter.return_value = True
@@ -179,7 +174,6 @@ def test_agent_send_exception_handling() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.press_ctrl_c.return_value = True
     mock_tmux.press_ctrl_u.return_value = True
     mock_tmux.send_text.side_effect = Exception("Network error")
     mock_tmux.press_enter.return_value = True
@@ -197,7 +191,6 @@ def test_send_function_direct() -> None:
 
     mock_tmux = Mock(spec=TMUXManager)
     mock_tmux.has_session.return_value = True
-    mock_tmux.press_ctrl_c.return_value = True
     mock_tmux.press_ctrl_u.return_value = True
     mock_tmux.send_text.return_value = True
     mock_tmux.press_enter.return_value = True
@@ -208,8 +201,7 @@ def test_send_function_direct() -> None:
     assert result.exit_code == 0
     # Verify session validation was performed
     mock_tmux.has_session.assert_called_once_with("test-session")
-    # Verify the new methods were called
-    mock_tmux.press_ctrl_c.assert_called_once_with("test-session:0")
+    # Verify the new methods were called (press_ctrl_c is now disabled in implementation)
     mock_tmux.press_ctrl_u.assert_called_once_with("test-session:0")
     mock_tmux.send_text.assert_called_once_with("test-session:0", "Hello agent!")
     mock_tmux.press_enter.assert_called_once_with("test-session:0")

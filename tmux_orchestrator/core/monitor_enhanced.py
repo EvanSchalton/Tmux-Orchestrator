@@ -13,7 +13,7 @@ from tmux_orchestrator.utils.tmux import TMUXManager
 class EnhancedMonitor:
     """Fixed monitoring daemon that actually monitors agents."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Use secure project directory instead of /tmp
         project_dir = Path.cwd() / ".tmux_orchestrator"
         project_dir.mkdir(exist_ok=True)
@@ -80,7 +80,7 @@ class EnhancedMonitor:
 
         return logger
 
-    def _run_daemon(self, interval: int):
+    def _run_daemon(self, interval: int) -> None:
         """Main daemon loop with comprehensive error handling."""
         # Set up signal handlers
         signal.signal(signal.SIGTERM, self._signal_handler)
@@ -350,7 +350,7 @@ class EnhancedMonitor:
         except Exception as e:
             logger.error(f"Failed to notify PM: {e}")
 
-    def _signal_handler(self, signum, frame):
+    def _signal_handler(self, signum, frame) -> None:
         """Handle shutdown signals."""
         logger = logging.getLogger("enhanced_monitor")
         logger.info(f"Received signal {signum}, shutting down")

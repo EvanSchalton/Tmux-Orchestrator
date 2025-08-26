@@ -389,7 +389,7 @@ class PriorityEnumValidationSuite:
         print("Testing 5 breakthrough fixes for 81.8% → 94.8% accuracy jump")
 
         results = []
-        by_priority_area = {}
+        by_priority_area: dict[str, list[Any]] = {}
 
         for test in self.priority_tests:
             result = self.validate_priority_fix(test)

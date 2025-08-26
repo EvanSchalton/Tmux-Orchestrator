@@ -17,7 +17,26 @@ from tmux_orchestrator.core.monitor import IdleMonitor
 @pytest.fixture
 def monitor(mock_tmux):
     """Create an IdleMonitor instance with mock TMUXManager."""
-    return IdleMonitor(mock_tmux)
+    instance = IdleMonitor(mock_tmux)
+    yield instance
+    # Comprehensive cleanup: Clear all internal state to prevent test isolation issues
+    if hasattr(instance, "_session_loggers"):
+        instance._session_loggers.clear()
+    if hasattr(instance, "_pm_recovery_timestamps"):
+        instance._pm_recovery_timestamps.clear()
+    if hasattr(instance, "_last_recovery_attempt"):
+        instance._last_recovery_attempt.clear()
+    if hasattr(instance, "_pm_crash_observations"):
+        instance._pm_crash_observations.clear()
+    if hasattr(instance, "_crash_notifications"):
+        instance._crash_notifications.clear()
+    if hasattr(instance, "_idle_notifications"):
+        instance._idle_notifications.clear()
+    if hasattr(instance, "_idle_agents"):
+        instance._idle_agents.clear()
+    # Reset any mock state
+    if hasattr(mock_tmux, "reset_mock"):
+        mock_tmux.reset_mock()
 
 
 def test_rate_limit_plus_compaction_no_false_alerts(mock_tmux, monitor, logger) -> None:
