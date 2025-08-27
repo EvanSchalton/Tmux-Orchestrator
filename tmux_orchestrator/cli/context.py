@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Optional
 
 import click
-import pkg_resources  # noqa: E402
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -12,8 +11,17 @@ from rich.panel import Panel
 console = Console()
 
 try:
-    # Try to use package data first
-    CONTEXTS_DIR = Path(pkg_resources.resource_filename("tmux_orchestrator", "data/contexts"))
+    # Try to use package data first (using importlib for modern Python)
+    import importlib.resources as resources
+
+    try:
+        # Python 3.9+ with files() API
+        contexts_ref = resources.files("tmux_orchestrator").joinpath("data/contexts")
+        CONTEXTS_DIR = Path(str(contexts_ref))
+    except AttributeError:
+        # Python 3.7-3.8 fallback
+        with resources.path("tmux_orchestrator.data", "contexts") as p:
+            CONTEXTS_DIR = Path(p)
 except Exception:
     # Fallback for development
     CONTEXTS_DIR = Path(__file__).parent.parent / "data" / "contexts"
