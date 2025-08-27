@@ -1,5 +1,6 @@
 """Advanced agent monitoring system with 100% accurate idle detection."""
 
+import json
 import logging
 import multiprocessing
 import os
@@ -1622,6 +1623,12 @@ monitor._run_monitoring_daemon({interval})
                 # Update heartbeat for supervisor
                 update_heartbeat()
 
+                # Check if monitoring is paused
+                if self._check_if_paused():
+                    logger.debug(f"[CYCLE {cycle_count}] Monitoring paused, skipping cycle")
+                    time.sleep(1)  # Short sleep to avoid busy-waiting
+                    continue
+
                 # Log cycle start with timestamp
                 logger.debug(
                     f"[CYCLE {cycle_count}] Starting monitoring cycle at {datetime.now().strftime('%H:%M:%S')}"
@@ -1725,6 +1732,29 @@ monitor._run_monitoring_daemon({interval})
         self._session_loggers[session_name] = session_logger
 
         return session_logger
+
+    def _check_if_paused(self) -> bool:
+        """Check if monitoring is paused.
+
+        Returns:
+            True if monitoring should be paused, False otherwise.
+        """
+        pause_file = Path(".tmux_orchestrator/monitor.pause")
+        if pause_file.exists():
+            try:
+                with open(pause_file) as f:
+                    data = json.load(f)
+                    if time.time() < data.get("pause_until", 0):
+                        return True
+                    # Pause expired, clean up
+                    pause_file.unlink()
+            except (json.JSONDecodeError, OSError):
+                # If file is corrupted or unreadable, remove it
+                try:
+                    pause_file.unlink()
+                except OSError:
+                    pass
+        return False
 
     def _cleanup_daemon(self, signum: int | None = None, is_graceful: bool = False) -> None:
         """Clean up daemon resources.

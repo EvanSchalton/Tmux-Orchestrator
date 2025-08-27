@@ -598,6 +598,58 @@ def status(ctx: click.Context, json: bool) -> None:
     monitor.status()
 
 
+@monitor.command("pause")
+@click.argument("seconds", type=int)
+@click.pass_context
+def pause(ctx: click.Context, seconds: int) -> None:
+    """Pause the monitoring daemon for specified seconds.
+
+    <mcp>[MONITOR PAUSE] Temporarily pause monitoring daemon.
+    Parameters: kwargs (string) - 'action=pause args=[seconds]'
+
+    Examples:
+    - Pause 3 seconds: kwargs='action=pause args=[3]'
+    - Pause 10 seconds: kwargs='action=pause args=[10]'
+
+    Pauses daemon to prevent interference during chunk writing.</mcp>
+
+    Temporarily suspends monitoring activities for a specified duration.
+    Used primarily during message chunking to prevent the daemon from
+    auto-submitting incomplete messages.
+
+    Args:
+        seconds: Number of seconds to pause the daemon (1-60)
+
+    Examples:
+        tmux-orc monitor pause 3      # Pause for 3 seconds
+        tmux-orc monitor pause 10     # Pause for 10 seconds
+
+    Use Cases:
+        • During message chunking operations
+        • When writing long commands/messages
+        • To prevent auto-submit interference
+        • For synchronized batch operations
+
+    The daemon automatically resumes after the pause duration expires.
+    """
+    if seconds < 1 or seconds > 60:
+        console.print("[red]Pause duration must be between 1 and 60 seconds[/red]")
+        return
+
+    # Create pause file with expiration time
+    import json as json_module
+
+    pause_file = Path(PROJECT_DIR) / "monitor.pause"
+    pause_data = {"pause_until": time.time() + seconds, "duration": seconds, "created": time.time()}
+
+    try:
+        with open(pause_file, "w") as f:
+            json_module.dump(pause_data, f)
+        console.print(f"[green]✓ Monitor paused for {seconds} seconds[/green]")
+    except Exception as e:
+        console.print(f"[red]Failed to pause monitor: {e}[/red]")
+
+
 @monitor.command("recovery-start")
 @click.option("--config", "-c", help="Configuration file path")
 @click.pass_context
