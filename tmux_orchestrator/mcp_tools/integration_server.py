@@ -5,6 +5,7 @@ This module demonstrates how to integrate the native MCP tools with FastMCP,
 using the API Designer's exact parameter schemas for each tool.
 """
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -160,6 +161,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
-
     asyncio.run(main())

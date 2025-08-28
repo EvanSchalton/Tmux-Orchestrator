@@ -1,7 +1,9 @@
 """Business logic for deploying teams of agents."""
 
+import time
 from pathlib import Path
 
+from tmux_orchestrator.core.agent_operations.restart_agent import restart_agent
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 
@@ -162,7 +164,6 @@ def _deploy_testing_team(tmux: TMUXManager, session_name: str, size: int, projec
 
 def _start_claude_agent(tmux: TMUXManager, target: str, role: str) -> bool:
     """Start a Claude agent in the specified target with role briefing."""
-    import time
 
     # Start Claude
     if not tmux.send_keys(target, "claude --dangerously-skip-permissions"):
@@ -264,10 +265,6 @@ def recover_team_agents(tmux: TMUXManager, session_name: str) -> tuple[bool, str
         pane_content = tmux.capture_pane(target, lines=10)
         if _agent_needs_recovery(pane_content):
             # Attempt recovery using existing restart logic
-            from tmux_orchestrator.core.agent_operations.restart_agent import (
-                restart_agent,
-            )
-
             success, _, _ = restart_agent(tmux, target)
 
             if success:

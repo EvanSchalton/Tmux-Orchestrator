@@ -20,8 +20,7 @@ class PerformanceMetrics:
     cpu_percent: float = 0.0
     throughput_msgs_per_sec: float = 0.0
     queue_depth: int = 0
-    chunk_buffer_size: int = 0
-    reassembly_time_ms: float = 0.0
+    # Chunking removed - no buffer or reassembly needed
     error_count: int = 0
 
     def to_dict(self) -> Dict:
@@ -33,8 +32,7 @@ class PerformanceMetrics:
             "cpu_percent": round(self.cpu_percent, 2),
             "throughput_msgs_per_sec": round(self.throughput_msgs_per_sec, 2),
             "queue_depth": self.queue_depth,
-            "chunk_buffer_size": self.chunk_buffer_size,
-            "reassembly_time_ms": round(self.reassembly_time_ms, 2),
+            # Chunking metrics removed
             "error_count": self.error_count,
         }
 
@@ -57,7 +55,7 @@ class PerformanceMonitor:
         # Metrics storage
         self.latencies: Deque[float] = deque(maxlen=window_size)
         self.memory_usage: Deque[float] = deque(maxlen=window_size)
-        self.reassembly_times: Deque[float] = deque(maxlen=window_size)
+        # Reassembly times removed - no chunking
         self.throughput_samples: Deque[Tuple[float, int]] = deque(maxlen=100)
 
         # Tracking counters
@@ -98,13 +96,7 @@ class PerformanceMonitor:
         current_time = time.time()
         self.throughput_samples.append((current_time, 1))
 
-    def record_reassembly(self, reassembly_time_ms: float):
-        """Record chunk reassembly time.
-
-        Args:
-            reassembly_time_ms: Time to reassemble chunks in milliseconds
-        """
-        self.reassembly_times.append(reassembly_time_ms)
+    # Reassembly method removed - no chunking
 
     def record_error(self):
         """Record a message processing error."""
@@ -118,13 +110,7 @@ class PerformanceMonitor:
         """
         self.current_queue_depth = depth
 
-    def update_buffer_size(self, size: int):
-        """Update current chunk buffer size.
-
-        Args:
-            size: Number of messages in chunk buffer
-        """
-        self.current_buffer_size = size
+    # Buffer size method removed - no chunking
 
     def get_current_metrics(self) -> PerformanceMetrics:
         """Get current performance metrics snapshot."""
@@ -144,8 +130,7 @@ class PerformanceMonitor:
         # Calculate throughput
         throughput = self._calculate_throughput()
 
-        # Calculate average reassembly time
-        avg_reassembly = sum(self.reassembly_times) / len(self.reassembly_times) if self.reassembly_times else 0
+        # No reassembly - chunking removed
 
         return PerformanceMetrics(
             latency_ms=avg_latency,
@@ -153,8 +138,7 @@ class PerformanceMonitor:
             cpu_percent=cpu_percent,
             throughput_msgs_per_sec=throughput,
             queue_depth=self.current_queue_depth,
-            chunk_buffer_size=self.current_buffer_size,
-            reassembly_time_ms=avg_reassembly,
+            # Chunking metrics removed
             error_count=self.error_count,
         )
 
@@ -249,7 +233,7 @@ class PerformanceMonitor:
         """Reset all metrics."""
         self.latencies.clear()
         self.memory_usage.clear()
-        self.reassembly_times.clear()
+        # Reassembly times removed - no chunking
         self.throughput_samples.clear()
         self.message_count = 0
         self.error_count = 0

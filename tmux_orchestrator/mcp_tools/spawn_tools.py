@@ -6,6 +6,7 @@ signatures from API Designer's specifications.
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from .shared_logic import (
@@ -31,10 +32,12 @@ async def spawn_agent(
     """
     Spawn a new agent.
 
-    Implements API Designer's spawn_agent specification with role validation and tech stack.
+    Implements API Designer's spawn_agent specification with role validation and
+    tech stack.
 
     Args:
-        role: Agent role/specialization ("developer", "qa", "devops", "pm", "reviewer", "researcher")
+        role: Agent role/specialization ("developer", "qa", "devops", "pm",
+            "reviewer", "researcher")
         session_name: Target session name
         briefing: Initial briefing/context for the agent
         window: Target window number (optional, auto-assigned if None)
@@ -54,11 +57,10 @@ async def spawn_agent(
             )
 
         # Validate session name format (no colon allowed)
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", session_name):
             return format_error_response(
-                f"Invalid session name '{session_name}'. Use alphanumeric characters, hyphens, and underscores only",
+                f"Invalid session name '{session_name}'. Use alphanumeric characters, "
+                f"hyphens, and underscores only",
                 f"spawn agent {role} {session_name}",
             )
 
@@ -107,7 +109,7 @@ async def spawn_agent(
                 "briefing": briefing,
                 "technology_stack": technology_stack,
                 "spawn_status": data if isinstance(data, dict) else {"spawned": True},
-                "target": f"{session_name}:{window}" if window is not None else f"{session_name}:auto",
+                "target": (f"{session_name}:{window}" if window is not None else f"{session_name}:auto"),
                 "agent_id": data.get("agent_id") if isinstance(data, dict) else None,
             }
 
@@ -138,7 +140,10 @@ async def spawn_agent(
 
 
 async def spawn_pm(
-    session_name: str, window: int = 1, project_context: Optional[str] = None, team_size: Optional[int] = None
+    session_name: str,
+    window: int = 1,
+    project_context: Optional[str] = None,
+    team_size: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Spawn a project manager.
@@ -156,11 +161,10 @@ async def spawn_pm(
     """
     try:
         # Validate session name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", session_name):
             return format_error_response(
-                f"Invalid session name '{session_name}'. Use alphanumeric characters, hyphens, and underscores only",
+                f"Invalid session name '{session_name}'. Use alphanumeric characters, "
+                f"hyphens, and underscores only",
                 f"spawn pm {session_name}",
             )
 
@@ -255,11 +259,10 @@ async def spawn_orchestrator(session_name: str, window: int = 0, scope: str = "p
     """
     try:
         # Validate session name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", session_name):
             return format_error_response(
-                f"Invalid session name '{session_name}'. Use alphanumeric characters, hyphens, and underscores only",
+                f"Invalid session name '{session_name}'. Use alphanumeric characters, "
+                f"hyphens, and underscores only",
                 f"spawn orchestrator {session_name}",
             )
 
@@ -310,11 +313,13 @@ async def spawn_orchestrator(session_name: str, window: int = 0, scope: str = "p
                 "briefing": orchestrator_briefing,
                 "spawn_status": data if isinstance(data, dict) else {"spawned": True},
                 "target": target,
-                "orchestrator_id": data.get("orchestrator_id") if isinstance(data, dict) else None,
+                "orchestrator_id": (data.get("orchestrator_id") if isinstance(data, dict) else None),
             }
 
             return format_success_response(
-                response_data, result["command"], f"Orchestrator spawned in {target} with {scope} scope"
+                response_data,
+                result["command"],
+                f"Orchestrator spawned in {target} with {scope} scope",
             )
         else:
             return format_error_response(
@@ -337,7 +342,10 @@ async def spawn_orchestrator(session_name: str, window: int = 0, scope: str = "p
 
 
 async def quick_deploy(
-    team_type: str, team_size: int, project_name: Optional[str] = None, technology_focus: Optional[List[str]] = None
+    team_type: str,
+    team_size: int,
+    project_name: Optional[str] = None,
+    technology_focus: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Rapidly deploy optimized team configurations.
@@ -345,7 +353,8 @@ async def quick_deploy(
     Implements API Designer's quick_deploy specification for rapid deployment.
 
     Args:
-        team_type: Type of team to deploy ("frontend", "backend", "fullstack", "testing")
+        team_type: Type of team to deploy ("frontend", "backend", "fullstack",
+            "testing")
         team_size: Number of agents in team (2-6)
         project_name: Project name for the team
         technology_focus: Primary technologies/frameworks
@@ -358,7 +367,7 @@ async def quick_deploy(
         valid_team_types = {"frontend", "backend", "fullstack", "testing"}
         if team_type not in valid_team_types:
             return format_error_response(
-                f"Invalid team type '{team_type}'. Valid types: {', '.join(valid_team_types)}",
+                f"Invalid team type '{team_type}'. " f"Valid types: {', '.join(valid_team_types)}",
                 f"quick deploy {team_type}",
                 [f"Use one of: {', '.join(valid_team_types)}"],
             )
@@ -395,7 +404,7 @@ async def quick_deploy(
                 "team_size": team_size,
                 "project_name": deploy_project_name,
                 "technology_focus": technology_focus,
-                "deployment_status": data if isinstance(data, dict) else {"deployed": True},
+                "deployment_status": (data if isinstance(data, dict) else {"deployed": True}),
                 "team_session": deploy_project_name,
                 "agents_deployed": data.get("agents") if isinstance(data, dict) else [],
             }
@@ -403,7 +412,7 @@ async def quick_deploy(
             return format_success_response(
                 response_data,
                 result["command"],
-                f"Quick deployed {team_type} team ({team_size} agents) for {deploy_project_name}",
+                f"Quick deployed {team_type} team ({team_size} agents) for " f"{deploy_project_name}",
             )
         else:
             return format_error_response(

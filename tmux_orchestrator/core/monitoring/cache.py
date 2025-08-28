@@ -4,7 +4,7 @@ import asyncio
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar, cast
 
 T = TypeVar("T")
 
@@ -93,8 +93,6 @@ class AsyncMonitoringCache:
 
             entry.access()
             self.stats["hits"] += 1
-            from typing import cast
-
             return cast(T | None, entry.value)
 
     async def set(self, key: str, value: T, ttl: float | None = None) -> None:
@@ -133,8 +131,6 @@ class AsyncMonitoringCache:
         # Fast path - check without lock first
         cached_value = await self.get(key)  # type: ignore[func-returns-value]
         if cached_value is not None:
-            from typing import cast
-
             return cast(T, cached_value)
 
         # Slow path - compute with lock
@@ -144,8 +140,6 @@ class AsyncMonitoringCache:
             if entry and not entry.is_expired():
                 entry.access()
                 self.stats["hits"] += 1
-                from typing import cast
-
                 return cast(T, entry.value)
 
         # Compute outside lock to allow concurrency
@@ -269,8 +263,6 @@ class LayeredCache:
         Raises:
             KeyError: If layer doesn't exist
         """
-        from typing import cast
-
         return cast(AsyncMonitoringCache, self.layers[layer_name])
 
     async def get(self, layer: str, key: str) -> Any | None:

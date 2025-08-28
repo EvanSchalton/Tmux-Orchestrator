@@ -1,5 +1,7 @@
 """Agent management functionality."""
 
+import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -137,8 +139,6 @@ Read the task file and plan your testing strategy."""
         # Brief the agent
         briefing = self._get_briefing(agent_type, role, project_name, task_file)
         if briefing:
-            import time
-
             time.sleep(5)  # Wait for Claude to start
             self.tmux.send_message(target, briefing)
 
@@ -154,8 +154,6 @@ Read the task file and plan your testing strategy."""
         if Path(".venv").exists():
             self.tmux.send_keys(target, "source .venv/bin/activate")
             self.tmux.send_keys(target, "Enter")
-            import time
-
             time.sleep(2)
 
         # Start Claude
@@ -196,8 +194,6 @@ Read the task file and plan your testing strategy."""
     def _get_last_activity(self, pane_content: str) -> str:
         """Extract last activity timestamp from pane content."""
         # Look for timestamp patterns
-        import re
-
         timestamp_pattern = r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]"
         matches: list[str] = re.findall(timestamp_pattern, pane_content)
 
@@ -217,8 +213,6 @@ Read the task file and plan your testing strategy."""
     def _extract_current_task(self, pane_content: str) -> str | None:
         """Extract current task from pane content."""
         # Look for task indicators
-        import re
-
         task_patterns = [
             r"(?:working on|implementing|creating|fixing|updating)\s+(.+?)(?:\.|$)",
             r"current task:\s*(.+?)(?:\.|$)",

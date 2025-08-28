@@ -6,8 +6,10 @@ with comprehensive type annotations and error handling.
 """
 
 import logging
+import subprocess
+import time
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -154,7 +156,6 @@ def _generate_role_briefing(
     """Generate role-specific briefing text."""
     # Extract session and project info
     session_name: str = target.split(":")[0]
-    from typing import cast
 
     project_name: str = (
         cast(str, project_context.get("project_name", session_name)) if project_context else session_name
@@ -283,7 +284,6 @@ def _get_supported_roles() -> list[str]:
 
 def _wait_for_agent_ready(tmux: TMUXManager, target: str, logger: logging.Logger, timeout: int = 10) -> bool:
     """Wait for agent to be ready to receive briefing."""
-    import time
 
     logger.info(f"Waiting up to {timeout}s for agent {target} to be ready")
 
@@ -318,8 +318,6 @@ def _deliver_briefing(
         try:
             logger.info(f"Briefing delivery attempt {attempt}/{max_retries} for {target}")
 
-            import subprocess
-
             result = subprocess.run(
                 ["tmux-orc", "agent", "send", target, briefing_text],
                 capture_output=True,
@@ -344,8 +342,6 @@ def _deliver_briefing(
 
         # Wait before retry (except on last attempt)
         if attempt < max_retries:
-            import time
-
             time.sleep(2)
 
     final_error: str = f"Briefing delivery failed for {target} after {max_retries} attempts"
@@ -361,8 +357,6 @@ def _verify_briefing_delivery(
     timeout: int = 5,
 ) -> bool:
     """Verify that briefing was delivered successfully."""
-    import time
-
     # Wait briefly for briefing to appear
     time.sleep(2)
 

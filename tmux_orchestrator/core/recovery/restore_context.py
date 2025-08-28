@@ -1,6 +1,7 @@
 """Restore context for recovered agents."""
 
 import logging
+import time
 from datetime import datetime
 from typing import Any, Optional
 
@@ -40,8 +41,6 @@ def restore_context(
 
     try:
         # Wait for agent to fully restart
-        import time
-
         time.sleep(2)
 
         # Build context restoration message

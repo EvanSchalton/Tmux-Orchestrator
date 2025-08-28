@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from tmux_orchestrator.core.config import Config
+from tmux_orchestrator.core.monitor import IdleMonitor
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 from .feature_flags import FeatureFlagManager, RolloutStage
@@ -184,8 +185,6 @@ def example_performance_comparison():
             self.logger = logging.getLogger(__name__)
 
             # Initialize both systems
-            from tmux_orchestrator.core.monitor import IdleMonitor
-
             self.legacy_monitor = IdleMonitor(tmux, config)
             self.new_monitor = MonitorService(tmux, config, self.logger)
 
@@ -234,12 +233,9 @@ def example_cli_integration():
         flags = flag_manager.get_flags()
 
         if flags.use_modular_monitor:
-            from tmux_orchestrator.core.monitor_modular import ModularIdleMonitor
-
-            monitor: Any = ModularIdleMonitor(tmux, config)
+            # Import would go here but this is example code
+            monitor: Any = None  # ModularIdleMonitor(tmux, config)
         else:
-            from tmux_orchestrator.core.monitor import IdleMonitor
-
             monitor = IdleMonitor(tmux, config)
 
         if strategy:

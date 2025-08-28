@@ -7,6 +7,7 @@ Real-time performance tracking and analysis during comprehensive testing
 import asyncio
 import json
 import logging
+import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -291,8 +292,6 @@ class MCPPerformanceMonitor:
 # CLI interface for QA team
 async def main():
     """Main entry point for performance monitoring"""
-    import sys
-
     if len(sys.argv) > 1 and sys.argv[1] == "report":
         # Generate and print QA report
         monitor = MCPPerformanceMonitor()

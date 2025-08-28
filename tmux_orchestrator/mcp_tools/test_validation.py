@@ -7,6 +7,14 @@ Quick validation to ensure all tools can be imported and basic validation works.
 import asyncio
 import logging
 
+from .shared_logic import (
+    ValidationError,
+    build_command,
+    format_error_response,
+    format_success_response,
+    validate_session_format,
+)
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -31,8 +39,6 @@ async def test_validation_logic():
     logger.info("Testing parameter validation...")
 
     try:
-        from .shared_logic import ValidationError, validate_session_format
-
         # Test valid session format
         validate_session_format("test-session:1")
         logger.info("✅ Valid session format accepted")
@@ -57,8 +63,6 @@ async def test_error_response_format():
     logger.info("Testing error response format...")
 
     try:
-        from .shared_logic import format_error_response, format_success_response
-
         # Test error response
         error_resp = format_error_response("Test error message", "test command", ["suggestion 1", "suggestion 2"])
 
@@ -98,8 +102,6 @@ async def test_command_building():
     logger.info("Testing command building...")
 
     try:
-        from .shared_logic import build_command
-
         # Test basic command
         cmd = build_command(["tmux-orc", "agent", "list"])
         expected = ["tmux-orc", "agent", "list"]

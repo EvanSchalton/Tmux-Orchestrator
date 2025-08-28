@@ -6,6 +6,7 @@ signatures from API Designer's specifications.
 """
 
 import logging
+import re
 from typing import Any, Dict, Optional
 
 from .shared_logic import (
@@ -65,12 +66,16 @@ async def system_status(format: str = "dashboard", include_performance: bool = F
             response_data = {
                 "format": format,
                 "include_performance": include_performance,
-                "system_status": data if isinstance(data, dict) else {"raw_status": data},
+                "system_status": (data if isinstance(data, dict) else {"raw_status": data}),
                 "status_timestamp": None,  # Could add if CLI provides it
-                "system_health": data.get("health", "unknown") if isinstance(data, dict) else "unknown",
+                "system_health": (data.get("health", "unknown") if isinstance(data, dict) else "unknown"),
             }
 
-            return format_success_response(response_data, result["command"], "System status retrieved successfully")
+            return format_success_response(
+                response_data,
+                result["command"],
+                "System status retrieved successfully",
+            )
         else:
             return format_error_response(
                 result.get("stderr", "Failed to get system status"),
@@ -113,8 +118,6 @@ async def monitor_dashboard(refresh_interval: int = 15, focus_team: Optional[str
 
         # Validate team name if provided
         if focus_team:
-            import re
-
             if not re.match(r"^[a-zA-Z0-9_-]+$", focus_team):
                 return format_error_response(
                     f"Invalid team name '{focus_team}'. Use alphanumeric characters, hyphens, and underscores only",
@@ -197,8 +200,6 @@ async def health_check(
                 validate_session_format(target)
             else:
                 # Validate as team/session name
-                import re
-
                 if not re.match(r"^[a-zA-Z0-9_-]+$", target):
                     return format_error_response(
                         f"Invalid target '{target}'. Use 'session:window' format or valid team name",

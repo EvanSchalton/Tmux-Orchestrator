@@ -14,7 +14,7 @@ from collections import defaultdict, deque
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -146,8 +146,6 @@ class HighPerformanceMessagingDaemon:
             )
 
             # Queue for async delivery (immediate return)
-            from dataclasses import asdict
-
             self._message_queue.append(asdict(message))
             self._message_count += 1
 
@@ -323,8 +321,6 @@ class DaemonClient:
 
             writer.close()
             await writer.wait_closed()
-
-            from typing import cast
 
             return cast(dict[str, Any], response)
 

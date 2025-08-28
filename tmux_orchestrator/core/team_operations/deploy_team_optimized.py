@@ -1,5 +1,6 @@
 """Optimized business logic for deploying teams of agents with performance improvements."""
 
+import logging
 import time
 from pathlib import Path
 
@@ -212,8 +213,6 @@ def _send_message_optimized(tmux_optimized: TMUXManager, target: str, message: s
         return True
 
     except Exception as e:
-        import logging
-
         logging.error(f"Optimized message sending failed to {target}: {e}")
         return False
 

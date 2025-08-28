@@ -1,5 +1,5 @@
-"""Enhanced messaging system for chunked message delivery."""
+"""Messaging system for direct message delivery."""
 
-from .chunk_manager import ChunkManager
+# No chunking - messages are sent directly
 
-__all__ = ["ChunkManager"]
+__all__: list[str] = []

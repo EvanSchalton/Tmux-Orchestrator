@@ -66,7 +66,7 @@ Optional parameters require the `--` prefix:
     "agent_type": "pm",
     "session_window": "project:1",
     "--context": "Custom PM context",
-    "--extend": "Additional instructions"
+    "--briefing": "Additional instructions"
   }
 }
 ```

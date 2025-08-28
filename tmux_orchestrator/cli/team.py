@@ -1,5 +1,8 @@
 """Team management commands."""
 
+import json
+import time
+from pathlib import Path
 from typing import Any, Dict, List, cast
 
 import click
@@ -52,7 +55,7 @@ def team() -> None:
 @click.argument("session")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def status(ctx: click.Context, session: str, json: bool) -> None:
+def status(ctx: click.Context, session: str, json_format: bool) -> None:
     """Show comprehensive team status and health metrics.
 
     <mcp>[TEAM STATUS] Check health and coordination of specific team session.
@@ -97,10 +100,8 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
         return
 
     # JSON output mode
-    if json:
-        import json as json_module
-
-        console.print(json_module.dumps(team_status, indent=2))
+    if json_format:
+        console.print(json.dumps(team_status, indent=2))
         return
 
     # Display session header
@@ -120,11 +121,11 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
     windows: List[Dict[str, Any]] = cast(List[Dict[str, Any]], team_status["windows"])
     for window in windows:
         table.add_row(
-            window["index"],
-            window["name"],
-            window["type"],
-            window["status"],
-            window["last_activity"],
+            str(window["index"]),
+            str(window["name"]),
+            str(window["type"]),
+            str(window["status"]),
+            str(window["last_activity"]),
         )
 
     # Display table
@@ -139,7 +140,7 @@ def status(ctx: click.Context, session: str, json: bool) -> None:
 @team.command()
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def list(ctx: click.Context, json: bool) -> None:
+def list(ctx: click.Context, json_format: bool) -> None:
     """List all active team sessions with summary information.
 
     <mcp>[TEAM LIST] Display all active team sessions with summary info.
@@ -178,10 +179,8 @@ def list(ctx: click.Context, json: bool) -> None:
     # Delegate to business logic
     teams: List[Dict[str, Any]] = list_all_teams(tmux)
 
-    if json:
-        import json as json_module
-
-        console.print(json_module.dumps(teams, indent=2))
+    if json_format:
+        console.print(json.dumps(teams, indent=2))
         return
 
     if not teams:
@@ -221,7 +220,7 @@ def list(ctx: click.Context, json: bool) -> None:
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def broadcast(
-    ctx: click.Context, session: str, message: str, exclude: tuple, priority: str, agent_type: tuple, json: bool
+    ctx: click.Context, session: str, message: str, exclude: tuple, priority: str, agent_type: tuple, json_format: bool
 ) -> None:
     """Broadcast a coordinated message to all agents in a team.
 
@@ -278,9 +277,7 @@ def broadcast(
         agent_types=list(agent_type) if agent_type else None,
     )
 
-    if json:
-        import json as json_module
-
+    if json_format:
         broadcast_result = {
             "success": success,
             "session": session,
@@ -288,7 +285,7 @@ def broadcast(
             "summary": summary_message,
             "results": results,
         }
-        console.print(json_module.dumps(broadcast_result, indent=2))
+        console.print(json.dumps(broadcast_result, indent=2))
         return
 
     if not success:
@@ -316,7 +313,7 @@ def deploy(
     team_type: str,
     size: int,
     project_name: str | None,
-    json: bool,
+    json_format: bool,
 ) -> None:
     """Deploy a complete multi-agent team with specialized roles.
 
@@ -378,7 +375,6 @@ def deploy(
         • Large project: 6-8 agents
         • Enterprise: 8+ agents (requires careful coordination)
     """
-    from pathlib import Path
 
     tmux: TMUXManager = ctx.obj["tmux"]
 
@@ -390,9 +386,7 @@ def deploy(
     # Delegate to business logic
     success, message = deploy_standard_team(tmux, team_type, size, project_name)
 
-    if json:
-        import json as json_module
-
+    if json_format:
         deploy_result = {
             "success": success,
             "team_type": team_type,
@@ -400,7 +394,7 @@ def deploy(
             "project_name": project_name,
             "message": message,
         }
-        console.print(json_module.dumps(deploy_result, indent=2))
+        console.print(json.dumps(deploy_result, indent=2))
         return
 
     if success:
@@ -413,7 +407,7 @@ def deploy(
 @click.argument("session")
 @click.option("--json", is_flag=True, help="Output in JSON format")
 @click.pass_context
-def recover(ctx: click.Context, session: str, json: bool) -> None:
+def recover(ctx: click.Context, session: str, json_format: bool) -> None:
     """Recover and restore failed or unresponsive team agents.
 
     <mcp>Recover failed agents in team session (args: [team_name]). Automatically detects and restarts unresponsive agents while preserving roles and context. Use for team-wide agent failures or system recovery after crashes.</mcp>
@@ -457,7 +451,6 @@ def recover(ctx: click.Context, session: str, json: bool) -> None:
         • Avoid forcefully killing tmux sessions
         • Keep system resources adequate for team size
     """
-    import time
 
     tmux: TMUXManager = ctx.obj["tmux"]
 
@@ -478,10 +471,8 @@ def recover(ctx: click.Context, session: str, json: bool) -> None:
         "timestamp": time.time(),
     }
 
-    if json:
-        import json as json_module
-
-        console.print(json_module.dumps(result_data, indent=2))
+    if json_format:
+        console.print(json.dumps(result_data, indent=2))
     else:
         if success:
             console.print(f"[green]✓ {message}[/green]")

@@ -6,10 +6,14 @@ type annotations.
 """
 
 import logging
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from tmux_orchestrator.core.recovery.briefing_manager import (
+    restore_agent_briefing,
+)
 from tmux_orchestrator.core.recovery.restart_agent import restart_agent
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -93,6 +97,7 @@ def auto_restart_agent(
     # Step 2: Attempt restart with retry logic
     restart_success: bool = False
     restart_message: str = ""
+    retry_delay: float = 2.0  # Delay between retries in seconds
 
     for attempt in range(1, max_retries + 1):
         context_data["retry_attempts"] = attempt
@@ -114,10 +119,6 @@ def auto_restart_agent(
 
         # Wait before retry (except on last attempt)
         if attempt < max_retries:
-            import time
-
-            retry_delay: int = attempt * 2  # Progressive delay: 2s, 4s, 6s
-            logger.info(f"Waiting {retry_delay}s before retry {attempt + 1}")
             time.sleep(retry_delay)
 
     # Update context data with restart results
@@ -132,10 +133,6 @@ def auto_restart_agent(
     # Step 3: Restore briefing if agent restarted successfully
     if restart_success:
         try:
-            from tmux_orchestrator.core.recovery.briefing_manager import (
-                restore_agent_briefing,
-            )
-
             # Determine agent role from target
             agent_role: str = _determine_agent_role(target)
 

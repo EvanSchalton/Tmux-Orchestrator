@@ -669,7 +669,7 @@ def list_contexts(
 
 **CLI Mapping**:
 ```bash
-tmux-orc spawn pm --session proj --extend "custom context"
+tmux-orc spawn pm --session proj --briefing "custom context"
 tmux-orc context spawn <role> <session>
 ```
 
@@ -1034,7 +1034,7 @@ tmux_orchestrator/mcp/
 | `tmux-orc tasks create` | `create_project` | 📋 Designed |
 | `tmux-orc tasks distribute` | `manage_tasks` | 📋 Designed |
 | `tmux-orc context list` | `list_contexts` | 📋 Designed |
-| `tmux-orc spawn pm --extend` | `spawn_with_context` | 📋 Designed |
+| `tmux-orc spawn pm --briefing` | `spawn_with_context` | 📋 Designed |
 
 ### Phase 4 (Orchestrator Operations)
 | CLI Command | MCP Tool | Status |

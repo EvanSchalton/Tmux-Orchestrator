@@ -6,8 +6,11 @@ signatures from API Designer's specifications.
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
+# team_broadcast is implemented in communication_tools.py to avoid circular imports
+from .communication_tools import team_broadcast as comm_team_broadcast
 from .shared_logic import (
     CommandExecutor,
     ExecutionError,
@@ -37,8 +40,6 @@ async def team_status(
     try:
         # Validate team name if provided
         if team_name:
-            import re
-
             if not re.match(r"^[a-zA-Z0-9_-]+$", team_name):
                 return format_error_response(
                     f"Invalid team name '{team_name}'. Use alphanumeric characters, hyphens, and underscores only",
@@ -129,8 +130,6 @@ async def team_deploy(
     """
     try:
         # Validate team name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", team_name):
             return format_error_response(
                 f"Invalid team name '{team_name}'. Use alphanumeric characters, hyphens, and underscores only",
@@ -274,7 +273,6 @@ async def team_list(format: str = "table", include_empty: bool = False) -> Dict[
         return format_error_response(f"Unexpected error: {e}", "team list")
 
 
-# team_broadcast is implemented in communication_tools.py to avoid circular imports
 async def team_broadcast(
     team_name: str, message: str, priority: str = "normal", exclude_roles: Optional[List[str]] = None
 ) -> Dict[str, Any]:
@@ -283,9 +281,6 @@ async def team_broadcast(
 
     This is an alias that imports from communication_tools to avoid circular imports.
     """
-    # Import here to avoid circular imports
-    from .communication_tools import team_broadcast as comm_team_broadcast
-
     return await comm_team_broadcast(
         team_name=team_name, message=message, priority=priority, exclude_roles=exclude_roles
     )
@@ -307,8 +302,6 @@ async def team_kill(team_name: str, graceful: bool = True, timeout: int = 30) ->
     """
     try:
         # Validate team name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", team_name):
             return format_error_response(
                 f"Invalid team name '{team_name}'. Use alphanumeric characters, hyphens, and underscores only",
@@ -393,8 +386,6 @@ async def team_scale(
     """
     try:
         # Validate team name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", team_name):
             return format_error_response(
                 f"Invalid team name '{team_name}'. Use alphanumeric characters, hyphens, and underscores only",

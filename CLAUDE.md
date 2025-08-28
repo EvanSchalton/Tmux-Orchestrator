@@ -20,7 +20,7 @@ As the Claude Code orchestrator, you are the interface between the human and the
    # You can use standardized context for PM
    tmux-orc spawn pm --session session-name:1
    # Or with custom extensions:
-   tmux-orc spawn pm --session session-name:1 --extend "Project specific: ..."
+   tmux-orc spawn pm --session session-name:1 --briefing "Project specific: ..."
 
    # The PM then spawns other agents based on your plan
    tmux-orc spawn agent backend-dev session-name:2 --briefing "..."

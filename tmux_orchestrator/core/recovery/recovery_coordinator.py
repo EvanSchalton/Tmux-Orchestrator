@@ -15,6 +15,9 @@ from tmux_orchestrator.core.recovery.check_agent_health import (
     AgentHealthStatus,
     check_agent_health,
 )
+from tmux_orchestrator.core.recovery.notification_manager import (
+    send_recovery_notification,
+)
 from tmux_orchestrator.core.recovery.recovery_logger import (
     create_recovery_audit_log,
     log_recovery_event,
@@ -181,10 +184,6 @@ def coordinate_agent_recovery(
 
         # Step 4: Send recovery started notification
         try:
-            from tmux_orchestrator.core.recovery.notification_manager import (
-                send_recovery_notification,
-            )
-
             (
                 notification_sent,
                 notification_msg,
@@ -262,9 +261,6 @@ def coordinate_agent_recovery(
             recovery_logger.info(f"Verifying recovery for {target} with final health check")
 
             # Wait briefly for agent to stabilize
-            import time
-
-            time.sleep(3)
 
             # Final health verification
             final_health: AgentHealthStatus = check_agent_health(

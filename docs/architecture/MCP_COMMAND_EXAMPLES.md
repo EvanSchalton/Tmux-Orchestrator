@@ -42,7 +42,7 @@ All MCP tools follow the pattern: `tmux-orc_[group]_[action]`
     "agent_type": "developer",
     "session_window": "backend-api:1",
     "--context": "Implement REST API endpoints for user management",
-    "--extend": "Use FastAPI framework, follow OpenAPI 3.0 standards"
+    "--briefing": "Use FastAPI framework, follow OpenAPI 3.0 standards"
   }
 }
 

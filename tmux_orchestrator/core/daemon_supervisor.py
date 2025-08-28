@@ -4,6 +4,7 @@ This module provides a proper self-healing mechanism to replace the flawed
 __del__ method approach that was causing multiple daemon spawning issues.
 """
 
+import fcntl
 import logging
 import os
 import signal
@@ -13,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 
 from tmux_orchestrator.core.config import Config
+from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError
 
 
 class DaemonSupervisor:
@@ -108,12 +110,9 @@ class DaemonSupervisor:
 
     def start_daemon(self, daemon_command: list[str]) -> bool:
         """Start the daemon process with proper supervision setup and file locking."""
-        import fcntl
-
         # First check if daemon is already running before acquiring lock
         if self.is_daemon_running():
             self.logger.info("Daemon already running")
-            from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError
 
             existing_pid = None
             if self.pid_file.exists():
@@ -138,7 +137,6 @@ class DaemonSupervisor:
                 # Double-check if daemon is running while holding the lock
                 if self.is_daemon_running():
                     self.logger.info("Daemon already running (checked under lock)")
-                    from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError
 
                     existing_pid = None
                     if self.pid_file.exists():
@@ -191,8 +189,7 @@ class DaemonSupervisor:
             for _ in range(50):  # 5 second timeout
                 if self.is_daemon_running():
                     self.logger.info("Daemon started by another process")
-                    # Import and raise the exception to indicate daemon already exists
-                    from tmux_orchestrator.core.monitor import DaemonAlreadyRunningError
+                    # Raise the exception to indicate daemon already exists
 
                     existing_pid = None
                     if self.pid_file.exists():

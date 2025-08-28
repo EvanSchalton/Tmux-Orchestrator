@@ -3,11 +3,20 @@
 import asyncio
 import json
 import logging
+import os
 import sys
 
 import click
 from rich.console import Console
 from rich.panel import Panel
+
+from tmux_orchestrator.mcp.server import EnhancedCLIToMCPServer, main
+from tmux_orchestrator.mcp.singleton import MCPSingleton, check_and_cleanup_stale
+from tmux_orchestrator.utils.claude_config import (
+    get_registration_status,
+    register_mcp_server,
+    update_mcp_registration,
+)
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -34,7 +43,8 @@ def server():
 @server.command()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--test", is_flag=True, help="Run in test mode with sample output")
-def start(verbose, test):
+@click.option("--force", is_flag=True, help="Force start even if another instance exists")
+def start(verbose, test, force):
     """Start MCP server for Claude Code CLI integration.
 
     This command is registered with Claude Code CLI and will be
@@ -43,8 +53,6 @@ def start(verbose, test):
     Runs in stdio mode: reads from stdin, writes to stdout.
     """
     # CRITICAL FIX: Set unbuffered stdio before anything else
-    import os
-
     os.environ["PYTHONUNBUFFERED"] = "1"
 
     # Force unbuffered stdio streams
@@ -65,13 +73,21 @@ def start(verbose, test):
         click.echo('{"status": "ready", "tools": ["list", "spawn", "status"], "mode": "claude_code_cli"}')
         return
 
+    # Clean up any stale files first
+    check_and_cleanup_stale()
+
+    # Enforce singleton unless forced
+    if not force:
+        singleton = MCPSingleton()
+        # This will exit if another instance is running
+        singleton.acquire_or_exit()
+        logger.info(f"MCP server singleton acquired (PID {os.getpid()})")
+    else:
+        logger.warning("Force flag set - bypassing singleton check")
+        singleton = None
+
     try:
-        # Import here to avoid circular imports
         # Set environment to indicate Claude Code CLI mode
-        import os
-
-        from tmux_orchestrator.mcp.server import main
-
         os.environ["TMUX_ORC_MCP_MODE"] = "claude_code"
 
         # Run the server
@@ -82,12 +98,16 @@ def start(verbose, test):
     except Exception as e:
         logger.error(f"MCP server failed: {e}", exc_info=True)
         sys.exit(1)
+    finally:
+        # Clean up singleton lock
+        if singleton:
+            singleton.release()
+            logger.info("MCP server singleton released")
 
 
 @server.command()
 def status():
     """Check MCP server registration status with Claude."""
-    from tmux_orchestrator.utils.claude_config import get_registration_status
 
     status_info = get_registration_status()
 
@@ -125,7 +145,6 @@ def tools(json_output):
     """List available MCP tools that Claude can use."""
     try:
         # Quick tool discovery without full server startup
-        from tmux_orchestrator.mcp.server import EnhancedCLIToMCPServer
 
         server_instance = EnhancedCLIToMCPServer()
         asyncio.run(server_instance.discover_cli_structure())
@@ -165,8 +184,6 @@ def setup():
     3. Verify the configuration
     """
     console.print("[blue]Setting up MCP server for Claude Desktop...[/blue]")
-
-    from tmux_orchestrator.utils.claude_config import get_registration_status, register_mcp_server
 
     # Check current status
     status_info = get_registration_status()
@@ -233,7 +250,6 @@ def setup():
 @click.option("--enable/--disable", default=True, help="Enable or disable MCP server")
 def toggle(enable):
     """Enable or disable MCP server in Claude Desktop."""
-    from tmux_orchestrator.utils.claude_config import update_mcp_registration
 
     success = update_mcp_registration(enable)
 

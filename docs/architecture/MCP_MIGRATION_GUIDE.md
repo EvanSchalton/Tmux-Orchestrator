@@ -213,7 +213,7 @@ The following manual tools have been removed or replaced:
 
 ### 2. Parameter Format Changes
 - Session identification: `session_name` + `window_number` → `session_window` (format: "session:window")
-- Optional parameters: Now require `--` prefix (e.g., `--context`, `--extend`)
+- Optional parameters: Now require `--` prefix (e.g., `--context`, `--briefing`)
 - Boolean flags: Convert to flag presence (e.g., `force=true` → `--force`)
 
 ### 3. Response Format Changes

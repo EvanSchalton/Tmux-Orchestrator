@@ -39,7 +39,7 @@ class TestSpawnAutoIncrement:
         """Test graceful handling of spawn failures"""
         mock_tmux.create_window.return_value = False
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "Agent context"
             result = runner.invoke(
                 spawn, ["agent", "test-dev", "test-session", "--briefing", "Test briefing"], obj={"tmux": mock_tmux}
@@ -63,7 +63,7 @@ class TestSpawnAutoIncrement:
         mock_tmux.create_window.side_effect = mock_create_window
         mock_tmux.list_windows.side_effect = mock_list_windows
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "Agent context"
 
             # First spawn - empty session
@@ -96,7 +96,7 @@ class TestSpawnAutoIncrement:
             {"name": "Claude-dev", "index": "1"},
         ]
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "PM context"
 
             # Try to spawn PM into session that already has one
@@ -117,7 +117,7 @@ class TestSpawnAutoIncrement:
         mock_tmux.create_window.side_effect = mock_create_window
         mock_tmux.list_windows.side_effect = lambda session_name: windows
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "Agent context"
 
             # Test with window index (should extract session only and show warning)
@@ -144,7 +144,7 @@ class TestSpawnAutoIncrement:
         mock_tmux.create_window.side_effect = mock_create_window
         mock_tmux.list_windows.side_effect = lambda session_name: windows
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "Agent context"
             result = runner.invoke(
                 spawn, ["agent", "dev", "test-session", "--briefing", "Dev briefing"], obj={"tmux": mock_tmux}
@@ -171,7 +171,7 @@ class TestSpawnAutoIncrement:
         mock_tmux.create_window.side_effect = mock_create_window
         mock_tmux.list_windows.side_effect = lambda session_name: windows
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "Agent context"
             result = runner.invoke(
                 spawn, ["agent", "test-dev", "test-session", "--briefing", "Test briefing"], obj={"tmux": mock_tmux}
@@ -193,7 +193,7 @@ class TestSpawnAutoIncrement:
         mock_tmux.create_window.side_effect = mock_create_window
         mock_tmux.list_windows.side_effect = lambda session_name: windows
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "Agent context"
 
             # Spawn with explicit window index (should be ignored with warning)
@@ -217,7 +217,7 @@ class TestSpawnAutoIncrement:
         mock_tmux.create_window.side_effect = mock_create_window
         mock_tmux.list_windows.side_effect = lambda session_name: windows
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "Agent context"
             result = runner.invoke(
                 spawn, ["agent", "pm", "empty-session", "--briefing", "PM briefing"], obj={"tmux": mock_tmux}
@@ -238,7 +238,7 @@ class TestSpawnAutoIncrement:
         mock_tmux.create_window.side_effect = mock_create_window
         mock_tmux.list_windows.side_effect = lambda session_name: windows
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "Agent context"
             result = runner.invoke(
                 spawn, ["agent", "dev-api-2024", "test-session", "--briefing", "API Dev"], obj={"tmux": mock_tmux}
@@ -287,7 +287,7 @@ class TestContextSpawnAutoIncrement:
         mock_tmux.create_window.side_effect = mock_create_window
         mock_tmux.list_windows.side_effect = lambda session_name: windows
 
-        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.load_context") as mock_load:
+        with patch("time.sleep"), patch("tmux_orchestrator.cli.context.context_utils.load_context") as mock_load:
             mock_load.return_value = "PM context"
             # Test PM spawn with legacy session:window format
             result = runner.invoke(spawn, ["pm", "--session", "test-session:0"], obj={"tmux": mock_tmux})

@@ -1,6 +1,9 @@
 """Project Manager specific functionality."""
 
+import subprocess
+import time
 from datetime import datetime
+from pathlib import Path
 
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -68,8 +71,6 @@ Please read the task file and create an implementation plan."""
 
         # Create session if needed
         if not self.tmux.has_session(session_name):
-            from pathlib import Path
-
             project_path = Path.cwd()
             self.tmux.create_session(session_name, "Shell", str(project_path))
 
@@ -93,8 +94,6 @@ Please read the task file and create an implementation plan."""
         self._start_claude_pm(target)
 
         # Brief the PM
-        import time
-
         time.sleep(5)
         briefing = self._get_pm_briefing(project_name, task_file)
         self.tmux.send_message(target, briefing)
@@ -108,13 +107,9 @@ Please read the task file and create an implementation plan."""
         self.tmux.send_keys(target, "Enter")
 
         # Activate venv if exists
-        from pathlib import Path
-
         if Path(".venv").exists():
             self.tmux.send_keys(target, "source .venv/bin/activate")
             self.tmux.send_keys(target, "Enter")
-            import time
-
             time.sleep(2)
 
         # Start Claude
@@ -233,8 +228,6 @@ Remember: Quality over speed. No shortcuts."""
                 session = pm_target.split(":")[0]
             else:
                 # Fallback: try to get current session from environment
-                import subprocess
-
                 try:
                     result = subprocess.run(
                         ["tmux", "display-message", "-p", "#S"], capture_output=True, text=True, check=True

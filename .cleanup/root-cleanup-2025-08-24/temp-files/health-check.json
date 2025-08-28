@@ -187,7 +187,7 @@
       },
       "spawn": {
         "type": "command",
-        "help": "Spawn an agent with standardized context (orchestrator/pm only).\n\n    This command creates a complete agent setup:\n    1. Creates a new window at the end of the session\n    2. Starts Claude with appropriate permissions\n    3. Waits for initialization\n    4. Sends the role context\n\n    For other agent types, use custom briefings from your team plan.\n\n    Examples:\n        tmux-orc context spawn pm --session project\n        tmux-orc context spawn orchestrator --session main --extend \"Working on API project\"\n        tmux-orc context spawn pm --session project:1  # Legacy format (index ignored)\n    ",
+        "help": "Spawn an agent with standardized context (orchestrator/pm only).\n\n    This command creates a complete agent setup:\n    1. Creates a new window at the end of the session\n    2. Starts Claude with appropriate permissions\n    3. Waits for initialization\n    4. Sends the role context\n\n    For other agent types, use custom briefings from your team plan.\n\n    Examples:\n        tmux-orc context spawn pm --session project\n        tmux-orc context spawn orchestrator --session main --briefing \"Working on API project\"\n        tmux-orc context spawn pm --session project:1  # Legacy format (index ignored)\n    ",
         "short_help": ""
       },
       "export": {
@@ -325,7 +325,7 @@
       },
       "pm": {
         "type": "command",
-        "help": "Spawn a Project Manager with standardized context.\n\n    This command creates a complete PM agent setup:\n    1. Creates a new window at the end of the session\n    2. Starts Claude with appropriate permissions\n    3. Waits for initialization\n    4. Sends the PM context\n\n    The PM will receive the standard PM context from the system contexts,\n    which includes quality-focused coordination guidelines and workflow patterns.\n\n    Examples:\n        tmux-orc spawn pm --session project\n        tmux-orc spawn pm --session main --extend \"Working on API refactoring\"\n        tmux-orc spawn pm --session project:1  # Legacy format (index ignored)\n    ",
+        "help": "Spawn a Project Manager with standardized context.\n\n    This command creates a complete PM agent setup:\n    1. Creates a new window at the end of the session\n    2. Starts Claude with appropriate permissions\n    3. Waits for initialization\n    4. Sends the PM context\n\n    The PM will receive the standard PM context from the system contexts,\n    which includes quality-focused coordination guidelines and workflow patterns.\n\n    Examples:\n        tmux-orc spawn pm --session project\n        tmux-orc spawn pm --session main --briefing \"Working on API refactoring\"\n        tmux-orc spawn pm --session project:1  # Legacy format (index ignored)\n    ",
         "short_help": ""
       },
       "agent": {

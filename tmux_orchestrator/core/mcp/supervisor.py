@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import subprocess
+import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -348,8 +349,6 @@ class MCPServerSupervisor:
 # CLI interface
 async def main():
     """CLI entry point for MCP supervisor"""
-    import sys
-
     supervisor = MCPServerSupervisor()
 
     if len(sys.argv) < 2:

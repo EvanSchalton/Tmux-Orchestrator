@@ -1,5 +1,6 @@
 """Business logic for getting team status."""
 
+import re
 from datetime import datetime
 from typing import Any
 
@@ -169,8 +170,6 @@ def _is_actual_error(pane_content: str) -> bool:
     ]
 
     # Check for error patterns
-    import re
-
     for pattern in error_patterns:
         if re.search(pattern, content_lower):
             return True

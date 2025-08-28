@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import sys
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
@@ -142,7 +143,6 @@ class MCPProtocolHandler:
 
     async def run_stdio_server(self) -> None:
         """Run the MCP server listening on stdio."""
-        import sys
 
         # Use proper stdio streams
         reader, writer = await asyncio.open_connection()

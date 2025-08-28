@@ -5,9 +5,12 @@ Implements native MCP tools for messaging and team communication with exact para
 signatures from API Designer's specifications.
 """
 
+import datetime
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
+from .agent_tools import agent_send_message
 from .shared_logic import (
     CommandExecutor,
     ExecutionError,
@@ -38,10 +41,12 @@ async def send_message(
     Returns:
         Structured response with message delivery status
     """
-    # Import here to avoid circular imports
-    from .agent_tools import agent_send_message
-
-    return await agent_send_message(target=target, message=message, priority=priority, expect_response=expect_response)
+    return await agent_send_message(
+        target=target,
+        message=message,
+        priority=priority,
+        expect_response=expect_response,
+    )
 
 
 async def team_broadcast(
@@ -63,11 +68,9 @@ async def team_broadcast(
     """
     try:
         # Validate team name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", team_name):
             return format_error_response(
-                f"Invalid team name '{team_name}'. Use alphanumeric characters, hyphens, and underscores only",
+                f"Invalid team name '{team_name}'. " f"Use alphanumeric characters, hyphens, and underscores only",
                 f"team broadcast {team_name}",
             )
 
@@ -81,7 +84,7 @@ async def team_broadcast(
         valid_priorities = {"low", "normal", "high", "urgent"}
         if priority not in valid_priorities:
             return format_error_response(
-                f"Invalid priority '{priority}'. Valid priorities: {', '.join(valid_priorities)}",
+                f"Invalid priority '{priority}'. " f"Valid priorities: {', '.join(valid_priorities)}",
                 f"team broadcast {team_name}",
                 [f"Use one of: {', '.join(valid_priorities)}"],
             )
@@ -110,14 +113,16 @@ async def team_broadcast(
                 "message": message,
                 "priority": priority,
                 "exclude_roles": exclude_roles or [],
-                "broadcast_status": data if isinstance(data, dict) else {"broadcasted": True},
-                "recipients": data.get("recipients", []) if isinstance(data, dict) else [],
-                "successful_sends": data.get("successful", 0) if isinstance(data, dict) else 0,
+                "broadcast_status": (data if isinstance(data, dict) else {"broadcasted": True}),
+                "recipients": (data.get("recipients", []) if isinstance(data, dict) else []),
+                "successful_sends": (data.get("successful", 0) if isinstance(data, dict) else 0),
                 "failed_sends": data.get("failed", 0) if isinstance(data, dict) else 0,
             }
 
             return format_success_response(
-                response_data, result["command"], f"Broadcast sent to team {team_name} with {priority} priority"
+                response_data,
+                result["command"],
+                f"Broadcast sent to team {team_name} with {priority} priority",
             )
         else:
             return format_error_response(
@@ -156,11 +161,9 @@ async def broadcast_message(
     """
     try:
         # Validate session name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", session):
             return format_error_response(
-                f"Invalid session name '{session}'. Use alphanumeric characters, hyphens, and underscores only",
+                f"Invalid session name '{session}'. " f"Use alphanumeric characters, hyphens, and underscores only",
                 f"broadcast message {session}",
             )
 
@@ -174,7 +177,7 @@ async def broadcast_message(
         valid_priorities = {"low", "normal", "high", "urgent"}
         if priority not in valid_priorities:
             return format_error_response(
-                f"Invalid priority '{priority}'. Valid priorities: {', '.join(valid_priorities)}",
+                f"Invalid priority '{priority}'. " f"Valid priorities: {', '.join(valid_priorities)}",
                 f"broadcast message {session}",
                 [f"Use one of: {', '.join(valid_priorities)}"],
             )
@@ -203,13 +206,17 @@ async def broadcast_message(
                 "message": message,
                 "priority": priority,
                 "exclude": exclude or [],
-                "broadcast_status": data if isinstance(data, dict) else {"broadcasted": True},
+                "broadcast_status": (data if isinstance(data, dict) else {"broadcasted": True}),
                 "targets": data.get("targets", []) if isinstance(data, dict) else [],
-                "successful_sends": data.get("successful", 0) if isinstance(data, dict) else 0,
+                "successful_sends": (data.get("successful", 0) if isinstance(data, dict) else 0),
                 "failed_sends": data.get("failed", 0) if isinstance(data, dict) else 0,
             }
 
-            return format_success_response(response_data, result["command"], f"Broadcast sent to session {session}")
+            return format_success_response(
+                response_data,
+                result["command"],
+                f"Broadcast sent to session {session}",
+            )
         else:
             return format_error_response(
                 result.get("stderr", f"Failed to broadcast to session {session}"),
@@ -248,7 +255,10 @@ async def send_urgent_message(target: str, message: str, timeout: int = 30) -> D
 
         # Validate message content
         if not message or not message.strip():
-            return format_error_response("Urgent message cannot be empty", f"send urgent message to {target}")
+            return format_error_response(
+                "Urgent message cannot be empty",
+                f"send urgent message to {target}",
+            )
 
         # Validate timeout
         if not (5 <= timeout <= 300):
@@ -265,7 +275,8 @@ async def send_urgent_message(target: str, message: str, timeout: int = 30) -> D
         cmd.append("--expect-response")
 
         # Execute command
-        executor = CommandExecutor(timeout=timeout + 5)  # Add buffer to executor timeout
+        # Add buffer to executor timeout
+        executor = CommandExecutor(timeout=timeout + 5)
         result = executor.execute(cmd, expect_json=True)
 
         if result["success"]:
@@ -277,9 +288,9 @@ async def send_urgent_message(target: str, message: str, timeout: int = 30) -> D
                 "message": message,
                 "priority": "urgent",
                 "timeout": timeout,
-                "delivery_status": data if isinstance(data, dict) else {"delivered": True},
-                "response_received": data.get("response_received", False) if isinstance(data, dict) else False,
-                "agent_response": data.get("response", None) if isinstance(data, dict) else None,
+                "delivery_status": (data if isinstance(data, dict) else {"delivered": True}),
+                "response_received": (data.get("response_received", False) if isinstance(data, dict) else False),
+                "agent_response": (data.get("response", None) if isinstance(data, dict) else None),
             }
 
             return format_success_response(response_data, result["command"], f"Urgent message sent to {target}")
@@ -322,11 +333,9 @@ async def team_notification(
     """
     try:
         # Validate team name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", team_name):
             return format_error_response(
-                f"Invalid team name '{team_name}'. Use alphanumeric characters, hyphens, and underscores only",
+                f"Invalid team name '{team_name}'. " f"Use alphanumeric characters, hyphens, and underscores only",
                 f"team notification {team_name}",
             )
 
@@ -349,8 +358,6 @@ async def team_notification(
         formatted_message = f"{type_emoji.get(notification_type, '📢')} {notification_type.upper()}: {content}"
 
         if include_metadata:
-            import datetime
-
             timestamp = datetime.datetime.now().strftime("%H:%M:%S")
             formatted_message += f" [{timestamp}]"
 

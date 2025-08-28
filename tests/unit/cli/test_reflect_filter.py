@@ -8,7 +8,11 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from tmux_orchestrator.cli import _filter_commands, _has_regex_chars, _matches_filter, reflect
+from tmux_orchestrator.cli import cli
+from tmux_orchestrator.cli.core.commands.reflect import _filter_commands, _has_regex_chars, _matches_filter
+
+# Get the reflect command from the CLI
+reflect = cli.commands.get("reflect")
 
 
 class TestFilterHelpers:

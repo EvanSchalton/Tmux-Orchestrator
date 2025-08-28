@@ -104,7 +104,7 @@ def command_name():
         tmux-orc command-name advanced-arg --option value --json
 
         # Real-world scenario
-        tmux-orc command-name session:1 --extend "Custom briefing"
+        tmux-orc command-name session:1 --briefing "Custom briefing"
 
     Args:
         arg1: Clear description with expected format
@@ -370,7 +370,7 @@ CLI commands automatically become MCP tools. Ensure:
 ```python
 @click.command()
 @click.argument('target', metavar='SESSION:WINDOW')
-@click.option('--extend', help='Additional context to add to briefing')
+@click.option('--briefing', help='Additional context to add to briefing')
 @click.option('--json', is_flag=True, help='Output in JSON format')
 def mcp_friendly_command(target: str, extend: str, json: bool):
     """

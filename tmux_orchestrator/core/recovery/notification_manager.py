@@ -7,6 +7,7 @@ Follows one-function-per-file pattern with comprehensive type annotations.
 
 import json
 import logging
+import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -112,12 +113,14 @@ def should_send_recovery_notification(
             return True, reason, notification_data
 
         # Check if cooldown period has passed
-        from typing import cast
-
-        last_time_str: str = cast(str, last_notification.get("timestamp", "")) if last_notification else ""
+        last_time_str = last_notification.get("timestamp")
+        if not last_time_str:
+            # No timestamp in notification
+            reason = f"No timestamp in previous notification for {target}, treating as new"
+            return True, reason, notification_data
         try:
             last_time: datetime = datetime.fromisoformat(last_time_str)
-        except ValueError:
+        except (ValueError, TypeError):
             logger.warning(f"Invalid timestamp format in state: {last_time_str}")
             # Treat as no previous notification
             reason = f"Invalid timestamp in state for {target}, treating as new notification"
@@ -349,13 +352,10 @@ def send_recovery_notification(
         result_data["formatted_message_length"] = len(formatted_message)
 
         # Send using the CLI command
-        import subprocess
-
         result = subprocess.run(
             ["tmux-orc", "agent", "send", pm_target, formatted_message],
             capture_output=True,
             text=True,
-            timeout=30,
         )
 
         if result.returncode == 0:

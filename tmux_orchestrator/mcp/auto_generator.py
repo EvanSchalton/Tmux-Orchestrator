@@ -6,13 +6,14 @@ This module implements the CLI parsing system that extracts <mcp>...</mcp> tags 
 to automatically generate MCP tool descriptions, replacing the manual COMPLETE_ACTION_DESCRIPTIONS.
 """
 
+import argparse
 import importlib
 import inspect
 import json
 import logging
 import re
 import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,6 @@ class MCPTagParser:
             description = re.sub(r"\s+", " ", description)
             # Update terminology: orchestrator -> orc for consistency
             description = re.sub(r"\borchestrator\b", "orc", description, flags=re.IGNORECASE)
-            from typing import cast
 
             return cast(str, description)
 
@@ -317,8 +317,6 @@ class MCPAutoGenerator:
 
 def main():
     """CLI entry point for testing the auto-generator."""
-    import argparse
-
     parser = argparse.ArgumentParser(description="Test MCP auto-generation system")
     parser.add_argument("--output", help="Output file for generated descriptions")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")

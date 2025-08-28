@@ -6,6 +6,8 @@ signatures from API Designer's specifications.
 """
 
 import logging
+import os
+import re
 from typing import Any, Dict, Optional
 
 from .shared_logic import (
@@ -101,8 +103,6 @@ async def session_attach(session_name: str, window: Optional[int] = None, read_o
     """
     try:
         # Validate session name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", session_name):
             return format_error_response(
                 f"Invalid session name '{session_name}'. Use alphanumeric characters, hyphens, and underscores only",
@@ -188,8 +188,6 @@ async def session_kill(session_name: str, force: bool = False) -> Dict[str, Any]
     """
     try:
         # Validate session name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", session_name):
             return format_error_response(
                 f"Invalid session name '{session_name}'. Use alphanumeric characters, hyphens, and underscores only",
@@ -261,8 +259,6 @@ async def session_create(
     """
     try:
         # Validate session name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", session_name):
             return format_error_response(
                 f"Invalid session name '{session_name}'. Use alphanumeric characters, hyphens, and underscores only",
@@ -271,8 +267,6 @@ async def session_create(
 
         # Validate start directory if provided
         if start_directory:
-            import os
-
             if not os.path.isdir(start_directory):
                 return format_error_response(
                     f"Start directory '{start_directory}' does not exist",
@@ -347,8 +341,6 @@ async def session_info(session_name: str, include_windows: bool = True) -> Dict[
     """
     try:
         # Validate session name
-        import re
-
         if not re.match(r"^[a-zA-Z0-9_-]+$", session_name):
             return format_error_response(
                 f"Invalid session name '{session_name}'. Use alphanumeric characters, hyphens, and underscores only",

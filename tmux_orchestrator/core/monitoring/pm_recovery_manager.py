@@ -5,12 +5,14 @@ This module extracts PM-specific recovery logic from the monolithic monitor.py,
 providing a focused component for PM health monitoring and recovery actions.
 """
 
+import json
 import logging
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from tmux_orchestrator.cli.spawn_orc import run_spawn_command
 from tmux_orchestrator.core.config import Config
 from tmux_orchestrator.utils.tmux import TMUXManager
 
@@ -212,8 +214,6 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
             return False
 
         time_since_recovery = datetime.now() - self.recovery_state.last_recovery[session_name]
-        from typing import cast
-
         return cast(bool, time_since_recovery < self.recovery_state.recovery_grace_period)
 
     def _get_recent_recovery_attempts(self, session_name: str) -> list[datetime]:
@@ -269,8 +269,6 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
             "attempts": len(self._get_recent_recovery_attempts(session_name)),
         }
 
-        import json
-
         state_file.write_text(json.dumps(state_data, indent=2))
         return state_file
 
@@ -308,8 +306,6 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
                 self.logger.warning(f"Error checking/creating window: {e}")
 
             # Spawn PM using tmux-orc CLI
-            from tmux_orchestrator.cli.spawn_orc import run_spawn_command
-
             # Create spawn arguments
             spawn_args = {
                 "agent_type": "pm",
@@ -372,8 +368,6 @@ class PMRecoveryManager(PMRecoveryManagerInterface):
         try:
             if not self.recovery_state_dir.exists():
                 return
-
-            import json
 
             for state_file in self.recovery_state_dir.glob("pm_recovery_*.json"):
                 try:

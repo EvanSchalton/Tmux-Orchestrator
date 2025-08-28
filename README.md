@@ -330,7 +330,7 @@ Claude Code acts as orchestrator, creating bespoke teams through planning docume
 # Claude Code orchestrator workflow:
 # 1. Creates team plan in .tmux_orchestrator/planning/
 # 2. Spawns PM with plan reference
-tmux-orc spawn pm --session project:1 --extend "Read plan at .tmux_orchestrator/planning/..."
+tmux-orc spawn pm --session project:1 --briefing "Read plan at .tmux_orchestrator/planning/..."
 
 # 3. PM reads plan and spawns team:
 tmux-orc spawn agent backend-dev project:2 --briefing "..."

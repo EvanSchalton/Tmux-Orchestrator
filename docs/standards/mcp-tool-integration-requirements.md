@@ -12,7 +12,7 @@ Every CLI command MUST be compatible with automatic MCP tool generation:
 # ✅ CORRECT: MCP-ready CLI command
 @click.command()
 @click.argument('target', metavar='SESSION:WINDOW')
-@click.option('--extend', help='Additional context to add')
+@click.option('--briefing', help='Additional context to add')
 @click.option('--json', is_flag=True, help='Output in JSON format')
 def spawn_agent(target: str, extend: str, json: bool):
     """
@@ -22,7 +22,7 @@ def spawn_agent(target: str, extend: str, json: bool):
     specified role and configuration.
 
     Examples:
-        tmux-orc spawn agent dev-session:1 --extend "Python expert"
+        tmux-orc spawn agent dev-session:1 --briefing "Python expert"
         tmux-orc spawn agent backend:2 --json
 
     Args:

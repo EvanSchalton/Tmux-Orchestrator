@@ -47,7 +47,7 @@ This document tracks all outstanding work items for the Tmux Orchestrator projec
 ### 4. Input Validation Gaps (CVSS 7.5)
 - **Type**: Security
 - **Location**: Agent briefing inputs
-- **Description**: No validation for --extend, --briefing parameters
+- **Description**: No validation for --briefing, --briefing parameters
 - **Impact**: Command injection, data corruption
 - **Fix**: Add input sanitization layer
 - **Effort**: 2-3 days

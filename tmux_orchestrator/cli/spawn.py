@@ -1,11 +1,15 @@
 """Spawn command group for creating orchestrators, PMs, and agents."""
 
+import json
+import time
 from pathlib import Path
 from typing import Optional
 
 import click
 from rich.console import Console
 
+from tmux_orchestrator.cli.context import spawn as context_spawn
+from tmux_orchestrator.cli.spawn_orc import spawn_orc
 from tmux_orchestrator.utils.tmux import TMUXManager
 
 console = Console()
@@ -73,7 +77,6 @@ def orc(
         tmux-orc spawn orc --extend "Working on API refactoring"     # Deprecated, use --briefing
     """
     # Import the implementation from spawn_orc
-    from tmux_orchestrator.cli.spawn_orc import spawn_orc
 
     # Handle deprecated --extend flag
     context_text = briefing or extend
@@ -86,10 +89,14 @@ def orc(
 @click.option("--session", required=True, help="Target session name or session:window (legacy)")
 @click.option("--extend", help="Additional project-specific context (deprecated, use --briefing)")
 @click.option("--briefing", help="Additional project-specific context")
-@click.option("--json", is_flag=True, help="Output in JSON format")
+@click.option("--json", "json_format", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def pm(
-    ctx: click.Context, session: str, extend: Optional[str] = None, briefing: Optional[str] = None, json: bool = False
+    ctx: click.Context,
+    session: str,
+    extend: Optional[str] = None,
+    briefing: Optional[str] = None,
+    json_format: bool = False,
 ) -> None:
     """Spawn a Project Manager with standardized context.
 
@@ -111,7 +118,6 @@ def pm(
         tmux-orc spawn pm --session project:1  # Legacy format (index ignored)
     """
     # Import context functionality
-    from tmux_orchestrator.cli.context import spawn as context_spawn
 
     # Handle deprecated --extend flag
     context_text = briefing or extend
@@ -125,10 +131,15 @@ def pm(
 @click.argument("target")
 @click.option("--briefing", required=True, help="Agent briefing/system prompt")
 @click.option("--working-dir", help="Working directory for the agent")
-@click.option("--json", is_flag=True, help="Output in JSON format")
+@click.option("--json", "json_format", is_flag=True, help="Output in JSON format")
 @click.pass_context
 def agent(
-    ctx: click.Context, name: str, target: str, briefing: str, working_dir: Optional[str] = None, json: bool = False
+    ctx: click.Context,
+    name: str,
+    target: str,
+    briefing: str,
+    working_dir: Optional[str] = None,
+    json_format: bool = False,
 ) -> None:
     """Spawn a custom agent into a specific session.
 
@@ -158,7 +169,6 @@ def agent(
     The orc typically uses this command to create custom agents
     tailored to specific project needs, as defined in the team composition plan.
     """
-    import time
 
     tmux: TMUXManager = ctx.obj["tmux"] if ctx.obj and "tmux" in ctx.obj else TMUXManager()
 
@@ -178,21 +188,17 @@ def agent(
         working_path = Path(working_dir)
         if not working_path.exists():
             error_msg = f"Working directory '{working_dir}' does not exist"
-            if json:
-                import json as json_module
-
+            if json_format:
                 result = {"success": False, "name": name, "target": target, "error": error_msg}
-                console.print(json_module.dumps(result, indent=2))
+                console.print(json.dumps(result, indent=2))
                 return
             console.print(f"[red]✗ {error_msg}[/red]")
             raise click.Abort()
         if not working_path.is_dir():
             error_msg = f"Working directory '{working_dir}' is not a directory"
-            if json:
-                import json as json_module
-
+            if json_format:
                 result = {"success": False, "name": name, "target": target, "error": error_msg}
-                console.print(json_module.dumps(result, indent=2))
+                console.print(json.dumps(result, indent=2))
                 return
             console.print(f"[red]✗ {error_msg}[/red]")
             raise click.Abort()
@@ -202,16 +208,14 @@ def agent(
         # Create new session
         if not tmux.create_session(session_name):
             error_msg = f"Failed to create session '{session_name}'"
-            if json:
-                import json as json_module
-
+            if json_format:
                 result = {
                     "success": False,
                     "name": name,
                     "target": target,
                     "error": error_msg,
                 }
-                console.print(json_module.dumps(result, indent=2))
+                console.print(json.dumps(result, indent=2))
                 return
             console.print(f"[red]✗ {error_msg}[/red]")
             raise click.Abort()
@@ -247,9 +251,7 @@ def agent(
             error_msg = (
                 f"Role conflict: '{name}' conflicts with existing window '{window['name']}' in session '{session_name}'"
             )
-            if json:
-                import json as json_module
-
+            if json_format:
                 result = {
                     "success": False,
                     "name": name,
@@ -258,7 +260,7 @@ def agent(
                     "conflict_window": f"{session_name}:{window['index']}",
                     "validation_failed": "duplicate_role",
                 }
-                console.print(json_module.dumps(result, indent=2))
+                console.print(json.dumps(result, indent=2))
                 return
             console.print(f"[red]✗ {error_msg}[/red]")
             console.print(f"[yellow]Existing window: {session_name}:{window['index']} - {window['name']}[/yellow]")
@@ -271,16 +273,14 @@ def agent(
 
     if not success:
         error_msg = "Failed to create window"
-        if json:
-            import json as json_module
-
+        if json_format:
             result = {
                 "success": False,
                 "name": name,
                 "target": target,
                 "error": error_msg,
             }
-            console.print(json_module.dumps(result, indent=2))
+            console.print(json.dumps(result, indent=2))
             return
         console.print(f"[red]✗ {error_msg}[/red]")
         raise click.Abort()
@@ -295,16 +295,14 @@ def agent(
 
     if actual_window_idx is None:
         error_msg = "Window created but not found"
-        if json:
-            import json as json_module
-
+        if json_format:
             result = {
                 "success": False,
                 "name": name,
                 "target": target,
                 "error": error_msg,
             }
-            console.print(json_module.dumps(result, indent=2))
+            console.print(json.dumps(result, indent=2))
             return
         console.print(f"[red]✗ {error_msg}[/red]")
         raise click.Abort()
@@ -359,10 +357,8 @@ To check if MCP tools are available, look for the tools icon in Claude Code's in
         "briefing_sent": True,
     }
 
-    if json:
-        import json as json_module
-
-        console.print(json_module.dumps(result_data, indent=2))
+    if json_format:
+        console.print(json.dumps(result_data, indent=2))
     else:
         console.print(f"[green]✓ Spawned custom agent '{name}' at {actual_target}[/green]")
         console.print(f"  Window name: {window_name}")
